@@ -1,5 +1,5 @@
 name: auto_diary_ai
-description: "A new Flutter project."
+description: "AIで自動的に日記を生成するFlutterアプリ"
 publish_to: 'none'
 
 version: 1.0.0+1
@@ -12,9 +12,27 @@ dependencies:
     sdk: flutter
 
   cupertino_icons: ^1.0.8
-  flutter_riverpod: ^3.0.0
-  freezed_annotation: ^3.0.0
+  flutter_riverpod: ^3.0.3
+  freezed_annotation: ^3.1.0
   json_annotation: ^4.9.0
+
+  # --- UI / Utility Libraries ---
+  flutter_animate: ^4.5.2
+  flex_color_scheme: ^8.3.1
+  google_fonts: ^6.3.2
+  go_router: ^16.3.0
+  smooth_page_indicator: ^1.2.1
+  awesome_dialog: ^3.3.0
+  fluttertoast: ^9.0.0
+  image_picker: ^1.2.0
+  path_provider: ^2.1.5
+  cached_network_image: ^3.4.1
+  flutter_settings_ui: ^3.0.1
+  dio: ^5.9.0
+
+  # --- Animated List / Scroll Animation ---
+  flutter_staggered_animations: ^1.1.1
+  animated_list_plus: ^0.4.3
 
 dev_dependencies:
   flutter_test:

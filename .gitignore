@@ -120,3 +120,11 @@ app.*.symbols
 !**/ios/**/default.perspectivev3
 !/packages/flutter_tools/test/data/dart_dependencies_test/**/.packages
 !/dev/ci/**/Gemfile.lock
+
+# iOS Flutter config files
+**/ios/Flutter/Flutter-Debug.xcconfig
+**/ios/Flutter/Flutter-Release.xcconfig
+
+# macOS Flutter config files
+**/macos/Flutter/Flutter-Debug.xcconfig
+**/macos/Flutter/Flutter-Release.xcconfig
