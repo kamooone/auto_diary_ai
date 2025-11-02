@@ -125,6 +125,6 @@ app.*.symbols
 **/ios/Flutter/Flutter-Debug.xcconfig
 **/ios/Flutter/Flutter-Release.xcconfig
 
-# macOS Flutter config files
-**/macos/Flutter/Flutter-Debug.xcconfig
-**/macos/Flutter/Flutter-Release.xcconfig
+# Flutter iOS/macOS generated xcconfig
+**/ios/Flutter/*.xcconfig
+**/macos/Flutter/*.xcconfig
