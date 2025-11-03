@@ -1,0 +1,208 @@
+name: Flutter CI
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+      - feature/*
+  pull_request:
+    branches:
+      - main
+      - develop
+      - feature/*
+  workflow_dispatch:
+    inputs:
+      target:
+        description: '実行するジョブを選択'
+        required: true
+        default: 'test'
+        type: choice
+        options:
+          - test
+          - build_android
+          - build_ios
+          - deploy_android
+          - deploy_ios
+
+jobs:
+  # =========================
+  # Test
+  # =========================
+  test:
+    name: Run Flutter tests
+    runs-on: ubuntu-latest
+    # push/pull_request のとき or 手動で "test" 選択時のみ実行
+    if: |
+      github.event_name != 'workflow_dispatch' ||
+      github.event.inputs.target == 'test'
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: 'stable'
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Analyze code
+        run: flutter analyze
+
+      - name: Run tests
+        # unitTest
+        run: flutter test --coverage
+
+        # TODO: 単体テストを充実させる（モデル・サービス層など）
+        # TODO: 将来的に widget テストを追加（UIコンポーネント単位）
+        # TODO: 統合テスト（integration_test / flutter drive）は別ジョブで追加
+        # TODO: Android 統合テストを別ジョブで追加
+        # TODO: iOS 統合テストを別ジョブで追加
+        # TODO: E2E テスト（ユーザー操作フロー全体）は必要に応じて別ジョブで追加
+        # TODO: パフォーマンステストや UI スナップショットテストも必要に応じて追加
+
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v3
+        with:
+          name: coverage-report
+          path: coverage/lcov.info
+
+
+  # =========================
+  # Android Build（手動専用）
+  # =========================
+  build_android:
+    name: Build Android (.aab)
+    runs-on: ubuntu-latest
+    if: |
+      github.event_name == 'workflow_dispatch' &&
+      github.event.inputs.target == 'build_android'
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: 'stable'
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Build Android App Bundle (.aab)
+        run: flutter build appbundle --release
+
+      - name: Upload Android artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: android-appbundle
+          path: build/app/outputs/bundle/release/app-release.aab
+
+
+  # =========================
+  # iOS Build（手動専用）
+  # =========================
+  build_ios:
+    name: Build iOS (.ipa)
+    runs-on: macos-latest
+    if: |
+      github.event_name == 'workflow_dispatch' &&
+      github.event.inputs.target == 'build_ios'
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: 'stable'
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Build iOS App (.ipa)
+        # TODO: ExportOptions.plistの内容を確認
+        # - チームID, 配布方法(App Store/Ad Hoc)などが正しいか
+        run: |
+          flutter build ipa --release \
+            --export-options-plist=ExportOptions.plist
+
+      - name: Upload iOS artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: ios-ipa
+          path: build/ios/ipa/*.ipa # TODO: deploy_iosで使用するファイル名にする
+
+
+  # =========================
+  # Deploy Android（手動専用）
+  # =========================
+  deploy_android:
+    name: Deploy to Google Play
+    runs-on: ubuntu-latest
+    needs: [build_android, test]
+    if: |
+      github.event_name == 'workflow_dispatch' &&
+      (github.event.inputs.target == 'deploy_android')
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Download Android artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: android-appbundle
+          path: ./artifacts/android
+
+      - name: Verify AAB exists
+        run: ls -la ./artifacts/android
+
+      - name: Upload to Google Play
+        uses: r0adkll/upload-google-play@v1
+        with:
+          # TODO: Google Play用のService Account JSONをGitHub Secretsに設定してから使用
+          serviceAccountJsonPlainText: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT }}
+          packageName: com.kazusa.auto_diary_ai
+          releaseFiles: ./artifacts/android/app-release.aab
+          track: internal
+          status: completed
+
+
+  # =========================
+  # Deploy iOS（手動専用）
+  # =========================
+  deploy_ios:
+    name: Deploy to App Store
+    runs-on: macos-latest
+    needs: [build_ios, test]
+    if: |
+      github.event_name == 'workflow_dispatch' &&
+      (github.event.inputs.target == 'deploy_ios')
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Download iOS artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: ios-ipa
+          path: ./artifacts/ios
+
+      - name: Verify IPA exists
+        run: ls -la ./artifacts/ios
+
+      - name: Upload to App Store Connect
+        uses: appleboy/app-store-release-action@v1
+        with:
+          # TODO: Apple DeveloperでAPI Keyを作成し、GitHub Secretsに設定する
+          api_key_id: ${{ secrets.APP_STORE_KEY_ID }}
+          api_key_issuer_id: ${{ secrets.APP_STORE_ISSUER_ID }}
+          api_key: ${{ secrets.APP_STORE_API_KEY }}
+          ipa_path: ./artifacts/ios/auto_diary_ai.ipa # TODO: buildで生成したipaのファイル名にする
