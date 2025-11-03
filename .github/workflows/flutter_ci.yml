@@ -27,7 +27,7 @@ on:
 
 jobs:
   # =========================
-  # Test
+  # Unit / Widget Test
   # =========================
   test:
     name: Run Flutter tests
@@ -53,22 +53,47 @@ jobs:
         run: flutter analyze
 
       - name: Run tests
-        # unitTest
         run: flutter test --coverage
-
-        # TODO: 単体テストを充実させる（モデル・サービス層など）
-        # TODO: 将来的に widget テストを追加（UIコンポーネント単位）
-        # TODO: 統合テスト（integration_test / flutter drive）は別ジョブで追加
-        # TODO: Android 統合テストを別ジョブで追加
-        # TODO: iOS 統合テストを別ジョブで追加
-        # TODO: E2E テスト（ユーザー操作フロー全体）は必要に応じて別ジョブで追加
-        # TODO: パフォーマンステストや UI スナップショットテストも必要に応じて追加
 
       - name: Upload coverage report
         uses: actions/upload-artifact@v4
         with:
           name: coverage-report
           path: coverage/lcov.info
+
+
+  # =========================
+  # Integration / E2E Test（コメントアウト）
+  # =========================
+  # integration_test:
+  #   name: Run Flutter integration & E2E tests
+  #   runs-on: ubuntu-latest
+  #   if: github.event.inputs.target == 'integration_test'  # 手動で実行する場合
+  #
+  #   steps:
+  #     - name: Checkout repository
+  #       uses: actions/checkout@v3
+  #
+  #     - name: Setup Flutter
+  #       uses: subosito/flutter-action@v2
+  #       with:
+  #         flutter-version: '3.35.1'
+  #
+  #     - name: Install dependencies
+  #       run: flutter pub get
+  #
+  #     - name: Run integration tests
+  #       # ✅ integration_test ディレクトリのテストを実行
+  #       # flutter test integration_test/ で実行可能
+  #       run: |
+  #         echo "統合テストをここで実行"
+  #         # flutter test integration_test/
+  #
+  #     - name: Run E2E / Drive tests
+  #       # ✅ E2E / UIフロー全体のテスト
+  #       # flutter drive --target=integration_test/app_test.dart
+  #       run: |
+  #         echo "E2Eテストをここで実行"
 
 
   # =========================
