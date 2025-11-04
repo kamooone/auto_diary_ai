@@ -34,6 +34,9 @@ dependencies:
   flutter_staggered_animations: ^1.1.1
   animated_list_plus: ^0.4.3
 
+  # --- Grouped List ---
+  grouped_list: ^5.1.2
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

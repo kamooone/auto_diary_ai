@@ -1,0 +1,64 @@
+import 'package:flutter/material.dart';
+import 'package:cached_network_image/cached_network_image.dart';
+import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
+import '../../data/models/diary_item.dart';
+
+/// 日記アイテムをカードとして表示するウィジェット
+class DiaryCard extends StatelessWidget {
+  final DiaryItem item;
+  final int index;
+
+  const DiaryCard({
+    super.key,
+    required this.item,
+    required this.index,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimationConfiguration.staggeredList(
+      position: index,
+      duration: const Duration(milliseconds: 500),
+      child: SlideAnimation(
+        verticalOffset: 50,
+        child: FadeInAnimation(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            child: Card(
+              elevation: 4,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: ListTile(
+                contentPadding: const EdgeInsets.all(12),
+                leading: ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: CachedNetworkImage(
+                    imageUrl: item.thumbnailUrl,
+                    width: 70,
+                    height: 70,
+                    fit: BoxFit.cover,
+                    placeholder: (context, url) => const SizedBox(
+                      width: 70,
+                      height: 70,
+                      child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
+                    ),
+                    errorWidget: (context, url, error) => const Icon(Icons.error, color: Colors.redAccent),
+                  ),
+                ),
+                title: Text(
+                  item.aiMemo,
+                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                ),
+                subtitle: Text(
+                  item.date,
+                  style: TextStyle(color: Colors.grey[600]),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
