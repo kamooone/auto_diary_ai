@@ -37,6 +37,11 @@ dependencies:
   # --- Grouped List ---
   grouped_list: ^5.1.2
 
+  # --- Localization packages ---
+  flutter_localizations:
+    sdk: flutter
+  intl: ^0.20.2
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -48,3 +53,12 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+  generate: true
+
+flutter_gen:
+  l10n:
+    arb-dir: lib/l10n
+    template-arb-file: app_en.arb
+    output-localization-file: app_localizations.dart
+    output-class: AppLocalizations
+    untranslated-messages-file: lib/l10n/untranslated_messages.txt
