@@ -5,32 +5,29 @@ import '../constants/theme_colors.dart';
 
 class ThemeUtil {
   static ThemeData homeTheme() {
-    return FlexThemeData.light(
-      scheme: FlexScheme.mandyRed,
-      surfaceMode: FlexSurfaceMode.highScaffoldLowSurface,
-      blendLevel: 15,
-      appBarOpacity: 0.95,
-      subThemesData: const FlexSubThemesData(
-        cardElevation: 6,
-        cardRadius: 16,
-      ),
-      visualDensity: FlexColorScheme.comfortablePlatformDensity,
-      fontFamily: GoogleFonts.notoSans().fontFamily,
-    ).copyWith(
-      scaffoldBackgroundColor: AppColors.background,
-      cardColor: AppColors.surface,
-      textTheme: GoogleFonts.notoSansTextTheme(),
+    // FlexThemeData をベースに
+    final baseTheme = FlexThemeData.light(
+      scheme: FlexScheme.sanJuanBlue, // 基本色の設定
     );
-  }
 
-  static ThemeData settingsTheme() {
-    return FlexThemeData.light(
-      scheme: FlexScheme.blueWhale,
-      blendLevel: 10,
-      fontFamily: GoogleFonts.notoSans().fontFamily,
-    ).copyWith(
+    return baseTheme.copyWith(
+      // Scaffold / 背景色
       scaffoldBackgroundColor: AppColors.background,
-      cardColor: AppColors.surface,
+      // Card の色
+      cardColor: AppColors.surface, // TODO: 動的に変更できるようにする
+      // 全体のテキストテーマ
+      textTheme: GoogleFonts.notoSansTextTheme(),
+
+      // AppBar 専用のテーマ
+      appBarTheme: AppBarTheme(
+        backgroundColor: baseTheme.primaryColor, // FlexScheme に基づくプライマリカラー
+        titleTextStyle: GoogleFonts.notoSans(
+          fontSize: 20,
+          fontWeight: FontWeight.w600,
+          color: Colors.white,
+        ),
+        iconTheme: const IconThemeData(color: Colors.white),
+      ),
     );
   }
 }

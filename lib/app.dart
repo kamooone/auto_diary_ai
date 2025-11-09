@@ -16,7 +16,7 @@ class App extends StatelessWidget {
           path: '/',
           builder: (context, state) => Theme(
             data: ThemeUtil.homeTheme(),
-            child: const HomeScreen(),
+            child: HomeScreen(),
           ),
         ),
 
@@ -33,6 +33,8 @@ class App extends StatelessWidget {
     return MaterialApp.router(
       title: AppLocalizations.of(context)?.appTitle ?? '',
       routerConfig: router,
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
     );
   }
 }

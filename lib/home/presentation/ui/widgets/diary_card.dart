@@ -25,10 +25,9 @@ class DiaryCard extends StatelessWidget {
           child: Padding(
             padding: const EdgeInsets.symmetric(vertical: 8),
             child: Card(
-              elevation: 4,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
-              ),
+              elevation: Theme.of(context).cardTheme.elevation,
+              shape: Theme.of(context).cardTheme.shape,
+              color: Theme.of(context).cardColor,
               child: ListTile(
                 contentPadding: const EdgeInsets.all(12),
                 leading: ClipRRect(
@@ -48,11 +47,11 @@ class DiaryCard extends StatelessWidget {
                 ),
                 title: Text(
                   item.aiMemo,
-                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
                 ),
                 subtitle: Text(
                   item.date,
-                  style: TextStyle(color: Colors.grey[600]),
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.grey[600]),
                 ),
               ),
             ),

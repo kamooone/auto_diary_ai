@@ -1,7 +1,8 @@
 import 'package:auto_diary_ai/home/presentation/ui/widgets/diary_list_view.dart';
-import 'package:auto_diary_ai/home/presentation/ui/widgets/home_app_bar.dart';
+import 'package:auto_diary_ai/home/presentation/ui/widgets/month_dropdown.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../l10n/app_localizations.dart';
 import '../viewmodels/home_view_model.dart';
 
 class HomeScreen extends ConsumerWidget {
@@ -13,16 +14,38 @@ class HomeScreen extends ConsumerWidget {
     final viewModel = ref.read(homeViewModelProvider.notifier);
 
     return Scaffold(
-      appBar: HomeAppBar(
-        months: state.months,
-        selectedMonth: state.selectedMonth,
-        onMonthChanged: viewModel.setMonth,
+      appBar: AppBar(
+        title: Text(AppLocalizations.of(context)?.appTitle ?? ''),
+        centerTitle: true,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.settings),
+            onPressed: () {},
+          ),
+        ],
       ),
-      body: DiaryListView(
-        months: state.months,
-        filteredItemsPerMonth: state.filteredItemsPerMonth,
-        pageController: state.pageController,
-        onPageChanged: viewModel.onPageChanged,
+      body: Column(
+        children: [
+          // ここに月選択ドロップダウンを配置
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: MonthDropdown(
+              months: state.months,
+              selectedMonth: state.selectedMonth,
+              onChanged: viewModel.setMonth,
+            ),
+          ),
+
+          // リストは残りのスペースを使う
+          Expanded(
+            child: DiaryListView(
+              months: state.months,
+              filteredItemsPerMonth: state.filteredItemsPerMonth,
+              pageController: state.pageController,
+              onPageChanged: viewModel.onPageChanged,
+            ),
+          ),
+        ],
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () {

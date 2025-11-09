@@ -14,21 +14,24 @@ class MonthDropdown extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: [
-        DropdownButton<String>(
-          value: selectedMonth,
-          onChanged: (value) {
-            if (value != null) onChanged(value);
-          },
-          items: months
-              .map((month) => DropdownMenuItem(
-            value: month,
-            child: Text(month),
-          ))
-              .toList(),
-        ),
-      ],
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: Row(
+        children: [
+          DropdownButton<String>(
+            value: selectedMonth,
+            onChanged: (value) {
+              if (value != null) onChanged(value);
+            },
+            items: months
+                .map((month) => DropdownMenuItem(
+              value: month,
+              child: Text(month),
+            ))
+                .toList(),
+          ),
+        ],
+      ),
     );
   }
 }
