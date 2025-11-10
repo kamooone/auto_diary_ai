@@ -1,6 +1,7 @@
 import 'package:auto_diary_ai/home/presentation/ui/home_screen/viewmodel/home_view_model.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import '../../../../l10n/app_localizations.dart';
 import 'widgets/diary_list_view.dart';
 import 'widgets/month_dropdown.dart';
@@ -44,9 +45,9 @@ class HomeScreen extends ConsumerWidget {
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
-          // TODO: 日記作成画面に遷移
+          context.push('/diary_create_screen');
         },
-        child: const Icon(Icons.add_a_photo),
+        child: const Icon(Icons.add),
       ),
     );
   }
