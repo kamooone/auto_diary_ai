@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'core/util/theme_util.dart';
-import 'home/presentation/ui/home_screen.dart';
+import 'home/presentation/ui/home_screen/home_screen.dart';
 import 'l10n/app_localizations.dart';
 
 class App extends StatelessWidget {

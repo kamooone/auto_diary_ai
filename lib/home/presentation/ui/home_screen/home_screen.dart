@@ -1,9 +1,9 @@
-import 'package:auto_diary_ai/home/presentation/ui/widgets/diary_list_view.dart';
-import 'package:auto_diary_ai/home/presentation/ui/widgets/month_dropdown.dart';
+import 'package:auto_diary_ai/home/presentation/ui/home_screen/viewmodel/home_view_model.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../l10n/app_localizations.dart';
-import '../viewmodels/home_view_model.dart';
+import '../../../../l10n/app_localizations.dart';
+import 'widgets/diary_list_view.dart';
+import 'widgets/month_dropdown.dart';
 
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
