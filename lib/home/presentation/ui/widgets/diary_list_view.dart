@@ -1,3 +1,4 @@
+import 'package:auto_diary_ai/core/constants/app_sizes.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
 import '../../../data/models/diary_item.dart';
@@ -27,7 +28,7 @@ class DiaryListView extends StatelessWidget {
         final items = filteredItemsPerMonth[months[pageIndex]]!;
         return AnimationLimiter(
           child: ListView.builder(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(AppSizes.padding16),
             itemCount: items.length,
             itemBuilder: (context, index) {
               final item = items[index];

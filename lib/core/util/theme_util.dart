@@ -1,7 +1,8 @@
+import 'package:auto_diary_ai/core/constants/app_sizes.dart';
 import 'package:flex_color_scheme/flex_color_scheme.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter/material.dart';
-import '../constants/theme_colors.dart';
+import '../constants/app_colors.dart';
 
 class ThemeUtil {
   static ThemeData homeTheme() {
@@ -22,7 +23,7 @@ class ThemeUtil {
       appBarTheme: AppBarTheme(
         backgroundColor: baseTheme.primaryColor, // FlexScheme に基づくプライマリカラー
         titleTextStyle: GoogleFonts.notoSans(
-          fontSize: 20,
+          fontSize: AppSizes.fontSize20,
           fontWeight: FontWeight.w600,
           color: Colors.white,
         ),

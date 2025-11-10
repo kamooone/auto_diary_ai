@@ -26,17 +26,12 @@ class HomeScreen extends ConsumerWidget {
       ),
       body: Column(
         children: [
-          // ここに月選択ドロップダウンを配置
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            child: MonthDropdown(
-              months: state.months,
-              selectedMonth: state.selectedMonth,
-              onChanged: viewModel.setMonth,
-            ),
-          ),
+         MonthDropdown(
+           months: state.months,
+           selectedMonth: state.selectedMonth,
+           onChanged: viewModel.setMonth,
+         ),
 
-          // リストは残りのスペースを使う
           Expanded(
             child: DiaryListView(
               months: state.months,

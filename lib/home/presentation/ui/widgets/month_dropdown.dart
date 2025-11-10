@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../../../../core/constants/app_colors.dart';
+import '../../../../core/constants/app_sizes.dart';
 
 class MonthDropdown extends StatelessWidget {
   final List<String> months;
@@ -15,20 +17,35 @@ class MonthDropdown extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: AppSizes.horizontal16, vertical: AppSizes.vertical8),
       child: Row(
         children: [
-          DropdownButton<String>(
-            value: selectedMonth,
-            onChanged: (value) {
-              if (value != null) onChanged(value);
-            },
-            items: months
-                .map((month) => DropdownMenuItem(
-              value: month,
-              child: Text(month),
-            ))
-                .toList(),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: AppSizes.horizontal12, vertical: AppSizes.vertical4),
+            decoration: BoxDecoration(
+              color: AppColors.dropdownBackground,
+              borderRadius: BorderRadius.circular(AppSizes.circular8),
+              border: Border.all(color: AppColors.dropdownBorder),
+            ),
+            child: DropdownButtonHideUnderline(
+              child: DropdownButton<String>(
+                value: selectedMonth,
+                isExpanded: false,
+                icon: const Icon(Icons.arrow_drop_down),
+                dropdownColor: AppColors.dropdownMenu,
+                onChanged: (value) {
+                  if (value != null) onChanged(value);
+                },
+                items: months
+                    .map(
+                      (month) => DropdownMenuItem(
+                    value: month,
+                    child: Text(month),
+                  ),
+                )
+                    .toList(),
+              ),
+            ),
           ),
         ],
       ),
