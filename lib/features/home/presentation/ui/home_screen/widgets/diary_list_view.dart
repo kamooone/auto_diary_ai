@@ -25,7 +25,7 @@ class DiaryListView extends StatelessWidget {
       itemCount: months.length,
       onPageChanged: onPageChanged,
       itemBuilder: (context, pageIndex) {
-        final items = filteredItemsPerMonth[months[pageIndex]]!;
+        final items = filteredItemsPerMonth[months[pageIndex]] ?? [];
         return AnimationLimiter(
           child: ListView.builder(
             padding: const EdgeInsets.all(AppSizes.padding16),
