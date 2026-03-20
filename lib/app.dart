@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
-import 'core/util/theme_util.dart';
-import 'home/presentation/ui/diary_create_screen/diary_create_screen.dart';
-import 'home/presentation/ui/home_screen/home_screen.dart';
+import 'app/router/app_router.dart';
+import 'app/theme/theme_util.dart';
 import 'l10n/app_localizations.dart';
 
 class App extends StatelessWidget {
@@ -10,32 +8,12 @@ class App extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final router = GoRouter(
-      initialLocation: '/',
-      routes: [
-        GoRoute(
-          path: '/',
-          builder: (context, state) => Theme(
-            data: ThemeUtil.homeTheme(),
-            child: HomeScreen(),
-          ),
-        ),
-
-        GoRoute(
-          path: '/diary_create_screen',
-          builder: (context, state) => Theme(
-            data: ThemeUtil.homeTheme(),
-            child: const DiaryCreateScreen(),
-          ),
-        ),
-      ],
-    );
-
     return MaterialApp.router(
-      title: AppLocalizations.of(context)?.appTitle ?? '',
-      routerConfig: router,
-      localizationsDelegates: AppLocalizations.localizationsDelegates,
-      supportedLocales: AppLocalizations.supportedLocales,
+      routerConfig: AppRouter.router, // ルーティング設定
+      theme: ThemeUtil.appTheme(), // アプリ全体のテーマ設定
+      onGenerateTitle: (context) => AppLocalizations.of(context)?.appTitle ?? '', // アプリタイトル（ローカライズ対応）
+      localizationsDelegates: AppLocalizations.localizationsDelegates, // 多言語対応のデリゲート設定
+      supportedLocales: AppLocalizations.supportedLocales, // 対応している言語一覧
     );
   }
 }

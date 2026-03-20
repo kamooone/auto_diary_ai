@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../../data/models/diary_item.dart';
-import '../../../providers/home_providers.dart';
+import 'package:auto_diary_ai/features/home/data/models/diary_item.dart';
+import 'package:auto_diary_ai/features/home/presentation/providers/home_providers.dart';
 
 class HomeViewModel extends Notifier<HomeState> {
   @override

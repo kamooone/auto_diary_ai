@@ -1,7 +1,7 @@
-import 'package:auto_diary_ai/core/constants/app_sizes.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
-import '../../../../data/models/diary_item.dart';
+import 'package:auto_diary_ai/common/constants/app_sizes.dart';
+import 'package:auto_diary_ai/features/home/data/models/diary_item.dart';
 import 'diary_card.dart';
 
 class DiaryListView extends StatelessWidget {

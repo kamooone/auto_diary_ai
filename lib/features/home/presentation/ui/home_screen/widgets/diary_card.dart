@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
-import '../../../../data/models/diary_item.dart';
+import 'package:auto_diary_ai/features/home/data/models/diary_item.dart';
 
 /// 日記アイテムをカードとして表示するウィジェット
 class DiaryCard extends StatelessWidget {
