@@ -1,7 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:auto_diary_ai/features/home/data/models/diary_item.dart';
 
-// TODO: ダミー
 final diaryProvider = Provider<List<DiaryItem>>((ref) => dummyDiaryItems);
 
 // 月選択を管理するNotifier

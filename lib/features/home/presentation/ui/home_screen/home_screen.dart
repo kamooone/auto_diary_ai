@@ -35,8 +35,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(homeViewModelProvider);
-    final selectedMonth = ref.watch(selectedMonthProvider);
     final viewModel = ref.read(homeViewModelProvider.notifier);
+    final selectedMonth = ref.watch(selectedMonthProvider);
 
     ref.listen<String>(
       selectedMonthProvider,

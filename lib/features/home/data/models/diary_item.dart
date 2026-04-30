@@ -10,6 +10,7 @@ class DiaryItem {
   });
 }
 
+// TODO:実データに差し替え
 final List<DiaryItem> dummyDiaryItems = [
   // 2025-10
   DiaryItem(

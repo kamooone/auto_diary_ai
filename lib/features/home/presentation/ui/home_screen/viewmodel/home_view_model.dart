@@ -4,9 +4,9 @@ import 'package:auto_diary_ai/features/home/presentation/providers/home_provider
 import 'package:freezed_annotation/freezed_annotation.dart';
 part 'home_view_model.freezed.dart';
 
-class HomeViewModel extends Notifier<HomeState> {
+class HomeViewModel extends Notifier<HomeUiModel> {
   @override
-  HomeState build() {
+  HomeUiModel build() {
     final diaryItems = ref.watch(diaryProvider);
     final selectedMonth = ref.watch(selectedMonthProvider);
 
@@ -35,7 +35,7 @@ class HomeViewModel extends Notifier<HomeState> {
             .toList()
     };
 
-    return HomeState(
+    return HomeUiModel(
       months: months,
       filteredItemsPerMonth: filteredItemsPerMonth,
     );
@@ -54,11 +54,11 @@ class HomeViewModel extends Notifier<HomeState> {
 }
 
 @freezed
-abstract class HomeState with _$HomeState {
-  const factory HomeState({
+abstract class HomeUiModel with _$HomeUiModel {
+  const factory HomeUiModel({
     required List<String> months,
     required Map<String, List<DiaryItem>> filteredItemsPerMonth,
-  }) = _HomeState;
+  }) = _HomeUiModel;
 }
 
-final homeViewModelProvider = NotifierProvider<HomeViewModel, HomeState>(HomeViewModel.new);
+final homeViewModelProvider = NotifierProvider<HomeViewModel, HomeUiModel>(HomeViewModel.new);

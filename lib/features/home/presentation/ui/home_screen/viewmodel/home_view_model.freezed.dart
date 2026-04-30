@@ -12,20 +12,20 @@ part of 'home_view_model.dart';
 // dart format off
 T _$identity<T>(T value) => value;
 /// @nodoc
-mixin _$HomeState {
+mixin _$HomeUiModel {
 
  List<String> get months; Map<String, List<DiaryItem>> get filteredItemsPerMonth;
-/// Create a copy of HomeState
+/// Create a copy of HomeUiModel
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
 @pragma('vm:prefer-inline')
-$HomeStateCopyWith<HomeState> get copyWith => _$HomeStateCopyWithImpl<HomeState>(this as HomeState, _$identity);
+$HomeUiModelCopyWith<HomeUiModel> get copyWith => _$HomeUiModelCopyWithImpl<HomeUiModel>(this as HomeUiModel, _$identity);
 
 
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is HomeState&&const DeepCollectionEquality().equals(other.months, months)&&const DeepCollectionEquality().equals(other.filteredItemsPerMonth, filteredItemsPerMonth));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is HomeUiModel&&const DeepCollectionEquality().equals(other.months, months)&&const DeepCollectionEquality().equals(other.filteredItemsPerMonth, filteredItemsPerMonth));
 }
 
 
@@ -34,15 +34,15 @@ int get hashCode => Object.hash(runtimeType,const DeepCollectionEquality().hash(
 
 @override
 String toString() {
-  return 'HomeState(months: $months, filteredItemsPerMonth: $filteredItemsPerMonth)';
+  return 'HomeUiModel(months: $months, filteredItemsPerMonth: $filteredItemsPerMonth)';
 }
 
 
 }
 
 /// @nodoc
-abstract mixin class $HomeStateCopyWith<$Res>  {
-  factory $HomeStateCopyWith(HomeState value, $Res Function(HomeState) _then) = _$HomeStateCopyWithImpl;
+abstract mixin class $HomeUiModelCopyWith<$Res>  {
+  factory $HomeUiModelCopyWith(HomeUiModel value, $Res Function(HomeUiModel) _then) = _$HomeUiModelCopyWithImpl;
 @useResult
 $Res call({
  List<String> months, Map<String, List<DiaryItem>> filteredItemsPerMonth
@@ -53,14 +53,14 @@ $Res call({
 
 }
 /// @nodoc
-class _$HomeStateCopyWithImpl<$Res>
-    implements $HomeStateCopyWith<$Res> {
-  _$HomeStateCopyWithImpl(this._self, this._then);
+class _$HomeUiModelCopyWithImpl<$Res>
+    implements $HomeUiModelCopyWith<$Res> {
+  _$HomeUiModelCopyWithImpl(this._self, this._then);
 
-  final HomeState _self;
-  final $Res Function(HomeState) _then;
+  final HomeUiModel _self;
+  final $Res Function(HomeUiModel) _then;
 
-/// Create a copy of HomeState
+/// Create a copy of HomeUiModel
 /// with the given fields replaced by the non-null parameter values.
 @pragma('vm:prefer-inline') @override $Res call({Object? months = null,Object? filteredItemsPerMonth = null,}) {
   return _then(_self.copyWith(
@@ -73,8 +73,8 @@ as Map<String, List<DiaryItem>>,
 }
 
 
-/// Adds pattern-matching-related methods to [HomeState].
-extension HomeStatePatterns on HomeState {
+/// Adds pattern-matching-related methods to [HomeUiModel].
+extension HomeUiModelPatterns on HomeUiModel {
 /// A variant of `map` that fallback to returning `orElse`.
 ///
 /// It is equivalent to doing:
@@ -87,10 +87,10 @@ extension HomeStatePatterns on HomeState {
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeMap<TResult extends Object?>(TResult Function( _HomeState value)?  $default,{required TResult orElse(),}){
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>(TResult Function( _HomeUiModel value)?  $default,{required TResult orElse(),}){
 final _that = this;
 switch (_that) {
-case _HomeState() when $default != null:
+case _HomeUiModel() when $default != null:
 return $default(_that);case _:
   return orElse();
 
@@ -109,10 +109,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult map<TResult extends Object?>(TResult Function( _HomeState value)  $default,){
+@optionalTypeArgs TResult map<TResult extends Object?>(TResult Function( _HomeUiModel value)  $default,){
 final _that = this;
 switch (_that) {
-case _HomeState():
+case _HomeUiModel():
 return $default(_that);case _:
   throw StateError('Unexpected subclass');
 
@@ -130,10 +130,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>(TResult? Function( _HomeState value)?  $default,){
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>(TResult? Function( _HomeUiModel value)?  $default,){
 final _that = this;
 switch (_that) {
-case _HomeState() when $default != null:
+case _HomeUiModel() when $default != null:
 return $default(_that);case _:
   return null;
 
@@ -153,7 +153,7 @@ return $default(_that);case _:
 
 @optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( List<String> months,  Map<String, List<DiaryItem>> filteredItemsPerMonth)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
-case _HomeState() when $default != null:
+case _HomeUiModel() when $default != null:
 return $default(_that.months,_that.filteredItemsPerMonth);case _:
   return orElse();
 
@@ -174,7 +174,7 @@ return $default(_that.months,_that.filteredItemsPerMonth);case _:
 
 @optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( List<String> months,  Map<String, List<DiaryItem>> filteredItemsPerMonth)  $default,) {final _that = this;
 switch (_that) {
-case _HomeState():
+case _HomeUiModel():
 return $default(_that.months,_that.filteredItemsPerMonth);case _:
   throw StateError('Unexpected subclass');
 
@@ -194,7 +194,7 @@ return $default(_that.months,_that.filteredItemsPerMonth);case _:
 
 @optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( List<String> months,  Map<String, List<DiaryItem>> filteredItemsPerMonth)?  $default,) {final _that = this;
 switch (_that) {
-case _HomeState() when $default != null:
+case _HomeUiModel() when $default != null:
 return $default(_that.months,_that.filteredItemsPerMonth);case _:
   return null;
 
@@ -206,8 +206,8 @@ return $default(_that.months,_that.filteredItemsPerMonth);case _:
 /// @nodoc
 
 
-class _HomeState implements HomeState {
-  const _HomeState({required final  List<String> months, required final  Map<String, List<DiaryItem>> filteredItemsPerMonth}): _months = months,_filteredItemsPerMonth = filteredItemsPerMonth;
+class _HomeUiModel implements HomeUiModel {
+  const _HomeUiModel({required final  List<String> months, required final  Map<String, List<DiaryItem>> filteredItemsPerMonth}): _months = months,_filteredItemsPerMonth = filteredItemsPerMonth;
   
 
  final  List<String> _months;
@@ -225,17 +225,17 @@ class _HomeState implements HomeState {
 }
 
 
-/// Create a copy of HomeState
+/// Create a copy of HomeUiModel
 /// with the given fields replaced by the non-null parameter values.
 @override @JsonKey(includeFromJson: false, includeToJson: false)
 @pragma('vm:prefer-inline')
-_$HomeStateCopyWith<_HomeState> get copyWith => __$HomeStateCopyWithImpl<_HomeState>(this, _$identity);
+_$HomeUiModelCopyWith<_HomeUiModel> get copyWith => __$HomeUiModelCopyWithImpl<_HomeUiModel>(this, _$identity);
 
 
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _HomeState&&const DeepCollectionEquality().equals(other._months, _months)&&const DeepCollectionEquality().equals(other._filteredItemsPerMonth, _filteredItemsPerMonth));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _HomeUiModel&&const DeepCollectionEquality().equals(other._months, _months)&&const DeepCollectionEquality().equals(other._filteredItemsPerMonth, _filteredItemsPerMonth));
 }
 
 
@@ -244,15 +244,15 @@ int get hashCode => Object.hash(runtimeType,const DeepCollectionEquality().hash(
 
 @override
 String toString() {
-  return 'HomeState(months: $months, filteredItemsPerMonth: $filteredItemsPerMonth)';
+  return 'HomeUiModel(months: $months, filteredItemsPerMonth: $filteredItemsPerMonth)';
 }
 
 
 }
 
 /// @nodoc
-abstract mixin class _$HomeStateCopyWith<$Res> implements $HomeStateCopyWith<$Res> {
-  factory _$HomeStateCopyWith(_HomeState value, $Res Function(_HomeState) _then) = __$HomeStateCopyWithImpl;
+abstract mixin class _$HomeUiModelCopyWith<$Res> implements $HomeUiModelCopyWith<$Res> {
+  factory _$HomeUiModelCopyWith(_HomeUiModel value, $Res Function(_HomeUiModel) _then) = __$HomeUiModelCopyWithImpl;
 @override @useResult
 $Res call({
  List<String> months, Map<String, List<DiaryItem>> filteredItemsPerMonth
@@ -263,17 +263,17 @@ $Res call({
 
 }
 /// @nodoc
-class __$HomeStateCopyWithImpl<$Res>
-    implements _$HomeStateCopyWith<$Res> {
-  __$HomeStateCopyWithImpl(this._self, this._then);
+class __$HomeUiModelCopyWithImpl<$Res>
+    implements _$HomeUiModelCopyWith<$Res> {
+  __$HomeUiModelCopyWithImpl(this._self, this._then);
 
-  final _HomeState _self;
-  final $Res Function(_HomeState) _then;
+  final _HomeUiModel _self;
+  final $Res Function(_HomeUiModel) _then;
 
-/// Create a copy of HomeState
+/// Create a copy of HomeUiModel
 /// with the given fields replaced by the non-null parameter values.
 @override @pragma('vm:prefer-inline') $Res call({Object? months = null,Object? filteredItemsPerMonth = null,}) {
-  return _then(_HomeState(
+  return _then(_HomeUiModel(
 months: null == months ? _self._months : months // ignore: cast_nullable_to_non_nullable
 as List<String>,filteredItemsPerMonth: null == filteredItemsPerMonth ? _self._filteredItemsPerMonth : filteredItemsPerMonth // ignore: cast_nullable_to_non_nullable
 as Map<String, List<DiaryItem>>,
