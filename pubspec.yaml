@@ -16,6 +16,11 @@ dependencies:
   freezed_annotation: ^3.1.0
   json_annotation: ^4.9.0
 
+  # --- Map ---
+  flutter_map: ^8.2.1  # 地図本体
+  latlong2: ^0.9.1     # 座標クラス
+  geolocator: ^14.0.2  # GPS取得
+
   # --- UI / Utility Libraries ---
   flutter_animate: ^4.5.2
   flex_color_scheme: ^8.3.1
