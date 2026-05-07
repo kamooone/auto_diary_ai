@@ -63,7 +63,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       actions: [
         IconButton(
           icon: const Icon(Icons.settings),
-          onPressed: () {},
+          onPressed: () {
+            context.push('/settings');
+          },
         ),
       ],
 
