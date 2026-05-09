@@ -1,7 +1,9 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:auto_diary_ai/services/location_service.dart';
 import 'package:auto_diary_ai/common/constants/map_constants.dart';
 
 class MapPage extends StatefulWidget {
@@ -14,45 +16,53 @@ class MapPage extends StatefulWidget {
 class _MapPageState extends State<MapPage> {
 
   final MapController _mapController = MapController();
+  final LocationService _locationService = LocationService();
+
+  StreamSubscription<Position>? _locationSub;
 
   LatLng? currentLocation;
 
   @override
   void initState() {
     super.initState();
-    _getCurrentLocation();
+    _startLocation();
   }
 
-  Future<void> _getCurrentLocation() async {
+  Future<void> _startLocation() async {
 
-    // 位置情報サービス確認
-    bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
-    if (!serviceEnabled) {
-      return;
-    }
+    await _locationService.start();
 
-    // 権限確認
-    LocationPermission permission = await Geolocator.checkPermission();
+    _locationSub = _locationService.locationStream.listen((position) {
 
-    if (permission == LocationPermission.denied) {
-      permission = await Geolocator.requestPermission();
-    }
+      final latlng = LatLng(position.latitude, position.longitude);
 
-    if (permission == LocationPermission.deniedForever) {
-      return;
-    }
+      setState(() {
+        currentLocation = latlng;
+      });
 
-    // GPS取得
-    Position position = await Geolocator.getCurrentPosition(
-      desiredAccuracy: LocationAccuracy.high,
-    );
+      _mapController.move(
+        latlng,
+        MapConstants.currentLocationZoom,
+      );
 
-    setState(() {
-      currentLocation = LatLng(position.latitude, position.longitude);
     });
+  }
 
-    // カメラ(地図の視点)移動
-    _mapController.move(currentLocation!, MapConstants.currentLocationZoom);
+  @override
+  void dispose() {
+    _locationSub?.cancel();
+    _locationService.dispose();
+    super.dispose();
+  }
+
+  void zoomIn() {
+    final currentZoom = _mapController.camera.zoom;
+    _mapController.move(_mapController.camera.center, currentZoom + 1);
+  }
+
+  void zoomOut() {
+    final currentZoom = _mapController.camera.zoom;
+    _mapController.move(_mapController.camera.center, currentZoom - 1);
   }
 
   @override
@@ -60,39 +70,67 @@ class _MapPageState extends State<MapPage> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Map"),
+        title: const Text('Map'),
       ),
-      body: FlutterMap(
-
-        mapController: _mapController,
-
-        options: MapOptions(
-          initialCenter: LatLng(MapConstants.tokyoStationLat, MapConstants.tokyoStationLng),
-          initialZoom: MapConstants.initialZoom,
-        ),
-
+      body: Stack(
         children: [
 
-          TileLayer(
-            urlTemplate: MapConstants.tileUrl,
-            userAgentPackageName: MapConstants.userAgent,
+          FlutterMap(
+            mapController: _mapController,
+            options: MapOptions(
+              initialCenter: LatLng(
+                MapConstants.tokyoStationLat,
+                MapConstants.tokyoStationLng,
+              ),
+              initialZoom: MapConstants.initialZoom,
+            ),
+            children: [
+
+              TileLayer(
+                urlTemplate: MapConstants.tileUrl,
+                userAgentPackageName: MapConstants.userAgent,
+              ),
+
+              if (currentLocation != null)
+                MarkerLayer(
+                  markers: [
+                    Marker(
+                      point: currentLocation!,
+                      width: MapConstants.markerSize,
+                      height: MapConstants.markerSize,
+                      child: const Icon(
+                        Icons.my_location,
+                        size: MapConstants.markerSize,
+                        color: Colors.blue,
+                      ),
+                    ),
+                  ],
+                ),
+
+            ],
           ),
 
-          if (currentLocation != null)
-            MarkerLayer(
-              markers: [
-                Marker(
-                  point: currentLocation!,
-                  width: MapConstants.markerSize,
-                  height: MapConstants.markerSize,
-                  child: const Icon(
-                    Icons.my_location,
-                    size: MapConstants.markerSize,
-                    color: Colors.blue,
-                  ),
+          Positioned(
+            right: MapConstants.zoomButtonRight,
+            bottom: MapConstants.zoomButtonBottom,
+            child: Column(
+              children: [
+                FloatingActionButton(
+                  heroTag: "zoom_in",
+                  mini: true,
+                  onPressed: zoomIn,
+                  child: const Icon(Icons.add),
+                ),
+                SizedBox(height: MapConstants.zoomButtonSpacing),
+                FloatingActionButton(
+                  heroTag: "zoom_out",
+                  mini: true,
+                  onPressed: zoomOut,
+                  child: const Icon(Icons.remove),
                 ),
               ],
             ),
+          ),
 
         ],
       ),

@@ -7,4 +7,8 @@ class MapConstants {
   static const double markerSize = 40;
   static const String tileUrl = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
   static const String userAgent = 'com.example.auto_diary_ai';
+  static const double zoomButtonRight = 10;
+  static const double zoomButtonBottom = 20;
+  static const double zoomButtonSpacing = 10;
+  static const int locationDistanceFilterMeters = 10;
 }
