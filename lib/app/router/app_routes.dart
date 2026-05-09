@@ -8,14 +8,16 @@ import 'package:auto_diary_ai/features/map/map_page.dart';
 class AppRoutes {
   static const home = '/';
   static const diaryCreate = '/diary_create_screen';
+  static const settings = '/settings';
+  static const map = '/map';
 
   static final routes = <RouteBase>[
     GoRoute(
-      path: '/settings',
+      path: settings,
       builder: (context, state) => const SettingsPage(),
     ),
     GoRoute(
-      path: '/map',
+      path: map,
       builder: (context, state) => const MapPage(),
     ),
     GoRoute(
