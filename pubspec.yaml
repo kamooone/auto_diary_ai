@@ -12,14 +12,17 @@ dependencies:
     sdk: flutter
 
   cupertino_icons: ^1.0.8
-  flutter_riverpod: ^3.0.3
-  freezed_annotation: ^3.1.0
-  json_annotation: ^4.9.0
+  flutter_riverpod: ^2.6.1
+  freezed_annotation: ^2.4.1
+  json_annotation: ^4.8.1
 
   # --- Map ---
   flutter_map: ^8.2.1  # 地図本体
   latlong2: ^0.9.1     # 座標クラス
   geolocator: ^14.0.2  # GPS取得
+
+  isar: ^3.1.0
+  isar_flutter_libs: ^3.1.0
 
   # --- UI / Utility Libraries ---
   flutter_animate: ^4.5.2
@@ -51,9 +54,10 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
 
-  build_runner: ^2.4.9
-  freezed: ^3.0.0
-  json_serializable: ^6.9.0
+  build_runner: ^2.4.0
+  freezed: ^2.4.7
+  json_serializable: ^6.7.1
+  isar_generator: ^3.1.0
   flutter_lints: ^5.0.0
 
 flutter:

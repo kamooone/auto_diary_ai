@@ -1,5 +1,5 @@
-// GENERATED CODE - DO NOT MODIFY BY HAND
 // coverage:ignore-file
+// GENERATED CODE - DO NOT MODIFY BY HAND
 // ignore_for_file: type=lint
 // ignore_for_file: unused_element, deprecated_member_use, deprecated_member_use_from_same_package, use_function_type_syntax_for_parameters, unnecessary_const, avoid_init_to_null, invalid_override_different_default_values_named, prefer_expression_function_bodies, annotate_overrides, invalid_annotation_target, unnecessary_question_mark
 
@@ -9,278 +9,168 @@ part of 'home_view_model.dart';
 // FreezedGenerator
 // **************************************************************************
 
-// dart format off
 T _$identity<T>(T value) => value;
+
+final _privateConstructorUsedError = UnsupportedError(
+    'It seems like you constructed your class using `MyClass._()`. This constructor is only meant to be used by freezed and you are not supposed to need it nor use it.\nPlease check the documentation here for more information: https://github.com/rrousselGit/freezed#adding-getters-and-methods-to-our-models');
+
 /// @nodoc
 mixin _$HomeUiModel {
+  List<String> get months => throw _privateConstructorUsedError;
+  Map<String, List<DiaryItem>> get filteredItemsPerMonth =>
+      throw _privateConstructorUsedError;
 
- List<String> get months; Map<String, List<DiaryItem>> get filteredItemsPerMonth;
-/// Create a copy of HomeUiModel
-/// with the given fields replaced by the non-null parameter values.
-@JsonKey(includeFromJson: false, includeToJson: false)
-@pragma('vm:prefer-inline')
-$HomeUiModelCopyWith<HomeUiModel> get copyWith => _$HomeUiModelCopyWithImpl<HomeUiModel>(this as HomeUiModel, _$identity);
-
-
-
-@override
-bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is HomeUiModel&&const DeepCollectionEquality().equals(other.months, months)&&const DeepCollectionEquality().equals(other.filteredItemsPerMonth, filteredItemsPerMonth));
-}
-
-
-@override
-int get hashCode => Object.hash(runtimeType,const DeepCollectionEquality().hash(months),const DeepCollectionEquality().hash(filteredItemsPerMonth));
-
-@override
-String toString() {
-  return 'HomeUiModel(months: $months, filteredItemsPerMonth: $filteredItemsPerMonth)';
-}
-
-
+  @JsonKey(ignore: true)
+  $HomeUiModelCopyWith<HomeUiModel> get copyWith =>
+      throw _privateConstructorUsedError;
 }
 
 /// @nodoc
-abstract mixin class $HomeUiModelCopyWith<$Res>  {
-  factory $HomeUiModelCopyWith(HomeUiModel value, $Res Function(HomeUiModel) _then) = _$HomeUiModelCopyWithImpl;
-@useResult
-$Res call({
- List<String> months, Map<String, List<DiaryItem>> filteredItemsPerMonth
-});
-
-
-
-
+abstract class $HomeUiModelCopyWith<$Res> {
+  factory $HomeUiModelCopyWith(
+          HomeUiModel value, $Res Function(HomeUiModel) then) =
+      _$HomeUiModelCopyWithImpl<$Res, HomeUiModel>;
+  @useResult
+  $Res call(
+      {List<String> months,
+      Map<String, List<DiaryItem>> filteredItemsPerMonth});
 }
+
 /// @nodoc
-class _$HomeUiModelCopyWithImpl<$Res>
+class _$HomeUiModelCopyWithImpl<$Res, $Val extends HomeUiModel>
     implements $HomeUiModelCopyWith<$Res> {
-  _$HomeUiModelCopyWithImpl(this._self, this._then);
+  _$HomeUiModelCopyWithImpl(this._value, this._then);
 
-  final HomeUiModel _self;
-  final $Res Function(HomeUiModel) _then;
+  // ignore: unused_field
+  final $Val _value;
+  // ignore: unused_field
+  final $Res Function($Val) _then;
 
-/// Create a copy of HomeUiModel
-/// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? months = null,Object? filteredItemsPerMonth = null,}) {
-  return _then(_self.copyWith(
-months: null == months ? _self.months : months // ignore: cast_nullable_to_non_nullable
-as List<String>,filteredItemsPerMonth: null == filteredItemsPerMonth ? _self.filteredItemsPerMonth : filteredItemsPerMonth // ignore: cast_nullable_to_non_nullable
-as Map<String, List<DiaryItem>>,
-  ));
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? months = null,
+    Object? filteredItemsPerMonth = null,
+  }) {
+    return _then(_value.copyWith(
+      months: null == months
+          ? _value.months
+          : months // ignore: cast_nullable_to_non_nullable
+              as List<String>,
+      filteredItemsPerMonth: null == filteredItemsPerMonth
+          ? _value.filteredItemsPerMonth
+          : filteredItemsPerMonth // ignore: cast_nullable_to_non_nullable
+              as Map<String, List<DiaryItem>>,
+    ) as $Val);
+  }
 }
 
+/// @nodoc
+abstract class _$$HomeUiModelImplCopyWith<$Res>
+    implements $HomeUiModelCopyWith<$Res> {
+  factory _$$HomeUiModelImplCopyWith(
+          _$HomeUiModelImpl value, $Res Function(_$HomeUiModelImpl) then) =
+      __$$HomeUiModelImplCopyWithImpl<$Res>;
+  @override
+  @useResult
+  $Res call(
+      {List<String> months,
+      Map<String, List<DiaryItem>> filteredItemsPerMonth});
 }
 
+/// @nodoc
+class __$$HomeUiModelImplCopyWithImpl<$Res>
+    extends _$HomeUiModelCopyWithImpl<$Res, _$HomeUiModelImpl>
+    implements _$$HomeUiModelImplCopyWith<$Res> {
+  __$$HomeUiModelImplCopyWithImpl(
+      _$HomeUiModelImpl _value, $Res Function(_$HomeUiModelImpl) _then)
+      : super(_value, _then);
 
-/// Adds pattern-matching-related methods to [HomeUiModel].
-extension HomeUiModelPatterns on HomeUiModel {
-/// A variant of `map` that fallback to returning `orElse`.
-///
-/// It is equivalent to doing:
-/// ```dart
-/// switch (sealedClass) {
-///   case final Subclass value:
-///     return ...;
-///   case _:
-///     return orElse();
-/// }
-/// ```
-
-@optionalTypeArgs TResult maybeMap<TResult extends Object?>(TResult Function( _HomeUiModel value)?  $default,{required TResult orElse(),}){
-final _that = this;
-switch (_that) {
-case _HomeUiModel() when $default != null:
-return $default(_that);case _:
-  return orElse();
-
-}
-}
-/// A `switch`-like method, using callbacks.
-///
-/// Callbacks receives the raw object, upcasted.
-/// It is equivalent to doing:
-/// ```dart
-/// switch (sealedClass) {
-///   case final Subclass value:
-///     return ...;
-///   case final Subclass2 value:
-///     return ...;
-/// }
-/// ```
-
-@optionalTypeArgs TResult map<TResult extends Object?>(TResult Function( _HomeUiModel value)  $default,){
-final _that = this;
-switch (_that) {
-case _HomeUiModel():
-return $default(_that);case _:
-  throw StateError('Unexpected subclass');
-
-}
-}
-/// A variant of `map` that fallback to returning `null`.
-///
-/// It is equivalent to doing:
-/// ```dart
-/// switch (sealedClass) {
-///   case final Subclass value:
-///     return ...;
-///   case _:
-///     return null;
-/// }
-/// ```
-
-@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>(TResult? Function( _HomeUiModel value)?  $default,){
-final _that = this;
-switch (_that) {
-case _HomeUiModel() when $default != null:
-return $default(_that);case _:
-  return null;
-
-}
-}
-/// A variant of `when` that fallback to an `orElse` callback.
-///
-/// It is equivalent to doing:
-/// ```dart
-/// switch (sealedClass) {
-///   case Subclass(:final field):
-///     return ...;
-///   case _:
-///     return orElse();
-/// }
-/// ```
-
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( List<String> months,  Map<String, List<DiaryItem>> filteredItemsPerMonth)?  $default,{required TResult orElse(),}) {final _that = this;
-switch (_that) {
-case _HomeUiModel() when $default != null:
-return $default(_that.months,_that.filteredItemsPerMonth);case _:
-  return orElse();
-
-}
-}
-/// A `switch`-like method, using callbacks.
-///
-/// As opposed to `map`, this offers destructuring.
-/// It is equivalent to doing:
-/// ```dart
-/// switch (sealedClass) {
-///   case Subclass(:final field):
-///     return ...;
-///   case Subclass2(:final field2):
-///     return ...;
-/// }
-/// ```
-
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( List<String> months,  Map<String, List<DiaryItem>> filteredItemsPerMonth)  $default,) {final _that = this;
-switch (_that) {
-case _HomeUiModel():
-return $default(_that.months,_that.filteredItemsPerMonth);case _:
-  throw StateError('Unexpected subclass');
-
-}
-}
-/// A variant of `when` that fallback to returning `null`
-///
-/// It is equivalent to doing:
-/// ```dart
-/// switch (sealedClass) {
-///   case Subclass(:final field):
-///     return ...;
-///   case _:
-///     return null;
-/// }
-/// ```
-
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( List<String> months,  Map<String, List<DiaryItem>> filteredItemsPerMonth)?  $default,) {final _that = this;
-switch (_that) {
-case _HomeUiModel() when $default != null:
-return $default(_that.months,_that.filteredItemsPerMonth);case _:
-  return null;
-
-}
-}
-
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? months = null,
+    Object? filteredItemsPerMonth = null,
+  }) {
+    return _then(_$HomeUiModelImpl(
+      months: null == months
+          ? _value._months
+          : months // ignore: cast_nullable_to_non_nullable
+              as List<String>,
+      filteredItemsPerMonth: null == filteredItemsPerMonth
+          ? _value._filteredItemsPerMonth
+          : filteredItemsPerMonth // ignore: cast_nullable_to_non_nullable
+              as Map<String, List<DiaryItem>>,
+    ));
+  }
 }
 
 /// @nodoc
 
+class _$HomeUiModelImpl implements _HomeUiModel {
+  const _$HomeUiModelImpl(
+      {required final List<String> months,
+      required final Map<String, List<DiaryItem>> filteredItemsPerMonth})
+      : _months = months,
+        _filteredItemsPerMonth = filteredItemsPerMonth;
 
-class _HomeUiModel implements HomeUiModel {
-  const _HomeUiModel({required final  List<String> months, required final  Map<String, List<DiaryItem>> filteredItemsPerMonth}): _months = months,_filteredItemsPerMonth = filteredItemsPerMonth;
-  
+  final List<String> _months;
+  @override
+  List<String> get months {
+    if (_months is EqualUnmodifiableListView) return _months;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableListView(_months);
+  }
 
- final  List<String> _months;
-@override List<String> get months {
-  if (_months is EqualUnmodifiableListView) return _months;
-  // ignore: implicit_dynamic_type
-  return EqualUnmodifiableListView(_months);
+  final Map<String, List<DiaryItem>> _filteredItemsPerMonth;
+  @override
+  Map<String, List<DiaryItem>> get filteredItemsPerMonth {
+    if (_filteredItemsPerMonth is EqualUnmodifiableMapView)
+      return _filteredItemsPerMonth;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableMapView(_filteredItemsPerMonth);
+  }
+
+  @override
+  String toString() {
+    return 'HomeUiModel(months: $months, filteredItemsPerMonth: $filteredItemsPerMonth)';
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        (other.runtimeType == runtimeType &&
+            other is _$HomeUiModelImpl &&
+            const DeepCollectionEquality().equals(other._months, _months) &&
+            const DeepCollectionEquality()
+                .equals(other._filteredItemsPerMonth, _filteredItemsPerMonth));
+  }
+
+  @override
+  int get hashCode => Object.hash(
+      runtimeType,
+      const DeepCollectionEquality().hash(_months),
+      const DeepCollectionEquality().hash(_filteredItemsPerMonth));
+
+  @JsonKey(ignore: true)
+  @override
+  @pragma('vm:prefer-inline')
+  _$$HomeUiModelImplCopyWith<_$HomeUiModelImpl> get copyWith =>
+      __$$HomeUiModelImplCopyWithImpl<_$HomeUiModelImpl>(this, _$identity);
 }
 
- final  Map<String, List<DiaryItem>> _filteredItemsPerMonth;
-@override Map<String, List<DiaryItem>> get filteredItemsPerMonth {
-  if (_filteredItemsPerMonth is EqualUnmodifiableMapView) return _filteredItemsPerMonth;
-  // ignore: implicit_dynamic_type
-  return EqualUnmodifiableMapView(_filteredItemsPerMonth);
+abstract class _HomeUiModel implements HomeUiModel {
+  const factory _HomeUiModel(
+          {required final List<String> months,
+          required final Map<String, List<DiaryItem>> filteredItemsPerMonth}) =
+      _$HomeUiModelImpl;
+
+  @override
+  List<String> get months;
+  @override
+  Map<String, List<DiaryItem>> get filteredItemsPerMonth;
+  @override
+  @JsonKey(ignore: true)
+  _$$HomeUiModelImplCopyWith<_$HomeUiModelImpl> get copyWith =>
+      throw _privateConstructorUsedError;
 }
-
-
-/// Create a copy of HomeUiModel
-/// with the given fields replaced by the non-null parameter values.
-@override @JsonKey(includeFromJson: false, includeToJson: false)
-@pragma('vm:prefer-inline')
-_$HomeUiModelCopyWith<_HomeUiModel> get copyWith => __$HomeUiModelCopyWithImpl<_HomeUiModel>(this, _$identity);
-
-
-
-@override
-bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _HomeUiModel&&const DeepCollectionEquality().equals(other._months, _months)&&const DeepCollectionEquality().equals(other._filteredItemsPerMonth, _filteredItemsPerMonth));
-}
-
-
-@override
-int get hashCode => Object.hash(runtimeType,const DeepCollectionEquality().hash(_months),const DeepCollectionEquality().hash(_filteredItemsPerMonth));
-
-@override
-String toString() {
-  return 'HomeUiModel(months: $months, filteredItemsPerMonth: $filteredItemsPerMonth)';
-}
-
-
-}
-
-/// @nodoc
-abstract mixin class _$HomeUiModelCopyWith<$Res> implements $HomeUiModelCopyWith<$Res> {
-  factory _$HomeUiModelCopyWith(_HomeUiModel value, $Res Function(_HomeUiModel) _then) = __$HomeUiModelCopyWithImpl;
-@override @useResult
-$Res call({
- List<String> months, Map<String, List<DiaryItem>> filteredItemsPerMonth
-});
-
-
-
-
-}
-/// @nodoc
-class __$HomeUiModelCopyWithImpl<$Res>
-    implements _$HomeUiModelCopyWith<$Res> {
-  __$HomeUiModelCopyWithImpl(this._self, this._then);
-
-  final _HomeUiModel _self;
-  final $Res Function(_HomeUiModel) _then;
-
-/// Create a copy of HomeUiModel
-/// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? months = null,Object? filteredItemsPerMonth = null,}) {
-  return _then(_HomeUiModel(
-months: null == months ? _self._months : months // ignore: cast_nullable_to_non_nullable
-as List<String>,filteredItemsPerMonth: null == filteredItemsPerMonth ? _self._filteredItemsPerMonth : filteredItemsPerMonth // ignore: cast_nullable_to_non_nullable
-as Map<String, List<DiaryItem>>,
-  ));
-}
-
-
-}
-
-// dart format on

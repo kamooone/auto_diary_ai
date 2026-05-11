@@ -1,23 +1,25 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:auto_diary_ai/services/location_service.dart';
 import 'package:auto_diary_ai/common/constants/map_constants.dart';
+import 'package:auto_diary_ai/features/map/presentation/providers/location_provider.dart';
+import 'package:auto_diary_ai/features/map/data/services/location_service.dart';
 
-class MapPage extends StatefulWidget {
+class MapPage extends ConsumerStatefulWidget {
   const MapPage({super.key});
 
   @override
-  State<MapPage> createState() => _MapPageState();
+  ConsumerState<MapPage> createState() => _MapPageState();
 }
 
-class _MapPageState extends State<MapPage> {
+class _MapPageState extends ConsumerState<MapPage> {
 
   final MapController _mapController = MapController();
-  final LocationService _locationService = LocationService();
 
+  late LocationService _locationService;
   StreamSubscription<Position>? _locationSub;
 
   LatLng? currentLocation;
@@ -25,7 +27,22 @@ class _MapPageState extends State<MapPage> {
   @override
   void initState() {
     super.initState();
-    _startLocation();
+
+    _locationService = ref.read(locationServiceProvider);
+
+    Future.microtask(() {
+      _loadInitialData();
+    });
+  }
+
+  Future<void> _loadInitialData() async {
+
+    // DB取得
+    await _locationService.loadLocations();
+
+    // GPS開始
+    await _startLocation();
+
   }
 
   Future<void> _startLocation() async {
@@ -56,13 +73,21 @@ class _MapPageState extends State<MapPage> {
   }
 
   void zoomIn() {
-    final currentZoom = _mapController.camera.zoom;
-    _mapController.move(_mapController.camera.center, currentZoom + 1);
+    final zoom = _mapController.camera.zoom;
+
+    _mapController.move(
+      _mapController.camera.center,
+      zoom + 1,
+    );
   }
 
   void zoomOut() {
-    final currentZoom = _mapController.camera.zoom;
-    _mapController.move(_mapController.camera.center, currentZoom - 1);
+    final zoom = _mapController.camera.zoom;
+
+    _mapController.move(
+      _mapController.camera.center,
+      zoom - 1,
+    );
   }
 
   @override
@@ -70,7 +95,7 @@ class _MapPageState extends State<MapPage> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Map'),
+        title: const Text("Map"),
       ),
       body: Stack(
         children: [
