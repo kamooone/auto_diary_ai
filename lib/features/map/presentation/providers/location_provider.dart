@@ -5,19 +5,14 @@ import '../../data/services/location_service.dart';
 
 final locationRepositoryProvider = Provider<LocationRepository>((ref) {
 
-  final isarAsync = ref.watch(isarProvider);
+  final isar = ref.watch(isarProvider);
 
-  return isarAsync.when(
-    data: (isar) => LocationRepository(isar),
-    loading: () => throw Exception("Isar loading"),
-    error: (e, _) => throw e,
-  );
-
+  return LocationRepository(isar);
 });
 
 final locationServiceProvider = Provider<LocationService>((ref) {
 
   final repo = ref.watch(locationRepositoryProvider);
-  return LocationService(repo);
 
+  return LocationService(repo);
 });

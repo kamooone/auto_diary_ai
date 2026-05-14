@@ -1,3 +1,4 @@
+import 'dart:developer' as developer;
 import 'package:isar/isar.dart';
 import '../models/location_log.dart';
 
@@ -7,6 +8,7 @@ class LocationRepository {
 
   LocationRepository(this.isar);
 
+  // 位置保存
   Future<void> saveLocation(double lat, double lng) async {
 
     final log = LocationLog()
@@ -18,20 +20,48 @@ class LocationRepository {
       await isar.locationLogs.put(log);
     });
 
+    await _printLogs();
   }
 
   // 全取得
   Future<List<LocationLog>> getLocations() async {
-    return await isar.locationLogs.where().findAll();
+
+    final logs = await isar.locationLogs.where().findAll();
+
+    await _printLogs();
+
+    return logs;
   }
 
   // 最新1件取得（デバッグ用）
   Future<LocationLog?> getLatestLocation() async {
-    final results = await isar.locationLogs
+
+    final result = await isar.locationLogs
         .where()
         .sortByTimestampDesc()
         .findFirst();
 
-    return results;
+    await _printLogs();
+
+    return result;
+  }
+
+  // ログ表示用関数
+  Future<void> _printLogs() async {
+
+    final logs = await isar.locationLogs.where().findAll();
+
+    developer.log("===== LocationLogs =====");
+
+    for (final log in logs) {
+      developer.log(
+        "ID:${log.id}  "
+            "Lat:${log.latitude}  "
+            "Lng:${log.longitude}  "
+            "Time:${log.timestamp}",
+      );
+    }
+
+    developer.log("========================");
   }
 }
