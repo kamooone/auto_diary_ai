@@ -1,6 +1,6 @@
 import 'dart:developer' as developer;
 import 'package:isar/isar.dart';
-import '../models/location_log.dart';
+import 'package:auto_diary_ai/features/map/data/models/location_log.dart';
 
 class LocationRepository {
 
