@@ -18,6 +18,7 @@ class MapPage extends ConsumerStatefulWidget {
 class _MapPageState extends ConsumerState<MapPage> {
 
   final MapController _mapController = MapController();
+  double currentZoom = MapConstants.initialZoom;
 
   late LocationService _locationService;
   StreamSubscription<Position>? _locationSub;
@@ -30,7 +31,7 @@ class _MapPageState extends ConsumerState<MapPage> {
 
     _locationService = ref.read(locationServiceProvider);
 
-    Future.microtask(() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
       _loadInitialData();
     });
   }
@@ -55,11 +56,12 @@ class _MapPageState extends ConsumerState<MapPage> {
 
       setState(() {
         currentLocation = latlng;
+        currentZoom = MapConstants.currentLocationZoom;
       });
 
       _mapController.move(
         latlng,
-        MapConstants.currentLocationZoom,
+        currentZoom,
       );
 
     });
@@ -73,20 +75,28 @@ class _MapPageState extends ConsumerState<MapPage> {
   }
 
   void zoomIn() {
-    final zoom = _mapController.camera.zoom;
+    if (currentZoom >= MapConstants.maxZoom) return;
+
+    setState(() {
+      currentZoom += 1;
+    });
 
     _mapController.move(
       _mapController.camera.center,
-      zoom + 1,
+      currentZoom,
     );
   }
 
   void zoomOut() {
-    final zoom = _mapController.camera.zoom;
+    if (currentZoom <= MapConstants.minZoom) return;
+
+    setState(() {
+      currentZoom -= 1;
+    });
 
     _mapController.move(
       _mapController.camera.center,
-      zoom - 1,
+      currentZoom,
     );
   }
 
@@ -103,11 +113,20 @@ class _MapPageState extends ConsumerState<MapPage> {
           FlutterMap(
             mapController: _mapController,
             options: MapOptions(
-              initialCenter: LatLng(
-                MapConstants.tokyoStationLat,
-                MapConstants.tokyoStationLng,
-              ),
-              initialZoom: MapConstants.initialZoom,
+                initialCenter: LatLng(
+                  MapConstants.tokyoStationLat,
+                  MapConstants.tokyoStationLng,
+                ),
+                initialZoom: MapConstants.initialZoom,
+                minZoom: MapConstants.minZoom,
+                maxZoom: MapConstants.maxZoom,
+                onMapEvent: (event) {
+                  if (event is MapEventMove) {
+                    setState(() {
+                      currentZoom = _mapController.camera.zoom;
+                    });
+                  }
+                }
             ),
             children: [
 
@@ -143,14 +162,14 @@ class _MapPageState extends ConsumerState<MapPage> {
                 FloatingActionButton(
                   heroTag: "zoom_in",
                   mini: true,
-                  onPressed: zoomIn,
+                  onPressed: currentZoom >= MapConstants.maxZoom ? null : zoomIn,
                   child: const Icon(Icons.add),
                 ),
                 SizedBox(height: MapConstants.zoomButtonSpacing),
                 FloatingActionButton(
                   heroTag: "zoom_out",
                   mini: true,
-                  onPressed: zoomOut,
+                  onPressed: currentZoom <= MapConstants.minZoom ? null : zoomOut,
                   child: const Icon(Icons.remove),
                 ),
               ],
