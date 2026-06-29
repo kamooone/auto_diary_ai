@@ -37,6 +37,9 @@ class DiaryCreateState {
 }
 
 class DiaryCreateViewModel extends Notifier<DiaryCreateState> {
+
+  String? _sharedPost;
+
   @override
   DiaryCreateState build() {
     // build メソッド内で初期値を設定する

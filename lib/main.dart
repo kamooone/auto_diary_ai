@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:isar/isar.dart';
 import 'package:path_provider/path_provider.dart';
-import 'app.dart';
+import 'app_initializer.dart';
 import 'core/database/isar_provider.dart';
 import 'features/map/data/models/location_log.dart';
 
@@ -33,7 +33,7 @@ void main() async {
                 isarProvider.overrideWithValue(isar),
             ],
 
-            child: const App(),
+            child: const AppInitializer(),
         ),
     );
 }
