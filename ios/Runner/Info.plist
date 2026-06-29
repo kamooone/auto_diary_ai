@@ -47,5 +47,9 @@
 	<true/>
 	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
     <string>行動履歴を自動記録するために位置情報を使用します</string>
+    <key>NSLocationWhenInUseUsageDescription</key>
+    <string>行動履歴を自動記録するために位置情報を使用します</string>
+    <key>NSPhotoLibraryUsageDescription</key>
+    <string>写真を日記生成に利用するため使用します。</string>
 </dict>
 </plist>

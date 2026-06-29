@@ -40,8 +40,8 @@ class DiaryCreateScreen extends ConsumerWidget {
             ),
             const SizedBox(height: 4),
             ElevatedButton.icon(
-              onPressed: () {
-                // TODO: 画像選択処理
+              onPressed: () async {
+                await viewModel.pickPhoto();
               },
               icon: const Icon(Icons.add_a_photo),
               label: const Text("画像をアップロード"),
