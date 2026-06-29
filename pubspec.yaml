@@ -39,6 +39,8 @@ dependencies:
   dio: ^5.9.0
   photo_manager: ^3.9.0
   receive_sharing_intent: 1.8.0
+  http: ^1.2.2
+  html: ^0.15.4
 
   # --- Animated List / Scroll Animation ---
   flutter_staggered_animations: ^1.1.1
