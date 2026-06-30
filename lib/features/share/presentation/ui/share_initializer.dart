@@ -5,7 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:receive_sharing_intent/receive_sharing_intent.dart';
 import '../../../../app.dart';
 import '../../domain/entities/shared_post.dart';
-import '../providers/share_provider.dart';
+import '../../application/providers/share_service_provider.dart';
 
 class ShareInitializer extends ConsumerStatefulWidget {
   const ShareInitializer({super.key});
