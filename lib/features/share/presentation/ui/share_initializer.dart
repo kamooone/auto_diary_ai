@@ -1,20 +1,20 @@
 import 'dart:async';
+import 'package:auto_diary_ai/features/share/presentation/ui/share_preview_dialog.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:receive_sharing_intent/receive_sharing_intent.dart';
-import 'package:http/http.dart' as http;
-import 'package:html/parser.dart' as parser;
+import '../../../../app.dart';
+import '../../domain/entities/shared_post.dart';
+import '../providers/share_provider.dart';
 
-import 'app.dart';
-
-class AppInitializer extends ConsumerStatefulWidget {
-  const AppInitializer({super.key});
+class ShareInitializer extends ConsumerStatefulWidget {
+  const ShareInitializer({super.key});
 
   @override
-  ConsumerState<AppInitializer> createState() => _AppInitializerState();
+  ConsumerState<ShareInitializer> createState() => _ShareInitializerState();
 }
 
-class _AppInitializerState extends ConsumerState<AppInitializer> {
+class _ShareInitializerState extends ConsumerState<ShareInitializer> {
   StreamSubscription<List<SharedMediaFile>>? _shareSubscription;
 
   @override
@@ -24,52 +24,37 @@ class _AppInitializerState extends ConsumerState<AppInitializer> {
   }
 
   // ==========================
-  // OGPからテキスト取得
-  // ==========================
-  Future<String?> _fetchTweetText(String url) async {
-    try {
-      final res = await http.get(Uri.parse(url));
-
-      if (res.statusCode != 200) return null;
-
-      final doc = parser.parse(res.body);
-
-      final meta = doc.querySelector(
-        'meta[property="og:description"]',
-      );
-
-      return meta?.attributes['content'];
-    } catch (e) {
-      debugPrint('OGP fetch error: $e');
-      return null;
-    }
-  }
-
-  // ==========================
   // 共有処理
   // ==========================
   Future<void> _handleSharedUrl(String url) async {
-    final receivedAt = DateTime.now().toUtc();
+    final shareService = ref.read(shareServiceProvider);
 
-    debugPrint('===== Shared URL =====');
-    debugPrint(url);
+    final post = await shareService.handle(url);
 
-    final text = await _fetchTweetText(url);
+    if (!mounted) return;
 
-    final payload = {
-      'url': url,
-      'text': text ?? '',
-      'received_at': receivedAt.toIso8601String(),
-      'source': text != null ? 'ogp' : 'fallback',
-    };
+    showDialog(
+      context: context,
+      builder: (_) {
+        return SharePreviewDialog(
+          url: post.url,
+          text: post.text,
+          onConfirm: (selectedDate) {
+            final useCase = ref.read(saveSharedPostUseCaseProvider);
 
-    debugPrint('===== Extracted Data =====');
-    debugPrint('URL         : $url');
-    debugPrint('Text        : $text');
-    debugPrint('Received At : $receivedAt');
-    debugPrint('Payload     : $payload');
+            useCase.execute(
+              url: post.url,
+              text: post.text,
+              receivedAt: selectedDate,
+            );
 
-    // TODO: ここで日記生成AIに渡す
+            debugPrint('SAVED REQUEST SENT');
+
+            // TODO: 保存UseCaseへ
+          },
+        );
+      },
+    );
   }
 
   // ==========================
