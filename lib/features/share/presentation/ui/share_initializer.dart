@@ -27,6 +27,7 @@ class _ShareInitializerState extends ConsumerState<ShareInitializer> {
   // 共有処理
   // ==========================
   Future<void> _handleSharedUrl(String url) async {
+
     final shareService = ref.read(shareServiceProvider);
 
     final post = await shareService.handle(url);
@@ -39,18 +40,13 @@ class _ShareInitializerState extends ConsumerState<ShareInitializer> {
         return SharePreviewDialog(
           url: post.url,
           text: post.text,
-          onConfirm: (selectedDate) {
-            final useCase = ref.read(saveSharedPostUseCaseProvider);
-
-            useCase.execute(
-              url: post.url,
-              text: post.text,
-              receivedAt: selectedDate,
+          onConfirm: (selectedDate) async {
+            await shareService.save(
+              post,
+              selectedDate,
             );
 
             debugPrint('SAVED REQUEST SENT');
-
-            // TODO: 保存UseCaseへ
           },
         );
       },
@@ -62,17 +58,16 @@ class _ShareInitializerState extends ConsumerState<ShareInitializer> {
   // ==========================
   Future<void> _initializeShareIntent() async {
     // ==========================
-    // アプリ起動時の共有
+    // アプリ起動時のXからの共有を取得
     // ==========================
-    final initialFiles =
-    await ReceiveSharingIntent.instance.getInitialMedia();
+    final initialFiles = await ReceiveSharingIntent.instance.getInitialMedia();
 
     for (final file in initialFiles) {
       await _handleSharedUrl(file.path);
     }
 
     // ==========================
-    // アプリ起動中の共有
+    // 共有されたファイルを受け取るストリームを監視(リスナー登録)
     // ==========================
     _shareSubscription =
         ReceiveSharingIntent.instance.getMediaStream().listen(

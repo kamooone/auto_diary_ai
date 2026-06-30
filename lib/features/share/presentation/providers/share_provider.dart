@@ -31,7 +31,7 @@ final shareTweetUseCaseProvider = Provider<ShareTweetUseCase>((ref) {
 });
 
 // --------------------
-// UseCase（保存） ← ★これが追加
+// UseCase（保存）
 // --------------------
 final saveSharedPostUseCaseProvider =
 Provider<SaveSharedPostUseCase>((ref) {
@@ -44,5 +44,8 @@ Provider<SaveSharedPostUseCase>((ref) {
 // Service
 // --------------------
 final shareServiceProvider = Provider<ShareService>((ref) {
-  return ShareService(ref.read(shareTweetUseCaseProvider));
+  return ShareService(
+    ref.read(shareTweetUseCaseProvider),
+    ref.read(saveSharedPostUseCaseProvider),
+  );
 });
