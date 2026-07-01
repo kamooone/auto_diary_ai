@@ -4,14 +4,10 @@ class SharePreviewDialog extends StatefulWidget {
   final String url;
   final String text;
 
-  /// OK押したときに渡す
-  final void Function(DateTime selectedDate) onConfirm;
-
   const SharePreviewDialog({
     super.key,
     required this.url,
     required this.text,
-    required this.onConfirm,
   });
 
   @override
@@ -31,6 +27,7 @@ class _SharePreviewDialogState extends State<SharePreviewDialog> {
       lastDate: DateTime(2100),
     );
 
+    if (!mounted) return;
     if (date == null) return;
 
     final time = await showTimePicker(
@@ -59,8 +56,8 @@ class _SharePreviewDialogState extends State<SharePreviewDialog> {
       return;
     }
 
-    widget.onConfirm(_selectedDate!);
-    Navigator.of(context).pop();
+    // ダイアログを閉じる + 値を返す
+    Navigator.of(context).pop(_selectedDate);
   }
 
   @override
@@ -71,13 +68,6 @@ class _SharePreviewDialogState extends State<SharePreviewDialog> {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'URL',
-            style: TextStyle(fontWeight: FontWeight.bold),
-          ),
-          Text(widget.url),
-          const SizedBox(height: 12),
-
           const Text(
             'テキスト',
             style: TextStyle(fontWeight: FontWeight.bold),

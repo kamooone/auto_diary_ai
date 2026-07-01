@@ -40,23 +40,19 @@ class _ShareInitializerState extends ConsumerState<ShareInitializer> {
 
     if (!mounted) return;
 
-    showDialog(
+    showDialog<DateTime>(
       context: context,
       builder: (_) {
         return SharePreviewDialog(
           url: post.url,
           text: post.text,
-          onConfirm: (selectedDate) async {
-            await shareService.save(
-              post,
-              selectedDate,
-            );
-
-            debugPrint('SAVED REQUEST SENT');
-          },
         );
       },
-    );
+    ).then((selectedDate) async {
+      if (selectedDate == null) return;
+
+      await shareService.save(post, selectedDate);
+    });
   }
 
   // ==========================
