@@ -1,6 +1,6 @@
 // GENERATED CODE - DO NOT MODIFY BY HAND
 
-part of 'shared_post_entity.dart';
+part of 'shared_post_model.dart';
 
 // **************************************************************************
 // IsarCollectionGenerator
@@ -9,13 +9,13 @@ part of 'shared_post_entity.dart';
 // coverage:ignore-file
 // ignore_for_file: duplicate_ignore, non_constant_identifier_names, constant_identifier_names, invalid_use_of_protected_member, unnecessary_cast, prefer_const_constructors, lines_longer_than_80_chars, require_trailing_commas, inference_failure_on_function_invocation, unnecessary_parenthesis, unnecessary_raw_strings, unnecessary_null_checks, join_return_with_assignment, prefer_final_locals, avoid_js_rounded_ints, avoid_positional_boolean_parameters, always_specify_types
 
-extension GetSharedPostEntityCollection on Isar {
-  IsarCollection<SharedPostEntity> get sharedPostEntitys => this.collection();
+extension GetSharedPostModelCollection on Isar {
+  IsarCollection<SharedPostModel> get sharedPostModels => this.collection();
 }
 
-const SharedPostEntitySchema = CollectionSchema(
-  name: r'SharedPostEntity',
-  id: -3425507573836902618,
+const SharedPostModelSchema = CollectionSchema(
+  name: r'SharedPostModel',
+  id: 7558179099828780986,
   properties: {
     r'receivedAt': PropertySchema(
       id: 0,
@@ -33,22 +33,22 @@ const SharedPostEntitySchema = CollectionSchema(
       type: IsarType.string,
     )
   },
-  estimateSize: _sharedPostEntityEstimateSize,
-  serialize: _sharedPostEntitySerialize,
-  deserialize: _sharedPostEntityDeserialize,
-  deserializeProp: _sharedPostEntityDeserializeProp,
+  estimateSize: _sharedPostModelEstimateSize,
+  serialize: _sharedPostModelSerialize,
+  deserialize: _sharedPostModelDeserialize,
+  deserializeProp: _sharedPostModelDeserializeProp,
   idName: r'id',
   indexes: {},
   links: {},
   embeddedSchemas: {},
-  getId: _sharedPostEntityGetId,
-  getLinks: _sharedPostEntityGetLinks,
-  attach: _sharedPostEntityAttach,
+  getId: _sharedPostModelGetId,
+  getLinks: _sharedPostModelGetLinks,
+  attach: _sharedPostModelAttach,
   version: '3.1.0+1',
 );
 
-int _sharedPostEntityEstimateSize(
-  SharedPostEntity object,
+int _sharedPostModelEstimateSize(
+  SharedPostModel object,
   List<int> offsets,
   Map<Type, List<int>> allOffsets,
 ) {
@@ -58,8 +58,8 @@ int _sharedPostEntityEstimateSize(
   return bytesCount;
 }
 
-void _sharedPostEntitySerialize(
-  SharedPostEntity object,
+void _sharedPostModelSerialize(
+  SharedPostModel object,
   IsarWriter writer,
   List<int> offsets,
   Map<Type, List<int>> allOffsets,
@@ -69,13 +69,13 @@ void _sharedPostEntitySerialize(
   writer.writeString(offsets[2], object.url);
 }
 
-SharedPostEntity _sharedPostEntityDeserialize(
+SharedPostModel _sharedPostModelDeserialize(
   Id id,
   IsarReader reader,
   List<int> offsets,
   Map<Type, List<int>> allOffsets,
 ) {
-  final object = SharedPostEntity();
+  final object = SharedPostModel();
   object.id = id;
   object.receivedAt = reader.readDateTime(offsets[0]);
   object.text = reader.readString(offsets[1]);
@@ -83,7 +83,7 @@ SharedPostEntity _sharedPostEntityDeserialize(
   return object;
 }
 
-P _sharedPostEntityDeserializeProp<P>(
+P _sharedPostModelDeserializeProp<P>(
   IsarReader reader,
   int propertyId,
   int offset,
@@ -101,31 +101,31 @@ P _sharedPostEntityDeserializeProp<P>(
   }
 }
 
-Id _sharedPostEntityGetId(SharedPostEntity object) {
+Id _sharedPostModelGetId(SharedPostModel object) {
   return object.id;
 }
 
-List<IsarLinkBase<dynamic>> _sharedPostEntityGetLinks(SharedPostEntity object) {
+List<IsarLinkBase<dynamic>> _sharedPostModelGetLinks(SharedPostModel object) {
   return [];
 }
 
-void _sharedPostEntityAttach(
-    IsarCollection<dynamic> col, Id id, SharedPostEntity object) {
+void _sharedPostModelAttach(
+    IsarCollection<dynamic> col, Id id, SharedPostModel object) {
   object.id = id;
 }
 
-extension SharedPostEntityQueryWhereSort
-    on QueryBuilder<SharedPostEntity, SharedPostEntity, QWhere> {
-  QueryBuilder<SharedPostEntity, SharedPostEntity, QAfterWhere> anyId() {
+extension SharedPostModelQueryWhereSort
+    on QueryBuilder<SharedPostModel, SharedPostModel, QWhere> {
+  QueryBuilder<SharedPostModel, SharedPostModel, QAfterWhere> anyId() {
     return QueryBuilder.apply(this, (query) {
       return query.addWhereClause(const IdWhereClause.any());
     });
   }
 }
 
-extension SharedPostEntityQueryWhere
-    on QueryBuilder<SharedPostEntity, SharedPostEntity, QWhereClause> {
-  QueryBuilder<SharedPostEntity, SharedPostEntity, QAfterWhereClause> idEqualTo(
+extension SharedPostModelQueryWhere
+    on QueryBuilder<SharedPostModel, SharedPostModel, QWhereClause> {
+  QueryBuilder<SharedPostModel, SharedPostModel, QAfterWhereClause> idEqualTo(
       Id id) {
     return QueryBuilder.apply(this, (query) {
       return query.addWhereClause(IdWhereClause.between(
@@ -135,7 +135,7 @@ extension SharedPostEntityQueryWhere
     });
   }
 
-  QueryBuilder<SharedPostEntity, SharedPostEntity, QAfterWhereClause>
+  QueryBuilder<SharedPostModel, SharedPostModel, QAfterWhereClause>
       idNotEqualTo(Id id) {
     return QueryBuilder.apply(this, (query) {
       if (query.whereSort == Sort.asc) {
@@ -158,7 +158,7 @@ extension SharedPostEntityQueryWhere
     });
   }
 
-  QueryBuilder<SharedPostEntity, SharedPostEntity, QAfterWhereClause>
+  QueryBuilder<SharedPostModel, SharedPostModel, QAfterWhereClause>
       idGreaterThan(Id id, {bool include = false}) {
     return QueryBuilder.apply(this, (query) {
       return query.addWhereClause(
@@ -167,8 +167,9 @@ extension SharedPostEntityQueryWhere
     });
   }
 
-  QueryBuilder<SharedPostEntity, SharedPostEntity, QAfterWhereClause>
-      idLessThan(Id id, {bool include = false}) {
+  QueryBuilder<SharedPostModel, SharedPostModel, QAfterWhereClause> idLessThan(
+      Id id,
+      {bool include = false}) {
     return QueryBuilder.apply(this, (query) {
       return query.addWhereClause(
         IdWhereClause.lessThan(upper: id, includeUpper: include),
@@ -176,7 +177,7 @@ extension SharedPostEntityQueryWhere
     });
   }
 
-  QueryBuilder<SharedPostEntity, SharedPostEntity, QAfterWhereClause> idBetween(
+  QueryBuilder<SharedPostModel, SharedPostModel, QAfterWhereClause> idBetween(
     Id lowerId,
     Id upperId, {
     bool includeLower = true,
@@ -193,9 +194,9 @@ extension SharedPostEntityQueryWhere
   }
 }
 
-extension SharedPostEntityQueryFilter
-    on QueryBuilder<SharedPostEntity, SharedPostEntity, QFilterCondition> {
-  QueryBuilder<SharedPostEntity, SharedPostEntity, QAfterFilterCondition>
+extension SharedPostModelQueryFilter
+    on QueryBuilder<SharedPostModel, SharedPostModel, QFilterCondition> {
+  QueryBuilder<SharedPostModel, SharedPostModel, QAfterFilterCondition>
       idEqualTo(Id value) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.equalTo(
@@ -205,7 +206,7 @@ extension SharedPostEntityQueryFilter
     });
   }
 
-  QueryBuilder<SharedPostEntity, SharedPostEntity, QAfterFilterCondition>
+  QueryBuilder<SharedPostModel, SharedPostModel, QAfterFilterCondition>
       idGreaterThan(
     Id value, {
     bool include = false,
@@ -219,7 +220,7 @@ extension SharedPostEntityQueryFilter
     });
   }
 
-  QueryBuilder<SharedPostEntity, SharedPostEntity, QAfterFilterCondition>
+  QueryBuilder<SharedPostModel, SharedPostModel, QAfterFilterCondition>
       idLessThan(
     Id value, {
     bool include = false,
@@ -233,7 +234,7 @@ extension SharedPostEntityQueryFilter
     });
   }
 
-  QueryBuilder<SharedPostEntity, SharedPostEntity, QAfterFilterCondition>
+  QueryBuilder<SharedPostModel, SharedPostModel, QAfterFilterCondition>
       idBetween(
     Id lower,
     Id upper, {
@@ -251,7 +252,7 @@ extension SharedPostEntityQueryFilter
     });
   }
 
-  QueryBuilder<SharedPostEntity, SharedPostEntity, QAfterFilterCondition>
+  QueryBuilder<SharedPostModel, SharedPostModel, QAfterFilterCondition>
       receivedAtEqualTo(DateTime value) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.equalTo(
@@ -261,7 +262,7 @@ extension SharedPostEntityQueryFilter
     });
   }
 
-  QueryBuilder<SharedPostEntity, SharedPostEntity, QAfterFilterCondition>
+  QueryBuilder<SharedPostModel, SharedPostModel, QAfterFilterCondition>
       receivedAtGreaterThan(
     DateTime value, {
     bool include = false,
@@ -275,7 +276,7 @@ extension SharedPostEntityQueryFilter
     });
   }
 
-  QueryBuilder<SharedPostEntity, SharedPostEntity, QAfterFilterCondition>
+  QueryBuilder<SharedPostModel, SharedPostModel, QAfterFilterCondition>
       receivedAtLessThan(
     DateTime value, {
     bool include = false,
@@ -289,7 +290,7 @@ extension SharedPostEntityQueryFilter
     });
   }
 
-  QueryBuilder<SharedPostEntity, SharedPostEntity, QAfterFilterCondition>
+  QueryBuilder<SharedPostModel, SharedPostModel, QAfterFilterCondition>
       receivedAtBetween(
     DateTime lower,
     DateTime upper, {
@@ -307,7 +308,7 @@ extension SharedPostEntityQueryFilter
     });
   }
 
-  QueryBuilder<SharedPostEntity, SharedPostEntity, QAfterFilterCondition>
+  QueryBuilder<SharedPostModel, SharedPostModel, QAfterFilterCondition>
       textEqualTo(
     String value, {
     bool caseSensitive = true,
@@ -321,7 +322,7 @@ extension SharedPostEntityQueryFilter
     });
   }
 
-  QueryBuilder<SharedPostEntity, SharedPostEntity, QAfterFilterCondition>
+  QueryBuilder<SharedPostModel, SharedPostModel, QAfterFilterCondition>
       textGreaterThan(
     String value, {
     bool include = false,
@@ -337,7 +338,7 @@ extension SharedPostEntityQueryFilter
     });
   }
 
-  QueryBuilder<SharedPostEntity, SharedPostEntity, QAfterFilterCondition>
+  QueryBuilder<SharedPostModel, SharedPostModel, QAfterFilterCondition>
       textLessThan(
     String value, {
     bool include = false,
@@ -353,7 +354,7 @@ extension SharedPostEntityQueryFilter
     });
   }
 
-  QueryBuilder<SharedPostEntity, SharedPostEntity, QAfterFilterCondition>
+  QueryBuilder<SharedPostModel, SharedPostModel, QAfterFilterCondition>
       textBetween(
     String lower,
     String upper, {
@@ -373,7 +374,7 @@ extension SharedPostEntityQueryFilter
     });
   }
 
-  QueryBuilder<SharedPostEntity, SharedPostEntity, QAfterFilterCondition>
+  QueryBuilder<SharedPostModel, SharedPostModel, QAfterFilterCondition>
       textStartsWith(
     String value, {
     bool caseSensitive = true,
@@ -387,7 +388,7 @@ extension SharedPostEntityQueryFilter
     });
   }
 
-  QueryBuilder<SharedPostEntity, SharedPostEntity, QAfterFilterCondition>
+  QueryBuilder<SharedPostModel, SharedPostModel, QAfterFilterCondition>
       textEndsWith(
     String value, {
     bool caseSensitive = true,
@@ -401,7 +402,7 @@ extension SharedPostEntityQueryFilter
     });
   }
 
-  QueryBuilder<SharedPostEntity, SharedPostEntity, QAfterFilterCondition>
+  QueryBuilder<SharedPostModel, SharedPostModel, QAfterFilterCondition>
       textContains(String value, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.contains(
@@ -412,7 +413,7 @@ extension SharedPostEntityQueryFilter
     });
   }
 
-  QueryBuilder<SharedPostEntity, SharedPostEntity, QAfterFilterCondition>
+  QueryBuilder<SharedPostModel, SharedPostModel, QAfterFilterCondition>
       textMatches(String pattern, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.matches(
@@ -423,7 +424,7 @@ extension SharedPostEntityQueryFilter
     });
   }
 
-  QueryBuilder<SharedPostEntity, SharedPostEntity, QAfterFilterCondition>
+  QueryBuilder<SharedPostModel, SharedPostModel, QAfterFilterCondition>
       textIsEmpty() {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.equalTo(
@@ -433,7 +434,7 @@ extension SharedPostEntityQueryFilter
     });
   }
 
-  QueryBuilder<SharedPostEntity, SharedPostEntity, QAfterFilterCondition>
+  QueryBuilder<SharedPostModel, SharedPostModel, QAfterFilterCondition>
       textIsNotEmpty() {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.greaterThan(
@@ -443,7 +444,7 @@ extension SharedPostEntityQueryFilter
     });
   }
 
-  QueryBuilder<SharedPostEntity, SharedPostEntity, QAfterFilterCondition>
+  QueryBuilder<SharedPostModel, SharedPostModel, QAfterFilterCondition>
       urlEqualTo(
     String value, {
     bool caseSensitive = true,
@@ -457,7 +458,7 @@ extension SharedPostEntityQueryFilter
     });
   }
 
-  QueryBuilder<SharedPostEntity, SharedPostEntity, QAfterFilterCondition>
+  QueryBuilder<SharedPostModel, SharedPostModel, QAfterFilterCondition>
       urlGreaterThan(
     String value, {
     bool include = false,
@@ -473,7 +474,7 @@ extension SharedPostEntityQueryFilter
     });
   }
 
-  QueryBuilder<SharedPostEntity, SharedPostEntity, QAfterFilterCondition>
+  QueryBuilder<SharedPostModel, SharedPostModel, QAfterFilterCondition>
       urlLessThan(
     String value, {
     bool include = false,
@@ -489,7 +490,7 @@ extension SharedPostEntityQueryFilter
     });
   }
 
-  QueryBuilder<SharedPostEntity, SharedPostEntity, QAfterFilterCondition>
+  QueryBuilder<SharedPostModel, SharedPostModel, QAfterFilterCondition>
       urlBetween(
     String lower,
     String upper, {
@@ -509,7 +510,7 @@ extension SharedPostEntityQueryFilter
     });
   }
 
-  QueryBuilder<SharedPostEntity, SharedPostEntity, QAfterFilterCondition>
+  QueryBuilder<SharedPostModel, SharedPostModel, QAfterFilterCondition>
       urlStartsWith(
     String value, {
     bool caseSensitive = true,
@@ -523,7 +524,7 @@ extension SharedPostEntityQueryFilter
     });
   }
 
-  QueryBuilder<SharedPostEntity, SharedPostEntity, QAfterFilterCondition>
+  QueryBuilder<SharedPostModel, SharedPostModel, QAfterFilterCondition>
       urlEndsWith(
     String value, {
     bool caseSensitive = true,
@@ -537,7 +538,7 @@ extension SharedPostEntityQueryFilter
     });
   }
 
-  QueryBuilder<SharedPostEntity, SharedPostEntity, QAfterFilterCondition>
+  QueryBuilder<SharedPostModel, SharedPostModel, QAfterFilterCondition>
       urlContains(String value, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.contains(
@@ -548,7 +549,7 @@ extension SharedPostEntityQueryFilter
     });
   }
 
-  QueryBuilder<SharedPostEntity, SharedPostEntity, QAfterFilterCondition>
+  QueryBuilder<SharedPostModel, SharedPostModel, QAfterFilterCondition>
       urlMatches(String pattern, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.matches(
@@ -559,7 +560,7 @@ extension SharedPostEntityQueryFilter
     });
   }
 
-  QueryBuilder<SharedPostEntity, SharedPostEntity, QAfterFilterCondition>
+  QueryBuilder<SharedPostModel, SharedPostModel, QAfterFilterCondition>
       urlIsEmpty() {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.equalTo(
@@ -569,7 +570,7 @@ extension SharedPostEntityQueryFilter
     });
   }
 
-  QueryBuilder<SharedPostEntity, SharedPostEntity, QAfterFilterCondition>
+  QueryBuilder<SharedPostModel, SharedPostModel, QAfterFilterCondition>
       urlIsNotEmpty() {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.greaterThan(
@@ -580,128 +581,125 @@ extension SharedPostEntityQueryFilter
   }
 }
 
-extension SharedPostEntityQueryObject
-    on QueryBuilder<SharedPostEntity, SharedPostEntity, QFilterCondition> {}
+extension SharedPostModelQueryObject
+    on QueryBuilder<SharedPostModel, SharedPostModel, QFilterCondition> {}
 
-extension SharedPostEntityQueryLinks
-    on QueryBuilder<SharedPostEntity, SharedPostEntity, QFilterCondition> {}
+extension SharedPostModelQueryLinks
+    on QueryBuilder<SharedPostModel, SharedPostModel, QFilterCondition> {}
 
-extension SharedPostEntityQuerySortBy
-    on QueryBuilder<SharedPostEntity, SharedPostEntity, QSortBy> {
-  QueryBuilder<SharedPostEntity, SharedPostEntity, QAfterSortBy>
+extension SharedPostModelQuerySortBy
+    on QueryBuilder<SharedPostModel, SharedPostModel, QSortBy> {
+  QueryBuilder<SharedPostModel, SharedPostModel, QAfterSortBy>
       sortByReceivedAt() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'receivedAt', Sort.asc);
     });
   }
 
-  QueryBuilder<SharedPostEntity, SharedPostEntity, QAfterSortBy>
+  QueryBuilder<SharedPostModel, SharedPostModel, QAfterSortBy>
       sortByReceivedAtDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'receivedAt', Sort.desc);
     });
   }
 
-  QueryBuilder<SharedPostEntity, SharedPostEntity, QAfterSortBy> sortByText() {
+  QueryBuilder<SharedPostModel, SharedPostModel, QAfterSortBy> sortByText() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'text', Sort.asc);
     });
   }
 
-  QueryBuilder<SharedPostEntity, SharedPostEntity, QAfterSortBy>
+  QueryBuilder<SharedPostModel, SharedPostModel, QAfterSortBy>
       sortByTextDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'text', Sort.desc);
     });
   }
 
-  QueryBuilder<SharedPostEntity, SharedPostEntity, QAfterSortBy> sortByUrl() {
+  QueryBuilder<SharedPostModel, SharedPostModel, QAfterSortBy> sortByUrl() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'url', Sort.asc);
     });
   }
 
-  QueryBuilder<SharedPostEntity, SharedPostEntity, QAfterSortBy>
-      sortByUrlDesc() {
+  QueryBuilder<SharedPostModel, SharedPostModel, QAfterSortBy> sortByUrlDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'url', Sort.desc);
     });
   }
 }
 
-extension SharedPostEntityQuerySortThenBy
-    on QueryBuilder<SharedPostEntity, SharedPostEntity, QSortThenBy> {
-  QueryBuilder<SharedPostEntity, SharedPostEntity, QAfterSortBy> thenById() {
+extension SharedPostModelQuerySortThenBy
+    on QueryBuilder<SharedPostModel, SharedPostModel, QSortThenBy> {
+  QueryBuilder<SharedPostModel, SharedPostModel, QAfterSortBy> thenById() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'id', Sort.asc);
     });
   }
 
-  QueryBuilder<SharedPostEntity, SharedPostEntity, QAfterSortBy>
-      thenByIdDesc() {
+  QueryBuilder<SharedPostModel, SharedPostModel, QAfterSortBy> thenByIdDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'id', Sort.desc);
     });
   }
 
-  QueryBuilder<SharedPostEntity, SharedPostEntity, QAfterSortBy>
+  QueryBuilder<SharedPostModel, SharedPostModel, QAfterSortBy>
       thenByReceivedAt() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'receivedAt', Sort.asc);
     });
   }
 
-  QueryBuilder<SharedPostEntity, SharedPostEntity, QAfterSortBy>
+  QueryBuilder<SharedPostModel, SharedPostModel, QAfterSortBy>
       thenByReceivedAtDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'receivedAt', Sort.desc);
     });
   }
 
-  QueryBuilder<SharedPostEntity, SharedPostEntity, QAfterSortBy> thenByText() {
+  QueryBuilder<SharedPostModel, SharedPostModel, QAfterSortBy> thenByText() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'text', Sort.asc);
     });
   }
 
-  QueryBuilder<SharedPostEntity, SharedPostEntity, QAfterSortBy>
+  QueryBuilder<SharedPostModel, SharedPostModel, QAfterSortBy>
       thenByTextDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'text', Sort.desc);
     });
   }
 
-  QueryBuilder<SharedPostEntity, SharedPostEntity, QAfterSortBy> thenByUrl() {
+  QueryBuilder<SharedPostModel, SharedPostModel, QAfterSortBy> thenByUrl() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'url', Sort.asc);
     });
   }
 
-  QueryBuilder<SharedPostEntity, SharedPostEntity, QAfterSortBy>
-      thenByUrlDesc() {
+  QueryBuilder<SharedPostModel, SharedPostModel, QAfterSortBy> thenByUrlDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'url', Sort.desc);
     });
   }
 }
 
-extension SharedPostEntityQueryWhereDistinct
-    on QueryBuilder<SharedPostEntity, SharedPostEntity, QDistinct> {
-  QueryBuilder<SharedPostEntity, SharedPostEntity, QDistinct>
+extension SharedPostModelQueryWhereDistinct
+    on QueryBuilder<SharedPostModel, SharedPostModel, QDistinct> {
+  QueryBuilder<SharedPostModel, SharedPostModel, QDistinct>
       distinctByReceivedAt() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'receivedAt');
     });
   }
 
-  QueryBuilder<SharedPostEntity, SharedPostEntity, QDistinct> distinctByText(
+  QueryBuilder<SharedPostModel, SharedPostModel, QDistinct> distinctByText(
       {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'text', caseSensitive: caseSensitive);
     });
   }
 
-  QueryBuilder<SharedPostEntity, SharedPostEntity, QDistinct> distinctByUrl(
+  QueryBuilder<SharedPostModel, SharedPostModel, QDistinct> distinctByUrl(
       {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'url', caseSensitive: caseSensitive);
@@ -709,28 +707,28 @@ extension SharedPostEntityQueryWhereDistinct
   }
 }
 
-extension SharedPostEntityQueryProperty
-    on QueryBuilder<SharedPostEntity, SharedPostEntity, QQueryProperty> {
-  QueryBuilder<SharedPostEntity, int, QQueryOperations> idProperty() {
+extension SharedPostModelQueryProperty
+    on QueryBuilder<SharedPostModel, SharedPostModel, QQueryProperty> {
+  QueryBuilder<SharedPostModel, int, QQueryOperations> idProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'id');
     });
   }
 
-  QueryBuilder<SharedPostEntity, DateTime, QQueryOperations>
+  QueryBuilder<SharedPostModel, DateTime, QQueryOperations>
       receivedAtProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'receivedAt');
     });
   }
 
-  QueryBuilder<SharedPostEntity, String, QQueryOperations> textProperty() {
+  QueryBuilder<SharedPostModel, String, QQueryOperations> textProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'text');
     });
   }
 
-  QueryBuilder<SharedPostEntity, String, QQueryOperations> urlProperty() {
+  QueryBuilder<SharedPostModel, String, QQueryOperations> urlProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'url');
     });

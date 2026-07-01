@@ -69,29 +69,53 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         ),
       ],
 
-      floatingActionButton: FloatingActionButton(
-        tooltip: '日記を作成',
-        onPressed: () {
-          context.push(AppRoutes.diaryCreate);
-        },
-        child: const Icon(Icons.add),
-      ),
-
-      body: Column(
+      body: Stack(
         children: [
-          MonthDropdown(
-            months: state.months,
-            selectedMonth: selectedMonth,
-            onChanged: (month) {
-              viewModel.setMonth(month);
-            },
+          Column(
+            children: [
+              MonthDropdown(
+                months: state.months,
+                selectedMonth: selectedMonth,
+                onChanged: (month) {
+                  viewModel.setMonth(month);
+                },
+              ),
+              Expanded(
+                child: DiaryListView(
+                  months: state.months,
+                  filteredItemsPerMonth: state.filteredItemsPerMonth,
+                  pageController: pageController,
+                  onPageChanged: viewModel.onPageChanged,
+                ),
+              ),
+            ],
           ),
-          Expanded(
-            child: DiaryListView(
-              months: state.months,
-              filteredItemsPerMonth: state.filteredItemsPerMonth,
-              pageController: pageController,
-              onPageChanged: viewModel.onPageChanged,
+
+          // 左下：カレンダー
+          Positioned(
+            left: 16,
+            bottom: 16,
+            child: FloatingActionButton(
+              heroTag: 'calendar',
+              tooltip: 'カレンダー',
+              onPressed: () {
+                context.push('/calendar');
+              },
+              child: const Icon(Icons.calendar_month),
+            ),
+          ),
+
+          // 右下：日記作成
+          Positioned(
+            right: 16,
+            bottom: 16,
+            child: FloatingActionButton(
+              heroTag: 'diary',
+              tooltip: '日記作成',
+              onPressed: () {
+                context.push(AppRoutes.diaryCreate);
+              },
+              child: const Icon(Icons.add),
             ),
           ),
         ],

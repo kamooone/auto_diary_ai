@@ -5,7 +5,7 @@ import 'package:path_provider/path_provider.dart';
 import 'app.dart';
 import 'core/database/isar_provider.dart';
 import 'features/map/data/models/location_log.dart';
-import 'features/share/data/models/shared_post_entity.dart';
+import 'features/share/data/models/shared_post_model.dart';
 
 void main() async {
 
@@ -23,7 +23,7 @@ void main() async {
     final isar = await Isar.open(
         [
             LocationLogSchema,
-            SharedPostEntitySchema,
+            SharedPostModelSchema,
         ],
         directory: dir.path,
     );

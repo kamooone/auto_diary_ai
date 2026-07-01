@@ -1,13 +1,13 @@
 import 'package:isar/isar.dart';
-part 'shared_post_entity.g.dart';
+part 'shared_post_model.g.dart';
 
 @collection
-class SharedPostEntity {
+class SharedPostModel {
   Id id = Isar.autoIncrement;
 
   late String url;
   late String text;
   late DateTime receivedAt;
 
-  SharedPostEntity();
+  SharedPostModel();
 }
