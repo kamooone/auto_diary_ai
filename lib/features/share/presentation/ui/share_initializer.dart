@@ -3,12 +3,15 @@ import 'package:auto_diary_ai/features/share/presentation/ui/share_preview_dialo
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:receive_sharing_intent/receive_sharing_intent.dart';
-import '../../../../app.dart';
-import '../../domain/entities/shared_post.dart';
 import '../../application/providers/share_service_provider.dart';
 
 class ShareInitializer extends ConsumerStatefulWidget {
-  const ShareInitializer({super.key});
+  final Widget child;
+
+  const ShareInitializer({
+    super.key,
+    required this.child,
+  });
 
   @override
   ConsumerState<ShareInitializer> createState() => _ShareInitializerState();
@@ -20,7 +23,10 @@ class _ShareInitializerState extends ConsumerState<ShareInitializer> {
   @override
   void initState() {
     super.initState();
-    _initializeShareIntent();
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _initializeShareIntent();
+    });
   }
 
   // ==========================
@@ -90,6 +96,6 @@ class _ShareInitializerState extends ConsumerState<ShareInitializer> {
 
   @override
   Widget build(BuildContext context) {
-    return const App();
+    return widget.child;
   }
 }
