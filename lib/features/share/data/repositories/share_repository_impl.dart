@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart';
 import 'package:isar/isar.dart';
 import '../../domain/repositories/share_repository.dart';
 import '../datasources/ogp_fetcher.dart';
@@ -17,8 +18,13 @@ class ShareRepositoryImpl implements ShareRepository {
       ..text = post.text
       ..receivedAt = post.receivedAt;
 
-    await isar.writeTxn(() async {
-      await isar.sharedPostModels.put(entity);
-    });
+    try {
+      await isar.writeTxn(() async {
+        await isar.sharedPostModels.put(entity);
+      });
+    } catch (e) {
+      debugPrint('DB保存失敗: $e');
+      rethrow;
+    }
   }
 }

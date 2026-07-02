@@ -51,7 +51,25 @@ class _ShareInitializerState extends ConsumerState<ShareInitializer> {
     ).then((selectedDate) async {
       if (selectedDate == null) return;
 
-      await shareService.save(post, selectedDate);
+      try {
+        await shareService.save(post, selectedDate);
+
+        if (!mounted) return;
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('保存しました'),
+          ),
+        );
+      } catch (e) {
+        if (!mounted) return;
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('保存に失敗しました'),
+          ),
+        );
+      }
     });
   }
 
