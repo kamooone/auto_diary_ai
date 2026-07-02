@@ -22,8 +22,9 @@ class ShareRepositoryImpl implements ShareRepository {
       await isar.writeTxn(() async {
         await isar.sharedPostModels.put(entity);
       });
-    } catch (e) {
+    } catch (e, stackTrace) {
       debugPrint('DB保存失敗: $e');
+      debugPrintStack(stackTrace: stackTrace);
       rethrow;
     }
   }
@@ -33,17 +34,23 @@ class ShareRepositoryImpl implements ShareRepository {
     final start = DateTime(date.year, date.month, date.day);
     final end = start.add(const Duration(days: 1));
 
-    final models = await isar.sharedPostModels
-        .filter()
-        .receivedAtBetween(start, end)
-        .findAll();
+    try {
+      final models = await isar.sharedPostModels
+          .filter()
+          .receivedAtBetween(start, end)
+          .findAll();
 
-    return models.map((model) {
-      return SharedPost(
-        url: model.url,
-        text: model.text,
-        receivedAt: model.receivedAt,
-      );
-    }).toList();
+      return models.map((model) {
+        return SharedPost(
+          url: model.url,
+          text: model.text,
+          receivedAt: model.receivedAt,
+        );
+      }).toList();
+    } catch (e, stackTrace) {
+      debugPrint('DB取得失敗: $e');
+      debugPrintStack(stackTrace: stackTrace);
+      rethrow;
+    }
   }
 }
