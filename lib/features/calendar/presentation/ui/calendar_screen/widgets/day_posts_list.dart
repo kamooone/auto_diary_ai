@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import '../../../../../share/data/models/shared_post_model.dart';
+import '../../../../../share/domain/entities/shared_post.dart';
 
 class DayPostsList extends StatelessWidget {
-  final List<SharedPostModel> posts;
+  final List<SharedPost> posts;
 
   const DayPostsList({
     super.key,

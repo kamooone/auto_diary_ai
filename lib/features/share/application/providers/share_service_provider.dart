@@ -7,5 +7,6 @@ final shareServiceProvider = Provider<ShareService>((ref) {
   return ShareService(
     ref.read(shareTweetUseCaseProvider),
     ref.read(saveSharedPostUseCaseProvider),
+    ref.read(getSharedPostsUseCaseProvider),
   );
 });

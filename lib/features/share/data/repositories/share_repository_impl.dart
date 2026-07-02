@@ -27,4 +27,23 @@ class ShareRepositoryImpl implements ShareRepository {
       rethrow;
     }
   }
+
+  @override
+  Future<List<SharedPost>> findByDate(DateTime date) async {
+    final start = DateTime(date.year, date.month, date.day);
+    final end = start.add(const Duration(days: 1));
+
+    final models = await isar.sharedPostModels
+        .filter()
+        .receivedAtBetween(start, end)
+        .findAll();
+
+    return models.map((model) {
+      return SharedPost(
+        url: model.url,
+        text: model.text,
+        receivedAt: model.receivedAt,
+      );
+    }).toList();
+  }
 }
