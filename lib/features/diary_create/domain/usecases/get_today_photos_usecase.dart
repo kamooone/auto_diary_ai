@@ -8,9 +8,19 @@ class GetTodayPhotosUseCase {
       throw Exception("写真権限なし");
     }
 
+    final filter = FilterOptionGroup(
+      orders: [
+        const OrderOption(
+          type: OrderOptionType.createDate,
+          asc: false,
+        ),
+      ],
+    );
+
     final albums = await PhotoManager.getAssetPathList(
       type: RequestType.image,
       onlyAll: true,
+      filterOption: filter,
     );
 
     if (albums.isEmpty) return [];
