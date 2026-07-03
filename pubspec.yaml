@@ -42,6 +42,7 @@ dependencies:
   http: ^1.2.2
   html: ^0.15.4
   table_calendar: ^3.0.9
+  flutter_dotenv: ^5.2.1
 
   # --- Animated List / Scroll Animation ---
   flutter_staggered_animations: ^1.1.1
@@ -68,6 +69,9 @@ dev_dependencies:
 flutter:
   uses-material-design: true
   generate: true
+
+  assets:
+    - .env
 
 flutter_gen:
   l10n:

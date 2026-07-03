@@ -59,6 +59,7 @@ class DiaryCreateViewModel extends Notifier<DiaryCreateState> {
   }
 
   Future<void> generateDiary() async {
+    // TODO:テストで会話形式にしているため一時的
     if (state.content.isEmpty) return;
 
     state = state.copyWith(isLoading: true);
@@ -74,7 +75,10 @@ class DiaryCreateViewModel extends Notifier<DiaryCreateState> {
         generatedDiary: result,
         isLoading: false,
       );
-    } catch (e) {
+    } catch (e, stackTrace) {
+      debugPrint(e.toString());
+      debugPrintStack(stackTrace: stackTrace);
+
       state = state.copyWith(
         isLoading: false,
         generatedDiary: "生成に失敗しました",
