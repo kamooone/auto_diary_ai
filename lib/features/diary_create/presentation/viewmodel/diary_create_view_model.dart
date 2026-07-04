@@ -59,20 +59,24 @@ class DiaryCreateViewModel extends Notifier<DiaryCreateState> {
   }
 
   Future<void> generateDiary() async {
-    // TODO:テストで会話形式にしているため一時的
-    if (state.content.isEmpty) return;
 
     state = state.copyWith(isLoading: true);
 
     try {
-      final result = await _generateDiaryUseCase.execute(
-        title: state.title,
-        content: state.content,
-        date: state.selectedDate,
-      );
+      // 今日の写真を取得
+      final photos = await _getTodayPhotosUseCase.execute(state.selectedDate);
+
+      // TODO:　本日の行動履歴をログに表示させる
+
+      // final result = await _generateDiaryUseCase.execute(
+      //   title: state.title,
+      //   content: state.content,
+      //   date: state.selectedDate,
+      // );
 
       state = state.copyWith(
-        generatedDiary: result,
+        //generatedDiary: result,
+        generatedDiary: "完了",
         isLoading: false,
       );
     } catch (e, stackTrace) {
