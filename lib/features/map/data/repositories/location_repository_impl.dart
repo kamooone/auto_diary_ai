@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'package:geolocator/geolocator.dart';
 import '../../domain/entities/location.dart';
 import '../../domain/repositories/location_repository.dart';
 import '../datasources/gps_location_datasource.dart';
@@ -37,7 +36,7 @@ class LocationRepositoryImpl
         id: 0,
         latitude: position.latitude,
         longitude: position.longitude,
-        timestamp: position.timestamp ?? DateTime.now(),
+        timestamp: position.timestamp,
       );
     }
   }

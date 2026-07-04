@@ -1,5 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/foundation.dart';
+import '../../../map/application/providers/location_providers.dart';
+import '../../../share/application/providers/share_service_provider.dart';
 import '../../application/providers/diary_usecase_providers.dart';
 
 class DiaryCreateState {
@@ -66,17 +68,30 @@ class DiaryCreateViewModel extends Notifier<DiaryCreateState> {
       // 今日の写真を取得
       final photos = await _getTodayPhotosUseCase.execute(state.selectedDate);
 
-      // TODO:　本日の行動履歴をログに表示させる
+      // 本日の行動履歴を取得
+      late final getLocationsByDateUseCase = ref.read(getLocationsByDateUseCaseProvider);
+      final locations = await getLocationsByDateUseCase.execute(
+        state.selectedDate,
+      );
 
-      // final result = await _generateDiaryUseCase.execute(
-      //   title: state.title,
-      //   content: state.content,
-      //   date: state.selectedDate,
-      // );
+      // 本日のXのポスト一覧を取得
+      late final shareService = ref.read(shareServiceProvider);
+      final posts = await shareService.getPosts(
+        state.selectedDate,
+      );
+
+      // AIに日記を書いてもらう処理を呼び出し
+      final result = await _generateDiaryUseCase.execute(
+        title: state.title,
+        content: state.content,
+        date: state.selectedDate,
+        photos: photos,
+        locations: locations,
+        posts: posts,
+      );
 
       state = state.copyWith(
-        //generatedDiary: result,
-        generatedDiary: "完了",
+        generatedDiary: result,
         isLoading: false,
       );
     } catch (e, stackTrace) {
