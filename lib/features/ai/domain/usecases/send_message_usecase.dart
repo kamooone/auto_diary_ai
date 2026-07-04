@@ -1,3 +1,4 @@
+import '../entities/ai_message_request.dart';
 import '../repositories/ai_repository.dart';
 
 class SendMessageUseCase {
@@ -5,7 +6,7 @@ class SendMessageUseCase {
 
   SendMessageUseCase(this.repository);
 
-  Future<String> execute(String message) {
-    return repository.sendMessage(message);
+  Future<String> execute(AiMessageRequest request,) {
+    return repository.sendMessage(request);
   }
 }

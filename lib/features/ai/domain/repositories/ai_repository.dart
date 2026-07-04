@@ -1,3 +1,7 @@
+import '../entities/ai_message_request.dart';
+
 abstract class AiRepository {
-  Future<String> sendMessage(String message);
+  Future<String> sendMessage(
+      AiMessageRequest request,
+      );
 }
