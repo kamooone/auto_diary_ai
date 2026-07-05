@@ -1,6 +1,6 @@
-import 'package:auto_diary_ai/features/home/presentation/ui/diary_create_screen/viewmodel/diary_create_view_model.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../providers/diary_create_provider.dart';
 
 class DiaryCreateScreen extends ConsumerWidget {
   const DiaryCreateScreen({super.key});

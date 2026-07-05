@@ -6,12 +6,16 @@ import 'app.dart';
 import 'core/database/isar_provider.dart';
 import 'features/map/data/models/location_log.dart';
 import 'features/share/data/models/shared_post_model.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 void main() async {
 
     // Flutterエンジンを初期化する
     // runApp() より前で async 処理やプラグイン（Isar / path_provider など）を使う場合は必ず呼び出す必要がある
     WidgetsFlutterBinding.ensureInitialized();
+
+    // .env読み込み
+    await dotenv.load(fileName: ".env");
 
     // アプリのドキュメントディレクトリを取得
     // DBファイルなど永続データを保存するための安全なアプリ専用領域
