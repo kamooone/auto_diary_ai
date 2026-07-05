@@ -14,6 +14,23 @@ class MapPage extends ConsumerStatefulWidget {
 
 class _MapPageState extends ConsumerState<MapPage> {
   final MapController _controller = MapController();
+  bool _movedToCurrentLocation = false; // 初回移動フラグ
+
+  bool _isValidLatLng(LatLng loc) {
+    return loc.latitude.isFinite &&
+        loc.longitude.isFinite;
+  }
+
+  bool _hasValidCurrentLocation(LatLng? loc) {
+    return loc != null &&
+        _isValidLatLng(loc);
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
 
   @override
   void initState() {
@@ -28,14 +45,22 @@ class _MapPageState extends ConsumerState<MapPage> {
     ref.listenManual(
       mapProvider,
           (previous, next) {
-        if (next.currentLocation == null) {
-          return;
-        }
+            final loc = next.currentLocation;
 
-        _controller.move(
-          next.currentLocation!,
-          MapConstants.currentLocationZoom,
-        );
+            if (!_hasValidCurrentLocation(loc)) {
+              return;
+            }
+
+            if (_movedToCurrentLocation) {
+              return;
+            }
+
+            _movedToCurrentLocation = true;
+
+            _controller.move(
+              loc!,
+              MapConstants.currentLocationZoom,
+            );
       },
     );
   }
@@ -58,6 +83,10 @@ class _MapPageState extends ConsumerState<MapPage> {
           initialZoom: MapConstants.initialZoom,
           minZoom: MapConstants.minZoom,
           maxZoom: MapConstants.maxZoom,
+          // 慣性アニメーションによる暴走を防ぐ
+          interactionOptions: const InteractionOptions(
+            flags: InteractiveFlag.all & ~InteractiveFlag.flingAnimation,
+          ),
         ),
         children: [
           TileLayer(
@@ -65,7 +94,19 @@ class _MapPageState extends ConsumerState<MapPage> {
             userAgentPackageName: MapConstants.userAgent,
           ),
 
-          if (state.currentLocation != null)
+          // 履歴にもNaNが混入しないようフィルタリング
+          if (state.history.isNotEmpty)
+            PolylineLayer(
+              polylines: [
+                Polyline(
+                  points: state.history.where(_isValidLatLng).toList(),
+                  strokeWidth: 4,
+                  color: Colors.blue,
+                ),
+              ],
+            ),
+
+          if (_hasValidCurrentLocation(state.currentLocation))
             MarkerLayer(
               markers: [
                 Marker(

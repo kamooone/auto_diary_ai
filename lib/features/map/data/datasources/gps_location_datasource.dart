@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart';
 import 'package:geolocator/geolocator.dart';
 
 import '../../../../common/constants/map_constants.dart';
@@ -26,16 +27,24 @@ class GpsLocationDataSource {
   }
 
   Stream<Position> getPositionStream() {
-
     return Geolocator.getPositionStream(
-
       locationSettings: const LocationSettings(
         accuracy: LocationAccuracy.high,
-        distanceFilter:
-        MapConstants.locationDistanceFilterMeters,
+        distanceFilter: MapConstants.locationDistanceFilterMeters,
       ),
+    ).where((position) {
+      final ok =
+          position.latitude.isFinite &&
+              position.longitude.isFinite;
 
-    );
+      if (!ok) {
+        debugPrint(
+          "破棄: ${position.latitude}, ${position.longitude}",
+        );
+      }
+
+      return ok;
+    });
   }
 
 }
