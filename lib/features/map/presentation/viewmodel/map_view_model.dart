@@ -50,6 +50,15 @@ class MapViewModel extends Notifier<MapState> {
     state = state.copyWith(
       history: history,
     );
+
+    debugPrint("取得件数 = ${logs.length}");
+
+    for (final e in logs) {
+      debugPrint(
+        "${e.timestamp} "
+            "${e.latitude}, ${e.longitude}",
+      );
+    }
   }
 
   Future<void> start() async {
@@ -70,5 +79,21 @@ class MapViewModel extends Notifier<MapState> {
   Future<void> stop() async {
     await _subscription?.cancel();
     _subscription = null;
+  }
+
+  Future<void> debugPrintAllLocations() async {
+    final logs = await ref.read(getLocationsUseCaseProvider).execute();
+
+    debugPrint("========== 保存されている位置情報 ==========");
+    debugPrint("件数: ${logs.length}");
+
+    for (final log in logs) {
+      debugPrint(
+        "${log.timestamp}  "
+            "${log.latitude}, ${log.longitude}",
+      );
+    }
+
+    debugPrint("==========================================");
   }
 }

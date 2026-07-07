@@ -72,6 +72,17 @@ class _MapPageState extends ConsumerState<MapPage> {
     return Scaffold(
       appBar: AppBar(
         title: const Text("Map"),
+        /// デバッグ専用(保存した位置情報取得ボタン)
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.bug_report),
+            onPressed: () async {
+              await ref
+                  .read(mapProvider.notifier)
+                  .debugPrintAllLocations();
+            },
+          ),
+        ],
       ),
       body: FlutterMap(
         mapController: _controller,

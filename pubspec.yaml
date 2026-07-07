@@ -21,6 +21,12 @@ dependencies:
   latlong2: ^0.9.1     # 座標クラス
   geolocator: ^14.0.2  # GPS取得
 
+  # --- Background Service ---
+  flutter_background_service: ^5.1.0
+
+  permission_handler: ^12.0.3
+  flutter_local_notifications: ^17.2.4
+
   isar: ^3.1.0
   isar_flutter_libs: ^3.1.0
 
