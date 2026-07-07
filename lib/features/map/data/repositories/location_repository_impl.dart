@@ -61,9 +61,7 @@ class LocationRepositoryImpl
   }
 
   @override
-  Future<List<Location>> getLocationsByDate(
-      DateTime date,
-      ) async {
+  Future<List<Location>> getLocationsByDate(DateTime date,) async {
 
     final logs =
     await local.getByDate(date);

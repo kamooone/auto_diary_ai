@@ -8,19 +8,23 @@ import '../../domain/entities/location.dart';
 class MapState {
   final LatLng? currentLocation;
   final List<LatLng> history;
+  final DateTime selectedDate;
 
   const MapState({
     this.currentLocation,
     this.history = const [],
+    required this.selectedDate,
   });
 
   MapState copyWith({
     LatLng? currentLocation,
     List<LatLng>? history,
+    DateTime? selectedDate,
   }) {
     return MapState(
       currentLocation: currentLocation ?? this.currentLocation,
       history: history ?? this.history,
+      selectedDate: selectedDate ?? this.selectedDate,
     );
   }
 }
@@ -33,13 +37,23 @@ class MapViewModel extends Notifier<MapState> {
     ref.onDispose(() async {
       await stop();
     });
-    return const MapState();
+
+    return MapState(
+      selectedDate: DateTime.now(),
+    );
   }
 
-  Future<void> loadHistory() async {
-    final logs = await ref.read(getLocationsUseCaseProvider).execute();
+  Future<void> initialize() async {
+    await loadTimeline(state.selectedDate);
+  }
 
-    // 各座標が有限数(Finite)であることを保証してから変換する
+  Future<void> loadTimeline(DateTime date) async {
+
+    final logs = await ref
+        .read(getLocationsByDateUseCaseProvider)
+        .execute(date);
+
+
     final history = logs
         .map((e) => LatLng(
       e.latitude,
@@ -49,16 +63,14 @@ class MapViewModel extends Notifier<MapState> {
 
     state = state.copyWith(
       history: history,
+      selectedDate: date,
     );
 
-    debugPrint("取得件数 = ${logs.length}");
 
-    for (final e in logs) {
-      debugPrint(
-        "${e.timestamp} "
-            "${e.latitude}, ${e.longitude}",
-      );
-    }
+    debugPrint(
+      "${date.year}/${date.month}/${date.day} "
+          "取得件数 = ${logs.length}",
+    );
   }
 
   Future<void> start() async {

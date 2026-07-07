@@ -38,7 +38,8 @@ class _MapPageState extends ConsumerState<MapPage> {
 
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       final vm = ref.read(mapProvider.notifier);
-      await vm.loadHistory();
+
+      await vm.initialize();
       await vm.start();
     });
 
@@ -71,9 +72,32 @@ class _MapPageState extends ConsumerState<MapPage> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Map"),
-        /// デバッグ専用(保存した位置情報取得ボタン)
+        title: Text(
+          "${state.selectedDate.year}/${state.selectedDate.month}/${state.selectedDate.day}",
+        ),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.calendar_month),
+            onPressed: () async {
+
+              final selectedDate = await showDatePicker(
+                context: context,
+                initialDate: state.selectedDate,
+                firstDate: DateTime(2020),
+                lastDate: DateTime.now(),
+              );
+
+              if (selectedDate == null) {
+                return;
+              }
+
+              await ref
+                  .read(mapProvider.notifier)
+                  .loadTimeline(selectedDate);
+            },
+          ),
+
+          // デバッグ用
           IconButton(
             icon: const Icon(Icons.bug_report),
             onPressed: () async {
