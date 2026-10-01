@@ -1,5 +1,4 @@
 import 'package:auto_diary_ai/common/extensions/build_context_ext.dart';
-import 'package:auto_diary_ai/features/home/presentation/ui/viewmodel/home_view_model.dart';
 import 'package:auto_diary_ai/features/home/presentation/ui/widgets/diary_list_view.dart';
 import 'package:auto_diary_ai/features/home/presentation/ui/widgets/home_scaffold.dart';
 import 'package:auto_diary_ai/features/home/presentation/ui/widgets/month_dropdown.dart';
@@ -8,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:auto_diary_ai/app/router/app_routes.dart';
 import 'package:auto_diary_ai/features/home/presentation/providers/home_providers.dart';
+import '../viewmodel/home_view_model.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});

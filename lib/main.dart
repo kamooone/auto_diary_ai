@@ -4,8 +4,7 @@ import 'package:isar/isar.dart';
 import 'package:path_provider/path_provider.dart';
 import 'app.dart';
 import 'core/database/isar_provider.dart';
-import 'features/map/data/models/location_log.dart';
-import 'features/share/data/models/shared_post_model.dart';
+import 'core/database/isar_schemas.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import '../../app/startup/app_initializer.dart';
 
@@ -28,10 +27,7 @@ void main() async {
     // LocationLogSchema は保存するテーブル（コレクション）の定義
     // directory にDBファイルの保存場所を指定
     final isar = await Isar.open(
-        [
-            LocationLogSchema,
-            SharedPostModelSchema,
-        ],
+        isarSchemas,
         directory: dir.path,
     );
 

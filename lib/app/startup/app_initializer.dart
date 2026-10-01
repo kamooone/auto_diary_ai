@@ -1,6 +1,6 @@
 import 'package:flutter_background_service/flutter_background_service.dart';
-import '../../services/background_location_service.dart';
-import '../../services/notification_permission_service.dart';
+import '../../core/services/background_location_service.dart';
+import '../../core/permissions/notification_permission_service.dart';
 
 class AppInitializer {
   static Future<void> initialize() async {
