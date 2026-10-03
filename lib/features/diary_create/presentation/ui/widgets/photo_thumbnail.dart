@@ -1,29 +1,29 @@
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
-import 'package:photo_manager/photo_manager.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../application/providers/diary_usecase_providers.dart';
+import '../../../domain/entities/photo.dart';
 
-class AssetThumbnail extends StatefulWidget {
-  const AssetThumbnail({super.key, required this.asset});
+class PhotoThumbnail extends ConsumerStatefulWidget {
+  const PhotoThumbnail({super.key, required this.photo});
 
-  final AssetEntity asset;
+  final Photo photo;
 
   @override
-  State<AssetThumbnail> createState() => _AssetThumbnailState();
+  ConsumerState<PhotoThumbnail> createState() => _PhotoThumbnailState();
 }
 
-class _AssetThumbnailState extends State<AssetThumbnail> {
+class _PhotoThumbnailState extends ConsumerState<PhotoThumbnail> {
   late Future<Uint8List?> _thumbnail = _load();
 
   Future<Uint8List?> _load() {
-    return widget.asset.thumbnailDataWithSize(
-      const ThumbnailSize.square(200),
-    );
+    return ref.read(getPhotoThumbnailUseCaseProvider).execute(widget.photo);
   }
 
   @override
-  void didUpdateWidget(AssetThumbnail oldWidget) {
+  void didUpdateWidget(PhotoThumbnail oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.asset.id != widget.asset.id) {
+    if (oldWidget.photo.id != widget.photo.id) {
       _thumbnail = _load();
     }
   }

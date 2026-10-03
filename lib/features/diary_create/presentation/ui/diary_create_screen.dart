@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:photo_manager/photo_manager.dart';
+import '../../domain/entities/photo.dart';
 import '../../domain/usecases/generate_diary_usecase.dart';
 import '../providers/diary_create_provider.dart';
 import 'photo_picker_page.dart';
-import 'widgets/asset_thumbnail.dart';
+import 'widgets/photo_thumbnail.dart';
 
 class DiaryCreateScreen extends ConsumerWidget {
   const DiaryCreateScreen({super.key});
@@ -61,7 +61,7 @@ class DiaryCreateScreen extends ConsumerWidget {
                         children: [
                           ClipRRect(
                             borderRadius: BorderRadius.circular(8),
-                            child: AssetThumbnail(asset: photo),
+                            child: PhotoThumbnail(photo: photo),
                           ),
                           Positioned(
                             top: 2,
@@ -94,7 +94,7 @@ class DiaryCreateScreen extends ConsumerWidget {
                   ? null
                   : () async {
                       final photos =
-                          await Navigator.of(context).push<List<AssetEntity>>(
+                          await Navigator.of(context).push<List<Photo>>(
                         MaterialPageRoute(
                           fullscreenDialog: true,
                           builder: (context) => PhotoPickerPage(

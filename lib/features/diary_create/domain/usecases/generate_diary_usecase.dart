@@ -1,14 +1,15 @@
-import 'dart:math';
-import 'package:photo_manager/photo_manager.dart';
 import '../../../ai/domain/entities/ai_message_request.dart';
 import '../../../ai/domain/usecases/send_message_usecase.dart';
 import '../../../map/domain/entities/location.dart';
 import '../../../share/domain/entities/shared_post.dart';
+import '../entities/photo.dart';
+import '../repositories/photo_repository.dart';
 
 class GenerateDiaryUseCase {
   final SendMessageUseCase _sendMessageUseCase;
+  final PhotoRepository _photoRepository;
 
-  GenerateDiaryUseCase(this._sendMessageUseCase);
+  GenerateDiaryUseCase(this._sendMessageUseCase, this._photoRepository);
 
   // AIへ送る写真の上限枚数
   static const maxPhotos = 10;
@@ -21,22 +22,22 @@ class GenerateDiaryUseCase {
     required String title,
     required String content,
     required DateTime date,
-    required List<AssetEntity> photos,
+    required List<Photo> photos,
     required List<Location> locations,
     required List<SharedPost> posts,
   }) async {
     // 撮影時刻順に並べ、上限を超える場合は1日全体から均等に間引く
     final sortedPhotos = [...photos]
-      ..sort((a, b) => a.createDateTime.compareTo(b.createDateTime));
+      ..sort((a, b) => a.createdAt.compareTo(b.createdAt));
     final candidates = _pickEvenly(sortedPhotos, maxPhotos);
 
     // 縮小したJPEGに変換する(取得できなかった写真は送らない)
-    final sentPhotos = <AssetEntity>[];
+    final sentPhotos = <Photo>[];
     final images = <AiImage>[];
     for (final photo in candidates) {
-      final bytes = await photo.thumbnailDataWithSize(
-        _thumbnailSize(photo),
-        format: ThumbnailFormat.jpeg,
+      final bytes = await _photoRepository.getJpeg(
+        photo,
+        maxSide: _maxImageSide,
         quality: _jpegQuality,
       );
 
@@ -51,7 +52,7 @@ class GenerateDiaryUseCase {
       final photo = entry.value;
       return """
       写真 $index枚目
-      撮影日時: ${photo.createDateTime}
+      撮影日時: ${photo.createdAt}
       """;
     }).join("\n");
 
@@ -102,26 +103,12 @@ $postText
     return _sendMessageUseCase.execute(request);
   }
 
-  List<AssetEntity> _pickEvenly(List<AssetEntity> photos, int max) {
+  List<Photo> _pickEvenly(List<Photo> photos, int max) {
     if (photos.length <= max) return photos;
 
     final step = (photos.length - 1) / (max - 1);
     return [
       for (var i = 0; i < max; i++) photos[(i * step).round()],
     ];
-  }
-
-  // 縦横比を保ったまま、長辺が_maxImageSide以下になるサイズを返す
-  ThumbnailSize _thumbnailSize(AssetEntity photo) {
-    final longSide = max(photo.width, photo.height);
-    if (longSide <= 0) {
-      return const ThumbnailSize.square(_maxImageSide);
-    }
-
-    final scale = min(1.0, _maxImageSide / longSide);
-    return ThumbnailSize(
-      max(1, (photo.width * scale).round()),
-      max(1, (photo.height * scale).round()),
-    );
   }
 }

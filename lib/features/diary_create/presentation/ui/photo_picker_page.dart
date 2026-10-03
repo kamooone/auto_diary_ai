@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:photo_manager/photo_manager.dart';
 import '../../application/providers/diary_usecase_providers.dart';
-import 'widgets/asset_thumbnail.dart';
+import '../../domain/entities/photo.dart';
+import 'widgets/photo_thumbnail.dart';
 
 /// 日記に使う写真を選択する画面
 /// 「確定」で選択した写真の一覧を返す
@@ -13,7 +13,7 @@ class PhotoPickerPage extends ConsumerStatefulWidget {
     required this.maxSelection,
   });
 
-  final List<AssetEntity> initialSelection;
+  final List<Photo> initialSelection;
   final int maxSelection;
 
   @override
@@ -23,7 +23,7 @@ class PhotoPickerPage extends ConsumerStatefulWidget {
 class _PhotoPickerPageState extends ConsumerState<PhotoPickerPage> {
   static const _pageSize = 60;
 
-  final _photos = <AssetEntity>[];
+  final _photos = <Photo>[];
   late final _selected = [...widget.initialSelection];
 
   int _page = 0;
@@ -67,7 +67,7 @@ class _PhotoPickerPageState extends ConsumerState<PhotoPickerPage> {
     }
   }
 
-  void _toggle(AssetEntity photo) {
+  void _toggle(Photo photo) {
     final index = _selected.indexWhere((e) => e.id == photo.id);
 
     if (index >= 0) {
@@ -164,7 +164,7 @@ class _PhotoTile extends StatelessWidget {
     required this.onTap,
   });
 
-  final AssetEntity photo;
+  final Photo photo;
   final int? selectedNumber;
   final VoidCallback onTap;
 
@@ -177,7 +177,7 @@ class _PhotoTile extends StatelessWidget {
       child: Stack(
         fit: StackFit.expand,
         children: [
-          AssetThumbnail(asset: photo),
+          PhotoThumbnail(photo: photo),
           if (isSelected) Container(color: Colors.black38),
           Positioned(
             top: 4,

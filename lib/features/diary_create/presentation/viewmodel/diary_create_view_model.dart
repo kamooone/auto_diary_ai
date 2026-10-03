@@ -1,10 +1,10 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/foundation.dart';
-import 'package:photo_manager/photo_manager.dart';
 import '../../../ai/domain/exceptions/ai_exception.dart';
 import '../../../map/application/providers/location_providers.dart';
 import '../../../share/application/providers/share_service_provider.dart';
 import '../../application/providers/diary_usecase_providers.dart';
+import '../../domain/entities/photo.dart';
 
 class DiaryCreateState {
   final String title;
@@ -12,7 +12,7 @@ class DiaryCreateState {
   final String generatedDiary;
   final bool isLoading;
   final DateTime selectedDate;
-  final List<AssetEntity> selectedPhotos;
+  final List<Photo> selectedPhotos;
 
   DiaryCreateState({
     this.title = '',
@@ -29,7 +29,7 @@ class DiaryCreateState {
     String? generatedDiary,
     bool? isLoading,
     DateTime? selectedDate,
-    List<AssetEntity>? selectedPhotos,
+    List<Photo>? selectedPhotos,
   }) {
     return DiaryCreateState(
       title: title ?? this.title,
@@ -66,11 +66,11 @@ class DiaryCreateViewModel extends Notifier<DiaryCreateState> {
   }
 
   // ユーザーが選択した写真をセット
-  void setSelectedPhotos(List<AssetEntity> photos) {
+  void setSelectedPhotos(List<Photo> photos) {
     state = state.copyWith(selectedPhotos: List.unmodifiable(photos));
   }
 
-  void removeSelectedPhoto(AssetEntity photo) {
+  void removeSelectedPhoto(Photo photo) {
     state = state.copyWith(
       selectedPhotos: List.unmodifiable(
         state.selectedPhotos.where((e) => e.id != photo.id),

@@ -1,19 +1,33 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../data/repositories/photo_repository_impl.dart';
+import '../../domain/repositories/photo_repository.dart';
 import '../../domain/usecases/generate_diary_usecase.dart';
+import '../../domain/usecases/get_photo_thumbnail_usecase.dart';
 import '../../domain/usecases/get_photos_usecase.dart';
-import '../../domain/usecases/get_today_photos_usecase.dart';
 import '../../../ai/application/providers/ai_provider.dart';
 
+// Repository
+final photoRepositoryProvider = Provider<PhotoRepository>((ref) {
+  return PhotoRepositoryImpl();
+});
+
+// UseCase
 final generateDiaryUseCaseProvider = Provider<GenerateDiaryUseCase>((ref) {
   return GenerateDiaryUseCase(
     ref.read(sendMessageUseCaseProvider),
+    ref.read(photoRepositoryProvider),
   );
 });
 
 final getPhotosUseCaseProvider = Provider<GetPhotosUseCase>((ref) {
-  return GetPhotosUseCase();
+  return GetPhotosUseCase(
+    ref.read(photoRepositoryProvider),
+  );
 });
 
-final getTodayPhotosUseCaseProvider =Provider<GetTodayPhotosUseCase>((ref) {
-  return GetTodayPhotosUseCase();
+final getPhotoThumbnailUseCaseProvider =
+    Provider<GetPhotoThumbnailUseCase>((ref) {
+  return GetPhotoThumbnailUseCase(
+    ref.read(photoRepositoryProvider),
+  );
 });

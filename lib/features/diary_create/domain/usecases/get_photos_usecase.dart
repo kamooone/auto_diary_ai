@@ -1,37 +1,15 @@
-import 'package:photo_manager/photo_manager.dart';
+import '../entities/photo.dart';
+import '../repositories/photo_repository.dart';
 
 class GetPhotosUseCase {
-  // 端末内の写真を新しい順にページ単位で取得する
-  Future<List<AssetEntity>> execute({
+  final PhotoRepository repository;
+
+  GetPhotosUseCase(this.repository);
+
+  Future<List<Photo>> execute({
     required int page,
     required int size,
-  }) async {
-    final permission = await PhotoManager.requestPermissionExtend();
-
-    if (!permission.hasAccess) {
-      throw Exception("写真権限なし");
-    }
-
-    final filter = FilterOptionGroup(
-      orders: [
-        const OrderOption(
-          type: OrderOptionType.createDate,
-          asc: false,
-        ),
-      ],
-    );
-
-    final albums = await PhotoManager.getAssetPathList(
-      type: RequestType.image,
-      onlyAll: true,
-      filterOption: filter,
-    );
-
-    if (albums.isEmpty) return [];
-
-    return albums.first.getAssetListPaged(
-      page: page,
-      size: size,
-    );
+  }) {
+    return repository.getPhotos(page: page, size: size);
   }
 }
