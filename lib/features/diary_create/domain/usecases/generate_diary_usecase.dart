@@ -1,4 +1,4 @@
-import 'dart:io';
+import 'dart:math';
 import 'package:photo_manager/photo_manager.dart';
 import '../../../ai/domain/entities/ai_message_request.dart';
 import '../../../ai/domain/usecases/send_message_usecase.dart';
@@ -10,6 +10,13 @@ class GenerateDiaryUseCase {
 
   GenerateDiaryUseCase(this._sendMessageUseCase);
 
+  // AIへ送る写真の上限枚数
+  static const maxPhotos = 10;
+
+  // 送信する画像の長辺サイズ(px)とJPEG品質
+  static const _maxImageSide = 1024;
+  static const _jpegQuality = 80;
+
   Future<String> execute({
     required String title,
     required String content,
@@ -18,15 +25,28 @@ class GenerateDiaryUseCase {
     required List<Location> locations,
     required List<SharedPost> posts,
   }) async {
-    final imageFiles = <File>[];
-    for (final photo in photos) {
-      final file = await photo.file;
+    // 撮影時刻順に並べ、上限を超える場合は1日全体から均等に間引く
+    final sortedPhotos = [...photos]
+      ..sort((a, b) => a.createDateTime.compareTo(b.createDateTime));
+    final candidates = _pickEvenly(sortedPhotos, maxPhotos);
 
-      if (file != null) {
-        imageFiles.add(file);
+    // 縮小したJPEGに変換する(取得できなかった写真は送らない)
+    final sentPhotos = <AssetEntity>[];
+    final images = <AiImage>[];
+    for (final photo in candidates) {
+      final bytes = await photo.thumbnailDataWithSize(
+        _thumbnailSize(photo),
+        format: ThumbnailFormat.jpeg,
+        quality: _jpegQuality,
+      );
+
+      if (bytes != null) {
+        sentPhotos.add(photo);
+        images.add(AiImage(bytes: bytes, contentType: 'image/jpeg'));
       }
     }
-    final photoInfoText = photos.asMap().entries.map((entry) {
+
+    final photoInfoText = sentPhotos.asMap().entries.map((entry) {
       final index = entry.key + 1;
       final photo = entry.value;
       return """
@@ -64,7 +84,7 @@ $content
 $date
 
 写真
-${photos.length}枚添付しています。
+${sentPhotos.length}枚添付しています。
 
 写真の撮影日時
 $photoInfoText
@@ -77,8 +97,31 @@ $postText
 
 写真の内容だけでなく、撮影日時も考慮して時系列に沿った自然な日記を作成してください。
 """,
-      images: imageFiles,
+      images: images,
     );
     return _sendMessageUseCase.execute(request);
+  }
+
+  List<AssetEntity> _pickEvenly(List<AssetEntity> photos, int max) {
+    if (photos.length <= max) return photos;
+
+    final step = (photos.length - 1) / (max - 1);
+    return [
+      for (var i = 0; i < max; i++) photos[(i * step).round()],
+    ];
+  }
+
+  // 縦横比を保ったまま、長辺が_maxImageSide以下になるサイズを返す
+  ThumbnailSize _thumbnailSize(AssetEntity photo) {
+    final longSide = max(photo.width, photo.height);
+    if (longSide <= 0) {
+      return const ThumbnailSize.square(_maxImageSide);
+    }
+
+    final scale = min(1.0, _maxImageSide / longSide);
+    return ThumbnailSize(
+      max(1, (photo.width * scale).round()),
+      max(1, (photo.height * scale).round()),
+    );
   }
 }

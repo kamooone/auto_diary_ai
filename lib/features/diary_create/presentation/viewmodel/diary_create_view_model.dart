@@ -1,5 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/foundation.dart';
+import 'package:photo_manager/photo_manager.dart';
+import '../../../ai/domain/exceptions/ai_exception.dart';
 import '../../../map/application/providers/location_providers.dart';
 import '../../../share/application/providers/share_service_provider.dart';
 import '../../application/providers/diary_usecase_providers.dart';
@@ -10,6 +12,7 @@ class DiaryCreateState {
   final String generatedDiary;
   final bool isLoading;
   final DateTime selectedDate;
+  final List<AssetEntity> selectedPhotos;
 
   DiaryCreateState({
     this.title = '',
@@ -17,6 +20,7 @@ class DiaryCreateState {
     this.generatedDiary = '',
     this.isLoading = false,
     required this.selectedDate,
+    this.selectedPhotos = const [],
   });
 
   DiaryCreateState copyWith({
@@ -25,6 +29,7 @@ class DiaryCreateState {
     String? generatedDiary,
     bool? isLoading,
     DateTime? selectedDate,
+    List<AssetEntity>? selectedPhotos,
   }) {
     return DiaryCreateState(
       title: title ?? this.title,
@@ -32,13 +37,13 @@ class DiaryCreateState {
       generatedDiary: generatedDiary ?? this.generatedDiary,
       isLoading: isLoading ?? this.isLoading,
       selectedDate: selectedDate ?? this.selectedDate,
+      selectedPhotos: selectedPhotos ?? this.selectedPhotos,
     );
   }
 }
 
 class DiaryCreateViewModel extends Notifier<DiaryCreateState> {
   late final _generateDiaryUseCase = ref.read(generateDiaryUseCaseProvider);
-  late final _getTodayPhotosUseCase = ref.read(getTodayPhotosUseCaseProvider);
 
   @override
   DiaryCreateState build() {
@@ -60,13 +65,26 @@ class DiaryCreateViewModel extends Notifier<DiaryCreateState> {
     state = state.copyWith(content: text);
   }
 
+  // ユーザーが選択した写真をセット
+  void setSelectedPhotos(List<AssetEntity> photos) {
+    state = state.copyWith(selectedPhotos: List.unmodifiable(photos));
+  }
+
+  void removeSelectedPhoto(AssetEntity photo) {
+    state = state.copyWith(
+      selectedPhotos: List.unmodifiable(
+        state.selectedPhotos.where((e) => e.id != photo.id),
+      ),
+    );
+  }
+
   Future<void> generateDiary() async {
 
     state = state.copyWith(isLoading: true);
 
     try {
-      // 今日の写真を取得
-      final photos = await _getTodayPhotosUseCase.execute(state.selectedDate);
+      // ユーザーが選択した写真を使用
+      final photos = state.selectedPhotos;
 
       // 本日の行動履歴を取得
       late final getLocationsByDateUseCase = ref.read(getLocationsByDateUseCaseProvider);
@@ -94,6 +112,14 @@ class DiaryCreateViewModel extends Notifier<DiaryCreateState> {
         generatedDiary: result,
         isLoading: false,
       );
+    } on AiUploadException catch (e, stackTrace) {
+      debugPrint(e.toString());
+      debugPrintStack(stackTrace: stackTrace);
+
+      state = state.copyWith(
+        isLoading: false,
+        generatedDiary: "写真のアップロードに失敗しました",
+      );
     } catch (e, stackTrace) {
       debugPrint(e.toString());
       debugPrintStack(stackTrace: stackTrace);
@@ -102,21 +128,6 @@ class DiaryCreateViewModel extends Notifier<DiaryCreateState> {
         isLoading: false,
         generatedDiary: "生成に失敗しました",
       );
-    }
-  }
-
-  Future<void> pickPhoto() async {
-    state = state.copyWith(isLoading: true);
-
-    try {
-      final photos =
-      await _getTodayPhotosUseCase.execute(state.selectedDate);
-
-      debugPrint('今日の写真数: ${photos.length}');
-
-      state = state.copyWith(isLoading: false);
-    } catch (e) {
-      state = state.copyWith(isLoading: false);
     }
   }
 }

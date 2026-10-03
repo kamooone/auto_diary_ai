@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:photo_manager/photo_manager.dart';
+import '../../domain/usecases/generate_diary_usecase.dart';
 import '../providers/diary_create_provider.dart';
+import 'photo_picker_page.dart';
+import 'widgets/asset_thumbnail.dart';
 
 class DiaryCreateScreen extends ConsumerWidget {
   const DiaryCreateScreen({super.key});
@@ -39,12 +43,77 @@ class DiaryCreateScreen extends ConsumerWidget {
               ),
             ),
             const SizedBox(height: 4),
+            if (state.selectedPhotos.isNotEmpty) ...[
+              SizedBox(
+                height: 72,
+                child: ListView.separated(
+                  scrollDirection: Axis.horizontal,
+                  itemCount: state.selectedPhotos.length,
+                  separatorBuilder: (context, index) => const SizedBox(width: 6),
+                  itemBuilder: (context, index) {
+                    final photo = state.selectedPhotos[index];
+
+                    return SizedBox(
+                      key: ValueKey(photo.id),
+                      width: 72,
+                      child: Stack(
+                        fit: StackFit.expand,
+                        children: [
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(8),
+                            child: AssetThumbnail(asset: photo),
+                          ),
+                          Positioned(
+                            top: 2,
+                            right: 2,
+                            child: GestureDetector(
+                              onTap: state.isLoading
+                                  ? null
+                                  : () => viewModel.removeSelectedPhoto(photo),
+                              child: const CircleAvatar(
+                                radius: 10,
+                                backgroundColor: Colors.black54,
+                                child: Icon(
+                                  Icons.close,
+                                  size: 14,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                ),
+              ),
+              const SizedBox(height: 4),
+            ],
             ElevatedButton.icon(
-              onPressed: () async {
-                await viewModel.pickPhoto();
-              },
+              onPressed: state.isLoading
+                  ? null
+                  : () async {
+                      final photos =
+                          await Navigator.of(context).push<List<AssetEntity>>(
+                        MaterialPageRoute(
+                          fullscreenDialog: true,
+                          builder: (context) => PhotoPickerPage(
+                            initialSelection: state.selectedPhotos,
+                            maxSelection: GenerateDiaryUseCase.maxPhotos,
+                          ),
+                        ),
+                      );
+
+                      if (photos != null) {
+                        viewModel.setSelectedPhotos(photos);
+                      }
+                    },
               icon: const Icon(Icons.add_a_photo),
-              label: const Text("画像をアップロード"),
+              label: Text(
+                state.selectedPhotos.isEmpty
+                    ? "写真を選択"
+                    : "写真を選択（${state.selectedPhotos.length}枚）",
+              ),
             ),
             const SizedBox(height: 16),
             ElevatedButton(
