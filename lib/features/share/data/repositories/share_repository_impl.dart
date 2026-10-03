@@ -12,6 +12,11 @@ class ShareRepositoryImpl implements ShareRepository {
   ShareRepositoryImpl(this.ogp, this.isar);
 
   @override
+  Future<String?> fetchText(String url) {
+    return ogp.fetchText(url);
+  }
+
+  @override
   Future<void> save(SharedPost post) async {
     final entity = SharedPostModel()
       ..url = post.url

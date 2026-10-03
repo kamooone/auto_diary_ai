@@ -9,7 +9,7 @@ import '../usecases/save_shared_post_usecase.dart';
 // --------------------
 final shareTweetUseCaseProvider = Provider<ShareTweetUseCase>((ref) {
   return ShareTweetUseCase(
-    ref.read(ogpFetcherProvider),
+    ref.read(shareRepositoryProvider),
   );
 });
 
