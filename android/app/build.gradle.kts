@@ -42,6 +42,9 @@ android {
 
 dependencies {
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.5")
+
+    // 行動認識(徒歩・自転車・乗り物など)
+    implementation("com.google.android.gms:play-services-location:21.2.0")
 }
 
 flutter {

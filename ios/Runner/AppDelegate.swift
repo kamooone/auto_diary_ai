@@ -1,4 +1,5 @@
 import CoreLocation
+import CoreMotion
 import Flutter
 import UIKit
 
@@ -18,6 +19,10 @@ import UIKit
     GeneratedPluginRegistrant.register(with: engineBridge.pluginRegistry)
 
     LocationRecorder.shared.registerChannel(
+      messenger: engineBridge.applicationRegistrar.messenger()
+    )
+
+    ActivityRecorder.shared.registerChannel(
       messenger: engineBridge.applicationRegistrar.messenger()
     )
   }
@@ -361,5 +366,100 @@ final class LocationRecorder: NSObject, CLLocationManagerDelegate {
         "timestamp": milliseconds,
       ]
     }
+  }
+}
+
+/// 行動認識(徒歩・自転車・乗り物など)の履歴を取得する
+///
+/// iOSは行動の履歴を端末側に約7日分保持しているため、アプリが動いていなかった
+/// 時間帯の分も後から取得できる。Dart側が定期的に取り出してIsarへ保存する。
+final class ActivityRecorder {
+  static let shared = ActivityRecorder()
+
+  private static let channelName = "auto_diary_ai/activity_recorder"
+
+  // OSが保持している履歴の期間
+  private static let historySeconds: TimeInterval = 7 * 24 * 60 * 60
+
+  private let manager = CMMotionActivityManager()
+  private var channel: FlutterMethodChannel?
+
+  private init() {}
+
+  func registerChannel(messenger: FlutterBinaryMessenger) {
+    let channel = FlutterMethodChannel(
+      name: ActivityRecorder.channelName,
+      binaryMessenger: messenger
+    )
+
+    channel.setMethodCallHandler { [weak self] call, result in
+      guard let self = self else {
+        result(nil)
+        return
+      }
+
+      switch call.method {
+      case "start":
+        // iOSは履歴を後から取得するため、記録の開始処理は不要
+        result(CMMotionActivityManager.isActivityAvailable())
+      case "fetchNew":
+        let arguments = call.arguments as? [String: Any]
+        let since = (arguments?["since"] as? NSNumber)?.int64Value
+        self.fetch(sinceMilliseconds: since, result: result)
+      case "confirm":
+        result(nil)
+      default:
+        result(FlutterMethodNotImplemented)
+      }
+    }
+
+    self.channel = channel
+  }
+
+  /// [sinceMilliseconds]以降の行動の変化を取得する(初回は許可ダイアログが表示される)
+  private func fetch(sinceMilliseconds: Int64?, result: @escaping FlutterResult) {
+    guard CMMotionActivityManager.isActivityAvailable() else {
+      result([[String: Any]]())
+      return
+    }
+
+    let now = Date()
+    var from = now.addingTimeInterval(-ActivityRecorder.historySeconds)
+
+    if let sinceMilliseconds = sinceMilliseconds {
+      let since = Date(timeIntervalSince1970: Double(sinceMilliseconds) / 1000)
+      if since > from {
+        from = since
+      }
+    }
+
+    manager.queryActivityStarting(from: from, to: now, to: .main) { activities, _ in
+      var records = [[String: Any]]()
+      var lastType: String?
+
+      for activity in activities ?? [] where activity.confidence != .low {
+        // 同じ行動が続いている間は、最初の1件だけを記録する
+        guard let type = ActivityRecorder.type(of: activity), type != lastType else {
+          continue
+        }
+
+        lastType = type
+        records.append([
+          "type": type,
+          "timestamp": Int64(activity.startDate.timeIntervalSince1970 * 1000),
+        ])
+      }
+
+      result(records)
+    }
+  }
+
+  private static func type(of activity: CMMotionActivity) -> String? {
+    if activity.automotive { return "automotive" }
+    if activity.cycling { return "cycling" }
+    if activity.running { return "running" }
+    if activity.walking { return "walking" }
+    if activity.stationary { return "stationary" }
+    return nil
   }
 }

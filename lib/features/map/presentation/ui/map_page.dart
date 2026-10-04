@@ -122,6 +122,13 @@ class _MapPageState extends ConsumerState<MapPage> {
                 userAgentPackageName: MapConstants.userAgent,
               ),
 
+              // 地図データの出典(OpenStreetMapの利用条件)
+              // 画面下部はタイムラインが重なるため、上部に表示する
+              const SimpleAttributionWidget(
+                source: Text('OpenStreetMap contributors'),
+                alignment: Alignment.topRight,
+              ),
+
               // 履歴にもNaNが混入しないようフィルタリング
               if (state.history.isNotEmpty)
                 PolylineLayer(
@@ -154,11 +161,22 @@ class _MapPageState extends ConsumerState<MapPage> {
           if (state.timeline.isNotEmpty)
             TimelineSheet(
               items: state.timeline,
+              placeCandidates: state.placeCandidates,
               onStayTap: (stay) {
                 _controller.move(
                   LatLng(stay.latitude, stay.longitude),
                   MapConstants.currentLocationZoom,
                 );
+              },
+              onPlaceNameChanged: (stay, placeName) {
+                ref
+                    .read(mapProvider.notifier)
+                    .updateStayPlaceName(stay, placeName);
+              },
+              onTransportChanged: (move, transport, text) {
+                ref
+                    .read(mapProvider.notifier)
+                    .updateMoveTransport(move, transport: transport, text: text);
               },
             ),
         ],

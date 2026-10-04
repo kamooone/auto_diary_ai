@@ -1,6 +1,7 @@
 import 'dart:math';
 import '../entities/location.dart';
 import '../entities/timeline_item.dart';
+import '../entities/transport_mode.dart';
 
 /// 位置情報の履歴を「滞在」と「移動」に要約する
 class TimelineBuilder {
@@ -12,6 +13,16 @@ class TimelineBuilder {
 
   // これ未満の移動は位置のぶれとみなして表示しない
   static const _minMoveMeters = 30.0;
+
+  // 移動手段を推定するときの速度の境目(km/h)
+  static const _walkMaxKmh = 7.0;
+  static const _bicycleMaxKmh = 20.0;
+
+  // これより遅い区間は立ち止まっているとみなし、速度の計算に含めない
+  static const _minMovingKmh = 1.0;
+
+  // 点の間隔がこれより長い区間は記録が途切れているとみなし、速度の計算に含めない
+  static const _maxSegmentDuration = Duration(minutes: 10);
 
   /// [until]を渡すと、最後にいた場所にその時刻までとどまっているものとして扱う
   List<TimelineItem> build(
@@ -107,7 +118,35 @@ class TimelineBuilder {
       start: path.first.timestamp,
       end: path.last.timestamp,
       distanceMeters: distance,
+      transport: _estimateTransport(path),
     );
+  }
+
+  /// 実際に動いていた区間の速度から移動手段を推定する(判断できない場合はnull)
+  TransportMode? _estimateTransport(List<Location> path) {
+    var movingMeters = 0.0;
+    var movingSeconds = 0.0;
+
+    for (var i = 1; i < path.length; i++) {
+      final elapsed = path[i].timestamp.difference(path[i - 1].timestamp);
+      if (elapsed <= Duration.zero || elapsed > _maxSegmentDuration) continue;
+
+      final meters = _distance(path[i - 1], path[i]);
+      final seconds = elapsed.inMilliseconds / 1000;
+
+      if (meters / seconds * 3.6 < _minMovingKmh) continue;
+
+      movingMeters += meters;
+      movingSeconds += seconds;
+    }
+
+    if (movingSeconds == 0) return null;
+
+    final kmh = movingMeters / movingSeconds * 3.6;
+
+    if (kmh < _walkMaxKmh) return TransportMode.walk;
+    if (kmh < _bicycleMaxKmh) return TransportMode.bicycle;
+    return TransportMode.vehicle;
   }
 
   double _average(Iterable<double> values) {

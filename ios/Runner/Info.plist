@@ -30,6 +30,8 @@
 	<string>行動履歴を自動記録するために位置情報を使用します</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>行動履歴を自動記録するために位置情報を使用します</string>
+	<key>NSMotionUsageDescription</key>
+	<string>徒歩や乗り物などの移動手段を行動履歴に記録するために使用します</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>写真を日記生成に利用するため使用します。</string>
 	<key>UIBackgroundModes</key>

@@ -83,8 +83,8 @@ class GenerateDiaryUseCase {
       final time = "${_time(e.start)}〜${_time(e.end)}";
 
       return switch (e) {
-        Stay() => "$time 滞在: ${e.placeName ?? "緯度${e.latitude.toStringAsFixed(4)} 経度${e.longitude.toStringAsFixed(4)}付近"}",
-        Move() => "$time 移動: 約${_distance(e.distanceMeters)}",
+        Stay() => "$time 滞在: ${_place(e)}",
+        Move() => "$time 移動${_transport(e)}: 約${_distance(e.distanceMeters)}",
       };
     }).join("\n");
 
@@ -118,6 +118,7 @@ ${sentPhotos.length}枚添付しています。
 $photoInfoText
 
 今日の行動履歴(滞在した場所と移動)
+※「推定」と付いた場所や移動手段は、位置情報から自動で推定したものです。
 $timelineText
 
 今日のX投稿
@@ -142,6 +143,30 @@ $postText
 
     return placeName ??
         "緯度${location.latitude.toStringAsFixed(4)} 経度${location.longitude.toStringAsFixed(4)}付近";
+  }
+
+  // 滞在した場所(ユーザーが確認したものと、周辺の施設からの推定を区別して伝える)
+  String _place(Stay stay) {
+    final address = stay.placeName ??
+        "緯度${stay.latitude.toStringAsFixed(4)} 経度${stay.longitude.toStringAsFixed(4)}付近";
+
+    if (!stay.isPlaceEstimated) return address;
+
+    return "${stay.estimatedPlaceName}(推定。住所: $address)";
+  }
+
+  // 移動手段(ユーザーが選んだものと、速度からの推定を区別して伝える)
+  String _transport(Move move) {
+    // ユーザーが書いた説明があれば、それをそのまま伝える
+    final text = move.transportText;
+    if (text != null) return "($text)";
+
+    final transport = move.transport;
+    if (transport == null) return "";
+
+    return move.isTransportEdited
+        ? "(${transport.label})"
+        : "(${transport.label}と推定)";
   }
 
   String _time(DateTime time) {

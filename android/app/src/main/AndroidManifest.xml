@@ -24,6 +24,12 @@
         android:name="android.permission.READ_EXTERNAL_STORAGE"
         android:maxSdkVersion="32"/>
 
+    <!-- 行動認識(徒歩・自転車・乗り物など)。Android9以前は下の権限名を使う -->
+    <uses-permission android:name="android.permission.ACTIVITY_RECOGNITION"/>
+    <uses-permission
+        android:name="com.google.android.gms.permission.ACTIVITY_RECOGNITION"
+        android:maxSdkVersion="28"/>
+
     <application
         android:label="auto_diary_ai"
         android:name="${applicationName}"
@@ -61,6 +67,10 @@
         <service
             android:name="id.flutter.flutter_background_service.BackgroundService"
             android:foregroundServiceType="location" />
+        <!-- 行動(徒歩・自転車・乗り物など)が変わったときの通知を受け取る -->
+        <receiver
+            android:name=".ActivityTransitionReceiver"
+            android:exported="false" />
         <!-- Don't delete the meta-data below.
              This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->
         <meta-data

@@ -1,6 +1,7 @@
 import 'package:isar/isar.dart';
 import '../../features/location/data/datasources/gps_location_datasource.dart';
 import '../../features/location/data/datasources/isar_location_datasource.dart';
+import '../../features/location/data/services/activity_recording_service.dart';
 import '../../features/location/data/services/background_location_service.dart';
 import '../../core/permissions/notification_permission_service.dart';
 
@@ -22,5 +23,8 @@ class AppInitializer {
         local: IsarLocationDataSource(isar),
       );
     }
+
+    // 行動認識(徒歩・自転車・乗り物など)の記録を開始する
+    await startActivityRecording(isar);
   }
 }
