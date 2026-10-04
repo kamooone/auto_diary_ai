@@ -3,6 +3,7 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:latlong2/latlong.dart';
 import '../../../../common/constants/map_constants.dart';
+import '../../../../core/app_info/install_date_provider.dart';
 import '../providers/map_provider.dart';
 import 'widgets/timeline_sheet.dart';
 
@@ -80,11 +81,17 @@ class _MapPageState extends ConsumerState<MapPage> {
           IconButton(
             icon: const Icon(Icons.calendar_month),
             onPressed: () async {
+              // アプリを使い始めた日より前は記録がないため選べないようにする
+              final installDate = ref.read(installDateProvider);
 
               final selectedDate = await showDatePicker(
                 context: context,
                 initialDate: state.selectedDate,
-                firstDate: DateTime(2020),
+                firstDate: DateTime(
+                  installDate.year,
+                  installDate.month,
+                  installDate.day,
+                ),
                 lastDate: DateTime.now(),
               );
 

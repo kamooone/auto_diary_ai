@@ -3,8 +3,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:isar/isar.dart';
 import 'package:path_provider/path_provider.dart';
 import 'app.dart';
+import 'core/app_info/install_date_provider.dart';
 import 'core/database/isar_provider.dart';
 import 'core/database/isar_schemas.dart';
+import 'features/location/data/datasources/isar_location_datasource.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import '../../app/startup/app_initializer.dart';
 
@@ -29,6 +31,13 @@ void main() async {
         directory: dir.path,
     );
 
+    // アプリを使い始めた日(日記や地図で選べる日付の下限)
+    final earliestLocation = await IsarLocationDataSource(isar).getEarliest();
+    final installDate = await loadInstallDate(
+        isar,
+        earliestRecord: earliestLocation?.timestamp,
+    );
+
     // 通知・位置情報の許可と、位置情報の記録開始
     await AppInitializer.initialize(isar);
 
@@ -39,6 +48,7 @@ void main() async {
             // これによりアプリ全体で同じ Isar インスタンスを使用できる
             overrides: [
                 isarProvider.overrideWithValue(isar),
+                installDateProvider.overrideWithValue(installDate),
             ],
 
             child: const App(),

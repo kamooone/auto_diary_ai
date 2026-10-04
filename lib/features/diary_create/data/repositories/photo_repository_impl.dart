@@ -16,6 +16,8 @@ class PhotoRepositoryImpl implements PhotoRepository {
   Future<List<Photo>> getPhotos({
     required int page,
     required int size,
+    DateTime? from,
+    DateTime? to,
   }) async {
     // 撮影場所も読み取れるよう、Androidでは位置情報付きで許可を求める
     final permission = await PhotoManager.requestPermissionExtend(
@@ -32,6 +34,13 @@ class PhotoRepositoryImpl implements PhotoRepository {
     }
 
     final filter = FilterOptionGroup(
+      // 終了日時ちょうどの写真は含めない
+      createTimeCond: from != null && to != null
+          ? DateTimeCond(
+              min: from,
+              max: to.subtract(const Duration(seconds: 1)),
+            )
+          : null,
       orders: [
         const OrderOption(
           type: OrderOptionType.createDate,

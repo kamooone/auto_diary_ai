@@ -2,8 +2,7 @@ import '../../../ai/domain/entities/ai_message_request.dart';
 import '../../../ai/domain/repositories/ai_repository.dart';
 import '../../../location/domain/entities/timeline_item.dart';
 import '../../../location/domain/repositories/place_name_repository.dart';
-import '../../../location/domain/usecases/get_timeline_by_date_usecase.dart';
-import '../../../share/domain/repositories/share_repository.dart';
+import '../../../share/domain/entities/shared_post.dart';
 import '../entities/photo.dart';
 import '../repositories/photo_repository.dart';
 
@@ -11,40 +10,34 @@ class GenerateDiaryUseCase {
   final AiRepository _aiRepository;
   final PhotoRepository _photoRepository;
   final PlaceNameRepository _placeNameRepository;
-  final GetTimelineByDateUseCase _getTimelineByDateUseCase;
-  final ShareRepository _shareRepository;
 
   GenerateDiaryUseCase({
     required AiRepository aiRepository,
     required PhotoRepository photoRepository,
     required PlaceNameRepository placeNameRepository,
-    required GetTimelineByDateUseCase getTimelineByDateUseCase,
-    required ShareRepository shareRepository,
   })  : _aiRepository = aiRepository,
         _photoRepository = photoRepository,
-        _placeNameRepository = placeNameRepository,
-        _getTimelineByDateUseCase = getTimelineByDateUseCase,
-        _shareRepository = shareRepository;
+        _placeNameRepository = placeNameRepository;
 
-  // AIへ送る写真の上限枚数
+  // 1回の送信で扱える写真の枚数(AWS側のサイズ制限による上限)
   static const maxPhotos = 10;
 
   // 送信する画像の長辺サイズ(px)とJPEG品質
   static const _maxImageSide = 1024;
   static const _jpegQuality = 80;
 
+  /// ユーザーが選んだ情報をもとに日記を生成する
+  ///
+  /// [startDate]と[endDate]は日記の対象期間(1日分の場合は同じ日)
   Future<String> execute({
     required String title,
     required String content,
-    required DateTime date,
+    required DateTime startDate,
+    required DateTime endDate,
     required List<Photo> photos,
+    required List<TimelineItem> timeline,
+    required List<SharedPost> posts,
   }) async {
-    // 対象日の行動履歴(滞在した場所と移動)を取得
-    final timeline = await _getTimelineByDateUseCase.execute(date);
-
-    // 対象日のXのポスト一覧を取得
-    final posts = await _shareRepository.findByDate(date);
-
     // 撮影時刻順に並べ、上限を超える場合は1日全体から均等に間引く
     final sortedPhotos = [...photos]
       ..sort((a, b) => a.createdAt.compareTo(b.createdAt));
@@ -109,7 +102,7 @@ $title
 $content
 
 日付
-$date
+${_period(startDate, endDate)}
 
 写真
 ${sentPhotos.length}枚添付しています。
@@ -117,11 +110,11 @@ ${sentPhotos.length}枚添付しています。
 写真の撮影日時と撮影場所
 $photoInfoText
 
-今日の行動履歴(滞在した場所と移動)
+行動履歴(滞在した場所と移動)
 ※「推定」と付いた場所や移動手段は、位置情報から自動で推定したものです。
 $timelineText
 
-今日のX投稿
+Xの投稿
 $postText
 
 写真の内容だけでなく、撮影日時・撮影場所と行動履歴も照らし合わせて、時系列に沿った自然な日記を作成してください。
@@ -167,6 +160,15 @@ $postText
     return move.isTransportEdited
         ? "(${transport.label})"
         : "(${transport.label}と推定)";
+  }
+
+  String _period(DateTime start, DateTime end) {
+    String date(DateTime d) => "${d.year}年${d.month}月${d.day}日";
+
+    final isSameDay =
+        start.year == end.year && start.month == end.month && start.day == end.day;
+
+    return isSameDay ? date(start) : "${date(start)}〜${date(end)}";
   }
 
   String _time(DateTime time) {

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../../../location/domain/entities/place_candidate.dart';
 import '../../../../location/domain/entities/timeline_item.dart';
 import '../../../../location/domain/entities/transport_mode.dart';
+import '../../../../location/presentation/formatters/timeline_formatter.dart';
 
 /// 1日の行動(滞在した場所と移動)を時系列で表示するシート
 class TimelineSheet extends StatelessWidget {
@@ -50,14 +51,14 @@ class TimelineSheet extends StatelessWidget {
               }
 
               final item = items[index - 1];
-              final time = "${_time(item.start)}〜${_time(item.end)}";
+              final time = TimelineFormatter.timeRange(item);
 
               return switch (item) {
                 Stay() => _buildStay(context, item, time),
                 Move() => ListTile(
                     dense: true,
-                    leading: Icon(_transportIcon(item.transport)),
-                    title: Text(_moveTitle(item)),
+                    leading: Icon(TimelineFormatter.transportIcon(item.transport)),
+                    title: Text(TimelineFormatter.moveTitle(item)),
                     subtitle: Text(time),
                     trailing: const Padding(
                       padding: EdgeInsets.only(right: 12),
@@ -76,8 +77,8 @@ class TimelineSheet extends StatelessWidget {
   Widget _buildStay(BuildContext context, Stay stay, String time) {
     final candidates = placeCandidates[stay.start] ?? const <PlaceCandidate>[];
 
-    final name = stay.displayName ?? "場所名を取得できませんでした";
-    final timeText = "$time（${_duration(stay.duration)}）";
+    final timeText =
+        "$time（${TimelineFormatter.duration(stay.duration)}）";
 
     // ユーザーが確認していない滞在は、最も近い施設を訪れたものとして表示する。
     // 違っている場合は編集から直せるよう、推定であることと住所を添える
@@ -86,7 +87,7 @@ class TimelineSheet extends StatelessWidget {
     return ListTile(
       dense: true,
       leading: const Icon(Icons.place),
-      title: Text(isEstimated ? "$name（推定）" : name),
+      title: Text(TimelineFormatter.stayTitle(stay)),
       subtitle: Text(
         isEstimated && stay.placeName != null
             ? "$timeText\n${stay.placeName}"
@@ -100,22 +101,6 @@ class TimelineSheet extends StatelessWidget {
       ),
       onTap: () => onStayTap(stay),
     );
-  }
-
-  String _moveTitle(Move move) {
-    final distance = "約${_distance(move.distanceMeters)}";
-
-    // ユーザーが書いた説明があれば、それをそのまま表示する
-    final text = move.transportText;
-    if (text != null) return "$text $distance";
-
-    final transport = move.transport;
-
-    if (transport == null) return "移動 $distance";
-
-    return move.isTransportEdited
-        ? "${transport.label}で移動 $distance"
-        : "${transport.label}で移動（推定） $distance";
   }
 
   /// 候補があれば候補から選び、なければ直接入力する
@@ -228,7 +213,7 @@ class TimelineSheet extends StatelessWidget {
               ),
               for (final mode in TransportMode.values)
                 ListTile(
-                  leading: Icon(_transportIcon(mode)),
+                  leading: Icon(TimelineFormatter.transportIcon(mode)),
                   title: Text(mode.label),
                   trailing:
                       move.transport == mode ? const Icon(Icons.check) : null,
@@ -289,36 +274,6 @@ class TimelineSheet extends StatelessWidget {
     );
   }
 
-  IconData _transportIcon(TransportMode? transport) {
-    return switch (transport) {
-      TransportMode.walk => Icons.directions_walk,
-      TransportMode.bicycle => Icons.directions_bike,
-      TransportMode.vehicle => Icons.commute,
-      TransportMode.car => Icons.directions_car,
-      TransportMode.bus => Icons.directions_bus,
-      TransportMode.train => Icons.train,
-      TransportMode.other => Icons.more_horiz,
-      null => Icons.more_vert,
-    };
-  }
-
-  String _time(DateTime time) {
-    final hour = time.hour.toString().padLeft(2, '0');
-    final minute = time.minute.toString().padLeft(2, '0');
-    return "$hour:$minute";
-  }
-
-  String _duration(Duration duration) {
-    final hours = duration.inHours;
-    final minutes = duration.inMinutes % 60;
-    return hours > 0 ? "$hours時間$minutes分" : "$minutes分";
-  }
-
-  String _distance(double meters) {
-    return meters >= 1000
-        ? "${(meters / 1000).toStringAsFixed(1)}km"
-        : "${meters.round()}m";
-  }
 }
 
 // キャンセル(null)と「元に戻す」(中身がnull)を区別するための入れ物
