@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
 import 'package:auto_diary_ai/common/constants/app_sizes.dart';
-import 'package:auto_diary_ai/features/home/data/models/diary_item.dart';
+import 'package:auto_diary_ai/features/diary/domain/entities/diary.dart';
 import 'diary_card.dart';
 
 class DiaryListView extends StatelessWidget {
   final List<String> months;
-  final Map<String, List<DiaryItem>> filteredItemsPerMonth;
+  final Map<String, List<Diary>> filteredItemsPerMonth;
   final PageController pageController;
   final ValueChanged<int> onPageChanged;
 

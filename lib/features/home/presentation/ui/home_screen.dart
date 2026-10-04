@@ -71,25 +71,31 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
       body: Stack(
         children: [
-          Column(
-            children: [
-              MonthDropdown(
-                months: state.months,
-                selectedMonth: selectedMonth,
-                onChanged: (month) {
-                  viewModel.setMonth(month);
-                },
-              ),
-              Expanded(
-                child: DiaryListView(
+          // 月の切り替えは、選択中の月が一覧に反映されてから表示する
+          if (state.months.isEmpty)
+            const Center(
+              child: Text("まだ日記がありません\n右下のボタンから日記を作成できます"),
+            )
+          else if (state.months.contains(selectedMonth))
+            Column(
+              children: [
+                MonthDropdown(
                   months: state.months,
-                  filteredItemsPerMonth: state.filteredItemsPerMonth,
-                  pageController: pageController,
-                  onPageChanged: viewModel.onPageChanged,
+                  selectedMonth: selectedMonth,
+                  onChanged: (month) {
+                    viewModel.setMonth(month);
+                  },
                 ),
-              ),
-            ],
-          ),
+                Expanded(
+                  child: DiaryListView(
+                    months: state.months,
+                    filteredItemsPerMonth: state.filteredItemsPerMonth,
+                    pageController: pageController,
+                    onPageChanged: viewModel.onPageChanged,
+                  ),
+                ),
+              ],
+            ),
 
           // 左下：カレンダー
           Positioned(

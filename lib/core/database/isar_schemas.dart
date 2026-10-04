@@ -1,3 +1,4 @@
+import '../../features/diary/data/models/diary_log.dart';
 import '../../features/location/data/models/activity_log.dart';
 import '../app_info/app_info.dart';
 import '../../features/location/data/models/location_log.dart';
@@ -11,5 +12,6 @@ final isarSchemas = [
   PlaceSearchCacheSchema,
   ActivityLogSchema,
   AppInfoSchema,
+  DiaryLogSchema,
   SharedPostModelSchema,
 ];

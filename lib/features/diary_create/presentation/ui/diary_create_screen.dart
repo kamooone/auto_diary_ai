@@ -61,6 +61,7 @@ class DiaryCreateScreen extends ConsumerWidget {
           const SizedBox(height: 12),
 
           // ---------- 自分で書く内容
+          // そのまま日記として保存することも、AIに伝える内容として使うこともできる
           TextField(
             decoration: const InputDecoration(
               labelText: "タイトル",
@@ -72,6 +73,8 @@ class DiaryCreateScreen extends ConsumerWidget {
           TextField(
             decoration: const InputDecoration(
               labelText: "本文",
+              helperText: "自分で書いて保存できます。AIに書いてもらう場合は、伝えたいことを書けます",
+              helperMaxLines: 2,
               border: OutlineInputBorder(),
               alignLabelWithHint: true,
             ),
@@ -80,14 +83,9 @@ class DiaryCreateScreen extends ConsumerWidget {
             maxLines: 8,
             onChanged: viewModel.setMainContent,
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 12),
 
-          // ---------- AIに渡す情報
-          Text(
-            "AIに渡す情報",
-            style: Theme.of(context).textTheme.titleSmall,
-          ),
-          const SizedBox(height: 4),
+          // ---------- 写真(自分で書く日記にも、AIに書いてもらう日記にも使う)
           Card(
             child: Column(
               children: [
@@ -169,7 +167,51 @@ class DiaryCreateScreen extends ConsumerWidget {
                       ),
                     ),
                   ),
-                const Divider(height: 1),
+              ],
+            ),
+          ),
+          const SizedBox(height: 12),
+
+          // ---------- AIを使わずに保存
+          OutlinedButton.icon(
+            // 本文が空の日記は保存できない
+            onPressed: state.content.trim().isEmpty
+                ? null
+                : () async {
+                    final messenger = ScaffoldMessenger.of(context);
+                    final navigator = Navigator.of(context);
+
+                    final saved = await viewModel.saveManualDiary();
+
+                    messenger.showSnackBar(
+                      SnackBar(
+                        content: Text(saved ? "日記を保存しました" : "保存に失敗しました"),
+                      ),
+                    );
+
+                    if (saved) {
+                      navigator.pop();
+                    }
+                  },
+            icon: const Icon(Icons.save),
+            label: const Text("自分で書いた日記として保存"),
+          ),
+          const SizedBox(height: 24),
+
+          // ---------- AIに書いてもらう場合に渡す情報
+          Text(
+            "AIに書いてもらう場合",
+            style: Theme.of(context).textTheme.titleSmall,
+          ),
+          const SizedBox(height: 2),
+          Text(
+            "上の内容と写真に加えて、次の情報をAIに渡します",
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
+          const SizedBox(height: 4),
+          Card(
+            child: Column(
+              children: [
                 ListTile(
                   leading: const Icon(Icons.share),
                   title: const Text("Xの投稿"),
@@ -234,7 +276,7 @@ class DiaryCreateScreen extends ConsumerWidget {
               ],
             ),
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 12),
 
           // ---------- 生成
           ElevatedButton(

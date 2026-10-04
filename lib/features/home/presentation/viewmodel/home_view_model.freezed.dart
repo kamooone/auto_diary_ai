@@ -17,7 +17,7 @@ final _privateConstructorUsedError = UnsupportedError(
 /// @nodoc
 mixin _$HomeUiModel {
   List<String> get months => throw _privateConstructorUsedError;
-  Map<String, List<DiaryItem>> get filteredItemsPerMonth =>
+  Map<String, List<Diary>> get filteredItemsPerMonth =>
       throw _privateConstructorUsedError;
 
   @JsonKey(ignore: true)
@@ -32,8 +32,7 @@ abstract class $HomeUiModelCopyWith<$Res> {
       _$HomeUiModelCopyWithImpl<$Res, HomeUiModel>;
   @useResult
   $Res call(
-      {List<String> months,
-      Map<String, List<DiaryItem>> filteredItemsPerMonth});
+      {List<String> months, Map<String, List<Diary>> filteredItemsPerMonth});
 }
 
 /// @nodoc
@@ -60,7 +59,7 @@ class _$HomeUiModelCopyWithImpl<$Res, $Val extends HomeUiModel>
       filteredItemsPerMonth: null == filteredItemsPerMonth
           ? _value.filteredItemsPerMonth
           : filteredItemsPerMonth // ignore: cast_nullable_to_non_nullable
-              as Map<String, List<DiaryItem>>,
+              as Map<String, List<Diary>>,
     ) as $Val);
   }
 }
@@ -74,8 +73,7 @@ abstract class _$$HomeUiModelImplCopyWith<$Res>
   @override
   @useResult
   $Res call(
-      {List<String> months,
-      Map<String, List<DiaryItem>> filteredItemsPerMonth});
+      {List<String> months, Map<String, List<Diary>> filteredItemsPerMonth});
 }
 
 /// @nodoc
@@ -100,7 +98,7 @@ class __$$HomeUiModelImplCopyWithImpl<$Res>
       filteredItemsPerMonth: null == filteredItemsPerMonth
           ? _value._filteredItemsPerMonth
           : filteredItemsPerMonth // ignore: cast_nullable_to_non_nullable
-              as Map<String, List<DiaryItem>>,
+              as Map<String, List<Diary>>,
     ));
   }
 }
@@ -110,7 +108,7 @@ class __$$HomeUiModelImplCopyWithImpl<$Res>
 class _$HomeUiModelImpl implements _HomeUiModel {
   const _$HomeUiModelImpl(
       {required final List<String> months,
-      required final Map<String, List<DiaryItem>> filteredItemsPerMonth})
+      required final Map<String, List<Diary>> filteredItemsPerMonth})
       : _months = months,
         _filteredItemsPerMonth = filteredItemsPerMonth;
 
@@ -122,9 +120,9 @@ class _$HomeUiModelImpl implements _HomeUiModel {
     return EqualUnmodifiableListView(_months);
   }
 
-  final Map<String, List<DiaryItem>> _filteredItemsPerMonth;
+  final Map<String, List<Diary>> _filteredItemsPerMonth;
   @override
-  Map<String, List<DiaryItem>> get filteredItemsPerMonth {
+  Map<String, List<Diary>> get filteredItemsPerMonth {
     if (_filteredItemsPerMonth is EqualUnmodifiableMapView)
       return _filteredItemsPerMonth;
     // ignore: implicit_dynamic_type
@@ -162,13 +160,13 @@ class _$HomeUiModelImpl implements _HomeUiModel {
 abstract class _HomeUiModel implements HomeUiModel {
   const factory _HomeUiModel(
           {required final List<String> months,
-          required final Map<String, List<DiaryItem>> filteredItemsPerMonth}) =
+          required final Map<String, List<Diary>> filteredItemsPerMonth}) =
       _$HomeUiModelImpl;
 
   @override
   List<String> get months;
   @override
-  Map<String, List<DiaryItem>> get filteredItemsPerMonth;
+  Map<String, List<Diary>> get filteredItemsPerMonth;
   @override
   @JsonKey(ignore: true)
   _$$HomeUiModelImplCopyWith<_$HomeUiModelImpl> get copyWith =>

@@ -39,7 +39,6 @@ dependencies:
   awesome_dialog: ^3.3.0
   fluttertoast: ^9.0.0
   path_provider: ^2.1.5
-  cached_network_image: ^3.4.1
   flutter_settings_ui: ^3.0.1
   photo_manager: ^3.9.0
   receive_sharing_intent: 1.8.0

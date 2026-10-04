@@ -1,6 +1,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/foundation.dart';
 import '../../../ai/domain/exceptions/ai_exception.dart';
+import '../../../diary/application/providers/diary_providers.dart';
+import '../../../diary/domain/entities/diary.dart';
 import '../../../location/application/providers/location_providers.dart';
 import '../../../location/domain/entities/timeline_item.dart';
 import '../../../share/application/providers/share_providers.dart';
@@ -195,6 +197,41 @@ class DiaryCreateViewModel extends AutoDisposeNotifier<DiaryCreateState> {
       selectedTimeline: List.unmodifiable(timeline),
       isLoadingSources: false,
     );
+  }
+
+  /// 自分で書いた内容を、そのまま日記として保存する
+  /// 保存できた場合はtrueを返す
+  Future<bool> saveManualDiary() {
+    return _saveDiary(content: state.content, isAiGenerated: false);
+  }
+
+  /// AIが書いた日記を保存する
+  /// 保存できた場合はtrueを返す
+  Future<bool> saveGeneratedDiary() {
+    return _saveDiary(content: state.generatedDiary, isAiGenerated: true);
+  }
+
+  Future<bool> _saveDiary({
+    required String content,
+    required bool isAiGenerated,
+  }) async {
+    try {
+      await ref.read(saveDiaryUseCaseProvider).execute(
+        Diary(
+          date: state.startDate,
+          title: state.title.trim(),
+          content: content.trim(),
+          isAiGenerated: isAiGenerated,
+          photoIds: [for (final photo in state.selectedPhotos) photo.id],
+          createdAt: DateTime.now(),
+        ),
+      );
+      return true;
+    } catch (e, stackTrace) {
+      debugPrint(e.toString());
+      debugPrintStack(stackTrace: stackTrace);
+      return false;
+    }
   }
 
   Future<void> generateDiary() async {

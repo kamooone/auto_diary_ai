@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
-import 'package:auto_diary_ai/features/home/data/models/diary_item.dart';
+import 'package:auto_diary_ai/features/diary/domain/entities/diary.dart';
+import 'package:auto_diary_ai/features/diary/presentation/ui/diary_detail_screen.dart';
+import 'package:auto_diary_ai/features/diary_create/domain/entities/photo.dart';
+import 'package:auto_diary_ai/features/diary_create/presentation/ui/widgets/photo_thumbnail.dart';
 
 /// 日記アイテムをカードとして表示するウィジェット
 class DiaryCard extends StatelessWidget {
-  final DiaryItem item;
+  final Diary item;
   final int index;
 
   const DiaryCard({
@@ -16,6 +18,8 @@ class DiaryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final date = item.date;
+
     return AnimationConfiguration.staggeredList(
       position: index,
       duration: const Duration(milliseconds: 500),
@@ -28,31 +32,49 @@ class DiaryCard extends StatelessWidget {
               elevation: Theme.of(context).cardTheme.elevation,
               shape: Theme.of(context).cardTheme.shape,
               color: Theme.of(context).cardColor,
+              clipBehavior: Clip.antiAlias,
               child: ListTile(
                 contentPadding: const EdgeInsets.all(12),
                 leading: ClipRRect(
                   borderRadius: BorderRadius.circular(8),
-                  child: CachedNetworkImage(
-                    imageUrl: item.thumbnailUrl,
+                  child: SizedBox(
                     width: 70,
                     height: 70,
-                    fit: BoxFit.cover,
-                    placeholder: (context, url) => const SizedBox(
-                      width: 70,
-                      height: 70,
-                      child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
-                    ),
-                    errorWidget: (context, url, error) => const Icon(Icons.error, color: Colors.redAccent),
+                    // 写真を添えた日記は1枚目を表示する
+                    child: item.photoIds.isEmpty
+                        ? Container(
+                            color: Colors.grey[200],
+                            child: Icon(
+                              Icons.menu_book,
+                              color: Colors.grey[500],
+                            ),
+                          )
+                        : PhotoThumbnail(
+                            photo: Photo(
+                              id: item.photoIds.first,
+                              createdAt: item.date,
+                            ),
+                          ),
                   ),
                 ),
                 title: Text(
-                  item.aiMemo,
+                  item.headline,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
                 ),
                 subtitle: Text(
-                  item.date,
+                  "${date.year}/${date.month}/${date.day}"
+                  "${item.isAiGenerated ? "・AI" : ""}",
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.grey[600]),
                 ),
+                onTap: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (context) => DiaryDetailScreen(diary: item),
+                    ),
+                  );
+                },
               ),
             ),
           ),
