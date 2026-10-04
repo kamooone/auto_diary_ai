@@ -38,11 +38,9 @@ dependencies:
   smooth_page_indicator: ^1.2.1
   awesome_dialog: ^3.3.0
   fluttertoast: ^9.0.0
-  image_picker: ^1.2.0
   path_provider: ^2.1.5
   cached_network_image: ^3.4.1
   flutter_settings_ui: ^3.0.1
-  dio: ^5.9.0
   photo_manager: ^3.9.0
   receive_sharing_intent: 1.8.0
   http: ^1.2.2

@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../../share/application/providers/share_service_provider.dart';
-import '../../../../share/domain/entities/shared_post.dart';
+import '../../providers/day_posts_provider.dart';
 import 'widgets/day_posts_list.dart';
 
 class DayPostsScreen extends ConsumerWidget {
@@ -14,30 +13,23 @@ class DayPostsScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final shareService = ref.read(shareServiceProvider);
+    final posts = ref.watch(dayPostsProvider(date));
 
-    return FutureBuilder<List<SharedPost>>(
-      future: shareService.getPosts(date),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState != ConnectionState.done) {
-          return const Scaffold(
-            body: Center(
-              child: CircularProgressIndicator(),
-            ),
-          );
-        }
+    if (posts.isLoading) {
+      return const Scaffold(
+        body: Center(
+          child: CircularProgressIndicator(),
+        ),
+      );
+    }
 
-        final posts = snapshot.data ?? [];
-
-        return Scaffold(
-          appBar: AppBar(
-            title: Text(
-              '${date.year}-${date.month}-${date.day}',
-            ),
-          ),
-          body: DayPostsList(posts: posts),
-        );
-      },
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(
+          '${date.year}-${date.month}-${date.day}',
+        ),
+      ),
+      body: DayPostsList(posts: posts.valueOrNull ?? []),
     );
   }
 }

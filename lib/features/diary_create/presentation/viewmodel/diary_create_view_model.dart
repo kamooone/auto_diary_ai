@@ -1,8 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/foundation.dart';
 import '../../../ai/domain/exceptions/ai_exception.dart';
-import '../../../location/application/providers/location_providers.dart';
-import '../../../share/application/providers/share_service_provider.dart';
 import '../../application/providers/diary_usecase_providers.dart';
 import '../../domain/entities/photo.dart';
 
@@ -10,6 +8,7 @@ class DiaryCreateState {
   final String title;
   final String content;
   final String generatedDiary;
+  final String? errorMessage;
   final bool isLoading;
   final DateTime selectedDate;
   final List<Photo> selectedPhotos;
@@ -18,6 +17,7 @@ class DiaryCreateState {
     this.title = '',
     this.content = '',
     this.generatedDiary = '',
+    this.errorMessage,
     this.isLoading = false,
     required this.selectedDate,
     this.selectedPhotos = const [],
@@ -27,6 +27,8 @@ class DiaryCreateState {
     String? title,
     String? content,
     String? generatedDiary,
+    String? errorMessage,
+    bool clearError = false,
     bool? isLoading,
     DateTime? selectedDate,
     List<Photo>? selectedPhotos,
@@ -35,6 +37,7 @@ class DiaryCreateState {
       title: title ?? this.title,
       content: content ?? this.content,
       generatedDiary: generatedDiary ?? this.generatedDiary,
+      errorMessage: clearError ? null : (errorMessage ?? this.errorMessage),
       isLoading: isLoading ?? this.isLoading,
       selectedDate: selectedDate ?? this.selectedDate,
       selectedPhotos: selectedPhotos ?? this.selectedPhotos,
@@ -80,32 +83,15 @@ class DiaryCreateViewModel extends Notifier<DiaryCreateState> {
 
   Future<void> generateDiary() async {
 
-    state = state.copyWith(isLoading: true);
+    state = state.copyWith(isLoading: true, clearError: true);
 
     try {
-      // ユーザーが選択した写真を使用
-      final photos = state.selectedPhotos;
-
-      // 本日の行動履歴(滞在した場所と移動)を取得
-      late final getTimelineByDateUseCase = ref.read(getTimelineByDateUseCaseProvider);
-      final timeline = await getTimelineByDateUseCase.execute(
-        state.selectedDate,
-      );
-
-      // 本日のXのポスト一覧を取得
-      late final shareService = ref.read(shareServiceProvider);
-      final posts = await shareService.getPosts(
-        state.selectedDate,
-      );
-
       // AIに日記を書いてもらう処理を呼び出し
       final result = await _generateDiaryUseCase.execute(
         title: state.title,
         content: state.content,
         date: state.selectedDate,
-        photos: photos,
-        timeline: timeline,
-        posts: posts,
+        photos: state.selectedPhotos,
       );
 
       state = state.copyWith(
@@ -118,7 +104,7 @@ class DiaryCreateViewModel extends Notifier<DiaryCreateState> {
 
       state = state.copyWith(
         isLoading: false,
-        generatedDiary: "写真のアップロードに失敗しました",
+        errorMessage: "写真のアップロードに失敗しました",
       );
     } catch (e, stackTrace) {
       debugPrint(e.toString());
@@ -126,7 +112,7 @@ class DiaryCreateViewModel extends Notifier<DiaryCreateState> {
 
       state = state.copyWith(
         isLoading: false,
-        generatedDiary: "生成に失敗しました",
+        errorMessage: "生成に失敗しました",
       );
     }
   }

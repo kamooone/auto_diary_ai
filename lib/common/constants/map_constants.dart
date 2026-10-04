@@ -12,5 +12,4 @@ class MapConstants {
   static const double zoomButtonRight = 10;
   static const double zoomButtonBottom = 20;
   static const double zoomButtonSpacing = 10;
-  static const int locationDistanceFilterMeters = 10;
 }

@@ -6,6 +6,7 @@ import '../../domain/usecases/get_photo_thumbnail_usecase.dart';
 import '../../domain/usecases/get_photos_usecase.dart';
 import '../../../ai/application/providers/ai_provider.dart';
 import '../../../location/application/providers/location_providers.dart';
+import '../../../share/application/providers/share_providers.dart';
 
 // Repository
 final photoRepositoryProvider = Provider<PhotoRepository>((ref) {
@@ -15,21 +16,23 @@ final photoRepositoryProvider = Provider<PhotoRepository>((ref) {
 // UseCase
 final generateDiaryUseCaseProvider = Provider<GenerateDiaryUseCase>((ref) {
   return GenerateDiaryUseCase(
-    ref.read(sendMessageUseCaseProvider),
-    ref.read(photoRepositoryProvider),
-    ref.read(placeNameRepositoryProvider),
+    aiRepository: ref.watch(aiRepositoryProvider),
+    photoRepository: ref.watch(photoRepositoryProvider),
+    placeNameRepository: ref.watch(placeNameRepositoryProvider),
+    getTimelineByDateUseCase: ref.watch(getTimelineByDateUseCaseProvider),
+    shareRepository: ref.watch(shareRepositoryProvider),
   );
 });
 
 final getPhotosUseCaseProvider = Provider<GetPhotosUseCase>((ref) {
   return GetPhotosUseCase(
-    ref.read(photoRepositoryProvider),
+    ref.watch(photoRepositoryProvider),
   );
 });
 
 final getPhotoThumbnailUseCaseProvider =
     Provider<GetPhotoThumbnailUseCase>((ref) {
   return GetPhotoThumbnailUseCase(
-    ref.read(photoRepositoryProvider),
+    ref.watch(photoRepositoryProvider),
   );
 });

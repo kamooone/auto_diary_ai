@@ -97,16 +97,6 @@ class _MapPageState extends ConsumerState<MapPage> {
                   .loadTimeline(selectedDate);
             },
           ),
-
-          // デバッグ用
-          IconButton(
-            icon: const Icon(Icons.bug_report),
-            onPressed: () async {
-              await ref
-                  .read(mapProvider.notifier)
-                  .debugPrintAllLocations();
-            },
-          ),
         ],
       ),
       body: Stack(

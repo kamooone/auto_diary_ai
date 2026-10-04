@@ -3,7 +3,7 @@ import 'package:auto_diary_ai/features/share/presentation/ui/share_preview_dialo
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:receive_sharing_intent/receive_sharing_intent.dart';
-import '../../application/providers/share_service_provider.dart';
+import '../../application/providers/share_providers.dart';
 
 class ShareInitializer extends ConsumerStatefulWidget {
   final Widget child;
@@ -34,9 +34,7 @@ class _ShareInitializerState extends ConsumerState<ShareInitializer> {
   // ==========================
   Future<void> _handleSharedUrl(String url) async {
 
-    final shareService = ref.read(shareServiceProvider);
-
-    final post = await shareService.handle(url);
+    final post = await ref.read(shareTweetUseCaseProvider).execute(url);
 
     if (!mounted) return;
 
@@ -52,7 +50,11 @@ class _ShareInitializerState extends ConsumerState<ShareInitializer> {
       if (selectedDate == null) return;
 
       try {
-        await shareService.save(post, selectedDate);
+        await ref.read(saveSharedPostUseCaseProvider).execute(
+          url: post.url,
+          text: post.text,
+          receivedAt: selectedDate,
+        );
 
         if (!mounted) return;
 

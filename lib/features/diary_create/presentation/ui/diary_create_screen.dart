@@ -123,6 +123,14 @@ class DiaryCreateScreen extends ConsumerWidget {
                   : const Text("AIに日記を書いてもらう"),
             ),
             const SizedBox(height: 16),
+            if (state.errorMessage != null)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: Text(
+                  state.errorMessage!,
+                  style: TextStyle(color: Theme.of(context).colorScheme.error),
+                ),
+              ),
             if (state.generatedDiary.isNotEmpty)
               Expanded(
                 child: SingleChildScrollView(

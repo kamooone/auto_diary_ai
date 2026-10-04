@@ -110,20 +110,4 @@ class MapViewModel extends Notifier<MapState> {
     await _subscription?.cancel();
     _subscription = null;
   }
-
-  Future<void> debugPrintAllLocations() async {
-    final logs = await ref.read(getLocationsUseCaseProvider).execute();
-
-    debugPrint("========== 保存されている位置情報 ==========");
-    debugPrint("件数: ${logs.length}");
-
-    for (final log in logs) {
-      debugPrint(
-        "${log.timestamp}  "
-            "${log.latitude}, ${log.longitude}",
-      );
-    }
-
-    debugPrint("==========================================");
-  }
 }

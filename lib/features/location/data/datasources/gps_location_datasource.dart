@@ -1,7 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:geolocator/geolocator.dart';
 
-import '../../../../common/constants/map_constants.dart';
+import '../../../../common/constants/location_constants.dart';
 
 class GpsLocationDataSource {
 
@@ -30,7 +30,7 @@ class GpsLocationDataSource {
     return Geolocator.getPositionStream(
       locationSettings: const LocationSettings(
         accuracy: LocationAccuracy.high,
-        distanceFilter: MapConstants.locationDistanceFilterMeters,
+        distanceFilter: LocationConstants.distanceFilterMeters,
       ),
     ).where((position) {
       final ok =

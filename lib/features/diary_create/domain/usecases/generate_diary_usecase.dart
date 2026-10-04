@@ -1,21 +1,30 @@
 import '../../../ai/domain/entities/ai_message_request.dart';
-import '../../../ai/domain/usecases/send_message_usecase.dart';
+import '../../../ai/domain/repositories/ai_repository.dart';
 import '../../../location/domain/entities/timeline_item.dart';
 import '../../../location/domain/repositories/place_name_repository.dart';
-import '../../../share/domain/entities/shared_post.dart';
+import '../../../location/domain/usecases/get_timeline_by_date_usecase.dart';
+import '../../../share/domain/repositories/share_repository.dart';
 import '../entities/photo.dart';
 import '../repositories/photo_repository.dart';
 
 class GenerateDiaryUseCase {
-  final SendMessageUseCase _sendMessageUseCase;
+  final AiRepository _aiRepository;
   final PhotoRepository _photoRepository;
   final PlaceNameRepository _placeNameRepository;
+  final GetTimelineByDateUseCase _getTimelineByDateUseCase;
+  final ShareRepository _shareRepository;
 
-  GenerateDiaryUseCase(
-    this._sendMessageUseCase,
-    this._photoRepository,
-    this._placeNameRepository,
-  );
+  GenerateDiaryUseCase({
+    required AiRepository aiRepository,
+    required PhotoRepository photoRepository,
+    required PlaceNameRepository placeNameRepository,
+    required GetTimelineByDateUseCase getTimelineByDateUseCase,
+    required ShareRepository shareRepository,
+  })  : _aiRepository = aiRepository,
+        _photoRepository = photoRepository,
+        _placeNameRepository = placeNameRepository,
+        _getTimelineByDateUseCase = getTimelineByDateUseCase,
+        _shareRepository = shareRepository;
 
   // AIへ送る写真の上限枚数
   static const maxPhotos = 10;
@@ -29,9 +38,13 @@ class GenerateDiaryUseCase {
     required String content,
     required DateTime date,
     required List<Photo> photos,
-    required List<TimelineItem> timeline,
-    required List<SharedPost> posts,
   }) async {
+    // 対象日の行動履歴(滞在した場所と移動)を取得
+    final timeline = await _getTimelineByDateUseCase.execute(date);
+
+    // 対象日のXのポスト一覧を取得
+    final posts = await _shareRepository.findByDate(date);
+
     // 撮影時刻順に並べ、上限を超える場合は1日全体から均等に間引く
     final sortedPhotos = [...photos]
       ..sort((a, b) => a.createdAt.compareTo(b.createdAt));
@@ -114,7 +127,7 @@ $postText
 """,
       images: images,
     );
-    return _sendMessageUseCase.execute(request);
+    return _aiRepository.sendMessage(request);
   }
 
   // 写真の撮影場所(位置情報が付いていない場合はnull)

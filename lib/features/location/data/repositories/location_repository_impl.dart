@@ -3,6 +3,7 @@ import '../../domain/entities/location.dart';
 import '../../domain/repositories/location_repository.dart';
 import '../datasources/gps_location_datasource.dart';
 import '../datasources/isar_location_datasource.dart';
+import '../models/location_log.dart';
 import '../services/background_location_service.dart';
 
 class LocationRepositoryImpl
@@ -52,16 +53,7 @@ class LocationRepositoryImpl
     final logs =
     await local.getAll();
 
-    return logs.map((e) {
-
-      return Location(
-        id: e.id,
-        latitude: e.latitude,
-        longitude: e.longitude,
-        timestamp: e.timestamp,
-      );
-
-    }).toList();
+    return logs.map(_toEntity).toList();
 
   }
 
@@ -74,16 +66,7 @@ class LocationRepositoryImpl
     final logs =
     await local.getByDate(date);
 
-    return logs.map((e) {
-
-      return Location(
-        id: e.id,
-        latitude: e.latitude,
-        longitude: e.longitude,
-        timestamp: e.timestamp,
-      );
-
-    }).toList();
+    return logs.map(_toEntity).toList();
 
   }
 
@@ -100,12 +83,16 @@ class LocationRepositoryImpl
       return null;
     }
 
+    return _toEntity(log);
+
+  }
+
+  Location _toEntity(LocationLog log) {
     return Location(
       id: log.id,
       latitude: log.latitude,
       longitude: log.longitude,
       timestamp: log.timestamp,
     );
-
   }
 }

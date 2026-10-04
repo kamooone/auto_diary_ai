@@ -8,7 +8,6 @@ import '../../domain/repositories/location_repository.dart';
 import '../../domain/repositories/place_name_repository.dart';
 import '../../domain/usecases/get_latest_location_usecase.dart';
 import '../../domain/usecases/get_locations_by_date_usecase.dart';
-import '../../domain/usecases/get_locations_usecase.dart';
 import '../../domain/usecases/get_timeline_by_date_usecase.dart';
 import '../../domain/usecases/start_location_tracking_usecase.dart';
 
@@ -27,7 +26,7 @@ final isarLocationDataSourceProvider =
 Provider<IsarLocationDataSource>((ref) {
 
   return IsarLocationDataSource(
-    ref.read(isarProvider),
+    ref.watch(isarProvider),
   );
 
 });
@@ -40,8 +39,8 @@ final locationRepositoryProvider =
 Provider<LocationRepository>((ref) {
 
   return LocationRepositoryImpl(
-    gps: ref.read(gpsLocationDataSourceProvider),
-    local: ref.read(isarLocationDataSourceProvider),
+    gps: ref.watch(gpsLocationDataSourceProvider),
+    local: ref.watch(isarLocationDataSourceProvider),
   );
 
 });
@@ -61,16 +60,7 @@ final startLocationTrackingUseCaseProvider =
 Provider((ref) {
 
   return StartLocationTrackingUseCase(
-    ref.read(locationRepositoryProvider),
-  );
-
-});
-
-final getLocationsUseCaseProvider =
-Provider((ref) {
-
-  return GetLocationsUseCase(
-    ref.read(locationRepositoryProvider),
+    ref.watch(locationRepositoryProvider),
   );
 
 });
@@ -79,7 +69,7 @@ final getLocationsByDateUseCaseProvider =
 Provider((ref) {
 
   return GetLocationsByDateUseCase(
-    ref.read(locationRepositoryProvider),
+    ref.watch(locationRepositoryProvider),
   );
 
 });
@@ -88,7 +78,7 @@ final getLatestLocationUseCaseProvider =
 Provider((ref) {
 
   return GetLatestLocationUseCase(
-    ref.read(locationRepositoryProvider),
+    ref.watch(locationRepositoryProvider),
   );
 
 });
@@ -97,8 +87,8 @@ final getTimelineByDateUseCaseProvider =
 Provider((ref) {
 
   return GetTimelineByDateUseCase(
-    ref.read(locationRepositoryProvider),
-    ref.read(placeNameRepositoryProvider),
+    ref.watch(locationRepositoryProvider),
+    ref.watch(placeNameRepositoryProvider),
   );
 
 });

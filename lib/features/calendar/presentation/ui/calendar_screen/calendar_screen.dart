@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:table_calendar/table_calendar.dart';
+import '../../../../../app/router/app_routes.dart';
 
 class CalendarScreen extends StatefulWidget {
   const CalendarScreen({super.key});
@@ -34,7 +35,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
           });
 
           context.push(
-            '/day_posts_list',
+            AppRoutes.dayPostsList,
             extra: selectedDay,
           );
         },
