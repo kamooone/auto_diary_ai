@@ -3,6 +3,7 @@ import '../../domain/entities/location.dart';
 import '../../domain/repositories/location_repository.dart';
 import '../datasources/gps_location_datasource.dart';
 import '../datasources/isar_location_datasource.dart';
+import '../services/background_location_service.dart';
 
 class LocationRepositoryImpl
     implements LocationRepository {
@@ -25,12 +26,13 @@ class LocationRepositoryImpl
       return;
     }
 
-    await for (final position in gps.getPositionStream()) {
+    // 保存は記録サービスが行う(起動時に未許可だった場合はここで開始する)
+    await startLocationRecording(
+      gps: gps,
+      local: local,
+    );
 
-      await local.save(
-        position.latitude,
-        position.longitude,
-      );
+    await for (final position in gps.getPositionStream()) {
 
       yield Location(
         id: 0,
@@ -43,6 +45,9 @@ class LocationRepositoryImpl
 
   @override
   Future<List<Location>> getLocations() async {
+
+    // iOSのネイティブ側が記録した位置情報を先に取り込む
+    await importRecordedLocations(local);
 
     final logs =
     await local.getAll();
@@ -63,6 +68,9 @@ class LocationRepositoryImpl
   @override
   Future<List<Location>> getLocationsByDate(DateTime date,) async {
 
+    // iOSのネイティブ側が記録した位置情報を先に取り込む
+    await importRecordedLocations(local);
+
     final logs =
     await local.getByDate(date);
 
@@ -81,6 +89,9 @@ class LocationRepositoryImpl
 
   @override
   Future<Location?> getLatestLocation() async {
+
+    // iOSのネイティブ側が記録した位置情報を先に取り込む
+    await importRecordedLocations(local);
 
     final log =
     await local.getLatest();

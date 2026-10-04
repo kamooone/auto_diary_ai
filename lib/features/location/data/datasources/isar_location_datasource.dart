@@ -27,10 +27,20 @@ class IsarLocationDataSource {
     });
   }
 
+  Future<void> saveAll(
+      List<LocationLog> logs,
+      ) async {
+    await isar.writeTxn(() async {
+      await isar.locationLogs.putAll(logs);
+    });
+  }
+
   Future<List<LocationLog>> getAll() {
 
+    // 滞在の到着・出発など、後から届く位置もあるため時刻順に並べる
     return isar.locationLogs
         .where()
+        .sortByTimestamp()
         .findAll();
   }
 
@@ -47,6 +57,7 @@ class IsarLocationDataSource {
     return isar.locationLogs
         .filter()
         .timestampBetween(start, end)
+        .sortByTimestamp()
         .findAll();
   }
 

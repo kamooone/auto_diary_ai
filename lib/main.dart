@@ -14,8 +14,6 @@ void main() async {
     // runApp() より前で async 処理やプラグイン（Isar / path_provider など）を使う場合は必ず呼び出す必要がある
     WidgetsFlutterBinding.ensureInitialized();
 
-    await AppInitializer.initialize();
-
     // .env読み込み
     await dotenv.load(fileName: ".env");
 
@@ -30,6 +28,9 @@ void main() async {
         isarSchemas,
         directory: dir.path,
     );
+
+    // 通知・位置情報の許可と、位置情報の記録開始
+    await AppInitializer.initialize(isar);
 
     runApp(
         ProviderScope(

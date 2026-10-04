@@ -5,6 +5,7 @@ import '../../domain/usecases/generate_diary_usecase.dart';
 import '../../domain/usecases/get_photo_thumbnail_usecase.dart';
 import '../../domain/usecases/get_photos_usecase.dart';
 import '../../../ai/application/providers/ai_provider.dart';
+import '../../../location/application/providers/location_providers.dart';
 
 // Repository
 final photoRepositoryProvider = Provider<PhotoRepository>((ref) {
@@ -16,6 +17,7 @@ final generateDiaryUseCaseProvider = Provider<GenerateDiaryUseCase>((ref) {
   return GenerateDiaryUseCase(
     ref.read(sendMessageUseCaseProvider),
     ref.read(photoRepositoryProvider),
+    ref.read(placeNameRepositoryProvider),
   );
 });
 

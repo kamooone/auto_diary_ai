@@ -47,15 +47,6 @@ class SettingsPage extends ConsumerWidget {
           ),
 
           const Divider(),
-
-          ListTile(
-            leading: const Icon(Icons.storage),
-            title: const Text("DBデータを全部ログ表示"),
-            subtitle: const Text("Isarに保存されている全データを出力"),
-            onTap: () async {
-              await _printAllPosts(ref);
-            },
-          ),
         ],
       ),
     );

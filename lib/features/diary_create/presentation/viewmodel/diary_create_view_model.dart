@@ -86,9 +86,9 @@ class DiaryCreateViewModel extends Notifier<DiaryCreateState> {
       // ユーザーが選択した写真を使用
       final photos = state.selectedPhotos;
 
-      // 本日の行動履歴を取得
-      late final getLocationsByDateUseCase = ref.read(getLocationsByDateUseCaseProvider);
-      final locations = await getLocationsByDateUseCase.execute(
+      // 本日の行動履歴(滞在した場所と移動)を取得
+      late final getTimelineByDateUseCase = ref.read(getTimelineByDateUseCaseProvider);
+      final timeline = await getTimelineByDateUseCase.execute(
         state.selectedDate,
       );
 
@@ -104,7 +104,7 @@ class DiaryCreateViewModel extends Notifier<DiaryCreateState> {
         content: state.content,
         date: state.selectedDate,
         photos: photos,
-        locations: locations,
+        timeline: timeline,
         posts: posts,
       );
 

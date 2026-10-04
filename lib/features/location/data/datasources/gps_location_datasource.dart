@@ -22,8 +22,8 @@ class GpsLocationDataSource {
       await Geolocator.requestPermission();
     }
 
-    return permission !=
-        LocationPermission.deniedForever;
+    return permission == LocationPermission.whileInUse ||
+        permission == LocationPermission.always;
   }
 
   Stream<Position> getPositionStream() {

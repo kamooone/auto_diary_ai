@@ -3,10 +3,13 @@ import '../../../../core/database/isar_provider.dart';
 import '../../data/datasources/gps_location_datasource.dart';
 import '../../data/datasources/isar_location_datasource.dart';
 import '../../data/repositories/location_repository_impl.dart';
+import '../../data/repositories/place_name_repository_impl.dart';
 import '../../domain/repositories/location_repository.dart';
+import '../../domain/repositories/place_name_repository.dart';
 import '../../domain/usecases/get_latest_location_usecase.dart';
 import '../../domain/usecases/get_locations_by_date_usecase.dart';
 import '../../domain/usecases/get_locations_usecase.dart';
+import '../../domain/usecases/get_timeline_by_date_usecase.dart';
 import '../../domain/usecases/start_location_tracking_usecase.dart';
 
 ///--------------------------------------
@@ -40,6 +43,13 @@ Provider<LocationRepository>((ref) {
     gps: ref.read(gpsLocationDataSourceProvider),
     local: ref.read(isarLocationDataSourceProvider),
   );
+
+});
+
+final placeNameRepositoryProvider =
+Provider<PlaceNameRepository>((ref) {
+
+  return PlaceNameRepositoryImpl();
 
 });
 
@@ -79,6 +89,16 @@ Provider((ref) {
 
   return GetLatestLocationUseCase(
     ref.read(locationRepositoryProvider),
+  );
+
+});
+
+final getTimelineByDateUseCaseProvider =
+Provider((ref) {
+
+  return GetTimelineByDateUseCase(
+    ref.read(locationRepositoryProvider),
+    ref.read(placeNameRepositoryProvider),
   );
 
 });

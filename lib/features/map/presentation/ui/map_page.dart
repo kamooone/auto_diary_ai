@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:latlong2/latlong.dart';
 import '../../../../common/constants/map_constants.dart';
 import '../providers/map_provider.dart';
+import 'widgets/timeline_sheet.dart';
 
 class MapPage extends ConsumerStatefulWidget {
   const MapPage({super.key});
@@ -108,53 +109,67 @@ class _MapPageState extends ConsumerState<MapPage> {
           ),
         ],
       ),
-      body: FlutterMap(
-        mapController: _controller,
-        options: MapOptions(
-          initialCenter: LatLng(
-            MapConstants.tokyoStationLat,
-            MapConstants.tokyoStationLng,
-          ),
-          initialZoom: MapConstants.initialZoom,
-          minZoom: MapConstants.minZoom,
-          maxZoom: MapConstants.maxZoom,
-          // 慣性アニメーションによる暴走を防ぐ
-          interactionOptions: const InteractionOptions(
-            flags: InteractiveFlag.all & ~InteractiveFlag.flingAnimation,
-          ),
-        ),
+      body: Stack(
         children: [
-          TileLayer(
-            urlTemplate: MapConstants.tileUrl,
-            userAgentPackageName: MapConstants.userAgent,
-          ),
-
-          // 履歴にもNaNが混入しないようフィルタリング
-          if (state.history.isNotEmpty)
-            PolylineLayer(
-              polylines: [
-                Polyline(
-                  points: state.history.where(_isValidLatLng).toList(),
-                  strokeWidth: 4,
-                  color: Colors.blue,
-                ),
-              ],
+          FlutterMap(
+            mapController: _controller,
+            options: MapOptions(
+              initialCenter: LatLng(
+                MapConstants.tokyoStationLat,
+                MapConstants.tokyoStationLng,
+              ),
+              initialZoom: MapConstants.initialZoom,
+              minZoom: MapConstants.minZoom,
+              maxZoom: MapConstants.maxZoom,
+              // 慣性アニメーションによる暴走を防ぐ
+              interactionOptions: const InteractionOptions(
+                flags: InteractiveFlag.all & ~InteractiveFlag.flingAnimation,
+              ),
             ),
+            children: [
+              TileLayer(
+                urlTemplate: MapConstants.tileUrl,
+                userAgentPackageName: MapConstants.userAgent,
+              ),
 
-          if (_hasValidCurrentLocation(state.currentLocation))
-            MarkerLayer(
-              markers: [
-                Marker(
-                  point: state.currentLocation!,
-                  width: MapConstants.markerSize,
-                  height: MapConstants.markerSize,
-                  child: const Icon(
-                    Icons.my_location,
-                    color: Colors.blue,
-                    size: MapConstants.markerSize,
-                  ),
+              // 履歴にもNaNが混入しないようフィルタリング
+              if (state.history.isNotEmpty)
+                PolylineLayer(
+                  polylines: [
+                    Polyline(
+                      points: state.history.where(_isValidLatLng).toList(),
+                      strokeWidth: 4,
+                      color: Colors.blue,
+                    ),
+                  ],
                 ),
-              ],
+
+              if (_hasValidCurrentLocation(state.currentLocation))
+                MarkerLayer(
+                  markers: [
+                    Marker(
+                      point: state.currentLocation!,
+                      width: MapConstants.markerSize,
+                      height: MapConstants.markerSize,
+                      child: const Icon(
+                        Icons.my_location,
+                        color: Colors.blue,
+                        size: MapConstants.markerSize,
+                      ),
+                    ),
+                  ],
+                ),
+            ],
+          ),
+          if (state.timeline.isNotEmpty)
+            TimelineSheet(
+              items: state.timeline,
+              onStayTap: (stay) {
+                _controller.move(
+                  LatLng(stay.latitude, stay.longitude),
+                  MapConstants.currentLocationZoom,
+                );
+              },
             ),
         ],
       ),

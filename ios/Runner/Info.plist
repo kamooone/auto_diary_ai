@@ -32,6 +32,10 @@
 	<string>行動履歴を自動記録するために位置情報を使用します</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>写真を日記生成に利用するため使用します。</string>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>location</string>
+	</array>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>
