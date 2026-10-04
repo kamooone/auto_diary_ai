@@ -1,5 +1,5 @@
 import 'package:flutter_background_service/flutter_background_service.dart';
-import '../../core/services/background_location_service.dart';
+import '../../features/location/data/services/background_location_service.dart';
 import '../../core/permissions/notification_permission_service.dart';
 
 class AppInitializer {

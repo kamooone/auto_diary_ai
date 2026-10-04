@@ -1,7 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/foundation.dart';
 import '../../../ai/domain/exceptions/ai_exception.dart';
-import '../../../map/application/providers/location_providers.dart';
+import '../../../location/application/providers/location_providers.dart';
 import '../../../share/application/providers/share_service_provider.dart';
 import '../../application/providers/diary_usecase_providers.dart';
 import '../../domain/entities/photo.dart';

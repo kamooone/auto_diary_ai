@@ -1,6 +1,6 @@
 import '../../../ai/domain/entities/ai_message_request.dart';
 import '../../../ai/domain/usecases/send_message_usecase.dart';
-import '../../../map/domain/entities/location.dart';
+import '../../../location/domain/entities/location.dart';
 import '../../../share/domain/entities/shared_post.dart';
 import '../entities/photo.dart';
 import '../repositories/photo_repository.dart';

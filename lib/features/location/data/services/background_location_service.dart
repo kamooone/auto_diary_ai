@@ -1,9 +1,9 @@
 import 'dart:ui';
 import 'package:flutter_background_service/flutter_background_service.dart';
 import 'package:flutter/widgets.dart';
-import '../../features/map/data/datasources/gps_location_datasource.dart';
-import '../../features/map/data/datasources/isar_location_datasource.dart';
-import '../database/background_isar.dart';
+import '../datasources/gps_location_datasource.dart';
+import '../datasources/isar_location_datasource.dart';
+import '../../../../core/database/background_isar.dart';
 
 Future<void> initializeBackgroundService() async {
   final service = FlutterBackgroundService();

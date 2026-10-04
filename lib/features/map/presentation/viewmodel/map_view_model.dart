@@ -2,8 +2,8 @@ import 'dart:async';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:latlong2/latlong.dart';
-import '../../application/providers/location_providers.dart';
-import '../../domain/entities/location.dart';
+import '../../../location/application/providers/location_providers.dart';
+import '../../../location/domain/entities/location.dart';
 
 class MapState {
   final LatLng? currentLocation;
