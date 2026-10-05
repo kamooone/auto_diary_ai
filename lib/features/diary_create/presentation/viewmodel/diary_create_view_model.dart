@@ -11,9 +11,17 @@ import '../../application/providers/diary_usecase_providers.dart';
 import '../../domain/entities/photo.dart';
 
 class DiaryCreateState {
+  /// 自分で書く日記のタイトルと本文
   final String title;
   final String content;
+
+  /// AIに書いてもらうときに、追加で伝えたい内容
+  final String aiNote;
+
+  /// AIが書いた日記のタイトルと本文
+  final String generatedTitle;
   final String generatedDiary;
+
   final String? errorMessage;
   final bool isLoading;
 
@@ -38,6 +46,8 @@ class DiaryCreateState {
   DiaryCreateState({
     this.title = '',
     this.content = '',
+    this.aiNote = '',
+    this.generatedTitle = '',
     this.generatedDiary = '',
     this.errorMessage,
     this.isLoading = false,
@@ -54,6 +64,8 @@ class DiaryCreateState {
   DiaryCreateState copyWith({
     String? title,
     String? content,
+    String? aiNote,
+    String? generatedTitle,
     String? generatedDiary,
     String? errorMessage,
     bool clearError = false,
@@ -70,6 +82,8 @@ class DiaryCreateState {
     return DiaryCreateState(
       title: title ?? this.title,
       content: content ?? this.content,
+      aiNote: aiNote ?? this.aiNote,
+      generatedTitle: generatedTitle ?? this.generatedTitle,
       generatedDiary: generatedDiary ?? this.generatedDiary,
       errorMessage: clearError ? null : (errorMessage ?? this.errorMessage),
       isLoading: isLoading ?? this.isLoading,
@@ -98,18 +112,19 @@ class DiaryCreateViewModel extends AutoDisposeNotifier<DiaryCreateState> {
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
 
-    // 初期表示は今日の日記。Xの投稿と行動履歴を読み込む
-    Future.microtask(_loadSources);
-
+    // 初期表示は今日の日記
     return DiaryCreateState(
       startDate: today,
       endDate: today,
-      isLoadingSources: true,
     );
   }
 
+  // Xの投稿と行動履歴を読み込み済みの対象期間
+  DateTime? _loadedStart;
+  DateTime? _loadedEnd;
+
   /// 日記の対象日を変更する
-  /// 対象日が変わると選べる情報も変わるため、選択内容は読み込み直す
+  /// 対象日が変わると選べる情報も変わるため、選択内容は空に戻す
   void setDate(DateTime date) {
     final day = DateTime(date.year, date.month, date.day);
 
@@ -121,10 +136,10 @@ class DiaryCreateViewModel extends AutoDisposeNotifier<DiaryCreateState> {
       selectedPosts: const [],
       timeline: const [],
       selectedTimeline: const [],
-      isLoadingSources: true,
     );
 
-    _loadSources();
+    _loadedStart = null;
+    _loadedEnd = null;
   }
 
   void setInputTitle(String text) {
@@ -133,6 +148,10 @@ class DiaryCreateViewModel extends AutoDisposeNotifier<DiaryCreateState> {
 
   void setMainContent(String text) {
     state = state.copyWith(content: text);
+  }
+
+  void setAiNote(String text) {
+    state = state.copyWith(aiNote: text);
   }
 
   // ユーザーが選択した写真をセット
@@ -159,9 +178,17 @@ class DiaryCreateViewModel extends AutoDisposeNotifier<DiaryCreateState> {
   }
 
   /// 対象期間のXの投稿と行動履歴を読み込む(最初はすべて選択済みにする)
-  Future<void> _loadSources() async {
+  ///
+  /// AIに書いてもらう画面を開いたときに呼ぶ。同じ期間をすでに読み込んでいる場合は、
+  /// ユーザーの選択を保つため読み込み直さない
+  Future<void> loadSources() async {
     final start = state.startDate;
     final end = state.endDate;
+
+    if (state.isLoadingSources) return;
+    if (_loadedStart == start && _loadedEnd == end) return;
+
+    state = state.copyWith(isLoadingSources: true);
 
     final posts = <SharedPost>[];
     final timeline = <TimelineItem>[];
@@ -185,10 +212,14 @@ class DiaryCreateViewModel extends AutoDisposeNotifier<DiaryCreateState> {
 
     if (_isDisposed) return;
 
-    // 読み込み中に対象日が変更された場合は反映しない
+    // 読み込み中に対象日が変更された場合は反映せず、新しい対象日で読み込み直す
     if (state.startDate != start || state.endDate != end) {
-      return;
+      state = state.copyWith(isLoadingSources: false);
+      return loadSources();
     }
+
+    _loadedStart = start;
+    _loadedEnd = end;
 
     state = state.copyWith(
       posts: List.unmodifiable(posts),
@@ -202,16 +233,24 @@ class DiaryCreateViewModel extends AutoDisposeNotifier<DiaryCreateState> {
   /// 自分で書いた内容を、そのまま日記として保存する
   /// 保存できた場合はtrueを返す
   Future<bool> saveManualDiary() {
-    return _saveDiary(content: state.content, isAiGenerated: false);
+    return _saveDiary(
+      title: state.title,
+      content: state.content,
+      isAiGenerated: false,
+    );
   }
 
-  /// AIが書いた日記を保存する
+  /// AIが書いた日記を保存する(確認画面でユーザーが修正した内容を受け取る)
   /// 保存できた場合はtrueを返す
-  Future<bool> saveGeneratedDiary() {
-    return _saveDiary(content: state.generatedDiary, isAiGenerated: true);
+  Future<bool> saveGeneratedDiary({
+    required String title,
+    required String content,
+  }) {
+    return _saveDiary(title: title, content: content, isAiGenerated: true);
   }
 
   Future<bool> _saveDiary({
+    required String title,
     required String content,
     required bool isAiGenerated,
   }) async {
@@ -219,7 +258,7 @@ class DiaryCreateViewModel extends AutoDisposeNotifier<DiaryCreateState> {
       await ref.read(saveDiaryUseCaseProvider).execute(
         Diary(
           date: state.startDate,
-          title: state.title.trim(),
+          title: title.trim(),
           content: content.trim(),
           isAiGenerated: isAiGenerated,
           photoIds: [for (final photo in state.selectedPhotos) photo.id],
@@ -242,8 +281,7 @@ class DiaryCreateViewModel extends AutoDisposeNotifier<DiaryCreateState> {
     try {
       // ユーザーが選んだ情報だけをAIに渡して、日記を書いてもらう
       final result = await _generateDiaryUseCase.execute(
-        title: state.title,
-        content: state.content,
+        note: state.aiNote,
         startDate: state.startDate,
         endDate: state.endDate,
         photos: state.selectedPhotos,
@@ -254,7 +292,8 @@ class DiaryCreateViewModel extends AutoDisposeNotifier<DiaryCreateState> {
       if (_isDisposed) return;
 
       state = state.copyWith(
-        generatedDiary: result,
+        generatedTitle: result.title,
+        generatedDiary: result.content,
         isLoading: false,
       );
     } on AiUploadException catch (e, stackTrace) {

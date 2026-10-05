@@ -3,13 +3,17 @@ import '../../../ai/domain/repositories/ai_repository.dart';
 import '../../../location/domain/entities/timeline_item.dart';
 import '../../../location/domain/repositories/place_name_repository.dart';
 import '../../../share/domain/entities/shared_post.dart';
+import '../entities/generated_diary.dart';
 import '../entities/photo.dart';
 import '../repositories/photo_repository.dart';
+import '../services/generated_diary_parser.dart';
 
 class GenerateDiaryUseCase {
   final AiRepository _aiRepository;
   final PhotoRepository _photoRepository;
   final PlaceNameRepository _placeNameRepository;
+
+  final GeneratedDiaryParser _parser = GeneratedDiaryParser();
 
   GenerateDiaryUseCase({
     required AiRepository aiRepository,
@@ -29,9 +33,9 @@ class GenerateDiaryUseCase {
   /// ユーザーが選んだ情報をもとに日記を生成する
   ///
   /// [startDate]と[endDate]は日記の対象期間(1日分の場合は同じ日)
-  Future<String> execute({
-    required String title,
-    required String content,
+  /// [note]はユーザーがAIに追加で伝えたい内容(なければ空文字)
+  Future<GeneratedDiary> execute({
+    required String note,
     required DateTime startDate,
     required DateTime endDate,
     required List<Photo> photos,
@@ -93,13 +97,10 @@ class GenerateDiaryUseCase {
 添付した写真も必ず確認し、
 写真から読み取れる内容も日記に反映してください。
 
-以下の情報を参考に自然な日記を書いてください。
+以下の情報を参考に、自然な日記と、その内容に合ったタイトルを書いてください。
 
-タイトル
-$title
-
-本文
-$content
+ユーザーが追加で伝えたいこと
+${note.trim().isEmpty ? "(なし)" : note.trim()}
 
 日付
 ${_period(startDate, endDate)}
@@ -118,10 +119,19 @@ Xの投稿
 $postText
 
 写真の内容だけでなく、撮影日時・撮影場所と行動履歴も照らし合わせて、時系列に沿った自然な日記を作成してください。
+
+回答は必ず次の形式で書いてください。前置きや説明、記号による装飾は付けないでください。
+
+タイトル: (日記のタイトルを1行で)
+本文:
+(日記の本文)
 """,
       images: images,
     );
-    return _aiRepository.sendMessage(request);
+    final answer = await _aiRepository.sendMessage(request);
+
+    // 回答をタイトルと本文に分ける
+    return _parser.parse(answer);
   }
 
   // 写真の撮影場所(位置情報が付いていない場合はnull)
