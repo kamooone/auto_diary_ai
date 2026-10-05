@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../location/domain/entities/timeline_item.dart';
 import '../../../share/domain/entities/shared_post.dart';
+import '../../application/providers/diary_usecase_providers.dart';
 import '../providers/diary_create_provider.dart';
 import 'diary_result_screen.dart';
 import 'post_select_page.dart';
@@ -42,6 +43,7 @@ class _DiaryAiScreenState extends ConsumerState<DiaryAiScreen> {
   Widget build(BuildContext context) {
     final state = ref.watch(diaryCreateProvider);
     final viewModel = ref.read(diaryCreateProvider.notifier);
+    final plan = ref.watch(diaryPlanProvider);
 
     final date = state.startDate;
 
@@ -61,7 +63,19 @@ class _DiaryAiScreenState extends ConsumerState<DiaryAiScreen> {
           ),
           const SizedBox(height: 12),
 
-          const PhotoSelectionCard(),
+          // AIには、日記の日付に撮影した写真だけを渡せる
+          PhotoSelectionCard(
+            photos: state.aiPhotos,
+            maxPhotos: plan.maxPhotos,
+            from: state.startDate,
+            // 対象期間の最終日の終わりまで
+            to: DateTime(
+              state.endDate.year,
+              state.endDate.month,
+              state.endDate.day + 1,
+            ),
+            onChanged: viewModel.setAiPhotos,
+          ),
           const SizedBox(height: 4),
 
           Card(

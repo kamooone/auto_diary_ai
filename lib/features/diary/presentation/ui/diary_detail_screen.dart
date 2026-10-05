@@ -4,21 +4,43 @@ import '../../../diary_create/domain/entities/photo.dart';
 import '../../../diary_create/presentation/ui/widgets/photo_thumbnail.dart';
 import '../../application/providers/diary_providers.dart';
 import '../../domain/entities/diary.dart';
+import 'diary_edit_screen.dart';
 
 /// 保存した日記を表示する画面
 class DiaryDetailScreen extends ConsumerWidget {
-  const DiaryDetailScreen({super.key, required this.diary});
+  const DiaryDetailScreen({super.key, required Diary diary})
+      : initialDiary = diary;
 
-  final Diary diary;
+  /// 一覧から開いた時点の日記
+  final Diary initialDiary;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    // 編集した内容がすぐ反映されるよう、保存されている最新の日記を表示する
+    final diary = ref
+            .watch(diariesProvider)
+            .valueOrNull
+            ?.where((e) => e.id == initialDiary.id)
+            .firstOrNull ??
+        initialDiary;
+
     final date = diary.date;
 
     return Scaffold(
       appBar: AppBar(
         title: Text("${date.year}年${date.month}月${date.day}日"),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.edit),
+            tooltip: "編集",
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (context) => DiaryEditScreen(diary: diary),
+                ),
+              );
+            },
+          ),
           IconButton(
             icon: const Icon(Icons.delete_outline),
             tooltip: "削除",
@@ -73,7 +95,7 @@ class DiaryDetailScreen extends ConsumerWidget {
   }
 
   Future<void> _confirmDelete(BuildContext context, WidgetRef ref) async {
-    final id = diary.id;
+    final id = initialDiary.id;
     if (id == null) return;
 
     final confirmed = await showDialog<bool>(

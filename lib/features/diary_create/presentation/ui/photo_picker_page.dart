@@ -11,16 +11,17 @@ class PhotoPickerPage extends ConsumerStatefulWidget {
     super.key,
     required this.initialSelection,
     required this.maxSelection,
-    required this.from,
-    required this.to,
+    this.from,
+    this.to,
   });
 
   final List<Photo> initialSelection;
   final int maxSelection;
 
   /// 表示する写真の撮影期間([from]以上[to]未満)
-  final DateTime from;
-  final DateTime to;
+  /// 指定しない場合は、端末内のすべての写真を表示する
+  final DateTime? from;
+  final DateTime? to;
 
   @override
   ConsumerState<PhotoPickerPage> createState() => _PhotoPickerPageState();
@@ -128,7 +129,9 @@ class _PhotoPickerPageState extends ConsumerState<PhotoPickerPage> {
       return Center(
         child: _isLoading
             ? const CircularProgressIndicator()
-            : const Text("この日に撮影した写真はありません"),
+            : Text(
+                widget.from == null ? "写真がありません" : "この日に撮影した写真はありません",
+              ),
       );
     }
 

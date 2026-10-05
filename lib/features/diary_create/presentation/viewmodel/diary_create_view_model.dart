@@ -29,8 +29,11 @@ class DiaryCreateState {
   final DateTime startDate;
   final DateTime endDate;
 
-  /// AIに渡す写真
+  /// 自分で書く日記に添える写真(撮影日の制限なし)
   final List<Photo> selectedPhotos;
+
+  /// AIに渡す写真(日記の日付に撮影したもの)
+  final List<Photo> aiPhotos;
 
   /// 対象期間のXの投稿と、そのうちAIに渡すもの
   final List<SharedPost> posts;
@@ -54,6 +57,7 @@ class DiaryCreateState {
     required this.startDate,
     required this.endDate,
     this.selectedPhotos = const [],
+    this.aiPhotos = const [],
     this.posts = const [],
     this.selectedPosts = const [],
     this.timeline = const [],
@@ -73,6 +77,7 @@ class DiaryCreateState {
     DateTime? startDate,
     DateTime? endDate,
     List<Photo>? selectedPhotos,
+    List<Photo>? aiPhotos,
     List<SharedPost>? posts,
     List<SharedPost>? selectedPosts,
     List<TimelineItem>? timeline,
@@ -90,6 +95,7 @@ class DiaryCreateState {
       startDate: startDate ?? this.startDate,
       endDate: endDate ?? this.endDate,
       selectedPhotos: selectedPhotos ?? this.selectedPhotos,
+      aiPhotos: aiPhotos ?? this.aiPhotos,
       posts: posts ?? this.posts,
       selectedPosts: selectedPosts ?? this.selectedPosts,
       timeline: timeline ?? this.timeline,
@@ -124,14 +130,15 @@ class DiaryCreateViewModel extends AutoDisposeNotifier<DiaryCreateState> {
   DateTime? _loadedEnd;
 
   /// 日記の対象日を変更する
-  /// 対象日が変わると選べる情報も変わるため、選択内容は空に戻す
+  /// 対象日が変わるとAIに渡せる情報も変わるため、AI用の選択内容は空に戻す
+  /// (自分で書く日記に添える写真は、日付に関係ないためそのまま残す)
   void setDate(DateTime date) {
     final day = DateTime(date.year, date.month, date.day);
 
     state = state.copyWith(
       startDate: day,
       endDate: day,
-      selectedPhotos: const [],
+      aiPhotos: const [],
       posts: const [],
       selectedPosts: const [],
       timeline: const [],
@@ -154,17 +161,14 @@ class DiaryCreateViewModel extends AutoDisposeNotifier<DiaryCreateState> {
     state = state.copyWith(aiNote: text);
   }
 
-  // ユーザーが選択した写真をセット
+  // 自分で書く日記に添える写真をセット
   void setSelectedPhotos(List<Photo> photos) {
     state = state.copyWith(selectedPhotos: List.unmodifiable(photos));
   }
 
-  void removeSelectedPhoto(Photo photo) {
-    state = state.copyWith(
-      selectedPhotos: List.unmodifiable(
-        state.selectedPhotos.where((e) => e.id != photo.id),
-      ),
-    );
+  // AIに渡す写真をセット
+  void setAiPhotos(List<Photo> photos) {
+    state = state.copyWith(aiPhotos: List.unmodifiable(photos));
   }
 
   // AIに渡すXの投稿をセット
@@ -236,6 +240,7 @@ class DiaryCreateViewModel extends AutoDisposeNotifier<DiaryCreateState> {
     return _saveDiary(
       title: state.title,
       content: state.content,
+      photos: state.selectedPhotos,
       isAiGenerated: false,
     );
   }
@@ -246,12 +251,18 @@ class DiaryCreateViewModel extends AutoDisposeNotifier<DiaryCreateState> {
     required String title,
     required String content,
   }) {
-    return _saveDiary(title: title, content: content, isAiGenerated: true);
+    return _saveDiary(
+      title: title,
+      content: content,
+      photos: state.aiPhotos,
+      isAiGenerated: true,
+    );
   }
 
   Future<bool> _saveDiary({
     required String title,
     required String content,
+    required List<Photo> photos,
     required bool isAiGenerated,
   }) async {
     try {
@@ -261,7 +272,7 @@ class DiaryCreateViewModel extends AutoDisposeNotifier<DiaryCreateState> {
           title: title.trim(),
           content: content.trim(),
           isAiGenerated: isAiGenerated,
-          photoIds: [for (final photo in state.selectedPhotos) photo.id],
+          photoIds: [for (final photo in photos) photo.id],
           createdAt: DateTime.now(),
         ),
       );
@@ -284,7 +295,7 @@ class DiaryCreateViewModel extends AutoDisposeNotifier<DiaryCreateState> {
         note: state.aiNote,
         startDate: state.startDate,
         endDate: state.endDate,
-        photos: state.selectedPhotos,
+        photos: state.aiPhotos,
         timeline: state.selectedTimeline,
         posts: state.selectedPosts,
       );

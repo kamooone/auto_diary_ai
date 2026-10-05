@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/app_info/install_date_provider.dart';
+import '../../application/providers/diary_usecase_providers.dart';
 import '../providers/diary_create_provider.dart';
 import 'diary_ai_screen.dart';
 import 'widgets/photo_selection_card.dart';
@@ -14,6 +15,7 @@ class DiaryCreateScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(diaryCreateProvider);
     final viewModel = ref.read(diaryCreateProvider.notifier);
+    final plan = ref.watch(diaryPlanProvider);
 
     final date = state.startDate;
 
@@ -75,7 +77,12 @@ class DiaryCreateScreen extends ConsumerWidget {
           ),
           const SizedBox(height: 12),
 
-          const PhotoSelectionCard(),
+          // 自分で書く日記には、撮影日に関係なく写真を添えられる
+          PhotoSelectionCard(
+            photos: state.selectedPhotos,
+            maxPhotos: plan.maxPhotos,
+            onChanged: viewModel.setSelectedPhotos,
+          ),
           const SizedBox(height: 16),
 
           // ---------- 保存
