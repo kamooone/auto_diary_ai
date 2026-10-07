@@ -9,6 +9,12 @@ class TimelineSheet extends StatelessWidget {
   const TimelineSheet({
     super.key,
     required this.controller,
+    required this.date,
+    required this.canGoToPreviousDay,
+    required this.canGoToNextDay,
+    required this.onPreviousDay,
+    required this.onNextDay,
+    required this.onDateTap,
     required this.items,
     required this.isLoading,
     required this.placeCandidates,
@@ -20,10 +26,24 @@ class TimelineSheet extends StatelessWidget {
   });
 
   /// シートを最も小さくしたときの高さ(画面に対する割合)
-  static const minSize = 0.1;
+  /// 日付の切り替えが隠れない高さにする
+  static const minSize = 0.13;
 
   /// シートの高さを外から操作するためのコントローラ
   final DraggableScrollableController controller;
+
+  /// 表示している日
+  final DateTime date;
+
+  /// 前日・翌日へ切り替えられるかどうか(記録のある範囲の端では切り替えられない)
+  final bool canGoToPreviousDay;
+  final bool canGoToNextDay;
+
+  final VoidCallback onPreviousDay;
+  final VoidCallback onNextDay;
+
+  /// 日付をタップしたとき(カレンダーから日付を選ぶ)
+  final VoidCallback onDateTap;
 
   final List<TimelineItem> items;
 
@@ -61,51 +81,67 @@ class TimelineSheet extends StatelessWidget {
           elevation: 8,
           borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
           clipBehavior: Clip.antiAlias,
-          child: ListView.builder(
+          child: CustomScrollView(
             controller: scrollController,
-            padding: EdgeInsets.zero,
-            itemCount: items.length + 1,
-            itemBuilder: (context, index) {
-              if (index == 0) {
-                return Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const _Handle(),
-                    // 訪れた場所の取得が終わるまで表示する
-                    if (isLoading) const _LoadingIndicator(),
-                  ],
-                );
-              }
-
-              final item = items[index - 1];
-              final time = TimelineFormatter.timeRange(item);
-
-              return switch (item) {
-                Stay() => _buildStay(context, item, time),
-                Move() => ListTile(
-                    dense: true,
-                    leading: Icon(TimelineFormatter.transportIcon(item.transport)),
-                    title: Text(TimelineFormatter.moveTitle(item)),
-                    subtitle: Text(time),
-                    // 選択中の移動は、地図上の経路と対応が分かるよう色を付ける
-                    selected: item.start == selectedMoveStart,
-                    selectedTileColor: Theme.of(context)
-                        .colorScheme
-                        .primary
-                        .withValues(alpha: 0.12),
-                    trailing: IconButton(
-                      icon: const Icon(Icons.edit, size: 18),
-                      tooltip: "移動手段を編集",
-                      onPressed: () => _editTransport(context, item),
-                    ),
-                    onTap: () => onMoveTap(item),
+            slivers: [
+              // 日付の切り替えは、一覧をスクロールしても上部に残す
+              SliverPersistentHeader(
+                pinned: true,
+                delegate: _DateHeaderDelegate(
+                  date: date,
+                  canGoToPreviousDay: canGoToPreviousDay,
+                  canGoToNextDay: canGoToNextDay,
+                  onPreviousDay: onPreviousDay,
+                  onNextDay: onNextDay,
+                  onDateTap: onDateTap,
+                ),
+              ),
+              // 訪れた場所の取得が終わるまで表示する
+              if (isLoading)
+                const SliverToBoxAdapter(child: _LoadingIndicator()),
+              if (items.isEmpty && !isLoading)
+                const SliverToBoxAdapter(
+                  child: Padding(
+                    padding: EdgeInsets.all(24),
+                    child: Center(child: Text("この日の行動履歴はありません")),
                   ),
-              };
-            },
+                ),
+              SliverList.builder(
+                itemCount: items.length,
+                itemBuilder: (context, index) =>
+                    _buildItem(context, items[index]),
+              ),
+            ],
           ),
         );
       },
     );
+  }
+
+  Widget _buildItem(BuildContext context, TimelineItem item) {
+    final time = TimelineFormatter.timeRange(item);
+
+    return switch (item) {
+      Stay() => _buildStay(context, item, time),
+      Move() => ListTile(
+          dense: true,
+          leading: Icon(TimelineFormatter.transportIcon(item.transport)),
+          title: Text(TimelineFormatter.moveTitle(item)),
+          subtitle: Text(time),
+          // 選択中の移動は、地図上の経路と対応が分かるよう色を付ける
+          selected: item.start == selectedMoveStart,
+          selectedTileColor: Theme.of(context)
+              .colorScheme
+              .primary
+              .withValues(alpha: 0.12),
+          trailing: IconButton(
+            icon: const Icon(Icons.edit, size: 18),
+            tooltip: "移動手段を編集",
+            onPressed: () => _editTransport(context, item),
+          ),
+          onTap: () => onMoveTap(item),
+        ),
+    };
   }
 
   Widget _buildStay(BuildContext context, Stay stay, String time) {
@@ -446,6 +482,92 @@ class _PlaceNameDialogState extends State<_PlaceNameDialog> {
         ),
       ],
     );
+  }
+}
+
+/// シートの上部に固定する、つまみと日付の切り替え
+class _DateHeaderDelegate extends SliverPersistentHeaderDelegate {
+  const _DateHeaderDelegate({
+    required this.date,
+    required this.canGoToPreviousDay,
+    required this.canGoToNextDay,
+    required this.onPreviousDay,
+    required this.onNextDay,
+    required this.onDateTap,
+  });
+
+  final DateTime date;
+  final bool canGoToPreviousDay;
+  final bool canGoToNextDay;
+  final VoidCallback onPreviousDay;
+  final VoidCallback onNextDay;
+  final VoidCallback onDateTap;
+
+  static const _height = 68.0;
+  static const _weekdays = ["月", "火", "水", "木", "金", "土", "日"];
+
+  @override
+  double get minExtent => _height;
+
+  @override
+  double get maxExtent => _height;
+
+  @override
+  Widget build(
+    BuildContext context,
+    double shrinkOffset,
+    bool overlapsContent,
+  ) {
+    final weekday = _weekdays[date.weekday - 1];
+
+    return Material(
+      color: Theme.of(context).colorScheme.surface,
+      child: Column(
+        children: [
+          const _Handle(),
+          SizedBox(
+            height: 48,
+            child: Row(
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.chevron_left),
+                  tooltip: "前の日",
+                  onPressed: canGoToPreviousDay ? onPreviousDay : null,
+                ),
+                Expanded(
+                  child: InkWell(
+                    onTap: onDateTap,
+                    borderRadius: BorderRadius.circular(8),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          "${date.year}年${date.month}月${date.day}日($weekday)",
+                          style: Theme.of(context).textTheme.titleMedium,
+                        ),
+                        const Icon(Icons.arrow_drop_down),
+                      ],
+                    ),
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.chevron_right),
+                  tooltip: "次の日",
+                  onPressed: canGoToNextDay ? onNextDay : null,
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
+  bool shouldRebuild(_DateHeaderDelegate oldDelegate) {
+    return oldDelegate.date != date ||
+        oldDelegate.canGoToPreviousDay != canGoToPreviousDay ||
+        oldDelegate.canGoToNextDay != canGoToNextDay;
   }
 }
 

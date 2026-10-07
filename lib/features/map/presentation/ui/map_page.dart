@@ -117,43 +117,50 @@ class _MapPageState extends ConsumerState<MapPage> {
     );
   }
 
+  /// 表示する日を切り替える
+  void _changeDate(DateTime date) {
+    ref.read(mapProvider.notifier).loadTimeline(date);
+  }
+
+  /// カレンダーから表示する日を選ぶ
+  Future<void> _pickDate({
+    required DateTime firstDay,
+    required DateTime lastDay,
+  }) async {
+    final selectedDate = await showDatePicker(
+      context: context,
+      initialDate: ref.read(mapProvider).selectedDate,
+      firstDate: firstDay,
+      lastDate: lastDay,
+    );
+
+    if (selectedDate != null) {
+      _changeDate(selectedDate);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(mapProvider);
 
+    // 切り替えられる日の範囲(アプリを使い始めた日から今日まで)
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final installDate = ref.watch(installDateProvider);
+    final firstDay = DateTime(
+      installDate.year,
+      installDate.month,
+      installDate.day,
+    );
+    final selectedDay = DateTime(
+      state.selectedDate.year,
+      state.selectedDate.month,
+      state.selectedDate.day,
+    );
+
     return Scaffold(
       appBar: AppBar(
-        title: Text(
-          "${state.selectedDate.year}/${state.selectedDate.month}/${state.selectedDate.day}",
-        ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.calendar_month),
-            onPressed: () async {
-              // アプリを使い始めた日より前は記録がないため選べないようにする
-              final installDate = ref.read(installDateProvider);
-
-              final selectedDate = await showDatePicker(
-                context: context,
-                initialDate: state.selectedDate,
-                firstDate: DateTime(
-                  installDate.year,
-                  installDate.month,
-                  installDate.day,
-                ),
-                lastDate: DateTime.now(),
-              );
-
-              if (selectedDate == null) {
-                return;
-              }
-
-              await ref
-                  .read(mapProvider.notifier)
-                  .loadTimeline(selectedDate);
-            },
-          ),
-        ],
+        title: const Text("行動履歴"),
       ),
       body: Stack(
         children: [
@@ -224,34 +231,44 @@ class _MapPageState extends ConsumerState<MapPage> {
                 ),
             ],
           ),
-          if (state.timeline.isNotEmpty || state.isLoadingTimeline)
-            TimelineSheet(
-              controller: _sheetController,
-              items: state.timeline,
-              isLoading: state.isLoadingTimeline,
-              placeCandidates: state.placeCandidates,
-              selectedMoveStart: state.selectedMoveStart,
-              onStayTap: (stay) {
-                ref.read(mapProvider.notifier).clearSelectedMove();
-                _collapseSheet();
-
-                _controller.move(
-                  LatLng(stay.latitude, stay.longitude),
-                  MapConstants.currentLocationZoom,
-                );
-              },
-              onMoveTap: _showRoute,
-              onPlaceNameChanged: (stay, placeName) {
-                ref
-                    .read(mapProvider.notifier)
-                    .updateStayPlaceName(stay, placeName);
-              },
-              onTransportChanged: (move, transport, text) {
-                ref
-                    .read(mapProvider.notifier)
-                    .updateMoveTransport(move, transport: transport, text: text);
-              },
+          // 記録のない日でも日付を切り替えられるよう、シートは常に表示する
+          TimelineSheet(
+            controller: _sheetController,
+            date: state.selectedDate,
+            canGoToPreviousDay: selectedDay.isAfter(firstDay),
+            canGoToNextDay: selectedDay.isBefore(today),
+            onPreviousDay: () => _changeDate(
+              DateTime(selectedDay.year, selectedDay.month, selectedDay.day - 1),
             ),
+            onNextDay: () => _changeDate(
+              DateTime(selectedDay.year, selectedDay.month, selectedDay.day + 1),
+            ),
+            onDateTap: () => _pickDate(firstDay: firstDay, lastDay: today),
+            items: state.timeline,
+            isLoading: state.isLoadingTimeline,
+            placeCandidates: state.placeCandidates,
+            selectedMoveStart: state.selectedMoveStart,
+            onStayTap: (stay) {
+              ref.read(mapProvider.notifier).clearSelectedMove();
+              _collapseSheet();
+
+              _controller.move(
+                LatLng(stay.latitude, stay.longitude),
+                MapConstants.currentLocationZoom,
+              );
+            },
+            onMoveTap: _showRoute,
+            onPlaceNameChanged: (stay, placeName) {
+              ref
+                  .read(mapProvider.notifier)
+                  .updateStayPlaceName(stay, placeName);
+            },
+            onTransportChanged: (move, transport, text) {
+              ref
+                  .read(mapProvider.notifier)
+                  .updateMoveTransport(move, transport: transport, text: text);
+            },
+          ),
         ],
       ),
     );
