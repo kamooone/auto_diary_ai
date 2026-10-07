@@ -9,6 +9,7 @@ class TimelineSheet extends StatelessWidget {
   const TimelineSheet({
     super.key,
     required this.items,
+    required this.isLoading,
     required this.placeCandidates,
     required this.onStayTap,
     required this.onPlaceNameChanged,
@@ -16,6 +17,9 @@ class TimelineSheet extends StatelessWidget {
   });
 
   final List<TimelineItem> items;
+
+  /// 地名や訪れた場所を取得中かどうか
+  final bool isLoading;
 
   /// 滞在の開始時刻ごとの、周辺の施設の候補
   final Map<DateTime, List<PlaceCandidate>> placeCandidates;
@@ -47,7 +51,14 @@ class TimelineSheet extends StatelessWidget {
             itemCount: items.length + 1,
             itemBuilder: (context, index) {
               if (index == 0) {
-                return const _Handle();
+                return Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const _Handle(),
+                    // 訪れた場所の取得が終わるまで表示する
+                    if (isLoading) const _LoadingIndicator(),
+                  ],
+                );
               }
 
               final item = items[index - 1];
@@ -411,6 +422,31 @@ class _PlaceNameDialogState extends State<_PlaceNameDialog> {
           child: const Text("保存"),
         ),
       ],
+    );
+  }
+}
+
+class _LoadingIndicator extends StatelessWidget {
+  const _LoadingIndicator();
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+      child: Row(
+        children: [
+          const SizedBox(
+            width: 16,
+            height: 16,
+            child: CircularProgressIndicator(strokeWidth: 2),
+          ),
+          const SizedBox(width: 12),
+          Text(
+            "訪れた場所を取得しています…",
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
+        ],
+      ),
     );
   }
 }

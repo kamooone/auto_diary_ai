@@ -1,22 +1,38 @@
 import 'package:flutter/widgets.dart';
 import 'package:geocoding/geocoding.dart' as geocoding;
+import 'package:isar/isar.dart';
 import '../../domain/repositories/place_name_repository.dart';
+import '../models/place_name_cache.dart';
 
 class PlaceNameRepositoryImpl implements PlaceNameRepository {
+  final Isar isar;
+
+  PlaceNameRepositoryImpl(this.isar);
+
   static const _locale = Locale('ja', 'JP');
+
+  // 地名の変更を反映するため、古い結果は取り直す
+  static const _maxAge = Duration(days: 180);
 
   final _geocoding = geocoding.Geocoding();
 
-  // 同じ場所を何度も問い合わせないよう、結果を保持する
-  final _cache = <String, String>{};
+  // アプリ起動中は、端末への問い合わせも省く
+  final _memory = <String, String>{};
 
   @override
   Future<String?> getPlaceName(double latitude, double longitude) async {
     // 小数第4位(約10m)で丸めた座標をキーにする
     final key = '${latitude.toStringAsFixed(4)},${longitude.toStringAsFixed(4)}';
 
-    final cached = _cache[key];
-    if (cached != null) return cached;
+    final inMemory = _memory[key];
+    if (inMemory != null) return inMemory;
+
+    // 一度取得した場所は、端末に保存した結果を使う
+    final saved = await _load(key);
+    if (saved != null) {
+      _memory[key] = saved;
+      return saved;
+    }
 
     try {
       final placemarks = await _geocoding.placemarkFromCoordinates(
@@ -29,12 +45,41 @@ class PlaceNameRepositoryImpl implements PlaceNameRepository {
       final name = _format(placemarks.first);
       if (name == null) return null;
 
-      _cache[key] = name;
+      _memory[key] = name;
+      await _save(key, name);
       return name;
     } catch (e) {
       debugPrint('地名の取得に失敗しました: $e');
       return null;
     }
+  }
+
+  Future<String?> _load(String key) async {
+    final cache =
+        await isar.placeNameCaches.filter().keyEqualTo(key).findFirst();
+
+    if (cache == null) return null;
+    if (DateTime.now().difference(cache.fetchedAt) > _maxAge) return null;
+
+    return cache.name;
+  }
+
+  Future<void> _save(String key, String name) async {
+    final cache = PlaceNameCache()
+      ..key = key
+      ..name = name
+      ..fetchedAt = DateTime.now();
+
+    await isar.writeTxn(() async {
+      // 同じ座標の結果がすでにある場合は上書きする
+      final existing =
+          await isar.placeNameCaches.filter().keyEqualTo(key).findFirst();
+      if (existing != null) {
+        cache.id = existing.id;
+      }
+
+      await isar.placeNameCaches.put(cache);
+    });
   }
 
   // 「都道府県 + 市区町村 + 町名」の形にまとめる

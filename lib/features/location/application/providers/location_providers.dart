@@ -8,11 +8,13 @@ import '../../data/repositories/location_repository_impl.dart';
 import '../../data/repositories/osm_place_search_repository_impl.dart';
 import '../../data/repositories/place_name_repository_impl.dart';
 import '../../data/repositories/timeline_edit_repository_impl.dart';
+import '../../data/repositories/timeline_snapshot_repository_impl.dart';
 import '../../domain/repositories/activity_repository.dart';
 import '../../domain/repositories/location_repository.dart';
 import '../../domain/repositories/place_name_repository.dart';
 import '../../domain/repositories/place_search_repository.dart';
 import '../../domain/repositories/timeline_edit_repository.dart';
+import '../../domain/repositories/timeline_snapshot_repository.dart';
 import '../../domain/usecases/get_latest_location_usecase.dart';
 import '../../domain/usecases/get_locations_by_date_usecase.dart';
 import '../../domain/usecases/get_place_candidates_usecase.dart';
@@ -58,7 +60,9 @@ Provider<LocationRepository>((ref) {
 final placeNameRepositoryProvider =
 Provider<PlaceNameRepository>((ref) {
 
-  return PlaceNameRepositoryImpl();
+  return PlaceNameRepositoryImpl(
+    ref.watch(isarProvider),
+  );
 
 });
 
@@ -78,6 +82,15 @@ final activityRepositoryProvider =
 Provider<ActivityRepository>((ref) {
 
   return ActivityRepositoryImpl(
+    ref.watch(isarProvider),
+  );
+
+});
+
+final timelineSnapshotRepositoryProvider =
+Provider<TimelineSnapshotRepository>((ref) {
+
+  return TimelineSnapshotRepositoryImpl(
     ref.watch(isarProvider),
   );
 
@@ -132,6 +145,7 @@ Provider((ref) {
     timelineEditRepository: ref.watch(timelineEditRepositoryProvider),
     placeSearchRepository: ref.watch(placeSearchRepositoryProvider),
     activityRepository: ref.watch(activityRepositoryProvider),
+    timelineSnapshotRepository: ref.watch(timelineSnapshotRepositoryProvider),
   );
 
 });

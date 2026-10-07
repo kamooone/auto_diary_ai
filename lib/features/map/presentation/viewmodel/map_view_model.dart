@@ -13,6 +13,9 @@ class MapState {
   final List<LatLng> history;
   final List<TimelineItem> timeline;
 
+  /// タイムライン(地名や訪れた場所を含む)を読み込み中かどうか
+  final bool isLoadingTimeline;
+
   /// 滞在の開始時刻ごとの、周辺の施設の候補
   final Map<DateTime, List<PlaceCandidate>> placeCandidates;
 
@@ -22,6 +25,7 @@ class MapState {
     this.currentLocation,
     this.history = const [],
     this.timeline = const [],
+    this.isLoadingTimeline = false,
     this.placeCandidates = const {},
     required this.selectedDate,
   });
@@ -30,6 +34,7 @@ class MapState {
     LatLng? currentLocation,
     List<LatLng>? history,
     List<TimelineItem>? timeline,
+    bool? isLoadingTimeline,
     Map<DateTime, List<PlaceCandidate>>? placeCandidates,
     DateTime? selectedDate,
   }) {
@@ -37,6 +42,7 @@ class MapState {
       currentLocation: currentLocation ?? this.currentLocation,
       history: history ?? this.history,
       timeline: timeline ?? this.timeline,
+      isLoadingTimeline: isLoadingTimeline ?? this.isLoadingTimeline,
       placeCandidates: placeCandidates ?? this.placeCandidates,
       selectedDate: selectedDate ?? this.selectedDate,
     );
@@ -95,9 +101,28 @@ class MapViewModel extends Notifier<MapState> {
   Future<void> _reloadTimeline() async {
     final date = state.selectedDate;
 
+    // 訪れた場所の取得が終わるまで、読み込み中の表示を出す
+    state = state.copyWith(isLoadingTimeline: true);
+
+    try {
+      await _loadTimeline(date);
+    } catch (e, stackTrace) {
+      debugPrint(e.toString());
+      debugPrintStack(stackTrace: stackTrace);
+    }
+
+    // 読み込み中に別の日付へ切り替えられた場合は、そちらの読み込みに任せる
+    if (state.selectedDate != date) {
+      return;
+    }
+
+    state = state.copyWith(isLoadingTimeline: false);
+  }
+
+  Future<void> _loadTimeline(DateTime date) async {
     final getTimeline = ref.read(getTimelineByDateUseCaseProvider);
 
-    // 施設の検索は時間がかかることがあるため、先に住所だけのタイムラインを表示する
+    // 施設の検索は時間がかかることがあるため、先に地名だけのタイムラインを表示する
     final quick = await getTimeline.execute(date, estimatePlaces: false);
 
     // 読み込み中に別の日付へ切り替えられた場合は反映しない
@@ -105,12 +130,12 @@ class MapViewModel extends Notifier<MapState> {
       return;
     }
 
-    // すでに施設を当てはめて表示している場合は、住所だけの表示に戻さない
+    // すでに施設を当てはめて表示している場合は、地名だけの表示に戻さない
     if (state.timeline.isEmpty) {
       state = state.copyWith(timeline: quick);
     }
 
-    // 未確認の滞在に、最も近い施設を当てはめる
+    // 最も近い施設を、訪れた場所として当てはめる
     final timeline = await getTimeline.execute(date);
 
     if (state.selectedDate != date) {
@@ -122,9 +147,16 @@ class MapViewModel extends Notifier<MapState> {
     // 編集時に選べるよう、施設の候補も読み込む(検索結果は保存済みのものを再利用する)
     final stays = timeline.whereType<Stay>().toList();
 
-    final candidates = await ref
-        .read(getPlaceCandidatesUseCaseProvider)
-        .execute(stays);
+    final List<List<PlaceCandidate>> candidates;
+    try {
+      candidates = await ref
+          .read(getPlaceCandidatesUseCaseProvider)
+          .execute(stays);
+    } catch (e) {
+      // 施設を検索できなかった場合、候補は出さない(場所名は手入力できる)
+      debugPrint(e.toString());
+      return;
+    }
 
     if (state.selectedDate != date) {
       return;

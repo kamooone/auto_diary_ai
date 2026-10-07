@@ -92,7 +92,7 @@ class _DiaryAiScreenState extends ConsumerState<DiaryAiScreen> {
                       emptyText: "この日の投稿はありません",
                     ),
                   ),
-                  trailing: const Icon(Icons.chevron_right),
+                  trailing: _trailing(state.isLoadingSources),
                   enabled: state.posts.isNotEmpty,
                   onTap: () async {
                     final posts =
@@ -123,7 +123,7 @@ class _DiaryAiScreenState extends ConsumerState<DiaryAiScreen> {
                       emptyText: "この日の行動履歴はありません",
                     ),
                   ),
-                  trailing: const Icon(Icons.chevron_right),
+                  trailing: _trailing(state.isLoadingSources),
                   enabled: state.timeline.isNotEmpty,
                   onTap: () async {
                     final items =
@@ -182,6 +182,17 @@ class _DiaryAiScreenState extends ConsumerState<DiaryAiScreen> {
           ),
         ],
       ),
+    );
+  }
+
+  // 読み込みが終わるまではインジケータを表示する
+  Widget _trailing(bool isLoading) {
+    if (!isLoading) return const Icon(Icons.chevron_right);
+
+    return const SizedBox(
+      width: 16,
+      height: 16,
+      child: CircularProgressIndicator(strokeWidth: 2),
     );
   }
 

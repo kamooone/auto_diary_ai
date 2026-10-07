@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:auto_diary_ai/features/location/data/repositories/osm_place_search_repository_impl.dart';
+import 'package:auto_diary_ai/features/location/domain/exceptions/place_search_exception.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
@@ -134,13 +135,35 @@ void main() {
     expect(requestCount, 1);
   });
 
-  test('取得に失敗した場合は空の候補を返す', () async {
+  test('取得に失敗した場合は例外を投げ、結果を保存しない', () async {
+    var shouldFail = true;
+
     final repository = OsmPlaceSearchRepositoryImpl(
-      client: MockClient((request) async => http.Response('error', 429)),
+      client: MockClient((request) async {
+        if (shouldFail) return http.Response('error', 429);
+
+        return json({
+          'elements': [
+            {
+              'type': 'node',
+              'lat': 35.68124,
+              'lon': 139.76713,
+              'tags': {'name': 'カフェA', 'amenity': 'cafe'},
+            },
+          ],
+        });
+      }),
     );
 
+    await expectLater(
+      repository.findNearby([tokyoStation]),
+      throwsA(isA<PlaceSearchException>()),
+    );
+
+    // 失敗した結果は保存されないため、次の問い合わせで取得できる
+    shouldFail = false;
     final result = await repository.findNearby([tokyoStation]);
 
-    expect(result.single, isEmpty);
+    expect(result.single.map((e) => e.name), ['カフェA']);
   });
 }

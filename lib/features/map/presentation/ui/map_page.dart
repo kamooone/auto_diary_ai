@@ -165,9 +165,10 @@ class _MapPageState extends ConsumerState<MapPage> {
                 ),
             ],
           ),
-          if (state.timeline.isNotEmpty)
+          if (state.timeline.isNotEmpty || state.isLoadingTimeline)
             TimelineSheet(
               items: state.timeline,
+              isLoading: state.isLoadingTimeline,
               placeCandidates: state.placeCandidates,
               onStayTap: (stay) {
                 _controller.move(

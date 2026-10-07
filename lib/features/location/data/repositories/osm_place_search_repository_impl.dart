@@ -1,9 +1,9 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:math';
-import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import '../../domain/entities/place_candidate.dart';
+import '../../domain/exceptions/place_search_exception.dart';
 import '../../domain/repositories/place_search_repository.dart';
 import '../datasources/place_candidate_cache.dart';
 
@@ -71,19 +71,21 @@ class OsmPlaceSearchRepositoryImpl implements PlaceSearchRepository {
     }
 
     if (missing.isNotEmpty) {
+      final List<Map<String, dynamic>> elements;
+
       try {
         // 問い合わせは1回にまとめる
-        final elements = await _fetch(missing);
-
-        for (final coordinate in missing) {
-          final key = _key(coordinate);
-          final candidates = _candidates(coordinate, elements);
-
-          results[key] = candidates;
-          await _cache.put(key, candidates);
-        }
+        elements = await _fetch(missing);
       } catch (e) {
-        debugPrint('施設の候補を取得できませんでした: $e');
+        throw PlaceSearchException('施設の候補を取得できませんでした: $e');
+      }
+
+      for (final coordinate in missing) {
+        final key = _key(coordinate);
+        final candidates = _candidates(coordinate, elements);
+
+        results[key] = candidates;
+        await _cache.put(key, candidates);
       }
     }
 
