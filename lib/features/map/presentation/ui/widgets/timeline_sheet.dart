@@ -25,9 +25,6 @@ class TimelineSheet extends StatelessWidget {
     required this.onTransportChanged,
   });
 
-  // 横方向のスワイプを日付の切り替えとみなす速さ
-  static const _swipeVelocity = 300.0;
-
   /// シートを最も小さくしたときの高さ(画面に対する割合)
   /// 日付の切り替えが隠れない高さにする
   static const minSize = 0.13;
@@ -84,17 +81,12 @@ class TimelineSheet extends StatelessWidget {
           elevation: 8,
           borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
           clipBehavior: Clip.antiAlias,
-          // 左右にスワイプすると、翌日・前日に切り替える
-          child: GestureDetector(
-            onHorizontalDragEnd: (details) {
-              final velocity = details.primaryVelocity ?? 0;
-
-              if (velocity > _swipeVelocity && canGoToPreviousDay) {
-                onPreviousDay();
-              } else if (velocity < -_swipeVelocity && canGoToNextDay) {
-                onNextDay();
-              }
-            },
+          // 左右にスワイプすると、ページをめくるように翌日・前日へ切り替える
+          child: _DaySwipePager(
+            canGoToPreviousDay: canGoToPreviousDay,
+            canGoToNextDay: canGoToNextDay,
+            onPreviousDay: onPreviousDay,
+            onNextDay: onNextDay,
             child: CustomScrollView(
               controller: scrollController,
               slivers: [
@@ -496,6 +488,140 @@ class _PlaceNameDialogState extends State<_PlaceNameDialog> {
           child: const Text("保存"),
         ),
       ],
+    );
+  }
+}
+
+/// 左右のスワイプで日付を切り替える
+///
+/// 指の動きに合わせて中身を横に動かし、指を離すと、今の日が画面の外へ流れて
+/// 反対側から次の日が入ってくる。
+class _DaySwipePager extends StatefulWidget {
+  const _DaySwipePager({
+    required this.canGoToPreviousDay,
+    required this.canGoToNextDay,
+    required this.onPreviousDay,
+    required this.onNextDay,
+    required this.child,
+  });
+
+  final bool canGoToPreviousDay;
+  final bool canGoToNextDay;
+  final VoidCallback onPreviousDay;
+  final VoidCallback onNextDay;
+  final Widget child;
+
+  @override
+  State<_DaySwipePager> createState() => _DaySwipePagerState();
+}
+
+class _DaySwipePagerState extends State<_DaySwipePager>
+    with SingleTickerProviderStateMixin {
+  // 指を離したときに、この速さ以上で動いていれば切り替える
+  static const _flingVelocity = 300.0;
+
+  // 幅のこの割合以上動かしていれば、ゆっくり離しても切り替える
+  static const _switchRatio = 0.3;
+
+  // 切り替えられない方向へ引いたときの、動きにくさ
+  static const _resistance = 0.25;
+
+  // 中身の横方向の位置(0が通常の位置)
+  late final _offset = AnimationController.unbounded(vsync: this);
+
+  double _width = 0;
+  bool _isSwitching = false;
+
+  @override
+  void dispose() {
+    _offset.dispose();
+    super.dispose();
+  }
+
+  void _onDragUpdate(DragUpdateDetails details) {
+    if (_isSwitching) return;
+
+    final next = _offset.value + details.delta.dx;
+    final canGo = next > 0 ? widget.canGoToPreviousDay : widget.canGoToNextDay;
+
+    _offset.value += canGo ? details.delta.dx : details.delta.dx * _resistance;
+  }
+
+  Future<void> _onDragEnd(DragEndDetails details) async {
+    if (_isSwitching) return;
+
+    final offset = _offset.value;
+    final velocity = details.primaryVelocity ?? 0;
+
+    // 右へ動かすと前の日、左へ動かすと次の日
+    final toPrevious = widget.canGoToPreviousDay &&
+        offset > 0 &&
+        (offset > _width * _switchRatio || velocity > _flingVelocity);
+    final toNext = widget.canGoToNextDay &&
+        offset < 0 &&
+        (offset < -_width * _switchRatio || velocity < -_flingVelocity);
+
+    if (!toPrevious && !toNext) {
+      // 切り替えない場合は、元の位置に戻す
+      _offset.animateTo(
+        0,
+        duration: const Duration(milliseconds: 200),
+        curve: Curves.easeOut,
+      );
+      return;
+    }
+
+    _isSwitching = true;
+    final direction = toPrevious ? 1.0 : -1.0;
+
+    // 今の日を、指を動かした方向の画面外へ流す
+    await _offset.animateTo(
+      direction * _width,
+      duration: const Duration(milliseconds: 150),
+      curve: Curves.easeIn,
+    );
+    if (!mounted) return;
+
+    if (toPrevious) {
+      widget.onPreviousDay();
+    } else {
+      widget.onNextDay();
+    }
+
+    // 切り替えた日を、反対側から入れる
+    _offset.value = -direction * _width;
+    await _offset.animateTo(
+      0,
+      duration: const Duration(milliseconds: 220),
+      curve: Curves.easeOut,
+    );
+
+    _isSwitching = false;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        _width = constraints.maxWidth;
+
+        return GestureDetector(
+          onHorizontalDragUpdate: _onDragUpdate,
+          onHorizontalDragEnd: _onDragEnd,
+          child: ClipRect(
+            child: AnimatedBuilder(
+              animation: _offset,
+              child: widget.child,
+              builder: (context, child) {
+                return Transform.translate(
+                  offset: Offset(_offset.value, 0),
+                  child: child,
+                );
+              },
+            ),
+          ),
+        );
+      },
     );
   }
 }

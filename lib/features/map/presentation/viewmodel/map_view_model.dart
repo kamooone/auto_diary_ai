@@ -86,26 +86,37 @@ class MapViewModel extends Notifier<MapState> {
   }
 
   Future<void> loadTimeline(DateTime date) async {
+    // 読み込みを待たずに、表示する日をすぐ切り替える
+    // (スワイプで日付を切り替えたとき、前の日の内容が残って見えないようにする)
+    _locations = const [];
+
+    state = state.copyWith(
+      history: const [],
+      timeline: const [],
+      placeCandidates: const {},
+      clearSelectedMove: true,
+      isLoadingTimeline: true,
+      selectedDate: date,
+    );
 
     final logs = await ref
         .read(getLocationsByDateUseCaseProvider)
         .execute(date);
 
+    // 読み込み中に別の日付へ切り替えられた場合は反映しない
+    if (state.selectedDate != date) {
+      return;
+    }
+
     _locations = logs;
 
-    final history = logs
-        .map((e) => LatLng(
-      e.latitude,
-      e.longitude,
-    ))
-        .toList();
-
     state = state.copyWith(
-      history: history,
-      timeline: const [],
-      placeCandidates: const {},
-      clearSelectedMove: true,
-      selectedDate: date,
+      history: logs
+          .map((e) => LatLng(
+        e.latitude,
+        e.longitude,
+      ))
+          .toList(),
     );
 
     // 地名の取得に時間がかかるため、軌跡を表示した後にタイムラインを読み込む
