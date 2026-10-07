@@ -11,7 +11,9 @@ class TimelineSheet extends StatelessWidget {
     required this.items,
     required this.isLoading,
     required this.placeCandidates,
+    required this.selectedMoveStart,
     required this.onStayTap,
+    required this.onMoveTap,
     required this.onPlaceNameChanged,
     required this.onTransportChanged,
   });
@@ -24,7 +26,13 @@ class TimelineSheet extends StatelessWidget {
   /// 滞在の開始時刻ごとの、周辺の施設の候補
   final Map<DateTime, List<PlaceCandidate>> placeCandidates;
 
+  /// 選択中の移動の開始時刻(選択していない場合はnull)
+  final DateTime? selectedMoveStart;
+
   final ValueChanged<Stay> onStayTap;
+
+  /// 移動をタップしたとき(地図に移動経路を表示する)
+  final ValueChanged<Move> onMoveTap;
 
   /// 場所名がnullの場合は、自動で取得した場所名に戻す
   final void Function(Stay stay, String? placeName) onPlaceNameChanged;
@@ -71,11 +79,18 @@ class TimelineSheet extends StatelessWidget {
                     leading: Icon(TimelineFormatter.transportIcon(item.transport)),
                     title: Text(TimelineFormatter.moveTitle(item)),
                     subtitle: Text(time),
-                    trailing: const Padding(
-                      padding: EdgeInsets.only(right: 12),
-                      child: Icon(Icons.edit, size: 18),
+                    // 選択中の移動は、地図上の経路と対応が分かるよう色を付ける
+                    selected: item.start == selectedMoveStart,
+                    selectedTileColor: Theme.of(context)
+                        .colorScheme
+                        .primary
+                        .withValues(alpha: 0.12),
+                    trailing: IconButton(
+                      icon: const Icon(Icons.edit, size: 18),
+                      tooltip: "移動手段を編集",
+                      onPressed: () => _editTransport(context, item),
                     ),
-                    onTap: () => _editTransport(context, item),
+                    onTap: () => onMoveTap(item),
                   ),
               };
             },

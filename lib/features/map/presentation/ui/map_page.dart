@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:latlong2/latlong.dart';
 import '../../../../common/constants/map_constants.dart';
 import '../../../../core/app_info/install_date_provider.dart';
+import '../../../location/domain/entities/timeline_item.dart';
 import '../providers/map_provider.dart';
 import 'widgets/timeline_sheet.dart';
 
@@ -65,6 +66,31 @@ class _MapPageState extends ConsumerState<MapPage> {
               MapConstants.currentLocationZoom,
             );
       },
+    );
+  }
+
+  /// タイムラインで選んだ移動の経路を強調し、経路全体が見える位置に地図を動かす
+  void _showRoute(Move move) {
+    final viewModel = ref.read(mapProvider.notifier);
+
+    // 選択中の移動をもう一度タップした場合は、強調を解除する
+    if (ref.read(mapProvider).selectedMoveStart == move.start) {
+      viewModel.clearSelectedMove();
+      return;
+    }
+
+    final route = viewModel.selectMove(move);
+    if (route.isEmpty) return;
+
+    final size = MediaQuery.sizeOf(context);
+
+    _controller.fitCamera(
+      CameraFit.bounds(
+        bounds: LatLngBounds.fromPoints(route),
+        // 画面下部はタイムラインが重なるため、その分を空ける
+        padding: EdgeInsets.fromLTRB(40, 40, 40, size.height * 0.3 + 40),
+        maxZoom: MapConstants.currentLocationZoom,
+      ),
     );
   }
 
@@ -143,8 +169,18 @@ class _MapPageState extends ConsumerState<MapPage> {
                     Polyline(
                       points: state.history.where(_isValidLatLng).toList(),
                       strokeWidth: 4,
-                      color: Colors.blue,
+                      // 移動を選択している間は、全体の軌跡を薄くして経路を目立たせる
+                      color: state.selectedRoute.isEmpty
+                          ? Colors.blue
+                          : Colors.blue.withValues(alpha: 0.35),
                     ),
+                    // タイムラインで選択した移動の経路
+                    if (state.selectedRoute.length >= 2)
+                      Polyline(
+                        points: state.selectedRoute,
+                        strokeWidth: 7,
+                        color: Colors.blue.shade900,
+                      ),
                   ],
                 ),
 
@@ -170,12 +206,16 @@ class _MapPageState extends ConsumerState<MapPage> {
               items: state.timeline,
               isLoading: state.isLoadingTimeline,
               placeCandidates: state.placeCandidates,
+              selectedMoveStart: state.selectedMoveStart,
               onStayTap: (stay) {
+                ref.read(mapProvider.notifier).clearSelectedMove();
+
                 _controller.move(
                   LatLng(stay.latitude, stay.longitude),
                   MapConstants.currentLocationZoom,
                 );
               },
+              onMoveTap: _showRoute,
               onPlaceNameChanged: (stay, placeName) {
                 ref
                     .read(mapProvider.notifier)

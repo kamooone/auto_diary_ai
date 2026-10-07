@@ -19,6 +19,10 @@ class MapState {
   /// 滞在の開始時刻ごとの、周辺の施設の候補
   final Map<DateTime, List<PlaceCandidate>> placeCandidates;
 
+  /// タイムラインで選択中の移動の開始時刻と、その移動経路(選択していない場合はnullと空)
+  final DateTime? selectedMoveStart;
+  final List<LatLng> selectedRoute;
+
   final DateTime selectedDate;
 
   const MapState({
@@ -27,6 +31,8 @@ class MapState {
     this.timeline = const [],
     this.isLoadingTimeline = false,
     this.placeCandidates = const {},
+    this.selectedMoveStart,
+    this.selectedRoute = const [],
     required this.selectedDate,
   });
 
@@ -36,6 +42,9 @@ class MapState {
     List<TimelineItem>? timeline,
     bool? isLoadingTimeline,
     Map<DateTime, List<PlaceCandidate>>? placeCandidates,
+    DateTime? selectedMoveStart,
+    List<LatLng>? selectedRoute,
+    bool clearSelectedMove = false,
     DateTime? selectedDate,
   }) {
     return MapState(
@@ -44,12 +53,21 @@ class MapState {
       timeline: timeline ?? this.timeline,
       isLoadingTimeline: isLoadingTimeline ?? this.isLoadingTimeline,
       placeCandidates: placeCandidates ?? this.placeCandidates,
+      selectedMoveStart: clearSelectedMove
+          ? null
+          : (selectedMoveStart ?? this.selectedMoveStart),
+      selectedRoute: clearSelectedMove
+          ? const []
+          : (selectedRoute ?? this.selectedRoute),
       selectedDate: selectedDate ?? this.selectedDate,
     );
   }
 }
 
 class MapViewModel extends Notifier<MapState> {
+  // 表示中の日の位置情報(移動経路を取り出すために保持する)
+  List<Location> _locations = const [];
+
   StreamSubscription<Location>? _subscription;
 
   @override
@@ -73,6 +91,7 @@ class MapViewModel extends Notifier<MapState> {
         .read(getLocationsByDateUseCaseProvider)
         .execute(date);
 
+    _locations = logs;
 
     final history = logs
         .map((e) => LatLng(
@@ -85,6 +104,7 @@ class MapViewModel extends Notifier<MapState> {
       history: history,
       timeline: const [],
       placeCandidates: const {},
+      clearSelectedMove: true,
       selectedDate: date,
     );
 
@@ -96,6 +116,51 @@ class MapViewModel extends Notifier<MapState> {
       "${date.year}/${date.month}/${date.day} "
           "取得件数 = ${logs.length}",
     );
+  }
+
+  /// タイムラインの移動を選択し、その移動経路を返す
+  /// (地図上で経路を強調して表示する)
+  List<LatLng> selectMove(Move move) {
+    // 移動していた時間帯に記録された位置
+    var route = [
+      for (final location in _locations)
+        if (!location.timestamp.isBefore(move.start) &&
+            !location.timestamp.isAfter(move.end) &&
+            location.latitude.isFinite &&
+            location.longitude.isFinite)
+          LatLng(location.latitude, location.longitude),
+    ];
+
+    // 記録が途切れていて経路が分からない場合は、前後の滞在場所を結ぶ
+    if (route.length < 2) {
+      route = _surroundingStays(move);
+    }
+
+    state = state.copyWith(
+      selectedMoveStart: move.start,
+      selectedRoute: route,
+    );
+
+    return route;
+  }
+
+  /// 移動の選択を解除する
+  void clearSelectedMove() {
+    state = state.copyWith(clearSelectedMove: true);
+  }
+
+  List<LatLng> _surroundingStays(Move move) {
+    final index = state.timeline.indexWhere(
+      (e) => e is Move && e.start == move.start,
+    );
+    if (index < 0) return const [];
+
+    return [
+      for (final i in [index - 1, index + 1])
+        if (i >= 0 && i < state.timeline.length)
+          if (state.timeline[i] case final Stay stay)
+            LatLng(stay.latitude, stay.longitude),
+    ];
   }
 
   Future<void> _reloadTimeline() async {
