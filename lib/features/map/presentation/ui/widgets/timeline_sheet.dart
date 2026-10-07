@@ -8,6 +8,7 @@ import '../../../../location/presentation/formatters/timeline_formatter.dart';
 class TimelineSheet extends StatelessWidget {
   const TimelineSheet({
     super.key,
+    required this.controller,
     required this.items,
     required this.isLoading,
     required this.placeCandidates,
@@ -17,6 +18,12 @@ class TimelineSheet extends StatelessWidget {
     required this.onPlaceNameChanged,
     required this.onTransportChanged,
   });
+
+  /// シートを最も小さくしたときの高さ(画面に対する割合)
+  static const minSize = 0.1;
+
+  /// シートの高さを外から操作するためのコントローラ
+  final DraggableScrollableController controller;
 
   final List<TimelineItem> items;
 
@@ -45,8 +52,9 @@ class TimelineSheet extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return DraggableScrollableSheet(
+      controller: controller,
       initialChildSize: 0.25,
-      minChildSize: 0.1,
+      minChildSize: minSize,
       maxChildSize: 0.7,
       builder: (context, scrollController) {
         return Material(

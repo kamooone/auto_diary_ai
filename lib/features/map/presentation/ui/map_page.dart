@@ -17,6 +17,9 @@ class MapPage extends ConsumerStatefulWidget {
 
 class _MapPageState extends ConsumerState<MapPage> {
   final MapController _controller = MapController();
+
+  // タイムラインのシートの高さを操作する
+  final _sheetController = DraggableScrollableController();
   bool _movedToCurrentLocation = false; // 初回移動フラグ
 
   bool _isValidLatLng(LatLng loc) {
@@ -32,6 +35,7 @@ class _MapPageState extends ConsumerState<MapPage> {
   @override
   void dispose() {
     _controller.dispose();
+    _sheetController.dispose();
     super.dispose();
   }
 
@@ -69,6 +73,18 @@ class _MapPageState extends ConsumerState<MapPage> {
     );
   }
 
+  /// タイムラインのシートを最も小さくする
+  /// (タイムラインをタップして地図を動かしたときに、その場所がシートに隠れないようにする)
+  void _collapseSheet() {
+    if (!_sheetController.isAttached) return;
+
+    _sheetController.animateTo(
+      TimelineSheet.minSize,
+      duration: const Duration(milliseconds: 250),
+      curve: Curves.easeOut,
+    );
+  }
+
   /// タイムラインで選んだ移動の経路を強調し、経路全体が見える位置に地図を動かす
   void _showRoute(Move move) {
     final viewModel = ref.read(mapProvider.notifier);
@@ -82,13 +98,20 @@ class _MapPageState extends ConsumerState<MapPage> {
     final route = viewModel.selectMove(move);
     if (route.isEmpty) return;
 
+    _collapseSheet();
+
     final size = MediaQuery.sizeOf(context);
 
     _controller.fitCamera(
       CameraFit.bounds(
         bounds: LatLngBounds.fromPoints(route),
-        // 画面下部はタイムラインが重なるため、その分を空ける
-        padding: EdgeInsets.fromLTRB(40, 40, 40, size.height * 0.3 + 40),
+        // 画面下部は小さくしたタイムラインが重なるため、その分を空ける
+        padding: EdgeInsets.fromLTRB(
+          40,
+          40,
+          40,
+          size.height * TimelineSheet.minSize + 40,
+        ),
         maxZoom: MapConstants.currentLocationZoom,
       ),
     );
@@ -203,12 +226,14 @@ class _MapPageState extends ConsumerState<MapPage> {
           ),
           if (state.timeline.isNotEmpty || state.isLoadingTimeline)
             TimelineSheet(
+              controller: _sheetController,
               items: state.timeline,
               isLoading: state.isLoadingTimeline,
               placeCandidates: state.placeCandidates,
               selectedMoveStart: state.selectedMoveStart,
               onStayTap: (stay) {
                 ref.read(mapProvider.notifier).clearSelectedMove();
+                _collapseSheet();
 
                 _controller.move(
                   LatLng(stay.latitude, stay.longitude),
