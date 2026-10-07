@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:auto_diary_ai/app/router/app_routes.dart';
+import 'package:auto_diary_ai/core/app_info/app_version_provider.dart';
 import 'package:auto_diary_ai/features/home/presentation/providers/home_providers.dart';
 import '../viewmodel/home_view_model.dart';
 
@@ -108,6 +109,22 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 context.push(AppRoutes.calendar);
               },
               child: const Icon(Icons.calendar_month),
+            ),
+          ),
+
+          // 下部中央：どの版のアプリが入っているかを確認するための表示
+          Positioned(
+            left: 0,
+            right: 0,
+            bottom: 8,
+            child: Center(
+              child: Text(
+                "バージョン ${ref.watch(appVersionProvider).valueOrNull ?? ""}",
+                style: Theme.of(context)
+                    .textTheme
+                    .bodySmall
+                    ?.copyWith(color: Colors.grey),
+              ),
             ),
           ),
 
