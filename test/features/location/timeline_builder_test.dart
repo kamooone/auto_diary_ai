@@ -122,6 +122,24 @@ void main() {
       expect(home.end, DateTime(2026, 1, 1, 12, 30));
     });
 
+    test('前の日の最後の位置が離れている場合は引き継がない', () {
+      final items = builder.build(
+        [point(12, 30, 35.0), point(15, 0, 35.0001)],
+        dayStart: dayStart,
+        // 4kmほど離れた場所で記録が途切れていた
+        previous: Location(
+          id: 0,
+          latitude: 35.036,
+          longitude: 139.0,
+          timestamp: DateTime(2025, 12, 31, 22, 0),
+        ),
+      );
+
+      // 0時からの移動は作らず、その日の最初の位置から始める
+      final stay = items.single as Stay;
+      expect(stay.start, DateTime(2026, 1, 1, 12, 30));
+    });
+
     test('翌日の最初の位置が近ければ、その日の終わりまで滞在にする', () {
       final items = builder.build(
         [point(18, 0, 35.0), point(18, 10, 35.0001)],
@@ -222,17 +240,82 @@ void main() {
       expect((items[1] as Move).distanceMeters, greaterThan(200));
     });
 
-    test('離れた場所の点は、ぶれとして扱わない', () {
+    test('遠く離れた誤った位置が1点だけ入っても、移動にしない', () {
       final items = builder.build([
         point(9, 0, 35.0),
         point(10, 0, 35.0001),
-        // 1kmほど離れた点
-        point(10, 30, 35.01),
+        // 基地局などによる誤った位置(2kmほど離れている。往復すると約4km)
+        point(10, 30, 35.018),
         point(11, 0, 35.0001),
         point(12, 0, 35.0002),
       ]);
 
-      expect(items.map((e) => e.runtimeType), [Stay, Move, Stay]);
+      final stay = items.single as Stay;
+      expect(stay.start, DateTime(2026, 1, 1, 9, 0));
+      expect(stay.end, DateTime(2026, 1, 1, 12, 0));
+    });
+
+    test('周辺をふらふら動くような点が続いても、移動にしない', () {
+      final items = builder.build([
+        point(0, 10, 35.0),
+        // 150〜250mほどずれた点が、時間をおいて何度も記録される
+        point(1, 0, 35.0015),
+        point(1, 40, 34.9985),
+        point(2, 20, 35.002),
+        point(3, 0, 34.998),
+        point(3, 40, 35.0018),
+        point(4, 20, 34.9982),
+        point(5, 0, 35.0001),
+        point(12, 30, 35.0002),
+      ]);
+
+      final stay = items.single as Stay;
+      expect(stay.start, DateTime(2026, 1, 1, 0, 10));
+      expect(stay.end, DateTime(2026, 1, 1, 12, 30));
+    });
+
+    test('離れた場所にとどまっていた場合は、点が少なくても訪れた場所として残す', () {
+      final items = builder.build([
+        point(9, 0, 35.0),
+        point(10, 0, 35.0001),
+        // 2kmほど離れた場所に1時間いた(到着と出発の2点だけが記録された)
+        point(10, 30, 35.018),
+        point(11, 30, 35.0181),
+        point(12, 0, 35.0001),
+        point(13, 0, 35.0002),
+      ]);
+
+      expect(
+        items.map((e) => e.runtimeType),
+        [Stay, Move, Stay, Move, Stay],
+      );
+    });
+
+    test('移動中にありえない速さで飛んだ点は、距離に含めない', () {
+      Location at(int second, double latitude) {
+        return Location(
+          id: 0,
+          latitude: latitude,
+          longitude: 139.0,
+          timestamp: DateTime(2026, 1, 1, 10, 0, second),
+        );
+      }
+
+      final items = builder.build([
+        point(9, 0, 35.0),
+        point(9, 59, 35.0001),
+        // 1kmほど歩く途中で、1点だけ5km先に飛ぶ
+        at(10, 35.002),
+        at(20, 35.004),
+        at(25, 35.05),
+        at(30, 35.006),
+        at(40, 35.008),
+        at(50, 35.01),
+        point(12, 0, 35.0101),
+      ]);
+
+      final move = items.whereType<Move>().single;
+      expect(move.distanceMeters, closeTo(1110, 60));
     });
   });
 

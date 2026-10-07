@@ -11,7 +11,7 @@ class TimelineSnapshotRepositoryImpl implements TimelineSnapshotRepository {
   TimelineSnapshotRepositoryImpl(this.isar);
 
   // 滞在・移動の判定や、保存する項目を変えた場合は、この値を上げる
-  static const _version = 2;
+  static const _version = 3;
 
   @override
   Future<List<TimelineItem>?> find(

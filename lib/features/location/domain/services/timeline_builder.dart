@@ -14,10 +14,18 @@ class TimelineBuilder {
   // これ未満の移動は位置のぶれとみなして表示しない
   static const _minMoveMeters = 30.0;
 
-  // 滞在の途中に入った位置のぶれとみなす条件
-  // (元の場所に戻るまでの点の数がこれ以下で、滞在場所からこの距離以内にある)
+  // 滞在の途中に入った位置のぶれとみなす条件(どちらかに当てはまり、元の場所に戻っている)
+  // - 元の場所に戻るまでの点の数がこれ以下
+  //   (基地局などによる誤った位置は、遠く離れた点が1〜2点だけ記録される)
+  // - すべての点が滞在場所からこの距離以内にあり、点と点の間隔が平均でこの時間以上空いている
+  //   (室内では、周辺をふらふら動いているような点が、時間をおいて記録されることがある。
+  //    実際に歩いている場合は、数秒おきに続けて記録される)
   static const _maxDriftPoints = 3;
-  static const _maxDriftMeters = 400.0;
+  static const _nearbyMeters = 300.0;
+  static const _sparseInterval = Duration(seconds: 60);
+
+  // これより速い移動は実際にはありえないため、位置の誤りとみなして距離に含めない
+  static const _maxSpeedKmh = 400.0;
 
   // 移動手段を推定するときの速度の境目(km/h)
   static const _walkMaxKmh = 7.0;
@@ -35,8 +43,8 @@ class TimelineBuilder {
   /// 「前の晩から同じ場所にいた」ことが分からない。前後の日の位置を渡すと、
   /// 日をまたいだ滞在として扱う。
   ///
-  /// - [dayStart]と[previous]: [previous](その日より前の最後の位置)にいた状態で
-  ///   [dayStart](その日の0時)を迎えたものとして扱う
+  /// - [dayStart]と[previous]: [previous](その日より前の最後の位置)がその日の最初の位置の
+  ///   近くなら、そこにいた状態で[dayStart](その日の0時)を迎えたものとして扱う
   /// - [dayEnd]と[next]: [next](その日より後の最初の位置)がその日の最後の位置の近くなら、
   ///   [dayEnd](その日の終わり)までそこにとどまっていたものとして扱う
   /// - [until]: 最後にいた場所に、その時刻までとどまっているものとして扱う(今日の場合)
@@ -51,7 +59,12 @@ class TimelineBuilder {
     final sorted = [...locations]
       ..sort((a, b) => a.timestamp.compareTo(b.timestamp));
 
-    if (previous != null && dayStart != null) {
+    // 前の日の最後の位置が、その日の最初の位置と離れている場合は引き継がない
+    // (記録が途切れている間に移動しており、0時にどこにいたか分からないため)
+    if (previous != null &&
+        dayStart != null &&
+        (sorted.isEmpty ||
+            _distance(previous, sorted.first) <= _stayRadiusMeters)) {
       sorted.insert(0, _at(previous, dayStart));
     }
 
@@ -184,23 +197,37 @@ class TimelineBuilder {
     // 元の場所に戻るまでに記録された点の数
     // (実際に出かけた場合は、移動中の点が続けて記録されるため多くなる)
     var pointCount = 0;
+    var isAllNearby = true;
 
     for (var j = from; j < clusters.length; j++) {
-      if (_distance(anchor, clusters[j].first) <= _stayRadiusMeters) {
-        return j;
+      final cluster = clusters[j];
+
+      if (_distance(anchor, cluster.first) <= _stayRadiusMeters) {
+        if (pointCount <= _maxDriftPoints) return j;
+
+        // 点が多い場合は、時間をおいてまばらに記録されているときだけ、ぶれとみなす
+        final elapsed = cluster.first.timestamp.difference(current.last.timestamp);
+        final isSparse = elapsed >= _sparseInterval * (pointCount + 1);
+
+        return isAllNearby && isSparse ? j : null;
       }
 
-      pointCount += clusters[j].length;
+      // 別の場所にとどまっていた場合は、実際に訪れた場所なので残す
+      final duration = cluster.last.timestamp.difference(cluster.first.timestamp);
+      if (duration >= _minStayDuration) return null;
 
-      final isDrift = pointCount <= _maxDriftPoints &&
-          clusters[j].every((e) => _distance(anchor, e) <= _maxDriftMeters);
-      if (!isDrift) return null;
+      pointCount += cluster.length;
+      isAllNearby = isAllNearby &&
+          cluster.every((e) => _distance(anchor, e) <= _nearbyMeters);
+
+      if (pointCount > _maxDriftPoints && !isAllNearby) return null;
     }
 
     return null;
   }
 
-  Move? _move(List<Location> path) {
+  Move? _move(List<Location> points) {
+    final path = _removeJumps(points);
     if (path.length < 2) return null;
 
     var distance = 0.0;
@@ -216,6 +243,34 @@ class TimelineBuilder {
       distanceMeters: distance,
       transport: _estimateTransport(path),
     );
+  }
+
+  /// 前後の点から見てありえない速さで飛んでいる点(位置の誤り)を取り除く
+  List<Location> _removeJumps(List<Location> points) {
+    if (points.length < 3) return points;
+
+    final result = <Location>[points.first];
+
+    for (var i = 1; i < points.length; i++) {
+      final isLast = i == points.length - 1;
+
+      // 最初と最後の点は滞在場所につながる点なので残す
+      if (isLast || !_isTooFast(result.last, points[i])) {
+        result.add(points[i]);
+      }
+    }
+
+    return result;
+  }
+
+  bool _isTooFast(Location from, Location to) {
+    final seconds = to.timestamp.difference(from.timestamp).inMilliseconds / 1000;
+    final meters = _distance(from, to);
+
+    // 同時刻に離れた場所にいることはない
+    if (seconds <= 0) return meters > _stayRadiusMeters;
+
+    return meters / seconds * 3.6 > _maxSpeedKmh;
   }
 
   /// 実際に動いていた区間の速度から移動手段を推定する(判断できない場合はnull)
