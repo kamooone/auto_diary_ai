@@ -19,6 +19,14 @@ subprojects {
     afterEvaluate {
         if (project.extensions.findByName("android") != null) {
             project.extensions.configure<com.android.build.gradle.BaseExtension>("android") {
+                // 古いcompileSdkを指定しているプラグイン(isar_flutter_libsなど)は、
+                // リリースビルドでリソースの検証に失敗するため引き上げる
+                val currentCompileSdk =
+                    compileSdkVersion?.removePrefix("android-")?.toIntOrNull()
+                if (currentCompileSdk != null && currentCompileSdk < 34) {
+                    compileSdkVersion(36)
+                }
+
                 compileOptions {
                     sourceCompatibility = JavaVersion.VERSION_17
                     targetCompatibility = JavaVersion.VERSION_17
