@@ -25,6 +25,9 @@ class TimelineSheet extends StatelessWidget {
     required this.onTransportChanged,
   });
 
+  // 横方向のスワイプを日付の切り替えとみなす速さ
+  static const _swipeVelocity = 300.0;
+
   /// シートを最も小さくしたときの高さ(画面に対する割合)
   /// 日付の切り替えが隠れない高さにする
   static const minSize = 0.13;
@@ -81,37 +84,49 @@ class TimelineSheet extends StatelessWidget {
           elevation: 8,
           borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
           clipBehavior: Clip.antiAlias,
-          child: CustomScrollView(
-            controller: scrollController,
-            slivers: [
-              // 日付の切り替えは、一覧をスクロールしても上部に残す
-              SliverPersistentHeader(
-                pinned: true,
-                delegate: _DateHeaderDelegate(
-                  date: date,
-                  canGoToPreviousDay: canGoToPreviousDay,
-                  canGoToNextDay: canGoToNextDay,
-                  onPreviousDay: onPreviousDay,
-                  onNextDay: onNextDay,
-                  onDateTap: onDateTap,
-                ),
-              ),
-              // 訪れた場所の取得が終わるまで表示する
-              if (isLoading)
-                const SliverToBoxAdapter(child: _LoadingIndicator()),
-              if (items.isEmpty && !isLoading)
-                const SliverToBoxAdapter(
-                  child: Padding(
-                    padding: EdgeInsets.all(24),
-                    child: Center(child: Text("この日の行動履歴はありません")),
+          // 左右にスワイプすると、翌日・前日に切り替える
+          child: GestureDetector(
+            onHorizontalDragEnd: (details) {
+              final velocity = details.primaryVelocity ?? 0;
+
+              if (velocity > _swipeVelocity && canGoToPreviousDay) {
+                onPreviousDay();
+              } else if (velocity < -_swipeVelocity && canGoToNextDay) {
+                onNextDay();
+              }
+            },
+            child: CustomScrollView(
+              controller: scrollController,
+              slivers: [
+                // 日付の切り替えは、一覧をスクロールしても上部に残す
+                SliverPersistentHeader(
+                  pinned: true,
+                  delegate: _DateHeaderDelegate(
+                    date: date,
+                    canGoToPreviousDay: canGoToPreviousDay,
+                    canGoToNextDay: canGoToNextDay,
+                    onPreviousDay: onPreviousDay,
+                    onNextDay: onNextDay,
+                    onDateTap: onDateTap,
                   ),
                 ),
-              SliverList.builder(
-                itemCount: items.length,
-                itemBuilder: (context, index) =>
-                    _buildItem(context, items[index]),
-              ),
-            ],
+                // 訪れた場所の取得が終わるまで表示する
+                if (isLoading)
+                  const SliverToBoxAdapter(child: _LoadingIndicator()),
+                if (items.isEmpty && !isLoading)
+                  const SliverToBoxAdapter(
+                    child: Padding(
+                      padding: EdgeInsets.all(24),
+                      child: Center(child: Text("この日の行動履歴はありません")),
+                    ),
+                  ),
+                SliverList.builder(
+                  itemCount: items.length,
+                  itemBuilder: (context, index) =>
+                      _buildItem(context, items[index]),
+                ),
+              ],
+            ),
           ),
         );
       },
