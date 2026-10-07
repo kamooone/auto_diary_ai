@@ -33,13 +33,16 @@ class GpsLocationDataSource {
         distanceFilter: LocationConstants.distanceFilterMeters,
       ),
     ).where((position) {
+      // 精度の悪い位置は、室内などで実際とは大きくずれていることがあるため使わない
       final ok =
           position.latitude.isFinite &&
-              position.longitude.isFinite;
+              position.longitude.isFinite &&
+              position.accuracy <= LocationConstants.maxAccuracyMeters;
 
       if (!ok) {
         debugPrint(
-          "破棄: ${position.latitude}, ${position.longitude}",
+          "破棄: ${position.latitude}, ${position.longitude} "
+              "(精度 ${position.accuracy}m)",
         );
       }
 

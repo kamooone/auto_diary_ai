@@ -61,6 +61,22 @@ class IsarLocationDataSource {
         .findAll();
   }
 
+  Future<LocationLog?> getLastBefore(DateTime time) {
+    return isar.locationLogs
+        .filter()
+        .timestampLessThan(time)
+        .sortByTimestampDesc()
+        .findFirst();
+  }
+
+  Future<LocationLog?> getFirstFrom(DateTime time) {
+    return isar.locationLogs
+        .filter()
+        .timestampGreaterThan(time, include: true)
+        .sortByTimestamp()
+        .findFirst();
+  }
+
   Future<LocationLog?> getEarliest() {
     return isar.locationLogs
         .where()

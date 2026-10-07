@@ -15,8 +15,8 @@ class TimelineSnapshot {
   /// 滞在や移動の判定を変えた場合に版を上げると、古い結果は使われなくなる
   late int version;
 
-  /// 保存したときの、その日の位置情報の件数
-  late int locationCount;
+  /// 保存したときの、計算のもとになった位置情報を表す文字列
+  String? signature;
 
   /// 滞在と移動の一覧(JSON)
   late String itemsJson;

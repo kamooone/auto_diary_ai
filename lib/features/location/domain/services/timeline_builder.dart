@@ -14,6 +14,11 @@ class TimelineBuilder {
   // これ未満の移動は位置のぶれとみなして表示しない
   static const _minMoveMeters = 30.0;
 
+  // 滞在の途中に入った位置のぶれとみなす条件
+  // (元の場所に戻るまでの点の数がこれ以下で、滞在場所からこの距離以内にある)
+  static const _maxDriftPoints = 3;
+  static const _maxDriftMeters = 400.0;
+
   // 移動手段を推定するときの速度の境目(km/h)
   static const _walkMaxKmh = 7.0;
   static const _bicycleMaxKmh = 20.0;
@@ -24,17 +29,41 @@ class TimelineBuilder {
   // 点の間隔がこれより長い区間は記録が途切れているとみなし、速度の計算に含めない
   static const _maxSegmentDuration = Duration(minutes: 10);
 
-  /// [until]を渡すと、最後にいた場所にその時刻までとどまっているものとして扱う
+  /// [locations]はタイムラインを作る日の位置情報
+  ///
+  /// 位置情報は移動したときにしか記録されないため、その日の記録だけでは
+  /// 「前の晩から同じ場所にいた」ことが分からない。前後の日の位置を渡すと、
+  /// 日をまたいだ滞在として扱う。
+  ///
+  /// - [dayStart]と[previous]: [previous](その日より前の最後の位置)にいた状態で
+  ///   [dayStart](その日の0時)を迎えたものとして扱う
+  /// - [dayEnd]と[next]: [next](その日より後の最初の位置)がその日の最後の位置の近くなら、
+  ///   [dayEnd](その日の終わり)までそこにとどまっていたものとして扱う
+  /// - [until]: 最後にいた場所に、その時刻までとどまっているものとして扱う(今日の場合)
   List<TimelineItem> build(
     List<Location> locations, {
     DateTime? until,
+    DateTime? dayStart,
+    Location? previous,
+    DateTime? dayEnd,
+    Location? next,
   }) {
-    if (locations.isEmpty) return [];
-
     final sorted = [...locations]
       ..sort((a, b) => a.timestamp.compareTo(b.timestamp));
 
-    final clusters = _cluster(sorted);
+    if (previous != null && dayStart != null) {
+      sorted.insert(0, _at(previous, dayStart));
+    }
+
+    if (sorted.isEmpty) return [];
+
+    if (next != null &&
+        dayEnd != null &&
+        _distance(sorted.last, next) <= _stayRadiusMeters) {
+      sorted.add(_at(sorted.last, dayEnd));
+    }
+
+    final clusters = _mergeDrift(_cluster(sorted));
 
     final items = <TimelineItem>[];
     final movePoints = <Location>[];
@@ -102,6 +131,73 @@ class TimelineBuilder {
     clusters.add(current);
 
     return clusters;
+  }
+
+  // 同じ場所の、別の時刻の位置
+  Location _at(Location location, DateTime time) {
+    return Location(
+      id: location.id,
+      latitude: location.latitude,
+      longitude: location.longitude,
+      timestamp: time,
+    );
+  }
+
+  /// 滞在の途中に入った位置のぶれを取り除き、前後を1つのまとまりにつなぐ
+  ///
+  /// 室内ではGPSがときどき大きくずれた位置を返す。そのままだと、ずれた点の前後で
+  /// 滞在が途切れ、ずっと移動していたように見えてしまう。
+  /// 「少数の点が近くに出て、すぐ元の場所に戻っている」場合は、ぶれとみなす。
+  List<List<Location>> _mergeDrift(List<List<Location>> clusters) {
+    final merged = <List<Location>>[];
+
+    var i = 0;
+    while (i < clusters.length) {
+      var current = clusters[i];
+      var next = i + 1;
+
+      while (true) {
+        final resumeIndex = _findResume(clusters, current, next);
+        if (resumeIndex == null) break;
+
+        // 間の点(ぶれ)は捨て、元の場所に戻った後の点をつなげる
+        current = [...current, ...clusters[resumeIndex]];
+        next = resumeIndex + 1;
+      }
+
+      merged.add(current);
+      i = next;
+    }
+
+    return merged;
+  }
+
+  /// [from]以降で、[current]と同じ場所に戻っているまとまりの位置を探す
+  /// 間にあるものがすべて位置のぶれとみなせる場合だけ返す
+  int? _findResume(
+    List<List<Location>> clusters,
+    List<Location> current,
+    int from,
+  ) {
+    final anchor = current.first;
+
+    // 元の場所に戻るまでに記録された点の数
+    // (実際に出かけた場合は、移動中の点が続けて記録されるため多くなる)
+    var pointCount = 0;
+
+    for (var j = from; j < clusters.length; j++) {
+      if (_distance(anchor, clusters[j].first) <= _stayRadiusMeters) {
+        return j;
+      }
+
+      pointCount += clusters[j].length;
+
+      final isDrift = pointCount <= _maxDriftPoints &&
+          clusters[j].every((e) => _distance(anchor, e) <= _maxDriftMeters);
+      if (!isDrift) return null;
+    }
+
+    return null;
   }
 
   Move? _move(List<Location> path) {

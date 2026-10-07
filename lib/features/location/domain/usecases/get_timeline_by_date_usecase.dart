@@ -1,3 +1,4 @@
+import '../entities/location.dart';
 import '../entities/timeline_item.dart';
 import '../repositories/activity_repository.dart';
 import '../repositories/location_repository.dart';
@@ -54,26 +55,46 @@ class GetTimelineByDateUseCase {
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
     final day = DateTime(date.year, date.month, date.day);
+    final nextDay = DateTime(day.year, day.month, day.day + 1);
+
+    // 日をまたいだ滞在が分かるよう、その日の前後の位置も使う
+    final previous = _within(
+      await repository.getLastLocationBefore(day),
+      from: day.subtract(_maxCarryOver),
+      to: day,
+    );
+    final next = _within(
+      await repository.getFirstLocationFrom(nextDay),
+      from: nextDay,
+      to: nextDay.add(_maxCarryOver),
+    );
 
     // 過去の日は内容が変わらないため、計算済みの結果があればそれを使う
     final isPast = day.isBefore(today);
 
+    // 計算のもとになる位置情報が変わったら、保存した結果は使わない
+    final signature = [
+      locations.length,
+      previous?.timestamp.millisecondsSinceEpoch,
+      next?.timestamp.millisecondsSinceEpoch,
+    ].join("|");
+
     var items = isPast
-        ? await timelineSnapshotRepository.find(
-            day,
-            locationCount: locations.length,
-          )
+        ? await timelineSnapshotRepository.find(day, signature: signature)
         : null;
 
     if (items == null) {
       final computed = await _compute(
-        locations.isEmpty
-            ? const []
-            : _builder.build(
-                locations,
-                // 今日の場合は、最後にいた場所に今もとどまっているものとして扱う
-                until: day == today ? now : null,
-              ),
+        _builder.build(
+          locations,
+          dayStart: day,
+          previous: previous,
+          // その日の終わり(23:59:59)
+          dayEnd: nextDay.subtract(const Duration(seconds: 1)),
+          next: next,
+          // 今日の場合は、最後にいた場所に今もとどまっているものとして扱う
+          until: day == today ? now : null,
+        ),
         estimatePlaces: estimatePlaces,
       );
       items = computed.items;
@@ -84,7 +105,7 @@ class GetTimelineByDateUseCase {
         await timelineSnapshotRepository.save(
           day,
           items,
-          locationCount: locations.length,
+          signature: signature,
         );
       }
     }
@@ -98,6 +119,20 @@ class GetTimelineByDateUseCase {
     );
 
     return _applier.apply(items, edits);
+  }
+
+  // 前後の日の位置がこれより離れた時刻のものなら、その間の居場所は分からないものとする
+  static const _maxCarryOver = Duration(hours: 72);
+
+  Location? _within(
+    Location? location, {
+    required DateTime from,
+    required DateTime to,
+  }) {
+    if (location == null) return null;
+
+    final time = location.timestamp;
+    return time.isBefore(from) || time.isAfter(to) ? null : location;
   }
 
   /// 滞在と移動に、移動手段・地名・訪れた施設を当てはめる

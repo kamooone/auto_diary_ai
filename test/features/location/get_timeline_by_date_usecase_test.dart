@@ -28,8 +28,17 @@ Location point(int hour, int minute, double latitude) {
 class FakeLocationRepository implements LocationRepository {
   List<Location> locations = [point(9, 0, 35.0), point(11, 0, 35.0001)];
 
+  Location? previous;
+  Location? next;
+
   @override
   Future<List<Location>> getLocationsByDate(DateTime date) async => locations;
+
+  @override
+  Future<Location?> getLastLocationBefore(DateTime time) async => previous;
+
+  @override
+  Future<Location?> getFirstLocationFrom(DateTime time) async => next;
 
   @override
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
@@ -89,24 +98,24 @@ class FakeTimelineEditRepository implements TimelineEditRepository {
 
 class FakeTimelineSnapshotRepository implements TimelineSnapshotRepository {
   List<TimelineItem>? saved;
-  int? savedLocationCount;
+  String? savedSignature;
 
   @override
   Future<List<TimelineItem>?> find(
     DateTime date, {
-    required int locationCount,
+    required String signature,
   }) async {
-    return savedLocationCount == locationCount ? saved : null;
+    return savedSignature == signature ? saved : null;
   }
 
   @override
   Future<void> save(
     DateTime date,
     List<TimelineItem> items, {
-    required int locationCount,
+    required String signature,
   }) async {
     saved = items;
-    savedLocationCount = locationCount;
+    savedSignature = signature;
   }
 }
 
@@ -181,6 +190,48 @@ void main() {
 
     expect(placeNames.callCount, 2);
     expect((items.single as Stay).end, DateTime(2026, 1, 1, 11, 30));
+  });
+
+  test('前の日の最後の位置にいた状態で、0時を迎えたものとして扱う', () async {
+    locations.previous = Location(
+      id: 0,
+      latitude: 35.0,
+      longitude: 139.0,
+      timestamp: DateTime(2025, 12, 31, 22, 0),
+    );
+
+    final stay = (await useCase.execute(day)).single as Stay;
+
+    expect(stay.start, DateTime(2026, 1, 1, 0, 0));
+    expect(stay.end, DateTime(2026, 1, 1, 11, 0));
+  });
+
+  test('前の日の位置が古すぎる場合は引き継がない', () async {
+    locations.previous = Location(
+      id: 0,
+      latitude: 35.0,
+      longitude: 139.0,
+      timestamp: DateTime(2025, 12, 20, 22, 0),
+    );
+
+    final stay = (await useCase.execute(day)).single as Stay;
+
+    expect(stay.start, DateTime(2026, 1, 1, 9, 0));
+  });
+
+  test('保存後に翌日の位置が届いた場合は計算し直す', () async {
+    await useCase.execute(day);
+
+    locations.next = Location(
+      id: 0,
+      latitude: 35.0001,
+      longitude: 139.0,
+      timestamp: DateTime(2026, 1, 2, 8, 0),
+    );
+    final stay = (await useCase.execute(day)).single as Stay;
+
+    expect(placeNames.callCount, 2);
+    expect(stay.end, DateTime(2026, 1, 1, 23, 59, 59));
   });
 
   test('保存した結果にも、ユーザーの修正を当てはめる', () async {

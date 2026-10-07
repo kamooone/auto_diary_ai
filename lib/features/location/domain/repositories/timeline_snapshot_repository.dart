@@ -8,16 +8,16 @@ import '../entities/timeline_item.dart';
 abstract class TimelineSnapshotRepository {
   /// 保存済みのタイムラインを取得(保存されていない場合はnull)
   ///
-  /// [locationCount]はその日の位置情報の件数。保存した時点から件数が変わっている場合は、
-  /// 後から位置情報が届いたとみなして使わない
+  /// [signature]は計算のもとになった位置情報を表す文字列。保存した時点から変わっている
+  /// 場合は、後から位置情報が届いたとみなして使わない
   Future<List<TimelineItem>?> find(
     DateTime date, {
-    required int locationCount,
+    required String signature,
   });
 
   Future<void> save(
     DateTime date,
     List<TimelineItem> items, {
-    required int locationCount,
+    required String signature,
   });
 }

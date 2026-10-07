@@ -11,12 +11,12 @@ class TimelineSnapshotRepositoryImpl implements TimelineSnapshotRepository {
   TimelineSnapshotRepositoryImpl(this.isar);
 
   // 滞在・移動の判定や、保存する項目を変えた場合は、この値を上げる
-  static const _version = 1;
+  static const _version = 2;
 
   @override
   Future<List<TimelineItem>?> find(
     DateTime date, {
-    required int locationCount,
+    required String signature,
   }) async {
     final snapshot = await isar.timelineSnapshots
         .filter()
@@ -25,7 +25,7 @@ class TimelineSnapshotRepositoryImpl implements TimelineSnapshotRepository {
 
     if (snapshot == null) return null;
     if (snapshot.version != _version) return null;
-    if (snapshot.locationCount != locationCount) return null;
+    if (snapshot.signature != signature) return null;
 
     final items = jsonDecode(snapshot.itemsJson) as List;
 
@@ -38,14 +38,14 @@ class TimelineSnapshotRepositoryImpl implements TimelineSnapshotRepository {
   Future<void> save(
     DateTime date,
     List<TimelineItem> items, {
-    required int locationCount,
+    required String signature,
   }) async {
     final day = _day(date);
 
     final snapshot = TimelineSnapshot()
       ..date = day
       ..version = _version
-      ..locationCount = locationCount
+      ..signature = signature
       ..itemsJson = jsonEncode([for (final item in items) _toJson(item)])
       ..savedAt = DateTime.now();
 

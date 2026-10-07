@@ -89,6 +89,153 @@ void main() {
     expect(last.end, DateTime(2026, 1, 1, 13, 0));
   });
 
+  group('日をまたいだ滞在', () {
+    final dayStart = DateTime(2026, 1, 1);
+    final dayEnd = DateTime(2026, 1, 1, 23, 59, 59);
+
+    // 前の晩にいた場所(その日の最初の位置と同じ場所)
+    final previous = Location(
+      id: 0,
+      latitude: 35.0,
+      longitude: 139.0,
+      timestamp: DateTime(2025, 12, 31, 22, 0),
+    );
+
+    test('前の晩から同じ場所にいた場合、0時から出発までを滞在にする', () {
+      final items = builder.build(
+        [
+          // 12:30に家を出て歩き始める
+          point(12, 30, 35.0002),
+          point(12, 35, 35.003),
+          point(12, 40, 35.006),
+          point(13, 0, 35.0061),
+          point(15, 0, 35.0062),
+        ],
+        dayStart: dayStart,
+        previous: previous,
+      );
+
+      expect(items.map((e) => e.runtimeType), [Stay, Move, Stay]);
+
+      final home = items.first as Stay;
+      expect(home.start, DateTime(2026, 1, 1, 0, 0));
+      expect(home.end, DateTime(2026, 1, 1, 12, 30));
+    });
+
+    test('翌日の最初の位置が近ければ、その日の終わりまで滞在にする', () {
+      final items = builder.build(
+        [point(18, 0, 35.0), point(18, 10, 35.0001)],
+        dayEnd: dayEnd,
+        next: Location(
+          id: 0,
+          latitude: 35.0002,
+          longitude: 139.0,
+          timestamp: DateTime(2026, 1, 2, 8, 0),
+        ),
+      );
+
+      final stay = items.single as Stay;
+      expect(stay.start, DateTime(2026, 1, 1, 18, 0));
+      expect(stay.end, dayEnd);
+    });
+
+    test('翌日の最初の位置が離れていれば、滞在を延ばさない', () {
+      final items = builder.build(
+        [point(18, 0, 35.0), point(18, 10, 35.0001)],
+        dayEnd: dayEnd,
+        next: Location(
+          id: 0,
+          latitude: 35.1,
+          longitude: 139.0,
+          timestamp: DateTime(2026, 1, 2, 8, 0),
+        ),
+      );
+
+      expect((items.single as Stay).end, DateTime(2026, 1, 1, 18, 10));
+    });
+
+    test('1日中動かなかった日は、前後の位置から1日分の滞在にする', () {
+      final items = builder.build(
+        [],
+        dayStart: dayStart,
+        previous: previous,
+        dayEnd: dayEnd,
+        next: Location(
+          id: 0,
+          latitude: 35.0001,
+          longitude: 139.0,
+          timestamp: DateTime(2026, 1, 2, 8, 0),
+        ),
+      );
+
+      final stay = items.single as Stay;
+      expect(stay.start, dayStart);
+      expect(stay.end, dayEnd);
+    });
+  });
+
+  group('位置のぶれ', () {
+    test('滞在の途中に入った孤立した点は無視して、1つの滞在にする', () {
+      final items = builder.build([
+        point(0, 10, 35.0),
+        // 室内で位置が150mほどずれた点
+        point(2, 30, 35.0014),
+        point(5, 0, 35.0001),
+        // もう一度ずれた点
+        point(8, 0, 34.9988),
+        point(12, 30, 35.0002),
+      ]);
+
+      final stay = items.single as Stay;
+      expect(stay.start, DateTime(2026, 1, 1, 0, 10));
+      expect(stay.end, DateTime(2026, 1, 1, 12, 30));
+    });
+
+    test('実際に出かけて戻った場合は、滞在を分ける', () {
+      // 220mほど先まで歩いて戻る。移動中は約10mごと(8秒ごと)に点が記録される
+      final walk = <Location>[];
+      var time = DateTime(2026, 1, 1, 10, 0);
+
+      for (final step in [
+        for (var i = 1; i <= 20; i++) i,
+        for (var i = 19; i >= 0; i--) i,
+      ]) {
+        time = time.add(const Duration(seconds: 8));
+        walk.add(
+          Location(
+            id: 0,
+            latitude: 35.0 + step * 0.0001,
+            longitude: 139.0,
+            timestamp: time,
+          ),
+        );
+      }
+
+      final items = builder.build([
+        point(9, 0, 35.0),
+        point(10, 0, 35.0001),
+        ...walk,
+        point(12, 0, 35.0002),
+      ]);
+
+      expect(items.map((e) => e.runtimeType), [Stay, Move, Stay]);
+      expect((items[1] as Move).distanceMeters, greaterThan(200));
+    });
+
+    test('離れた場所の点は、ぶれとして扱わない', () {
+      final items = builder.build([
+        point(9, 0, 35.0),
+        point(10, 0, 35.0001),
+        // 1kmほど離れた点
+        point(10, 30, 35.01),
+        point(11, 0, 35.0001),
+        point(12, 0, 35.0002),
+      ]);
+
+      expect(items.map((e) => e.runtimeType), [Stay, Move, Stay]);
+    });
+  });
+
   group('移動手段の推定', () {
     // 滞在 → 5分ごとに[stepLatitude]度ずつ3回進む → 滞在
     Move moveWithStep(double stepLatitude) {

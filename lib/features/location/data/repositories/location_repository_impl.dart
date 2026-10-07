@@ -87,6 +87,23 @@ class LocationRepositoryImpl
 
   }
 
+  @override
+  Future<Location?> getLastLocationBefore(DateTime time) async {
+    // iOSのネイティブ側が記録した位置情報を先に取り込む
+    await importRecordedLocations(local);
+
+    final log = await local.getLastBefore(time);
+    return log == null ? null : _toEntity(log);
+  }
+
+  @override
+  Future<Location?> getFirstLocationFrom(DateTime time) async {
+    await importRecordedLocations(local);
+
+    final log = await local.getFirstFrom(time);
+    return log == null ? null : _toEntity(log);
+  }
+
   Location _toEntity(LocationLog log) {
     return Location(
       id: log.id,
