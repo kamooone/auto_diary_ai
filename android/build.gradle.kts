@@ -19,6 +19,12 @@ subprojects {
     afterEvaluate {
         if (project.extensions.findByName("android") != null) {
             project.extensions.configure<com.android.build.gradle.BaseExtension>("android") {
+                // namespaceを指定していない古いプラグイン(isar_flutter_libsなど)は、
+                // AGP8以降でビルドできないため、AndroidManifestのpackageと同じ値(group)を補う
+                if (namespace == null) {
+                    namespace = project.group.toString()
+                }
+
                 // 古いcompileSdkを指定しているプラグイン(isar_flutter_libsなど)は、
                 // リリースビルドでリソースの検証に失敗するため引き上げる
                 val currentCompileSdk =
@@ -35,8 +41,8 @@ subprojects {
 
             // さらにKotlinのターゲットも強制的に合わせる
             tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach {
-                kotlinOptions {
-                    jvmTarget = "17"
+                compilerOptions {
+                    jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
                 }
             }
         }

@@ -16,10 +16,6 @@ android {
         isCoreLibraryDesugaringEnabled = true
     }
 
-    kotlinOptions {
-        jvmTarget = "17"
-    }
-
     defaultConfig {
         // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
         applicationId = "com.kazusa.auto_diary_ai.auto_diary_ai"
@@ -45,6 +41,12 @@ dependencies {
 
     // 行動認識(徒歩・自転車・乗り物など)
     implementation("com.google.android.gms:play-services-location:21.2.0")
+}
+
+kotlin {
+    compilerOptions {
+        jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
+    }
 }
 
 flutter {
