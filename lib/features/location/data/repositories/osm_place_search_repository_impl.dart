@@ -33,6 +33,9 @@ class OsmPlaceSearchRepositoryImpl implements PlaceSearchRepository {
   // 1か所あたりの候補の上限
   static const _maxCandidates = 8;
 
+  // 1回の問い合わせで受け取る施設の上限
+  static const _maxElements = 300;
+
   // 滞在先とは考えにくい設備
   static const _excludedAmenities = {
     'parking',
@@ -101,6 +104,25 @@ class OsmPlaceSearchRepositoryImpl implements PlaceSearchRepository {
   }
 
   Future<List<Map<String, dynamic>>> _fetch(List<Coordinate> coordinates) async {
+    final elements = await _request(coordinates);
+
+    // 上限まで返ってきた場合は、一部の場所の施設が欠けている可能性がある
+    // (欠けたまま「周辺に施設がない」と保存しないよう、場所を分けて取り直す)
+    if (elements.length < _maxElements || coordinates.length == 1) {
+      return elements;
+    }
+
+    final half = coordinates.length ~/ 2;
+
+    return [
+      ...await _fetch(coordinates.sublist(0, half)),
+      ...await _fetch(coordinates.sublist(half)),
+    ];
+  }
+
+  Future<List<Map<String, dynamic>>> _request(
+    List<Coordinate> coordinates,
+  ) async {
     final statements = StringBuffer();
 
     for (final coordinate in coordinates) {
@@ -114,7 +136,8 @@ class OsmPlaceSearchRepositoryImpl implements PlaceSearchRepository {
         ..writeln('nwr($around)[name][railway~"^(station|halt)\$"];');
     }
 
-    final query = '[out:json][timeout:10];($statements);out center tags 300;';
+    final query =
+        '[out:json][timeout:10];($statements);out center tags $_maxElements;';
 
     final response = await _client.post(
       _endpoint,
@@ -127,12 +150,24 @@ class OsmPlaceSearchRepositoryImpl implements PlaceSearchRepository {
     }
 
     final data = jsonDecode(utf8.decode(response.bodyBytes));
-    final elements = data is Map<String, dynamic> ? data['elements'] : null;
+    if (data is! Map<String, dynamic>) {
+      throw Exception('Overpass API: 応答の形式が想定と異なります');
+    }
+
+    // 検索が時間切れなどで打ち切られた場合は、200のまま途中までの結果とremarkが返る
+    final remark = data['remark'];
+    if (remark is String && remark.isNotEmpty) {
+      throw Exception('Overpass API: $remark');
+    }
+
+    final elements = data['elements'];
+    if (elements is! List) {
+      throw Exception('Overpass API: 応答の形式が想定と異なります');
+    }
 
     return [
-      if (elements is List)
-        for (final element in elements)
-          if (element is Map<String, dynamic>) element,
+      for (final element in elements)
+        if (element is Map<String, dynamic>) element,
     ];
   }
 

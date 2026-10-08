@@ -166,4 +166,100 @@ void main() {
 
     expect(result.single.map((e) => e.name), ['カフェA']);
   });
+
+  test('検索が打ち切られた場合は失敗として扱い、結果を保存しない', () async {
+    var isInterrupted = true;
+
+    final repository = OsmPlaceSearchRepositoryImpl(
+      client: MockClient((request) async {
+        // 時間切れのときは、200のまま空の結果とremarkが返る
+        if (isInterrupted) {
+          return json({
+            'elements': [],
+            'remark': 'runtime error: Query timed out in "query" at line 1',
+          });
+        }
+
+        return json({
+          'elements': [
+            {
+              'type': 'node',
+              'lat': 35.68124,
+              'lon': 139.76713,
+              'tags': {'name': 'カフェA', 'amenity': 'cafe'},
+            },
+          ],
+        });
+      }),
+    );
+
+    await expectLater(
+      repository.findNearby([tokyoStation]),
+      throwsA(isA<PlaceSearchException>()),
+    );
+
+    // 「周辺に施設がない」とは保存されないため、次の問い合わせで取得できる
+    isInterrupted = false;
+    final result = await repository.findNearby([tokyoStation]);
+
+    expect(result.single.map((e) => e.name), ['カフェA']);
+  });
+
+  test('応答に施設の一覧がない場合は失敗として扱う', () async {
+    final repository = OsmPlaceSearchRepositoryImpl(
+      client: MockClient((request) async => json({'version': 0.6})),
+    );
+
+    await expectLater(
+      repository.findNearby([tokyoStation]),
+      throwsA(isA<PlaceSearchException>()),
+    );
+  });
+
+  test('結果が上限に達した場合は、場所を分けて取り直す', () async {
+    const other = (latitude: 35.0, longitude: 135.0);
+
+    Map<String, dynamic> cafe(String name, double lat, double lon) {
+      return {
+        'type': 'node',
+        'lat': lat,
+        'lon': lon,
+        'tags': {'name': name, 'amenity': 'cafe'},
+      };
+    }
+
+    var requestCount = 0;
+
+    final repository = OsmPlaceSearchRepositoryImpl(
+      client: MockClient((request) async {
+        requestCount++;
+
+        final query = request.bodyFields['data']!;
+        final hasTokyo = query.contains('${tokyoStation.latitude}');
+        final hasOther = query.contains('${other.latitude},${other.longitude}');
+
+        // 2か所まとめた問い合わせは、東京駅の施設だけで上限に達する
+        if (hasTokyo && hasOther) {
+          return json({
+            'elements': [
+              for (var i = 0; i < 300; i++) cafe('カフェ$i', 35.68124, 139.76713),
+            ],
+          });
+        }
+
+        return json({
+          'elements': [
+            if (hasTokyo) cafe('カフェA', 35.68124, 139.76713),
+            if (hasOther) cafe('カフェB', 35.0001, 135.0001),
+          ],
+        });
+      }),
+    );
+
+    final result = await repository.findNearby([tokyoStation, other]);
+
+    expect(result[0].map((e) => e.name), ['カフェA']);
+    expect(result[1].map((e) => e.name), ['カフェB']);
+    expect(requestCount, 3);
+  });
 }
