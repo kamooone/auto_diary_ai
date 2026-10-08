@@ -1,0 +1,64 @@
+{
+  "permissions": {
+    "deny": [
+      "Edit(//Users/kondoukazusa/work/myProject/auto_diary_ai/.claude/**)",
+      "Edit(//Users/kondoukazusa/work/myProject/auto_diary_ai/tools/deploy.sh)"
+    ],
+    "defaultMode": "acceptEdits",
+    "disableBypassPermissionsMode": "disable",
+    "blockReadsOutsideWorkingDirectories": true,
+    "allow": [
+      "Bash(tools/deploy.sh *)"
+    ]
+  },
+  "sandbox": {
+    "enabled": true,
+    "failIfUnavailable": true,
+    "autoAllowBashIfSandboxed": true,
+    "allowUnsandboxedCommands": false,
+    "network": {
+      "allowedDomains": [
+        "services.gradle.org",
+        "plugins.gradle.org",
+        "dl.google.com",
+        "maven.google.com",
+        "repo.maven.apache.org",
+        "repo1.maven.org",
+        "api.foojay.io"
+      ],
+      "allowLocalBinding": true
+    },
+    "filesystem": {
+      "allowWrite": [
+        "/Users/kondoukazusa/work/myProject/auto_diary_ai",
+        "~/.gradle",
+        "~/.android",
+        "~/Library/Application Support/Flutter",
+        "~/Library/Caches/Flutter"
+      ],
+      "denyWrite": [
+        "/Users/kondoukazusa/work/myProject/auto_diary_ai/.claude",
+        "/Users/kondoukazusa/work/myProject/auto_diary_ai/tools/deploy.sh"
+      ],
+      "denyRead": [
+        "/Users/kondoukazusa",
+        "/Volumes"
+      ],
+      "allowRead": [
+        "/Users/kondoukazusa/work/myProject/auto_diary_ai",
+        "~/Library/Android/sdk",
+        "~/.gradle",
+        "~/.android",
+        "~/Library/Application Support/Flutter",
+        "~/Library/Caches/Flutter",
+        "~/.gitconfig",
+        "~/.gitignore_global",
+        "~/.claude/shell-snapshots",
+        "~/.claude/projects/-Users-kondoukazusa-work-myProject-auto-diary-ai"
+      ]
+    },
+    "excludedCommands": [
+      "tools/deploy.sh"
+    ]
+  }
+}
