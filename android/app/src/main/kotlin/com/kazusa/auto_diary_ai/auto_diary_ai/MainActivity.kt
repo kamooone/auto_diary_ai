@@ -25,5 +25,42 @@ class MainActivity : FlutterActivity() {
                 else -> result.notImplemented()
             }
         }
+
+        // 行動履歴の記録のオン・オフと、ホーム画面のウィジェットをDart側から操作する
+        MethodChannel(
+            flutterEngine.dartExecutor.binaryMessenger,
+            RecordingController.CHANNEL,
+        ).setMethodCallHandler { call, result ->
+            when (call.method) {
+                "isEnabled" -> result.success(RecordingController.isEnabled(applicationContext))
+                "setEnabled" -> result.success(
+                    RecordingController.setEnabled(
+                        applicationContext,
+                        call.argument<Boolean>("enabled") ?: false,
+                    ),
+                )
+                "history" -> result.success(RecordingController.history(applicationContext))
+                "consumeWidgetPrompt" -> result.success(
+                    RecordingController.consumeWidgetPrompt(applicationContext),
+                )
+                "isWidgetPinSupported" -> result.success(
+                    RecordingWidgetProvider.isPinSupported(applicationContext),
+                )
+                "isWidgetPinned" -> result.success(
+                    RecordingWidgetProvider.isPinned(applicationContext),
+                )
+                "requestPinWidget" -> result.success(
+                    RecordingWidgetProvider.requestPin(applicationContext),
+                )
+                else -> result.notImplemented()
+            }
+        }
+    }
+
+    override fun onResume() {
+        super.onResume()
+
+        // 許可の状態が変わると、ウィジェットを押したときの動作が変わるため表示を更新する
+        RecordingWidgetProvider.updateAll(applicationContext)
     }
 }

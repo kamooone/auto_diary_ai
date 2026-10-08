@@ -14,6 +14,17 @@ const _fetchTimeout = Duration(seconds: 30);
 
 bool get _isSupported => Platform.isAndroid || Platform.isIOS;
 
+/// 身体活動の許可を求める(Androidのみ。iOSは最初の取り込みのときにOSが尋ねる)
+Future<void> requestActivityPermission() async {
+  if (!Platform.isAndroid) return;
+
+  try {
+    await Permission.activityRecognition.request();
+  } catch (e) {
+    debugPrint('身体活動の許可を求められませんでした: $e');
+  }
+}
+
 /// 行動認識(徒歩・自転車・乗り物など)の記録を開始する
 ///
 /// Android: 身体活動の許可を求め、行動の変化の通知を登録する

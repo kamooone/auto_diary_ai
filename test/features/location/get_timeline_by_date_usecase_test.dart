@@ -1,6 +1,7 @@
 import 'package:auto_diary_ai/features/location/domain/entities/activity_segment.dart';
 import 'package:auto_diary_ai/features/location/domain/entities/location.dart';
 import 'package:auto_diary_ai/features/location/domain/entities/place_candidate.dart';
+import 'package:auto_diary_ai/features/location/domain/entities/recording_pause.dart';
 import 'package:auto_diary_ai/features/location/domain/entities/timeline_edit.dart';
 import 'package:auto_diary_ai/features/location/domain/entities/timeline_item.dart';
 import 'package:auto_diary_ai/features/location/domain/exceptions/place_search_exception.dart';
@@ -8,6 +9,7 @@ import 'package:auto_diary_ai/features/location/domain/repositories/activity_rep
 import 'package:auto_diary_ai/features/location/domain/repositories/location_repository.dart';
 import 'package:auto_diary_ai/features/location/domain/repositories/place_name_repository.dart';
 import 'package:auto_diary_ai/features/location/domain/repositories/place_search_repository.dart';
+import 'package:auto_diary_ai/features/location/domain/repositories/recording_pause_repository.dart';
 import 'package:auto_diary_ai/features/location/domain/repositories/timeline_edit_repository.dart';
 import 'package:auto_diary_ai/features/location/domain/repositories/timeline_snapshot_repository.dart';
 import 'package:auto_diary_ai/features/location/domain/usecases/get_timeline_by_date_usecase.dart';
@@ -119,12 +121,25 @@ class FakeTimelineSnapshotRepository implements TimelineSnapshotRepository {
   }
 }
 
+class FakeRecordingPauseRepository implements RecordingPauseRepository {
+  List<RecordingPause> pauses = [];
+
+  @override
+  Future<List<RecordingPause>> getPauses(DateTime from, DateTime to) async {
+    return [
+      for (final pause in pauses)
+        if (pause.overlaps(from, to)) pause,
+    ];
+  }
+}
+
 void main() {
   late FakeLocationRepository locations;
   late FakePlaceNameRepository placeNames;
   late FakePlaceSearchRepository placeSearch;
   late FakeTimelineEditRepository edits;
   late FakeTimelineSnapshotRepository snapshots;
+  late FakeRecordingPauseRepository recordingPauses;
   late GetTimelineByDateUseCase useCase;
 
   setUp(() {
@@ -133,6 +148,7 @@ void main() {
     placeSearch = FakePlaceSearchRepository();
     edits = FakeTimelineEditRepository();
     snapshots = FakeTimelineSnapshotRepository();
+    recordingPauses = FakeRecordingPauseRepository();
 
     useCase = GetTimelineByDateUseCase(
       repository: locations,
@@ -141,6 +157,7 @@ void main() {
       placeSearchRepository: placeSearch,
       activityRepository: FakeActivityRepository(),
       timelineSnapshotRepository: snapshots,
+      recordingPauseRepository: recordingPauses,
     );
   });
 
@@ -267,5 +284,107 @@ void main() {
     await useCase.execute(now);
 
     expect(snapshots.saved, isNull);
+  });
+
+  group('記録をオフにしていた期間', () {
+    test('オフにした時刻で滞在を区切り、オフの間は何もなかったものとして扱う', () async {
+      // 9:00〜10:00は同じ場所、10:00〜14:00はオフ、14:00〜15:00は同じ場所
+      locations.locations = [
+        point(9, 0, 35.0),
+        point(9, 30, 35.0001),
+        point(14, 0, 35.0),
+        point(15, 0, 35.0001),
+      ];
+      recordingPauses.pauses = [
+        RecordingPause(
+          start: DateTime(2026, 1, 1, 10, 0),
+          end: DateTime(2026, 1, 1, 14, 0),
+        ),
+      ];
+
+      final items = await useCase.execute(day);
+
+      expect(items, hasLength(2));
+      // オフにした時刻までは、最後にいた場所にとどまっていたものとして扱う
+      expect(items[0].start, DateTime(2026, 1, 1, 9, 0));
+      expect(items[0].end, DateTime(2026, 1, 1, 10, 0));
+      expect(items[1].start, DateTime(2026, 1, 1, 14, 0));
+      expect(items[1].end, DateTime(2026, 1, 1, 15, 0));
+    });
+
+    test('前の日との間でオフにしていた場合は、日をまたいだ滞在にしない', () async {
+      locations.previous = Location(
+        id: 0,
+        latitude: 35.0,
+        longitude: 139.0,
+        timestamp: DateTime(2025, 12, 31, 22, 0),
+      );
+      recordingPauses.pauses = [
+        RecordingPause(
+          start: DateTime(2025, 12, 31, 23, 0),
+          end: DateTime(2026, 1, 1, 8, 0),
+        ),
+      ];
+
+      final stay = (await useCase.execute(day)).single as Stay;
+
+      expect(stay.start, DateTime(2026, 1, 1, 9, 0));
+    });
+
+    test('翌日との間でオフにしていた場合は、その日の終わりまでの滞在にしない', () async {
+      locations.next = Location(
+        id: 0,
+        latitude: 35.0001,
+        longitude: 139.0,
+        timestamp: DateTime(2026, 1, 2, 8, 0),
+      );
+      recordingPauses.pauses = [
+        RecordingPause(
+          start: DateTime(2026, 1, 1, 12, 0),
+          end: DateTime(2026, 1, 2, 7, 0),
+        ),
+      ];
+
+      final stay = (await useCase.execute(day)).single as Stay;
+
+      expect(stay.end, DateTime(2026, 1, 1, 12, 0));
+    });
+
+    test('今もオフのままの場合は、今の時刻までの滞在にしない', () async {
+      final now = DateTime.now();
+      final lastPoint = now.subtract(const Duration(hours: 2));
+      final pausedAt = now.subtract(const Duration(hours: 1));
+
+      locations.locations = [
+        Location(
+          id: 0,
+          latitude: 35.0,
+          longitude: 139.0,
+          timestamp: lastPoint,
+        ),
+      ];
+      recordingPauses.pauses = [RecordingPause(start: pausedAt)];
+
+      final items = await useCase.execute(now);
+
+      // 日付が変わった直後は、記録がその日に入らないため確認しない
+      if (lastPoint.day != now.day) return;
+
+      expect((items.single as Stay).end, pausedAt);
+    });
+
+    test('保存後にオフにしていた期間が変わった場合は計算し直す', () async {
+      await useCase.execute(day);
+
+      recordingPauses.pauses = [
+        RecordingPause(
+          start: DateTime(2026, 1, 1, 10, 0),
+          end: DateTime(2026, 1, 1, 10, 30),
+        ),
+      ];
+      await useCase.execute(day);
+
+      expect(placeNames.callCount, 2);
+    });
   });
 }

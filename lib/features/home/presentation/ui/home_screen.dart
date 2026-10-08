@@ -8,6 +8,7 @@ import 'package:go_router/go_router.dart';
 import 'package:auto_diary_ai/app/router/app_routes.dart';
 import 'package:auto_diary_ai/core/app_info/app_version_provider.dart';
 import 'package:auto_diary_ai/features/home/presentation/providers/home_providers.dart';
+import 'package:auto_diary_ai/features/location/application/providers/location_providers.dart';
 import '../viewmodel/home_view_model.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
@@ -25,6 +26,47 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     super.initState();
 
     pageController = PageController();
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _promptRecordingWidget();
+    });
+  }
+
+  // 行動履歴のオン・オフを切り替えるボタンを、ホーム画面に置くかどうかを尋ねる(初回のみ)
+  Future<void> _promptRecordingWidget() async {
+    final dataSource = ref.read(recordingStateDataSourceProvider);
+
+    if (!await dataSource.isWidgetPinSupported()) return;
+    if (await dataSource.isWidgetPinned()) return;
+    if (!await dataSource.consumeWidgetPrompt()) return;
+
+    if (!mounted) return;
+
+    final shouldAdd = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text("ホーム画面にボタンを表示しますか？"),
+        content: const Text(
+          "行動履歴のオン・オフを切り替えるボタンを、ホーム画面に表示できます。\n"
+          "表示すると、オン・オフの切り替えがすぐにできます。\n\n"
+          "あとから設定画面でも表示できます。",
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text("表示しない"),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text("表示する"),
+          ),
+        ],
+      ),
+    );
+
+    if (shouldAdd == true) {
+      await dataSource.requestPinWidget();
+    }
   }
 
   @override

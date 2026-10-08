@@ -3,16 +3,19 @@ import '../../../../core/database/isar_provider.dart';
 import '../../data/datasources/gps_location_datasource.dart';
 import '../../data/datasources/isar_location_datasource.dart';
 import '../../data/datasources/isar_place_candidate_cache.dart';
+import '../../data/datasources/recording_state_datasource.dart';
 import '../../data/repositories/activity_repository_impl.dart';
 import '../../data/repositories/location_repository_impl.dart';
 import '../../data/repositories/osm_place_search_repository_impl.dart';
 import '../../data/repositories/place_name_repository_impl.dart';
+import '../../data/repositories/recording_pause_repository_impl.dart';
 import '../../data/repositories/timeline_edit_repository_impl.dart';
 import '../../data/repositories/timeline_snapshot_repository_impl.dart';
 import '../../domain/repositories/activity_repository.dart';
 import '../../domain/repositories/location_repository.dart';
 import '../../domain/repositories/place_name_repository.dart';
 import '../../domain/repositories/place_search_repository.dart';
+import '../../domain/repositories/recording_pause_repository.dart';
 import '../../domain/repositories/timeline_edit_repository.dart';
 import '../../domain/repositories/timeline_snapshot_repository.dart';
 import '../../domain/usecases/get_latest_location_usecase.dart';
@@ -43,6 +46,13 @@ Provider<IsarLocationDataSource>((ref) {
 
 });
 
+final recordingStateDataSourceProvider =
+Provider<RecordingStateDataSource>((ref) {
+
+  return RecordingStateDataSource();
+
+});
+
 ///--------------------------------------
 /// Repository
 ///--------------------------------------
@@ -53,6 +63,7 @@ Provider<LocationRepository>((ref) {
   return LocationRepositoryImpl(
     gps: ref.watch(gpsLocationDataSourceProvider),
     local: ref.watch(isarLocationDataSourceProvider),
+    recordingState: ref.watch(recordingStateDataSourceProvider),
   );
 
 });
@@ -105,6 +116,15 @@ Provider<TimelineEditRepository>((ref) {
 
 });
 
+final recordingPauseRepositoryProvider =
+Provider<RecordingPauseRepository>((ref) {
+
+  return RecordingPauseRepositoryImpl(
+    ref.watch(recordingStateDataSourceProvider),
+  );
+
+});
+
 ///--------------------------------------
 /// UseCases
 ///--------------------------------------
@@ -146,6 +166,7 @@ Provider((ref) {
     placeSearchRepository: ref.watch(placeSearchRepositoryProvider),
     activityRepository: ref.watch(activityRepositoryProvider),
     timelineSnapshotRepository: ref.watch(timelineSnapshotRepositoryProvider),
+    recordingPauseRepository: ref.watch(recordingPauseRepositoryProvider),
   );
 
 });

@@ -3,6 +3,7 @@ import '../../domain/entities/location.dart';
 import '../../domain/repositories/location_repository.dart';
 import '../datasources/gps_location_datasource.dart';
 import '../datasources/isar_location_datasource.dart';
+import '../datasources/recording_state_datasource.dart';
 import '../models/location_log.dart';
 import '../services/background_location_service.dart';
 
@@ -13,9 +14,12 @@ class LocationRepositoryImpl
 
   final IsarLocationDataSource local;
 
+  final RecordingStateDataSource recordingState;
+
   LocationRepositoryImpl({
     required this.gps,
     required this.local,
+    required this.recordingState,
   });
 
   @override
@@ -28,10 +32,13 @@ class LocationRepositoryImpl
     }
 
     // 保存は記録サービスが行う(起動時に未許可だった場合はここで開始する)
-    await startLocationRecording(
-      gps: gps,
-      local: local,
-    );
+    // 記録がオフの間は、現在地を表示するだけで保存しない
+    if (await recordingState.isEnabled()) {
+      await startLocationRecording(
+        gps: gps,
+        local: local,
+      );
+    }
 
     await for (final position in gps.getPositionStream()) {
 

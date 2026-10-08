@@ -1,9 +1,11 @@
 import '../entities/location.dart';
+import '../entities/recording_pause.dart';
 import '../entities/timeline_item.dart';
 import '../repositories/activity_repository.dart';
 import '../repositories/location_repository.dart';
 import '../repositories/place_name_repository.dart';
 import '../repositories/place_search_repository.dart';
+import '../repositories/recording_pause_repository.dart';
 import '../repositories/timeline_edit_repository.dart';
 import '../repositories/timeline_snapshot_repository.dart';
 import '../services/place_estimator.dart';
@@ -25,6 +27,8 @@ class GetTimelineByDateUseCase {
 
   final TimelineSnapshotRepository timelineSnapshotRepository;
 
+  final RecordingPauseRepository recordingPauseRepository;
+
   final TimelineBuilder _builder = TimelineBuilder();
 
   final TransportEstimator _transportEstimator = TransportEstimator();
@@ -40,6 +44,7 @@ class GetTimelineByDateUseCase {
     required this.placeSearchRepository,
     required this.activityRepository,
     required this.timelineSnapshotRepository,
+    required this.recordingPauseRepository,
   });
 
   /// 指定した日の行動を「滞在」と「移動」に要約して取得
@@ -69,14 +74,23 @@ class GetTimelineByDateUseCase {
       to: nextDay.add(_maxCarryOver),
     );
 
+    // 記録をオフにしていた期間(その間は、どこにいたか分からないものとして扱う)
+    final pauses = await recordingPauseRepository.getPauses(
+      previous?.timestamp ?? day,
+      next?.timestamp ?? nextDay,
+    );
+
     // 過去の日は内容が変わらないため、計算済みの結果があればそれを使う
     final isPast = day.isBefore(today);
 
-    // 計算のもとになる位置情報が変わったら、保存した結果は使わない
+    // 計算のもとになる位置情報や、記録をオフにしていた期間が変わったら、保存した結果は使わない
     final signature = [
       locations.length,
       previous?.timestamp.millisecondsSinceEpoch,
       next?.timestamp.millisecondsSinceEpoch,
+      for (final pause in pauses)
+        "${pause.start.millisecondsSinceEpoch}-"
+            "${pause.end?.millisecondsSinceEpoch}",
     ].join("|");
 
     var items = isPast
@@ -85,15 +99,15 @@ class GetTimelineByDateUseCase {
 
     if (items == null) {
       final computed = await _compute(
-        _builder.build(
+        _build(
           locations,
-          dayStart: day,
+          day: day,
+          nextDay: nextDay,
           previous: previous,
-          // その日の終わり(23:59:59)
-          dayEnd: nextDay.subtract(const Duration(seconds: 1)),
           next: next,
-          // 今日の場合は、最後にいた場所に今もとどまっているものとして扱う
-          until: day == today ? now : null,
+          pauses: pauses,
+          // 今日の場合は、今の時刻までを対象にする
+          now: day == today ? now : null,
         ),
         estimatePlaces: estimatePlaces,
       );
@@ -133,6 +147,78 @@ class GetTimelineByDateUseCase {
 
     final time = location.timestamp;
     return time.isBefore(from) || time.isAfter(to) ? null : location;
+  }
+
+  /// 位置情報を滞在と移動に要約する
+  ///
+  /// 記録をオフにしていた間は、位置情報が途切れていても同じ場所にいたとはみなせない。
+  /// そのため、その日を「記録していた時間帯」に分け、時間帯ごとに要約する
+  ///
+  /// [now]は今日のタイムラインの場合だけ渡す
+  List<TimelineItem> _build(
+    List<Location> locations, {
+    required DateTime day,
+    required DateTime nextDay,
+    required Location? previous,
+    required Location? next,
+    required List<RecordingPause> pauses,
+    required DateTime? now,
+  }) {
+    final limit = now ?? nextDay;
+
+    // その日のうち、記録していた時間帯
+    final windows = <({DateTime start, DateTime end})>[];
+    var cursor = day;
+
+    for (final pause in pauses) {
+      if (!pause.start.isBefore(limit)) break;
+
+      if (pause.start.isAfter(cursor)) {
+        windows.add((start: cursor, end: pause.start));
+      }
+
+      // 今もオフのままの場合は、それ以降に記録していた時間帯はない
+      final resumedAt = pause.end ?? limit;
+      if (resumedAt.isAfter(cursor)) cursor = resumedAt;
+    }
+
+    if (cursor.isBefore(limit)) {
+      windows.add((start: cursor, end: limit));
+    }
+
+    // 前後の日の位置との間でオフにしていた場合は、日をまたいだ滞在として扱わない
+    final carriesFromPrevious = previous != null &&
+        !pauses.any((pause) => pause.overlaps(previous.timestamp, day));
+    final carriesToNext = next != null &&
+        !pauses.any((pause) => pause.overlaps(nextDay, next.timestamp));
+
+    final items = <TimelineItem>[];
+
+    for (final window in windows) {
+      final isFirst = window.start == day;
+      final isLast = window.end == limit;
+
+      items.addAll(
+        _builder.build(
+          [
+            for (final location in locations)
+              if (!location.timestamp.isBefore(window.start) &&
+                  location.timestamp.isBefore(window.end))
+                location,
+          ],
+          dayStart: day,
+          previous: isFirst && carriesFromPrevious ? previous : null,
+          // その日の終わり(23:59:59)
+          dayEnd: nextDay.subtract(const Duration(seconds: 1)),
+          next: isLast && now == null && carriesToNext ? next : null,
+          // 最後にいた場所に、オフにした時刻までとどまっていたものとして扱う
+          // (今日の最後の時間帯は、今もとどまっているものとして扱う)
+          until: isLast ? now : window.end,
+        ),
+      );
+    }
+
+    return items;
   }
 
   /// 滞在と移動に、移動手段・地名・訪れた施設を当てはめる

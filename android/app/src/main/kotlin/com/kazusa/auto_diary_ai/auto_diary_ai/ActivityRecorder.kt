@@ -64,25 +64,43 @@ object ActivityRecorder {
                 .build()
         }
 
+        ActivityRecognition.getClient(context)
+            .requestActivityTransitionUpdates(
+                ActivityTransitionRequest(transitions),
+                pendingIntent(context),
+            )
+            .addOnSuccessListener { onResult(true) }
+            .addOnFailureListener { onResult(false) }
+    }
+
+    /** 行動の変化の通知をやめる(すでに溜まっている記録は残す) */
+    @SuppressLint("MissingPermission")
+    fun stop(context: Context) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q &&
+            ContextCompat.checkSelfPermission(
+                context,
+                Manifest.permission.ACTIVITY_RECOGNITION,
+            ) != PackageManager.PERMISSION_GRANTED
+        ) {
+            return
+        }
+
+        ActivityRecognition.getClient(context)
+            .removeActivityTransitionUpdates(pendingIntent(context))
+    }
+
+    private fun pendingIntent(context: Context): PendingIntent {
         var flags = PendingIntent.FLAG_UPDATE_CURRENT
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             flags = flags or PendingIntent.FLAG_MUTABLE
         }
 
-        val pendingIntent = PendingIntent.getBroadcast(
+        return PendingIntent.getBroadcast(
             context,
             REQUEST_CODE,
             Intent(context, ActivityTransitionReceiver::class.java),
             flags,
         )
-
-        ActivityRecognition.getClient(context)
-            .requestActivityTransitionUpdates(
-                ActivityTransitionRequest(transitions),
-                pendingIntent,
-            )
-            .addOnSuccessListener { onResult(true) }
-            .addOnFailureListener { onResult(false) }
     }
 
     fun append(context: Context, type: String, timestampMillis: Long) {
