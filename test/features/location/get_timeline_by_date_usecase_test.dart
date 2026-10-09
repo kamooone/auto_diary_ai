@@ -59,18 +59,24 @@ class FakePlaceNameRepository implements PlaceNameRepository {
 
 class FakePlaceSearchRepository implements PlaceSearchRepository {
   bool shouldFail = false;
+
+  /// 検索できないことにする場所の番号
+  Set<int> failingIndexes = {};
+
   int callCount = 0;
 
   @override
-  Future<List<List<PlaceCandidate>>> findNearby(
+  Future<List<List<PlaceCandidate>?>> findNearby(
     List<Coordinate> coordinates,
   ) async {
     callCount++;
     if (shouldFail) throw PlaceSearchException('failed');
 
     return [
-      for (final _ in coordinates)
-        const [PlaceCandidate(name: 'カフェA', distanceMeters: 10)],
+      for (var i = 0; i < coordinates.length; i++)
+        failingIndexes.contains(i)
+            ? null
+            : const [PlaceCandidate(name: 'カフェA', distanceMeters: 10)],
     ];
   }
 }
@@ -190,6 +196,26 @@ void main() {
 
     expect(snapshots.saved, isNull);
     expect((items.single as Stay).displayName, '東京都千代田区');
+    expect((items.single as Stay).isPlaceSearchFailed, isTrue);
+  });
+
+  test('施設を検索できなかった場所があれば保存せず、次回もう一度検索する', () async {
+    placeSearch.failingIndexes = {0};
+
+    final failed = await useCase.execute(day);
+
+    expect(snapshots.saved, isNull);
+    expect((failed.single as Stay).displayName, '東京都千代田区');
+    expect((failed.single as Stay).isPlaceSearchFailed, isTrue);
+
+    placeSearch.failingIndexes = {};
+
+    final retried = await useCase.execute(day);
+
+    expect(placeSearch.callCount, 2);
+    expect((retried.single as Stay).displayName, 'カフェA');
+    expect((retried.single as Stay).isPlaceSearchFailed, isFalse);
+    expect(snapshots.saved, isNotNull);
   });
 
   test('施設を当てはめない場合は保存しない', () async {

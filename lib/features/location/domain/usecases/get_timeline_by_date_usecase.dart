@@ -1,4 +1,5 @@
 import '../entities/location.dart';
+import '../entities/place_candidate.dart';
 import '../entities/recording_pause.dart';
 import '../entities/timeline_item.dart';
 import '../repositories/activity_repository.dart';
@@ -310,37 +311,48 @@ class GetTimelineByDateUseCase {
 
     if (!estimatePlaces) return (items: items, isComplete: false);
 
-    try {
-      return (items: await _estimatePlaces(items), isComplete: isComplete);
-    } catch (e) {
-      // 施設を検索できなかった場合は、地名だけで表示する
-      return (items: items, isComplete: false);
-    }
+    final estimated = await _estimatePlaces(items);
+
+    // 施設を検索できなかった場所は、地名だけで表示する
+    final isSearched = !estimated
+        .whereType<Stay>()
+        .any((stay) => stay.isPlaceSearchFailed);
+
+    return (items: estimated, isComplete: isComplete && isSearched);
   }
 
   Future<List<TimelineItem>> _estimatePlaces(List<TimelineItem> items) async {
     final stays = items.whereType<Stay>().toList();
     if (stays.isEmpty) return items;
 
-    final candidates = await placeSearchRepository.findNearby([
-      for (final stay in stays)
-        (latitude: stay.latitude, longitude: stay.longitude),
-    ]);
+    List<List<PlaceCandidate>?> candidates;
+    try {
+      candidates = await placeSearchRepository.findNearby([
+        for (final stay in stays)
+          (latitude: stay.latitude, longitude: stay.longitude),
+      ]);
+    } catch (e) {
+      // どの場所も検索できなかったものとして扱う
+      candidates = [for (final _ in stays) null];
+    }
 
-    final estimated = <Stay, String>{};
+    final estimated = <Stay, Stay>{};
     for (var i = 0; i < stays.length; i++) {
-      final place = _estimator.estimate(candidates[i]);
+      final found = candidates[i];
+
+      if (found == null) {
+        estimated[stays[i]] = stays[i].copyWith(isPlaceSearchFailed: true);
+        continue;
+      }
+
+      final place = _estimator.estimate(found);
       if (place != null) {
-        estimated[stays[i]] = place.name;
+        estimated[stays[i]] = stays[i].copyWith(estimatedPlaceName: place.name);
       }
     }
 
     return [
-      for (final item in items)
-        if (item is Stay && estimated.containsKey(item))
-          item.copyWith(estimatedPlaceName: estimated[item])
-        else
-          item,
+      for (final item in items) estimated[item] ?? item,
     ];
   }
 }

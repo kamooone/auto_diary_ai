@@ -258,6 +258,9 @@ class _MapPageState extends ConsumerState<MapPage> {
               );
             },
             onMoveTap: _showRoute,
+            onRetryPlaceSearch: () {
+              ref.read(mapProvider.notifier).retryPlaceSearch();
+            },
             onPlaceNameChanged: (stay, placeName) {
               ref
                   .read(mapProvider.notifier)

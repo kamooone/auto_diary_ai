@@ -3,7 +3,6 @@ import 'dart:convert';
 import 'dart:math';
 import 'package:http/http.dart' as http;
 import '../../domain/entities/place_candidate.dart';
-import '../../domain/exceptions/place_search_exception.dart';
 import '../../domain/repositories/place_search_repository.dart';
 import '../datasources/place_candidate_cache.dart';
 
@@ -36,6 +35,10 @@ class OsmPlaceSearchRepositoryImpl implements PlaceSearchRepository {
   // 1回の問い合わせで受け取る施設の上限
   static const _maxElements = 300;
 
+  // 場所を分けて取り直すのは、検索を始めてからこの時間まで
+  // (これを過ぎても取得できていない場所は、取得できなかったものとして扱う)
+  static const _maxSearchDuration = Duration(seconds: 25);
+
   // 滞在先とは考えにくい設備
   static const _excludedAmenities = {
     'parking',
@@ -55,7 +58,7 @@ class OsmPlaceSearchRepositoryImpl implements PlaceSearchRepository {
   };
 
   @override
-  Future<List<List<PlaceCandidate>>> findNearby(
+  Future<List<List<PlaceCandidate>?>> findNearby(
     List<Coordinate> coordinates,
   ) async {
     final results = <String, List<PlaceCandidate>>{};
@@ -74,26 +77,13 @@ class OsmPlaceSearchRepositoryImpl implements PlaceSearchRepository {
     }
 
     if (missing.isNotEmpty) {
-      final List<Map<String, dynamic>> elements;
-
-      try {
-        // 問い合わせは1回にまとめる
-        elements = await _fetch(missing);
-      } catch (e) {
-        throw PlaceSearchException('施設の候補を取得できませんでした: $e');
-      }
-
-      for (final coordinate in missing) {
-        final key = _key(coordinate);
-        final candidates = _candidates(coordinate, elements);
-
-        results[key] = candidates;
-        await _cache.put(key, candidates);
-      }
+      // まずは1回の問い合わせにまとめる
+      await _search(missing, results, Stopwatch()..start());
     }
 
+    // 取得できなかった場所はnullのままになる
     return [
-      for (final coordinate in coordinates) results[_key(coordinate)] ?? const [],
+      for (final coordinate in coordinates) results[_key(coordinate)],
     ];
   }
 
@@ -103,21 +93,57 @@ class OsmPlaceSearchRepositoryImpl implements PlaceSearchRepository {
         '${coordinate.longitude.toStringAsFixed(4)}';
   }
 
-  Future<List<Map<String, dynamic>>> _fetch(List<Coordinate> coordinates) async {
-    final elements = await _request(coordinates);
+  /// [coordinates]の周辺の施設を検索し、取得できた場所の候補を[results]に入れて保存する
+  ///
+  /// まとめた問い合わせをサーバーが処理しきれなかった場合は、場所を半分に分けて取り直す
+  /// (1か所のせいで、ほかの場所まで取得できなくならないようにする)
+  Future<void> _search(
+    List<Coordinate> coordinates,
+    Map<String, List<PlaceCandidate>> results,
+    Stopwatch stopwatch,
+  ) async {
+    if (stopwatch.elapsed >= _maxSearchDuration) return;
+
+    final List<Map<String, dynamic>> elements;
+
+    try {
+      elements = await _request(coordinates);
+    } on _IncompleteResultException {
+      await _searchSeparately(coordinates, results, stopwatch);
+      return;
+    } catch (e) {
+      // 通信できない場合などは、分けて取り直しても同じ結果になる
+      return;
+    }
 
     // 上限まで返ってきた場合は、一部の場所の施設が欠けている可能性がある
     // (欠けたまま「周辺に施設がない」と保存しないよう、場所を分けて取り直す)
-    if (elements.length < _maxElements || coordinates.length == 1) {
-      return elements;
+    if (elements.length >= _maxElements && coordinates.length > 1) {
+      await _searchSeparately(coordinates, results, stopwatch);
+      return;
     }
+
+    for (final coordinate in coordinates) {
+      final key = _key(coordinate);
+      final candidates = _candidates(coordinate, elements);
+
+      results[key] = candidates;
+      await _cache.put(key, candidates);
+    }
+  }
+
+  Future<void> _searchSeparately(
+    List<Coordinate> coordinates,
+    Map<String, List<PlaceCandidate>> results,
+    Stopwatch stopwatch,
+  ) async {
+    // 1か所だけでも取得できない場合は、これ以上分けられない
+    if (coordinates.length == 1) return;
 
     final half = coordinates.length ~/ 2;
 
-    return [
-      ...await _fetch(coordinates.sublist(0, half)),
-      ...await _fetch(coordinates.sublist(half)),
-    ];
+    await _search(coordinates.sublist(0, half), results, stopwatch);
+    await _search(coordinates.sublist(half), results, stopwatch);
   }
 
   Future<List<Map<String, dynamic>>> _request(
@@ -145,6 +171,11 @@ class OsmPlaceSearchRepositoryImpl implements PlaceSearchRepository {
       body: {'data': query},
     ).timeout(_timeout);
 
+    // 504は、サーバーが時間内に検索を終えられなかった場合に返る
+    if (response.statusCode == 504) {
+      throw _IncompleteResultException('${response.statusCode}');
+    }
+
     if (response.statusCode != 200) {
       throw Exception('Overpass API: ${response.statusCode}');
     }
@@ -157,7 +188,7 @@ class OsmPlaceSearchRepositoryImpl implements PlaceSearchRepository {
     // 検索が時間切れなどで打ち切られた場合は、200のまま途中までの結果とremarkが返る
     final remark = data['remark'];
     if (remark is String && remark.isNotEmpty) {
-      throw Exception('Overpass API: $remark');
+      throw _IncompleteResultException(remark);
     }
 
     final elements = data['elements'];
@@ -290,4 +321,14 @@ class OsmPlaceSearchRepositoryImpl implements PlaceSearchRepository {
 
     return 2 * earthRadius * asin(min(1.0, sqrt(h)));
   }
+}
+
+/// 問い合わせが重く、サーバーが検索を終えられなかった(場所を減らせば取得できる可能性がある)
+class _IncompleteResultException implements Exception {
+  final String message;
+
+  _IncompleteResultException(this.message);
+
+  @override
+  String toString() => 'Overpass API: $message';
 }

@@ -23,6 +23,7 @@ class TimelineSheet extends StatelessWidget {
     required this.onMoveTap,
     required this.onPlaceNameChanged,
     required this.onTransportChanged,
+    required this.onRetryPlaceSearch,
   });
 
   /// シートを最も小さくしたときの高さ(画面に対する割合)
@@ -69,6 +70,9 @@ class TimelineSheet extends StatelessWidget {
   final void Function(Move move, TransportMode? transport, String? text)
       onTransportChanged;
 
+  /// 取得できなかった訪れた場所を、もう一度取得する
+  final VoidCallback onRetryPlaceSearch;
+
   @override
   Widget build(BuildContext context) {
     return DraggableScrollableSheet(
@@ -105,6 +109,17 @@ class TimelineSheet extends StatelessWidget {
                 // 訪れた場所の取得が終わるまで表示する
                 if (isLoading)
                   const SliverToBoxAdapter(child: _LoadingIndicator()),
+                // 訪れた場所を取得できなかった滞在は、地名だけの表示になっている
+                // (ユーザーが場所名を入力した滞在は、取得できなくても困らない)
+                if (!isLoading &&
+                    items.whereType<Stay>().any(
+                          (e) => e.isPlaceSearchFailed && !e.isPlaceNameEdited,
+                        ))
+                  SliverToBoxAdapter(
+                    child: _PlaceSearchFailedNotice(
+                      onRetry: onRetryPlaceSearch,
+                    ),
+                  ),
                 if (items.isEmpty && !isLoading)
                   const SliverToBoxAdapter(
                     child: Padding(
@@ -745,6 +760,35 @@ class _LoadingIndicator extends StatelessWidget {
           Text(
             "訪れた場所を取得しています…",
             style: Theme.of(context).textTheme.bodySmall,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _PlaceSearchFailedNotice extends StatelessWidget {
+  const _PlaceSearchFailedNotice({required this.onRetry});
+
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 0, 8, 8),
+      child: Row(
+        children: [
+          const Icon(Icons.info_outline, size: 16, color: Colors.grey),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              "一部の訪れた場所を取得できませんでした",
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+          ),
+          TextButton(
+            onPressed: onRetry,
+            child: const Text("再取得"),
           ),
         ],
       ),

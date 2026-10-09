@@ -11,15 +11,17 @@ class GetPlaceCandidatesUseCase {
       );
 
   /// 滞在場所ごとに、周辺の施設の候補を取得
-  /// 戻り値は[stays]と同じ順番
+  /// 戻り値は[stays]と同じ順番(検索できなかった場所は、候補なしになる)
   Future<List<List<PlaceCandidate>>> execute(
       List<Stay> stays,
-      ) {
-    if (stays.isEmpty) return Future.value([]);
+      ) async {
+    if (stays.isEmpty) return [];
 
-    return repository.findNearby([
+    final candidates = await repository.findNearby([
       for (final stay in stays)
         (latitude: stay.latitude, longitude: stay.longitude),
     ]);
+
+    return [for (final e in candidates) e ?? const []];
   }
 }

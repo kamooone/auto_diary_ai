@@ -245,6 +245,9 @@ class MapViewModel extends Notifier<MapState> {
     );
   }
 
+  /// 取得できなかった訪れた場所を、もう一度取得する
+  Future<void> retryPlaceSearch() => _reloadTimeline();
+
   /// 滞在の場所名を修正する(nullの場合は自動で取得した場所名に戻す)
   Future<void> updateStayPlaceName(Stay stay, String? placeName) async {
     await ref

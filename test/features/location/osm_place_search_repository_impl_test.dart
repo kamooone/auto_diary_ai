@@ -1,6 +1,5 @@
 import 'dart:convert';
 import 'package:auto_diary_ai/features/location/data/repositories/osm_place_search_repository_impl.dart';
-import 'package:auto_diary_ai/features/location/domain/exceptions/place_search_exception.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
@@ -40,9 +39,9 @@ void main() {
     final result = await repository.findNearby([tokyoStation]);
 
     expect(result, hasLength(1));
-    expect(result.single.map((e) => e.name), ['東京駅', '東京駅一番街']);
-    expect(result.single.first.category, '駅');
-    expect(result.single.last.category, 'ショッピングモール');
+    expect(result.single!.map((e) => e.name), ['東京駅', '東京駅一番街']);
+    expect(result.single!.first.category, '駅');
+    expect(result.single!.last.category, 'ショッピングモール');
   });
 
   test('範囲外・名前なし・駐車場などは候補にしない', () async {
@@ -97,7 +96,7 @@ void main() {
 
     final result = await repository.findNearby([tokyoStation]);
 
-    expect(result.single.map((e) => e.name), ['カフェA']);
+    expect(result.single!.map((e) => e.name), ['カフェA']);
   });
 
   test('複数の場所を1回の問い合わせで取得し、結果を再利用する', () async {
@@ -130,12 +129,12 @@ void main() {
     final result = await repository.findNearby([tokyoStation, other]);
     await repository.findNearby([tokyoStation, other]);
 
-    expect(result[0].map((e) => e.name), ['カフェA']);
-    expect(result[1].map((e) => e.name), ['カフェB']);
+    expect(result[0]!.map((e) => e.name), ['カフェA']);
+    expect(result[1]!.map((e) => e.name), ['カフェB']);
     expect(requestCount, 1);
   });
 
-  test('取得に失敗した場合は例外を投げ、結果を保存しない', () async {
+  test('取得に失敗した場合はnullを返し、結果を保存しない', () async {
     var shouldFail = true;
 
     final repository = OsmPlaceSearchRepositoryImpl(
@@ -155,16 +154,13 @@ void main() {
       }),
     );
 
-    await expectLater(
-      repository.findNearby([tokyoStation]),
-      throwsA(isA<PlaceSearchException>()),
-    );
+    expect(await repository.findNearby([tokyoStation]), [null]);
 
     // 失敗した結果は保存されないため、次の問い合わせで取得できる
     shouldFail = false;
     final result = await repository.findNearby([tokyoStation]);
 
-    expect(result.single.map((e) => e.name), ['カフェA']);
+    expect(result.single!.map((e) => e.name), ['カフェA']);
   });
 
   test('検索が打ち切られた場合は失敗として扱い、結果を保存しない', () async {
@@ -193,16 +189,13 @@ void main() {
       }),
     );
 
-    await expectLater(
-      repository.findNearby([tokyoStation]),
-      throwsA(isA<PlaceSearchException>()),
-    );
+    expect(await repository.findNearby([tokyoStation]), [null]);
 
     // 「周辺に施設がない」とは保存されないため、次の問い合わせで取得できる
     isInterrupted = false;
     final result = await repository.findNearby([tokyoStation]);
 
-    expect(result.single.map((e) => e.name), ['カフェA']);
+    expect(result.single!.map((e) => e.name), ['カフェA']);
   });
 
   test('応答に施設の一覧がない場合は失敗として扱う', () async {
@@ -210,10 +203,7 @@ void main() {
       client: MockClient((request) async => json({'version': 0.6})),
     );
 
-    await expectLater(
-      repository.findNearby([tokyoStation]),
-      throwsA(isA<PlaceSearchException>()),
-    );
+    expect(await repository.findNearby([tokyoStation]), [null]);
   });
 
   test('結果が上限に達した場合は、場所を分けて取り直す', () async {
@@ -258,8 +248,82 @@ void main() {
 
     final result = await repository.findNearby([tokyoStation, other]);
 
-    expect(result[0].map((e) => e.name), ['カフェA']);
-    expect(result[1].map((e) => e.name), ['カフェB']);
+    expect(result[0]!.map((e) => e.name), ['カフェA']);
+    expect(result[1]!.map((e) => e.name), ['カフェB']);
     expect(requestCount, 3);
+  });
+
+  test('まとめた検索が打ち切られた場合は、場所を分けて取り直し、取得できた場所だけ返す', () async {
+    const heavy = (latitude: 35.0, longitude: 135.0);
+    const other = (latitude: 34.0, longitude: 134.0);
+
+    var isHeavyInterrupted = true;
+    final queries = <String>[];
+
+    final repository = OsmPlaceSearchRepositoryImpl(
+      client: MockClient((request) async {
+        final query = request.bodyFields['data']!;
+        queries.add(query);
+
+        // heavyを含む問い合わせは、時間切れで打ち切られる
+        if (isHeavyInterrupted && query.contains('${heavy.latitude},')) {
+          return json({
+            'elements': [],
+            'remark': 'runtime error: Query timed out in "query" at line 1',
+          });
+        }
+
+        return json({
+          'elements': [
+            if (query.contains('${tokyoStation.latitude}'))
+              {
+                'type': 'node',
+                'lat': 35.68124,
+                'lon': 139.76713,
+                'tags': {'name': 'カフェA', 'amenity': 'cafe'},
+              },
+            if (query.contains('${heavy.latitude},'))
+              {
+                'type': 'node',
+                'lat': 35.0001,
+                'lon': 135.0001,
+                'tags': {'name': 'カフェB', 'amenity': 'cafe'},
+              },
+          ],
+        });
+      }),
+    );
+
+    final result = await repository.findNearby([tokyoStation, heavy, other]);
+
+    expect(result[0]!.map((e) => e.name), ['カフェA']);
+    expect(result[1], isNull);
+    expect(result[2], isEmpty);
+
+    // 取得できた場所は保存されているため、次は取得できなかった場所だけを問い合わせる
+    isHeavyInterrupted = false;
+    queries.clear();
+
+    final retried = await repository.findNearby([tokyoStation, heavy, other]);
+
+    expect(retried[1]!.map((e) => e.name), ['カフェB']);
+    expect(queries, hasLength(1));
+    expect(queries.single, isNot(contains('${tokyoStation.latitude}')));
+  });
+
+  test('通信できない場合は、場所を分けて取り直さない', () async {
+    const other = (latitude: 35.0, longitude: 135.0);
+
+    var requestCount = 0;
+
+    final repository = OsmPlaceSearchRepositoryImpl(
+      client: MockClient((request) async {
+        requestCount++;
+        throw http.ClientException('offline');
+      }),
+    );
+
+    expect(await repository.findNearby([tokyoStation, other]), [null, null]);
+    expect(requestCount, 1);
   });
 }

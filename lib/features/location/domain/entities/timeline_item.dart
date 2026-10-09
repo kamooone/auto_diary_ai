@@ -29,6 +29,10 @@ class Stay extends TimelineItem {
   /// 場所名がユーザーの入力したものかどうか
   final bool isPlaceNameEdited;
 
+  /// 周辺の施設を検索できなかったかどうか(通信できなかった場合など)
+  /// trueの場合、近くに施設がないのではなく、まだ分かっていないだけ
+  final bool isPlaceSearchFailed;
+
   const Stay({
     required super.start,
     required super.end,
@@ -37,6 +41,7 @@ class Stay extends TimelineItem {
     this.placeName,
     this.estimatedPlaceName,
     this.isPlaceNameEdited = false,
+    this.isPlaceSearchFailed = false,
   });
 
   /// ユーザーが確認していない滞在で、施設を推定で当てはめているかどうか
@@ -52,6 +57,7 @@ class Stay extends TimelineItem {
     String? placeName,
     String? estimatedPlaceName,
     bool? isPlaceNameEdited,
+    bool? isPlaceSearchFailed,
   }) {
     return Stay(
       start: start,
@@ -61,6 +67,7 @@ class Stay extends TimelineItem {
       placeName: placeName ?? this.placeName,
       estimatedPlaceName: estimatedPlaceName ?? this.estimatedPlaceName,
       isPlaceNameEdited: isPlaceNameEdited ?? this.isPlaceNameEdited,
+      isPlaceSearchFailed: isPlaceSearchFailed ?? this.isPlaceSearchFailed,
     );
   }
 }
