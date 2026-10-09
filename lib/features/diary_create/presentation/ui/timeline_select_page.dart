@@ -56,19 +56,21 @@ class _TimelineSelectPageState extends State<TimelineSelectPage> {
               switch (item) {
                 Stay() => Icons.place,
                 Move() => TimelineFormatter.transportIcon(item.transport),
+                RecordingOff() => Icons.pause_circle_outline,
               },
             ),
             title: Text(
               switch (item) {
                 Stay() => TimelineFormatter.stayTitle(item),
                 Move() => TimelineFormatter.moveTitle(item),
+                RecordingOff() => TimelineFormatter.recordingOffTitle,
               },
             ),
             subtitle: Text(
               switch (item) {
                 Stay() =>
                   "$time（${TimelineFormatter.duration(item.duration)}）",
-                Move() => time,
+                Move() || RecordingOff() => time,
               },
             ),
             onChanged: (checked) {

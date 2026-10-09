@@ -205,7 +205,10 @@ class DiaryCreateViewModel extends AutoDisposeNotifier<DiaryCreateState> {
           !day.isAfter(end);
           day = DateTime(day.year, day.month, day.day + 1)) {
         posts.addAll(await getSharedPosts.execute(day));
-        timeline.addAll(await getTimeline.execute(day));
+        // 記録をオフにしていた時間帯は、AIに渡す情報ではないため選択肢に出さない
+        timeline.addAll(
+          (await getTimeline.execute(day)).where((e) => e is! RecordingOff),
+        );
       }
 
       posts.sort((a, b) => a.receivedAt.compareTo(b.receivedAt));

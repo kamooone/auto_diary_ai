@@ -127,7 +127,14 @@ class GetTimelineByDateUseCase {
       }
     }
 
-    if (items.isEmpty) return [];
+    // 記録をオフにしていた時間帯も、その日の終わり(今日の場合は今の時刻)まで表示する
+    final recordingOffs = _recordingOffs(
+      pauses,
+      from: day,
+      to: day == today ? now : nextDay.subtract(const Duration(seconds: 1)),
+    );
+
+    if (items.isEmpty) return recordingOffs;
 
     // ユーザーが修正した場所名・移動手段を当てはめる
     final edits = await timelineEditRepository.findOverlapping(
@@ -135,7 +142,37 @@ class GetTimelineByDateUseCase {
       items.last.end,
     );
 
-    return _applier.apply(items, edits);
+    // 並べ替えても、同じ時刻に始まるものの順番は変わらないようにする
+    final all = [..._applier.apply(items, edits), ...recordingOffs];
+    final order = {for (final (index, item) in all.indexed) item: index};
+
+    return all
+      ..sort((a, b) {
+        final byStart = a.start.compareTo(b.start);
+        return byStart != 0 ? byStart : order[a]!.compareTo(order[b]!);
+      });
+  }
+
+  /// 記録をオフにしていた期間のうち、[from]から[to]までに重なる部分
+  List<TimelineItem> _recordingOffs(
+    List<RecordingPause> pauses, {
+    required DateTime from,
+    required DateTime to,
+  }) {
+    final items = <TimelineItem>[];
+
+    for (final pause in pauses) {
+      final start = pause.start.isAfter(from) ? pause.start : from;
+
+      final resumedAt = pause.end;
+      final end = resumedAt != null && resumedAt.isBefore(to) ? resumedAt : to;
+
+      if (end.isAfter(start)) {
+        items.add(RecordingOff(start: start, end: end));
+      }
+    }
+
+    return items;
   }
 
   // 前後の日の位置がこれより離れた時刻のものなら、その間の居場所は分からないものとする
@@ -257,6 +294,8 @@ class GetTimelineByDateUseCase {
               transport: _transportEstimator.estimate(item, activities),
             ),
           );
+        case RecordingOff():
+          items.add(item);
         case Stay():
           // 座標から地名を取得する
           final placeName = await placeNameRepository.getPlaceName(

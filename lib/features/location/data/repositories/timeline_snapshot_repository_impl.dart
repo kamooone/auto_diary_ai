@@ -81,6 +81,11 @@ class TimelineSnapshotRepositoryImpl implements TimelineSnapshotRepository {
           'distanceMeters': item.distanceMeters,
           'transport': item.transport?.name,
         },
+      RecordingOff() => {
+          'type': 'recordingOff',
+          'start': item.start.millisecondsSinceEpoch,
+          'end': item.end.millisecondsSinceEpoch,
+        },
     };
   }
 
@@ -97,6 +102,10 @@ class TimelineSnapshotRepositoryImpl implements TimelineSnapshotRepository {
         placeName: json['placeName'] as String?,
         estimatedPlaceName: json['estimatedPlaceName'] as String?,
       );
+    }
+
+    if (json['type'] == 'recordingOff') {
+      return RecordingOff(start: start, end: end);
     }
 
     return Move(

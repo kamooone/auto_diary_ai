@@ -148,6 +148,21 @@ class TimelineSheet extends StatelessWidget {
           ),
           onTap: () => onMoveTap(item),
         ),
+      // 記録していなかった時間帯は、滞在や移動より目立たない色で表示する
+      RecordingOff() => ListTile(
+          dense: true,
+          leading: Icon(
+            Icons.pause_circle_outline,
+            color: Theme.of(context).disabledColor,
+          ),
+          title: Text(
+            TimelineFormatter.recordingOffTitle,
+            style: TextStyle(color: Theme.of(context).disabledColor),
+          ),
+          subtitle: Text(
+            "$time（${TimelineFormatter.duration(item.duration)}）",
+          ),
+        ),
     };
   }
 

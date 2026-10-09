@@ -21,7 +21,10 @@ class TimelineEditApplier {
     final type = switch (item) {
       Stay() => TimelineEditType.stay,
       Move() => TimelineEditType.move,
+      // 記録をオフにしていた時間帯は修正できない
+      RecordingOff() => null,
     };
+    if (type == null) return null;
 
     TimelineEdit? best;
     var bestOverlap = Duration.zero;
@@ -63,6 +66,7 @@ class TimelineEditApplier {
               transportText: edit.transportText,
               isTransportEdited: true,
             ),
+      RecordingOff() => item,
     };
   }
 

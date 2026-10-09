@@ -304,12 +304,38 @@ void main() {
 
       final items = await useCase.execute(day);
 
-      expect(items, hasLength(2));
+      expect(items, hasLength(3));
       // オフにした時刻までは、最後にいた場所にとどまっていたものとして扱う
+      expect(items[0], isA<Stay>());
       expect(items[0].start, DateTime(2026, 1, 1, 9, 0));
       expect(items[0].end, DateTime(2026, 1, 1, 10, 0));
-      expect(items[1].start, DateTime(2026, 1, 1, 14, 0));
-      expect(items[1].end, DateTime(2026, 1, 1, 15, 0));
+      // オフにしていた時間帯は、その間に表示する
+      expect(items[1], isA<RecordingOff>());
+      expect(items[1].start, DateTime(2026, 1, 1, 10, 0));
+      expect(items[1].end, DateTime(2026, 1, 1, 14, 0));
+      expect(items[2], isA<Stay>());
+      expect(items[2].start, DateTime(2026, 1, 1, 14, 0));
+      expect(items[2].end, DateTime(2026, 1, 1, 15, 0));
+    });
+
+    test('オフにしていた時間帯は、その日に重なる部分だけを表示する', () async {
+      locations.locations = [];
+      recordingPauses.pauses = [
+        RecordingPause(
+          start: DateTime(2025, 12, 31, 20, 0),
+          end: DateTime(2026, 1, 1, 8, 0),
+        ),
+        RecordingPause(start: DateTime(2026, 1, 1, 22, 0)),
+      ];
+
+      final items = await useCase.execute(day);
+
+      expect(items, hasLength(2));
+      expect(items.every((e) => e is RecordingOff), isTrue);
+      expect(items[0].start, DateTime(2026, 1, 1, 0, 0));
+      expect(items[0].end, DateTime(2026, 1, 1, 8, 0));
+      expect(items[1].start, DateTime(2026, 1, 1, 22, 0));
+      expect(items[1].end, DateTime(2026, 1, 1, 23, 59, 59));
     });
 
     test('すぐオンに戻した場合は、滞在を区切らない', () async {
@@ -345,7 +371,7 @@ void main() {
         ),
       ];
 
-      final stay = (await useCase.execute(day)).single as Stay;
+      final stay = (await useCase.execute(day)).whereType<Stay>().single;
 
       expect(stay.start, DateTime(2026, 1, 1, 9, 0));
     });
@@ -364,7 +390,7 @@ void main() {
         ),
       ];
 
-      final stay = (await useCase.execute(day)).single as Stay;
+      final stay = (await useCase.execute(day)).whereType<Stay>().single;
 
       expect(stay.end, DateTime(2026, 1, 1, 12, 0));
     });
@@ -389,7 +415,9 @@ void main() {
       // 日付が変わった直後は、記録がその日に入らないため確認しない
       if (lastPoint.day != now.day) return;
 
-      expect((items.single as Stay).end, pausedAt);
+      expect(items.whereType<Stay>().single.end, pausedAt);
+      expect(items.last, isA<RecordingOff>());
+      expect(items.last.start, pausedAt);
     });
 
     test('保存後にオフにしていた期間が変わった場合は計算し直す', () async {

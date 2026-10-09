@@ -47,6 +47,9 @@ class TimelineFormatter {
         : "${transport.label}で移動（推定） $distanceText";
   }
 
+  /// 行動履歴の記録をオフにしていた時間帯の見出し
+  static const recordingOffTitle = "行動履歴の記録オフ";
+
   static IconData transportIcon(TransportMode? transport) {
     return switch (transport) {
       TransportMode.walk => Icons.directions_walk,

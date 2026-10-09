@@ -1,6 +1,7 @@
 import 'transport_mode.dart';
 
 /// 1日の行動を「滞在」と「移動」に分けたもの
+/// (行動履歴の記録をオフにしていた時間帯も、同じ並びの中で表す)
 sealed class TimelineItem {
   final DateTime start;
   final DateTime end;
@@ -100,4 +101,12 @@ class Move extends TimelineItem {
       isTransportEdited: isTransportEdited ?? this.isTransportEdited,
     );
   }
+}
+
+/// 行動履歴の記録をオフにしていた時間帯(その間の滞在や移動は分からない)
+class RecordingOff extends TimelineItem {
+  const RecordingOff({
+    required super.start,
+    required super.end,
+  });
 }

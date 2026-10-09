@@ -82,6 +82,7 @@ class GenerateDiaryUseCase {
       return switch (e) {
         Stay() => "$time 滞在: ${_place(e)}",
         Move() => "$time 移動${_transport(e)}: 約${_distance(e.distanceMeters)}",
+        RecordingOff() => "$time 記録なし",
       };
     }).join("\n");
 
