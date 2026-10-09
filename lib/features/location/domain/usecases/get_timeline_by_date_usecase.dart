@@ -75,10 +75,13 @@ class GetTimelineByDateUseCase {
     );
 
     // 記録をオフにしていた期間(その間は、どこにいたか分からないものとして扱う)
-    final pauses = await recordingPauseRepository.getPauses(
-      previous?.timestamp ?? day,
-      next?.timestamp ?? nextDay,
-    );
+    final pauses = [
+      for (final pause in await recordingPauseRepository.getPauses(
+        previous?.timestamp ?? day,
+        next?.timestamp ?? nextDay,
+      ))
+        if (!_isBrief(pause)) pause,
+    ];
 
     // 過去の日は内容が変わらないため、計算済みの結果があればそれを使う
     final isPast = day.isBefore(today);
@@ -137,6 +140,15 @@ class GetTimelineByDateUseCase {
 
   // 前後の日の位置がこれより離れた時刻のものなら、その間の居場所は分からないものとする
   static const _maxCarryOver = Duration(hours: 72);
+
+  // これより短いオフは、記録が続いていたものとして扱う
+  // (オフにしてすぐオンに戻しただけで、同じ場所の滞在が2つに分かれないようにする)
+  static const _minPauseDuration = Duration(minutes: 10);
+
+  bool _isBrief(RecordingPause pause) {
+    final end = pause.end;
+    return end != null && end.difference(pause.start) < _minPauseDuration;
+  }
 
   Location? _within(
     Location? location, {

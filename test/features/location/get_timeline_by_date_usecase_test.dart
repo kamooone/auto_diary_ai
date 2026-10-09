@@ -312,6 +312,25 @@ void main() {
       expect(items[1].end, DateTime(2026, 1, 1, 15, 0));
     });
 
+    test('すぐオンに戻した場合は、滞在を区切らない', () async {
+      locations.locations = [
+        point(9, 0, 35.0),
+        point(10, 1, 35.0001),
+        point(11, 0, 35.0),
+      ];
+      recordingPauses.pauses = [
+        RecordingPause(
+          start: DateTime(2026, 1, 1, 10, 0),
+          end: DateTime(2026, 1, 1, 10, 1),
+        ),
+      ];
+
+      final stay = (await useCase.execute(day)).single as Stay;
+
+      expect(stay.start, DateTime(2026, 1, 1, 9, 0));
+      expect(stay.end, DateTime(2026, 1, 1, 11, 0));
+    });
+
     test('前の日との間でオフにしていた場合は、日をまたいだ滞在にしない', () async {
       locations.previous = Location(
         id: 0,
