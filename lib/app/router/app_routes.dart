@@ -2,6 +2,7 @@
 import 'package:auto_diary_ai/features/calendar/presentation/ui/calendar_screen/calendar_screen.dart';
 import 'package:go_router/go_router.dart';
 import 'package:auto_diary_ai/features/home/presentation/ui/home_screen.dart';
+import 'package:auto_diary_ai/features/setting/presentation/ui/place_search_test_page.dart';
 import 'package:auto_diary_ai/features/setting/presentation/ui/settings_page.dart';
 import 'package:auto_diary_ai/features/map/presentation/ui/map_page.dart';
 import '../../features/calendar/presentation/ui/calendar_screen/day_posts_screen.dart';
@@ -12,6 +13,7 @@ class AppRoutes {
   static const home = '/';
   static const diaryCreate = '/diary_create_screen';
   static const settings = '/settings';
+  static const placeSearchTest = '/settings/place_search_test';
   static const map = '/map';
   static const calendar = '/calendar';
   static const dayPostsList = '/day_posts_list';
@@ -35,6 +37,10 @@ class AppRoutes {
         GoRoute(
           path: settings,
           builder: (context, state) => const SettingsPage(),
+        ),
+        GoRoute(
+          path: placeSearchTest,
+          builder: (context, state) => const PlaceSearchTestPage(),
         ),
         GoRoute(
           path: map,

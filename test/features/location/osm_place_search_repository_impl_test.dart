@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:auto_diary_ai/features/location/data/repositories/osm_place_search_repository_impl.dart';
+import 'package:auto_diary_ai/features/location/domain/exceptions/place_search_exception.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
@@ -325,5 +326,44 @@ void main() {
 
     expect(await repository.findNearby([tokyoStation, other]), [null, null]);
     expect(requestCount, 1);
+  });
+
+  test('動作確認用の検索は、保存した結果を使わず、失敗の理由を伝える', () async {
+    var shouldFail = false;
+    var requestCount = 0;
+
+    final repository = OsmPlaceSearchRepositoryImpl(
+      client: MockClient((request) async {
+        requestCount++;
+        if (shouldFail) return http.Response('error', 429);
+
+        return json({
+          'elements': [
+            {
+              'type': 'node',
+              'lat': 35.68124,
+              'lon': 139.76713,
+              'tags': {'name': 'カフェA', 'amenity': 'cafe'},
+            },
+          ],
+        });
+      }),
+    );
+
+    await repository.findNearby([tokyoStation]);
+    final result = await repository.search(tokyoStation);
+
+    expect(result.map((e) => e.name), ['カフェA']);
+    expect(requestCount, 2);
+
+    shouldFail = true;
+
+    await expectLater(
+      repository.search(tokyoStation),
+      throwsA(
+        isA<PlaceSearchException>()
+            .having((e) => e.message, 'message', contains('429')),
+      ),
+    );
   });
 }

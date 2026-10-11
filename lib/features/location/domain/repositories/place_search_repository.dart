@@ -11,4 +11,10 @@ abstract class PlaceSearchRepository {
   ///
   /// 検索できなかった場所はnullになる(ほかの場所が検索できていれば、その結果は返す)
   Future<List<List<PlaceCandidate>?>> findNearby(List<Coordinate> coordinates);
+
+  /// [coordinate]の周辺にある施設の候補を、保存した結果を使わずに検索する(動作確認用)
+  /// 検索した結果も保存しない
+  ///
+  /// 検索できなかった場合は、理由を入れた[PlaceSearchException]を投げる
+  Future<List<PlaceCandidate>> search(Coordinate coordinate);
 }

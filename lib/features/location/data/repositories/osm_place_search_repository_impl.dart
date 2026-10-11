@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:math';
 import 'package:http/http.dart' as http;
 import '../../domain/entities/place_candidate.dart';
+import '../../domain/exceptions/place_search_exception.dart';
 import '../../domain/repositories/place_search_repository.dart';
 import '../datasources/place_candidate_cache.dart';
 
@@ -85,6 +86,15 @@ class OsmPlaceSearchRepositoryImpl implements PlaceSearchRepository {
     return [
       for (final coordinate in coordinates) results[_key(coordinate)],
     ];
+  }
+
+  @override
+  Future<List<PlaceCandidate>> search(Coordinate coordinate) async {
+    try {
+      return _candidates(coordinate, await _request([coordinate]));
+    } catch (e) {
+      throw PlaceSearchException('$e');
+    }
   }
 
   // 小数第4位(約10m)で丸めた座標をキーにする

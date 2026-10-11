@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/database/isar_provider.dart';
+import '../../data/datasources/address_search_datasource.dart';
 import '../../data/datasources/gps_location_datasource.dart';
 import '../../data/datasources/isar_location_datasource.dart';
 import '../../data/datasources/isar_place_candidate_cache.dart';
@@ -186,6 +187,13 @@ Provider((ref) {
   return UpdateMoveTransportUseCase(
     ref.watch(timelineEditRepositoryProvider),
   );
+
+});
+
+final addressSearchDataSourceProvider =
+Provider((ref) {
+
+  return AddressSearchDataSource();
 
 });
 

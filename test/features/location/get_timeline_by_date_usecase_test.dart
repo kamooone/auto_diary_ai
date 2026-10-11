@@ -60,6 +60,9 @@ class FakePlaceNameRepository implements PlaceNameRepository {
 class FakePlaceSearchRepository implements PlaceSearchRepository {
   bool shouldFail = false;
 
+  @override
+  Future<List<PlaceCandidate>> search(Coordinate coordinate) async => [];
+
   /// 検索できないことにする場所の番号
   Set<int> failingIndexes = {};
 
