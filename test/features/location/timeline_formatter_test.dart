@@ -6,6 +6,7 @@ Stay stay({
   String? placeName = '東京都千代田区丸の内',
   String? estimatedPlaceName,
   bool isPlaceNameEdited = false,
+  bool isPlaceSearchFailed = false,
 }) {
   return Stay(
     start: DateTime(2026, 1, 1, 9, 0),
@@ -15,6 +16,7 @@ Stay stay({
     placeName: placeName,
     estimatedPlaceName: estimatedPlaceName,
     isPlaceNameEdited: isPlaceNameEdited,
+    isPlaceSearchFailed: isPlaceSearchFailed,
   );
 }
 
@@ -23,6 +25,30 @@ void main() {
     expect(
       TimelineFormatter.stayTitle(stay(), showNotFound: true),
       '東京都千代田区丸の内（取得できませんでした）',
+    );
+  });
+
+  test('通信に失敗して取得できなかった場合は、訪れた場所がなかった場合と別の文言にする', () {
+    expect(
+      TimelineFormatter.stayTitle(
+        stay(isPlaceSearchFailed: true),
+        showNotFound: true,
+      ),
+      '東京都千代田区丸の内（通信に失敗しました）',
+    );
+  });
+
+  test('通信に失敗していても、ユーザーが入力した場所名には何も添えない', () {
+    expect(
+      TimelineFormatter.stayTitle(
+        stay(
+          placeName: '自宅',
+          isPlaceNameEdited: true,
+          isPlaceSearchFailed: true,
+        ),
+        showNotFound: true,
+      ),
+      '自宅',
     );
   });
 
