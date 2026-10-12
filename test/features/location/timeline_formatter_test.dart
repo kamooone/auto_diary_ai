@@ -24,7 +24,7 @@ void main() {
   test('訪れた場所を取得できず地名のまま表示する場合は、その旨を添える', () {
     expect(
       TimelineFormatter.stayTitle(stay(), showNotFound: true),
-      '東京都千代田区丸の内（取得できませんでした）',
+      '東京都千代田区丸の内（取得できませんでした。手動で登録することも可能です。）',
     );
   });
 
@@ -34,7 +34,7 @@ void main() {
         stay(isPlaceSearchFailed: true),
         showNotFound: true,
       ),
-      '東京都千代田区丸の内（通信に失敗しました）',
+      '東京都千代田区丸の内（通信に失敗しました。）',
     );
   });
 

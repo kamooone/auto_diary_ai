@@ -42,8 +42,8 @@ class TimelineFormatter {
     if (!isUnresolved) return name;
 
     return stay.isPlaceSearchFailed
-        ? "$name（通信に失敗しました）"
-        : "$name（取得できませんでした）";
+        ? "$name（通信に失敗しました。）"
+        : "$name（取得できませんでした。手動で登録することも可能です。）";
   }
 
   static String moveTitle(Move move) {
