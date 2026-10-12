@@ -1,15 +1,18 @@
 import '../entities/location.dart';
 import '../entities/place_candidate.dart';
 import '../entities/recording_pause.dart';
+import '../entities/registered_place.dart';
 import '../entities/timeline_item.dart';
 import '../repositories/activity_repository.dart';
 import '../repositories/location_repository.dart';
 import '../repositories/place_name_repository.dart';
 import '../repositories/place_search_repository.dart';
 import '../repositories/recording_pause_repository.dart';
+import '../repositories/registered_place_repository.dart';
 import '../repositories/timeline_edit_repository.dart';
 import '../repositories/timeline_snapshot_repository.dart';
 import '../services/place_estimator.dart';
+import '../services/registered_place_finder.dart';
 import '../services/timeline_builder.dart';
 import '../services/timeline_edit_applier.dart';
 import '../services/transport_estimator.dart';
@@ -30,6 +33,8 @@ class GetTimelineByDateUseCase {
 
   final RecordingPauseRepository recordingPauseRepository;
 
+  final RegisteredPlaceRepository registeredPlaceRepository;
+
   final TimelineBuilder _builder = TimelineBuilder();
 
   final TransportEstimator _transportEstimator = TransportEstimator();
@@ -37,6 +42,8 @@ class GetTimelineByDateUseCase {
   final PlaceEstimator _estimator = PlaceEstimator();
 
   final TimelineEditApplier _applier = TimelineEditApplier();
+
+  final RegisteredPlaceFinder _registeredFinder = RegisteredPlaceFinder();
 
   GetTimelineByDateUseCase({
     required this.repository,
@@ -46,6 +53,7 @@ class GetTimelineByDateUseCase {
     required this.activityRepository,
     required this.timelineSnapshotRepository,
     required this.recordingPauseRepository,
+    required this.registeredPlaceRepository,
   });
 
   /// 指定した日の行動を「滞在」と「移動」に要約して取得
@@ -84,10 +92,14 @@ class GetTimelineByDateUseCase {
         if (!_isBrief(pause)) pause,
     ];
 
+    // ユーザーが登録した場所(同じ場所を訪れたときは、登録した名前を表示する)
+    final registered = await registeredPlaceRepository.getAll();
+
     // 過去の日は内容が変わらないため、計算済みの結果があればそれを使う
     final isPast = day.isBefore(today);
 
-    // 計算のもとになる位置情報や、記録をオフにしていた期間が変わったら、保存した結果は使わない
+    // 計算のもとになる位置情報や、記録をオフにしていた期間、登録した場所が変わったら、
+    // 保存した結果は使わない
     final signature = [
       locations.length,
       previous?.timestamp.millisecondsSinceEpoch,
@@ -95,6 +107,8 @@ class GetTimelineByDateUseCase {
       for (final pause in pauses)
         "${pause.start.millisecondsSinceEpoch}-"
             "${pause.end?.millisecondsSinceEpoch}",
+      for (final place in registered)
+        "${place.latitude},${place.longitude},${place.name}",
     ].join("|");
 
     var items = isPast
@@ -114,6 +128,7 @@ class GetTimelineByDateUseCase {
           now: day == today ? now : null,
         ),
         estimatePlaces: estimatePlaces,
+        registered: registered,
       );
       items = computed.items;
 
@@ -138,13 +153,16 @@ class GetTimelineByDateUseCase {
     if (items.isEmpty) return recordingOffs;
 
     // ユーザーが修正した場所名・移動手段を当てはめる
+    // (登録した場所の名前より、その滞在に対する修正を優先する)
     final edits = await timelineEditRepository.findOverlapping(
       items.first.start,
       items.last.end,
     );
 
+    final named = _applyRegistered(items, registered);
+
     // 並べ替えても、同じ時刻に始まるものの順番は変わらないようにする
-    final all = [..._applier.apply(items, edits), ...recordingOffs];
+    final all = [..._applier.apply(named, edits), ...recordingOffs];
     final order = {for (final (index, item) in all.indexed) item: index};
 
     return all
@@ -152,6 +170,30 @@ class GetTimelineByDateUseCase {
         final byStart = a.start.compareTo(b.start);
         return byStart != 0 ? byStart : order[a]!.compareTo(order[b]!);
       });
+  }
+
+  /// 登録した場所にあたる滞在に、登録した名前を当てはめる
+  List<TimelineItem> _applyRegistered(
+    List<TimelineItem> items,
+    List<RegisteredPlace> registered,
+  ) {
+    if (registered.isEmpty) return items;
+
+    return [
+      for (final item in items) _applyRegisteredTo(item, registered),
+    ];
+  }
+
+  TimelineItem _applyRegisteredTo(
+    TimelineItem item,
+    List<RegisteredPlace> registered,
+  ) {
+    if (item is! Stay) return item;
+
+    final place = _registeredFinder.find(item, registered);
+    if (place == null) return item;
+
+    return item.copyWith(placeName: place.name, isPlaceNameEdited: true);
   }
 
   /// 記録をオフにしていた期間のうち、[from]から[to]までに重なる部分
@@ -275,6 +317,7 @@ class GetTimelineByDateUseCase {
   Future<({List<TimelineItem> items, bool isComplete})> _compute(
     List<TimelineItem> built, {
     required bool estimatePlaces,
+    required List<RegisteredPlace> registered,
   }) async {
     if (built.isEmpty) return (items: built, isComplete: true);
 
@@ -297,6 +340,9 @@ class GetTimelineByDateUseCase {
           );
         case RecordingOff():
           items.add(item);
+        case Stay() when _registeredFinder.find(item, registered) != null:
+          // 登録した場所は名前が決まっているため、地名も施設も取得しない
+          items.add(item);
         case Stay():
           // 座標から地名を取得する
           final placeName = await placeNameRepository.getPlaceName(
@@ -311,7 +357,7 @@ class GetTimelineByDateUseCase {
 
     if (!estimatePlaces) return (items: items, isComplete: false);
 
-    final estimated = await _estimatePlaces(items);
+    final estimated = await _estimatePlaces(items, registered);
 
     // 施設を検索できなかった場所は、地名だけで表示する
     final isSearched = !estimated
@@ -321,8 +367,14 @@ class GetTimelineByDateUseCase {
     return (items: estimated, isComplete: isComplete && isSearched);
   }
 
-  Future<List<TimelineItem>> _estimatePlaces(List<TimelineItem> items) async {
-    final stays = items.whereType<Stay>().toList();
+  Future<List<TimelineItem>> _estimatePlaces(
+    List<TimelineItem> items,
+    List<RegisteredPlace> registered,
+  ) async {
+    final stays = [
+      for (final stay in items.whereType<Stay>())
+        if (_registeredFinder.find(stay, registered) == null) stay,
+    ];
     if (stays.isEmpty) return items;
 
     List<List<PlaceCandidate>?> candidates;

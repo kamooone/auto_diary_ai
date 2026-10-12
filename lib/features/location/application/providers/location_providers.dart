@@ -10,6 +10,7 @@ import '../../data/repositories/location_repository_impl.dart';
 import '../../data/repositories/osm_place_search_repository_impl.dart';
 import '../../data/repositories/place_name_repository_impl.dart';
 import '../../data/repositories/recording_pause_repository_impl.dart';
+import '../../data/repositories/registered_place_repository_impl.dart';
 import '../../data/repositories/timeline_edit_repository_impl.dart';
 import '../../data/repositories/timeline_snapshot_repository_impl.dart';
 import '../../domain/repositories/activity_repository.dart';
@@ -17,6 +18,7 @@ import '../../domain/repositories/location_repository.dart';
 import '../../domain/repositories/place_name_repository.dart';
 import '../../domain/repositories/place_search_repository.dart';
 import '../../domain/repositories/recording_pause_repository.dart';
+import '../../domain/repositories/registered_place_repository.dart';
 import '../../domain/repositories/timeline_edit_repository.dart';
 import '../../domain/repositories/timeline_snapshot_repository.dart';
 import '../../domain/usecases/get_latest_location_usecase.dart';
@@ -108,6 +110,15 @@ Provider<TimelineSnapshotRepository>((ref) {
 
 });
 
+final registeredPlaceRepositoryProvider =
+Provider<RegisteredPlaceRepository>((ref) {
+
+  return RegisteredPlaceRepositoryImpl(
+    ref.watch(isarProvider),
+  );
+
+});
+
 final timelineEditRepositoryProvider =
 Provider<TimelineEditRepository>((ref) {
 
@@ -168,6 +179,7 @@ Provider((ref) {
     activityRepository: ref.watch(activityRepositoryProvider),
     timelineSnapshotRepository: ref.watch(timelineSnapshotRepositoryProvider),
     recordingPauseRepository: ref.watch(recordingPauseRepositoryProvider),
+    registeredPlaceRepository: ref.watch(registeredPlaceRepositoryProvider),
   );
 
 });
@@ -177,6 +189,7 @@ Provider((ref) {
 
   return UpdateStayPlaceNameUseCase(
     ref.watch(timelineEditRepositoryProvider),
+    ref.watch(registeredPlaceRepositoryProvider),
   );
 
 });
@@ -202,6 +215,7 @@ Provider((ref) {
 
   return GetPlaceCandidatesUseCase(
     ref.watch(placeSearchRepositoryProvider),
+    ref.watch(registeredPlaceRepositoryProvider),
   );
 
 });

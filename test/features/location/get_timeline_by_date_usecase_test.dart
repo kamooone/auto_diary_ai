@@ -2,6 +2,7 @@ import 'package:auto_diary_ai/features/location/domain/entities/activity_segment
 import 'package:auto_diary_ai/features/location/domain/entities/location.dart';
 import 'package:auto_diary_ai/features/location/domain/entities/place_candidate.dart';
 import 'package:auto_diary_ai/features/location/domain/entities/recording_pause.dart';
+import 'package:auto_diary_ai/features/location/domain/entities/registered_place.dart';
 import 'package:auto_diary_ai/features/location/domain/entities/timeline_edit.dart';
 import 'package:auto_diary_ai/features/location/domain/entities/timeline_item.dart';
 import 'package:auto_diary_ai/features/location/domain/exceptions/place_search_exception.dart';
@@ -10,6 +11,7 @@ import 'package:auto_diary_ai/features/location/domain/repositories/location_rep
 import 'package:auto_diary_ai/features/location/domain/repositories/place_name_repository.dart';
 import 'package:auto_diary_ai/features/location/domain/repositories/place_search_repository.dart';
 import 'package:auto_diary_ai/features/location/domain/repositories/recording_pause_repository.dart';
+import 'package:auto_diary_ai/features/location/domain/repositories/registered_place_repository.dart';
 import 'package:auto_diary_ai/features/location/domain/repositories/timeline_edit_repository.dart';
 import 'package:auto_diary_ai/features/location/domain/repositories/timeline_snapshot_repository.dart';
 import 'package:auto_diary_ai/features/location/domain/usecases/get_timeline_by_date_usecase.dart';
@@ -142,6 +144,26 @@ class FakeRecordingPauseRepository implements RecordingPauseRepository {
   }
 }
 
+class FakeRegisteredPlaceRepository implements RegisteredPlaceRepository {
+  List<RegisteredPlace> places = [];
+
+  @override
+  Future<List<RegisteredPlace>> getAll() async => places;
+
+  @override
+  Future<void> save(RegisteredPlace place) async {
+    places = [...places, place];
+  }
+
+  @override
+  Future<void> delete(int id) async {
+    places = [
+      for (final place in places)
+        if (place.id != id) place,
+    ];
+  }
+}
+
 void main() {
   late FakeLocationRepository locations;
   late FakePlaceNameRepository placeNames;
@@ -149,6 +171,7 @@ void main() {
   late FakeTimelineEditRepository edits;
   late FakeTimelineSnapshotRepository snapshots;
   late FakeRecordingPauseRepository recordingPauses;
+  late FakeRegisteredPlaceRepository registeredPlaces;
   late GetTimelineByDateUseCase useCase;
 
   setUp(() {
@@ -158,6 +181,7 @@ void main() {
     edits = FakeTimelineEditRepository();
     snapshots = FakeTimelineSnapshotRepository();
     recordingPauses = FakeRecordingPauseRepository();
+    registeredPlaces = FakeRegisteredPlaceRepository();
 
     useCase = GetTimelineByDateUseCase(
       repository: locations,
@@ -167,7 +191,108 @@ void main() {
       activityRepository: FakeActivityRepository(),
       timelineSnapshotRepository: snapshots,
       recordingPauseRepository: recordingPauses,
+      registeredPlaceRepository: registeredPlaces,
     );
+  });
+
+  group('登録した場所', () {
+    test('登録した場所を訪れたときは、地名も施設も問い合わせずに登録した名前を表示する', () async {
+      registeredPlaces.places = [
+        const RegisteredPlace(
+          id: 1,
+          latitude: 35.0,
+          longitude: 139.0,
+          name: '行きつけの店',
+        ),
+      ];
+
+      final stay = (await useCase.execute(day)).single as Stay;
+
+      expect(stay.displayName, '行きつけの店');
+      expect(stay.isPlaceNameEdited, isTrue);
+      expect(placeNames.callCount, 0);
+      expect(placeSearch.callCount, 0);
+    });
+
+    test('登録した場所は、施設を検索できなくても取得できた扱いにして保存する', () async {
+      registeredPlaces.places = [
+        const RegisteredPlace(
+          id: 1,
+          latitude: 35.0,
+          longitude: 139.0,
+          name: '行きつけの店',
+        ),
+      ];
+      placeSearch.shouldFail = true;
+
+      await useCase.execute(day);
+
+      expect(snapshots.saved, isNotNull);
+    });
+
+    test('離れた場所には当てはめず、これまで通り取得する', () async {
+      registeredPlaces.places = [
+        const RegisteredPlace(
+          id: 1,
+          latitude: 35.01,
+          longitude: 139.0,
+          name: '行きつけの店',
+        ),
+      ];
+
+      final stay = (await useCase.execute(day)).single as Stay;
+
+      expect(stay.displayName, 'カフェA');
+      expect(placeNames.callCount, 1);
+    });
+
+    test('その滞在に対する修正は、登録した名前より優先する', () async {
+      registeredPlaces.places = [
+        const RegisteredPlace(
+          id: 1,
+          latitude: 35.0,
+          longitude: 139.0,
+          name: '行きつけの店',
+        ),
+      ];
+      edits.edits = [
+        TimelineEdit(
+          type: TimelineEditType.stay,
+          start: DateTime(2026, 1, 1, 9, 0),
+          end: DateTime(2026, 1, 1, 11, 0),
+          placeName: '友人の家',
+        ),
+      ];
+
+      final stay = (await useCase.execute(day)).single as Stay;
+
+      expect(stay.displayName, '友人の家');
+    });
+
+    test('保存後に登録した場所が変わった場合は計算し直す', () async {
+      await useCase.execute(day);
+
+      registeredPlaces.places = [
+        const RegisteredPlace(
+          id: 1,
+          latitude: 35.0,
+          longitude: 139.0,
+          name: '行きつけの店',
+        ),
+      ];
+
+      final stay = (await useCase.execute(day)).single as Stay;
+
+      expect(stay.displayName, '行きつけの店');
+
+      // 登録を取り消すと、取得した場所名に戻る
+      registeredPlaces.places = [];
+
+      final reverted = (await useCase.execute(day)).single as Stay;
+
+      expect(reverted.displayName, 'カフェA');
+      expect(reverted.placeName, '東京都千代田区');
+    });
   });
 
   test('過去の日は計算結果を保存し、次回は問い合わせずに表示する', () async {
