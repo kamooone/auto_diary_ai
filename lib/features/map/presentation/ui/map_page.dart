@@ -261,10 +261,12 @@ class _MapPageState extends ConsumerState<MapPage> {
             onRetryPlaceSearch: () {
               ref.read(mapProvider.notifier).retryPlaceSearch();
             },
-            onPlaceNameChanged: (stay, placeName) {
-              ref
-                  .read(mapProvider.notifier)
-                  .updateStayPlaceName(stay, placeName);
+            onPlaceNameChanged: (stay, placeName, {registerPlace = false}) {
+              ref.read(mapProvider.notifier).updateStayPlaceName(
+                    stay,
+                    placeName,
+                    registerPlace: registerPlace,
+                  );
             },
             onTransportChanged: (move, transport, text) {
               ref

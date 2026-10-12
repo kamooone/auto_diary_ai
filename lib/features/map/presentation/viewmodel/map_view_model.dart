@@ -249,10 +249,16 @@ class MapViewModel extends Notifier<MapState> {
   Future<void> retryPlaceSearch() => _reloadTimeline();
 
   /// 滞在の場所名を修正する(nullの場合は自動で取得した場所名に戻す)
-  Future<void> updateStayPlaceName(Stay stay, String? placeName) async {
+  ///
+  /// [registerPlace]がtrueの場合は、次回以降もこの場所の名前として表示する
+  Future<void> updateStayPlaceName(
+    Stay stay,
+    String? placeName, {
+    bool registerPlace = false,
+  }) async {
     await ref
         .read(updateStayPlaceNameUseCaseProvider)
-        .execute(stay, placeName);
+        .execute(stay, placeName, registerPlace: registerPlace);
 
     await _reloadTimeline();
   }

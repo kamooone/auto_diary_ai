@@ -27,9 +27,19 @@ class TimelineFormatter {
   }
 
   /// 滞在の場所名(推定の場合はその旨を添える)
-  static String stayTitle(Stay stay) {
+  ///
+  /// [showNotFound]がtrueの場合、訪れた場所を取得できず地名のまま表示しているときは、
+  /// その旨を添える(取得の途中では、取得できなかったのかまだ分からないため、falseにする)
+  static String stayTitle(Stay stay, {bool showNotFound = false}) {
     final name = stay.displayName ?? "場所名を取得できませんでした";
-    return stay.isPlaceEstimated ? "$name（推定）" : name;
+    if (stay.isPlaceEstimated) return "$name（推定）";
+
+    final isNotFound = showNotFound &&
+        stay.displayName != null &&
+        !stay.isPlaceNameEdited &&
+        stay.estimatedPlaceName == null;
+
+    return isNotFound ? "$name（取得できませんでした）" : name;
   }
 
   static String moveTitle(Move move) {

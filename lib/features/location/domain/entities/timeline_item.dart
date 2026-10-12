@@ -33,6 +33,9 @@ class Stay extends TimelineItem {
   /// trueの場合、近くに施設がないのではなく、まだ分かっていないだけ
   final bool isPlaceSearchFailed;
 
+  /// ユーザーが登録した場所にあたり、登録した名前を表示しているかどうか
+  final bool isPlaceRegistered;
+
   const Stay({
     required super.start,
     required super.end,
@@ -42,6 +45,7 @@ class Stay extends TimelineItem {
     this.estimatedPlaceName,
     this.isPlaceNameEdited = false,
     this.isPlaceSearchFailed = false,
+    this.isPlaceRegistered = false,
   });
 
   /// ユーザーが確認していない滞在で、施設を推定で当てはめているかどうか
@@ -58,6 +62,7 @@ class Stay extends TimelineItem {
     String? estimatedPlaceName,
     bool? isPlaceNameEdited,
     bool? isPlaceSearchFailed,
+    bool? isPlaceRegistered,
   }) {
     return Stay(
       start: start,
@@ -68,6 +73,7 @@ class Stay extends TimelineItem {
       estimatedPlaceName: estimatedPlaceName ?? this.estimatedPlaceName,
       isPlaceNameEdited: isPlaceNameEdited ?? this.isPlaceNameEdited,
       isPlaceSearchFailed: isPlaceSearchFailed ?? this.isPlaceSearchFailed,
+      isPlaceRegistered: isPlaceRegistered ?? this.isPlaceRegistered,
     );
   }
 }

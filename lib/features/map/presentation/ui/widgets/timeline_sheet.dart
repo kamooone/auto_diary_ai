@@ -63,7 +63,10 @@ class TimelineSheet extends StatelessWidget {
   final ValueChanged<Move> onMoveTap;
 
   /// 場所名がnullの場合は、自動で取得した場所名に戻す
-  final void Function(Stay stay, String? placeName) onPlaceNameChanged;
+  ///
+  /// [registerPlace]がtrueの場合は、次回以降もこの場所の名前として表示する
+  final void Function(Stay stay, String? placeName, {bool registerPlace})
+      onPlaceNameChanged;
 
   /// 移動手段と、移動の説明(自由に書いた文)
   /// どちらもnullの場合は、自動推定に戻す
@@ -194,7 +197,9 @@ class TimelineSheet extends StatelessWidget {
     return ListTile(
       dense: true,
       leading: const Icon(Icons.place),
-      title: Text(TimelineFormatter.stayTitle(stay)),
+      title: Text(
+        TimelineFormatter.stayTitle(stay, showNotFound: !isLoading),
+      ),
       subtitle: Text(
         isEstimated && stay.placeName != null
             ? "$timeText\n${stay.placeName}"
@@ -339,9 +344,47 @@ class TimelineSheet extends StatelessWidget {
       builder: (context) => _PlaceNameDialog(stay: stay),
     );
 
-    if (result != null) {
-      onPlaceNameChanged(stay, result.placeName);
+    if (result == null) return;
+
+    final placeName = result.placeName;
+
+    // 訪れた場所がなかった滞在は、次回以降もこの名前で表示するかを尋ねる
+    // (検索できなかった場合は、ここへ来る前に取得し直してもらっている)
+    final canRegister = placeName != null &&
+        !stay.isPlaceSearchFailed &&
+        stay.estimatedPlaceName == null &&
+        !stay.isPlaceRegistered;
+
+    if (!canRegister) {
+      onPlaceNameChanged(stay, placeName);
+      return;
     }
+
+    if (!context.mounted) return;
+
+    final register = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        title: const Text("この場所として登録しますか？"),
+        content: Text(
+          "次回以降も、この場所を訪れたときは「$placeName」と表示します。\n"
+          "登録しない場合は、次回以降も訪れた場所を取得します。",
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text("いいえ"),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text("はい"),
+          ),
+        ],
+      ),
+    );
+
+    onPlaceNameChanged(stay, placeName, registerPlace: register ?? false);
   }
 
   Future<void> _editTransport(BuildContext context, Move move) async {

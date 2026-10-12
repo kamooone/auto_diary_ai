@@ -88,7 +88,7 @@ void main() {
   });
 
   test('場所名を入力すると、その場所を登録する', () async {
-    await useCase.execute(stayAt(35.0), ' 行きつけの店 ');
+    await useCase.execute(stayAt(35.0), ' 行きつけの店 ', registerPlace: true);
 
     expect(edits.edits.single.placeName, '行きつけの店');
     expect(registeredPlaces.places.single.name, '行きつけの店');
@@ -104,7 +104,7 @@ void main() {
       estimatedPlaceName: '東京駅',
     );
 
-    await useCase.execute(stay, '東京駅バス停');
+    await useCase.execute(stay, '東京駅バス停', registerPlace: true);
 
     expect(edits.edits.single.placeName, '東京駅バス停');
     expect(registeredPlaces.places, isEmpty);
@@ -119,14 +119,21 @@ void main() {
       isPlaceSearchFailed: true,
     );
 
-    await useCase.execute(stay, '自宅');
+    await useCase.execute(stay, '自宅', registerPlace: true);
 
     expect(edits.edits.single.placeName, '自宅');
     expect(registeredPlaces.places, isEmpty);
   });
 
-  test('登録した場所の近くで入力し直すと、登録を新しく増やさず名前を更新する', () async {
+  test('登録しないと選んだ場合は、その滞在だけの修正にする', () async {
     await useCase.execute(stayAt(35.0), '行きつけの店');
+
+    expect(edits.edits.single.placeName, '行きつけの店');
+    expect(registeredPlaces.places, isEmpty);
+  });
+
+  test('登録した場所の近くで入力し直すと、登録を新しく増やさず名前を更新する', () async {
+    await useCase.execute(stayAt(35.0), '行きつけの店', registerPlace: true);
     await useCase.execute(stayAt(35.0001, hour: 15), '新しい店名');
 
     expect(registeredPlaces.places, hasLength(1));
@@ -134,14 +141,18 @@ void main() {
   });
 
   test('離れた場所で入力すると、別の場所として登録する', () async {
-    await useCase.execute(stayAt(35.0), '行きつけの店');
-    await useCase.execute(stayAt(35.01, hour: 15), '別の店');
+    await useCase.execute(stayAt(35.0), '行きつけの店', registerPlace: true);
+    await useCase.execute(
+      stayAt(35.01, hour: 15),
+      '別の店',
+      registerPlace: true,
+    );
 
     expect(registeredPlaces.places, hasLength(2));
   });
 
   test('場所名を空にすると、修正と登録を取り消す', () async {
-    await useCase.execute(stayAt(35.0), '行きつけの店');
+    await useCase.execute(stayAt(35.0), '行きつけの店', registerPlace: true);
     await useCase.execute(stayAt(35.0), null);
 
     expect(edits.edits, isEmpty);
@@ -149,7 +160,7 @@ void main() {
   });
 
   test('登録した場所を訪れた別の日の滞在から取り消すこともできる', () async {
-    await useCase.execute(stayAt(35.0), '行きつけの店');
+    await useCase.execute(stayAt(35.0), '行きつけの店', registerPlace: true);
 
     // 別の日の滞在(この日には修正がない)
     final another = Stay(

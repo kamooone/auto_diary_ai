@@ -194,7 +194,11 @@ class GetTimelineByDateUseCase {
     final place = _registeredFinder.find(item, registered);
     if (place == null) return item;
 
-    return item.copyWith(placeName: place.name, isPlaceNameEdited: true);
+    return item.copyWith(
+      placeName: place.name,
+      isPlaceNameEdited: true,
+      isPlaceRegistered: true,
+    );
   }
 
   /// 記録をオフにしていた期間のうち、[from]から[to]までに重なる部分
