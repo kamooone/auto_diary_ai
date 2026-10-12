@@ -216,6 +216,21 @@ class TimelineSheet extends StatelessWidget {
     Stay stay,
     List<PlaceCandidate> candidates,
   ) async {
+    // 取得が終わるまでは、訪れた場所がないのか、まだ分からないのか区別できない
+    if (isLoading) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("訪れた場所を取得しています。しばらくお待ちください")),
+      );
+      return;
+    }
+
+    // 通信に失敗した場合は、手入力せずに取得し直してもらう
+    // (取得できていないだけの場所に、手入力した名前を残さないため)
+    if (stay.isPlaceSearchFailed && !stay.isPlaceNameEdited) {
+      await _showPlaceSearchFailed(context);
+      return;
+    }
+
     if (candidates.isEmpty) {
       await _editPlaceName(context, stay);
       return;
@@ -291,6 +306,31 @@ class TimelineSheet extends StatelessWidget {
     }
 
     onPlaceNameChanged(stay, choice.placeName);
+  }
+
+  Future<void> _showPlaceSearchFailed(BuildContext context) async {
+    final retry = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text("通信に失敗しました"),
+        content: const Text(
+          "訪れた場所を取得できませんでした。\n"
+          "通信できる状態で、もう一度取得してください。",
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text("閉じる"),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text("再取得"),
+          ),
+        ],
+      ),
+    );
+
+    if (retry == true) onRetryPlaceSearch();
   }
 
   Future<void> _editPlaceName(BuildContext context, Stay stay) async {
