@@ -95,6 +95,21 @@ void main() {
     expect(registeredPlaces.places.single.latitude, 35.0);
   });
 
+  test('訪れた場所を取得できていた滞在は、その滞在だけの修正にして登録しない', () async {
+    final stay = Stay(
+      start: DateTime(2026, 1, 1, 9, 0),
+      end: DateTime(2026, 1, 1, 10, 0),
+      latitude: 35.0,
+      longitude: 139.0,
+      estimatedPlaceName: '東京駅',
+    );
+
+    await useCase.execute(stay, '東京駅バス停');
+
+    expect(edits.edits.single.placeName, '東京駅バス停');
+    expect(registeredPlaces.places, isEmpty);
+  });
+
   test('登録した場所の近くで入力し直すと、登録を新しく増やさず名前を更新する', () async {
     await useCase.execute(stayAt(35.0), '行きつけの店');
     await useCase.execute(stayAt(35.0001, hour: 15), '新しい店名');
