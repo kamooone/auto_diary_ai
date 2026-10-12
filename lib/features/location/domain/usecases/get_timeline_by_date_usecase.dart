@@ -101,6 +101,7 @@ class GetTimelineByDateUseCase {
     // 計算のもとになる位置情報や、記録をオフにしていた期間、登録した場所が変わったら、
     // 保存した結果は使わない
     final signature = [
+      "v$_snapshotVersion",
       locations.length,
       previous?.timestamp.millisecondsSinceEpoch,
       next?.timestamp.millisecondsSinceEpoch,
@@ -217,6 +218,9 @@ class GetTimelineByDateUseCase {
 
     return items;
   }
+
+  // 計算の方法を変えたときに上げる(保存した結果を計算し直すため)
+  static const _snapshotVersion = 2;
 
   // 前後の日の位置がこれより離れた時刻のものなら、その間の居場所は分からないものとする
   static const _maxCarryOver = Duration(hours: 72);

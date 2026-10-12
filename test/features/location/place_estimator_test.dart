@@ -18,11 +18,11 @@ void main() {
     expect(place?.name, 'カフェA');
   });
 
-  test('最も近い施設でも50mより離れていれば推定しない', () {
+  test('最も近い施設が離れていても、候補にある施設を訪れた場所とみなす', () {
     final place = estimator.estimate(const [
-      PlaceCandidate(name: 'カフェA', distanceMeters: 60),
+      PlaceCandidate(name: 'カフェA', distanceMeters: 70),
     ]);
 
-    expect(place, isNull);
+    expect(place?.name, 'カフェA');
   });
 }

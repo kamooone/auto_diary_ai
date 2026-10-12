@@ -112,7 +112,7 @@ class _PlaceSearchTestPageState extends ConsumerState<PlaceSearchTestPage> {
           "訪れた場所",
           estimated != null
               ? estimated.name
-              : "なし(${PlaceEstimator.maxDistanceMeters.round()}m以内に施設がないため、地名で表示されます)",
+              : "なし(周辺に施設がないため、地名で表示されます)",
         ),
         const SizedBox(height: 16),
         Text("周辺の施設(${result.candidates.length}件)", style: textTheme.titleMedium),
