@@ -1,3 +1,5 @@
+import '../../../../core/async/parallel.dart';
+import '../../../../core/logging/app_log.dart';
 import '../entities/location.dart';
 import '../entities/place_candidate.dart';
 import '../entities/recording_pause.dart';
@@ -34,6 +36,9 @@ class GetTimelineByDateUseCase {
   final RecordingPauseRepository recordingPauseRepository;
 
   final RegisteredPlaceRepository registeredPlaceRepository;
+
+  // 地名を同時に問い合わせる数
+  static const _placeNameConcurrency = 4;
 
   final TimelineBuilder _builder = TimelineBuilder();
 
@@ -332,10 +337,43 @@ class GetTimelineByDateUseCase {
     var isComplete = true;
 
     // OSの行動認識が使える区間は、速度からの推定よりそちらを優先する
-    final activities = await activityRepository.getActivities(
-      built.first.start,
-      built.last.end,
+    final activities = await AppLog.measure(
+      'timeline',
+      '行動認識の取得',
+      () => activityRepository.getActivities(
+        built.first.start,
+        built.last.end,
+      ),
     );
+
+    // 座標から地名を取得する(登録した場所は名前が決まっているため取得しない)
+    // 時間がかかるため、複数の滞在を並行して取得する
+    final namedStays = [
+      for (final item in built)
+        if (item is Stay && _registeredFinder.find(item, registered) == null)
+          item,
+    ];
+
+    final placeNames = <Stay, String?>{};
+    if (namedStays.isNotEmpty) {
+      final names = await AppLog.measure(
+        'timeline',
+        '地名の取得(${namedStays.length}か所)',
+        () => parallelMap(
+          namedStays,
+          (stay) => placeNameRepository.getPlaceName(
+            stay.latitude,
+            stay.longitude,
+          ),
+          concurrency: _placeNameConcurrency,
+        ),
+      );
+
+      for (var i = 0; i < namedStays.length; i++) {
+        placeNames[namedStays[i]] = names[i];
+        if (names[i] == null) isComplete = false;
+      }
+    }
 
     final items = <TimelineItem>[];
     for (final item in built) {
@@ -348,24 +386,21 @@ class GetTimelineByDateUseCase {
           );
         case RecordingOff():
           items.add(item);
-        case Stay() when _registeredFinder.find(item, registered) != null:
+        case Stay() when !placeNames.containsKey(item):
           // 登録した場所は名前が決まっているため、地名も施設も取得しない
           items.add(item);
         case Stay():
-          // 座標から地名を取得する
-          final placeName = await placeNameRepository.getPlaceName(
-            item.latitude,
-            item.longitude,
-          );
-          if (placeName == null) isComplete = false;
-
-          items.add(item.copyWith(placeName: placeName));
+          items.add(item.copyWith(placeName: placeNames[item]));
       }
     }
 
     if (!estimatePlaces) return (items: items, isComplete: false);
 
-    final estimated = await _estimatePlaces(items, registered);
+    final estimated = await AppLog.measure(
+      'timeline',
+      '訪れた場所の取得',
+      () => _estimatePlaces(items, registered),
+    );
 
     // 施設を検索できなかった場所は、地名だけで表示する
     final isSearched = !estimated

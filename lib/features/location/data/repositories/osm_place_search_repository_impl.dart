@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:math';
 import 'package:http/http.dart' as http;
+import '../../../../core/logging/app_log.dart';
 import '../../domain/entities/place_candidate.dart';
 import '../../domain/exceptions/place_search_exception.dart';
 import '../../domain/repositories/place_search_repository.dart';
@@ -14,18 +15,33 @@ class OsmPlaceSearchRepositoryImpl implements PlaceSearchRepository {
   // 同じ場所を何度も問い合わせないよう、検索結果を保存して再利用する
   final PlaceCandidateCache _cache;
 
+  // 問い合わせ先(先頭から順に試し、応答がなければ次のサーバーに切り替える)
+  final List<Uri> _endpoints;
+
   OsmPlaceSearchRepositoryImpl({
     http.Client? client,
     PlaceCandidateCache? cache,
+    List<Uri>? endpoints,
   })  : _client = client ?? http.Client(),
-        _cache = cache ?? MemoryPlaceCandidateCache();
+        _cache = cache ?? MemoryPlaceCandidateCache(),
+        _endpoints = endpoints ?? defaultEndpoints;
 
-  static final _endpoint = Uri.parse('https://overpass-api.de/api/interpreter');
+  static final defaultEndpoints = [
+    Uri.parse('https://overpass-api.de/api/interpreter'),
+    Uri.parse('https://overpass.kumi.systems/api/interpreter'),
+    Uri.parse('https://overpass.private.coffee/api/interpreter'),
+  ];
 
   // 公開サーバーの利用条件として、アプリを識別できる情報を送る
   static const _userAgent = 'auto_diary_ai/1.0';
 
-  static const _timeout = Duration(seconds: 12);
+  // 1回の問い合わせを待つ時間(サーバー側の制限[_serverTimeoutSeconds]より少し長くする)
+  static const _timeout = Duration(seconds: 8);
+
+  static const _serverTimeoutSeconds = 6;
+
+  // 別のサーバーに切り替えながら取得を試す時間の上限
+  static const _maxRequestDuration = Duration(seconds: 10);
 
   // 滞在場所からこの距離以内にある施設を候補にする
   static const _radiusMeters = 75;
@@ -38,7 +54,10 @@ class OsmPlaceSearchRepositoryImpl implements PlaceSearchRepository {
 
   // 場所を分けて取り直すのは、検索を始めてからこの時間まで
   // (これを過ぎても取得できていない場所は、取得できなかったものとして扱う)
-  static const _maxSearchDuration = Duration(seconds: 25);
+  static const _maxSearchDuration = Duration(seconds: 15);
+
+  // 検索する施設の種類(タグのキー)
+  static const _facilityKeys = ['amenity', 'shop', 'tourism', 'leisure', 'office'];
 
   // 滞在先とは考えにくい設備
   static const _excludedAmenities = {
@@ -62,6 +81,7 @@ class OsmPlaceSearchRepositoryImpl implements PlaceSearchRepository {
   Future<List<List<PlaceCandidate>?>> findNearby(
     List<Coordinate> coordinates,
   ) async {
+    final stopwatch = Stopwatch()..start();
     final results = <String, List<PlaceCandidate>>{};
     final missing = <Coordinate>[];
 
@@ -77,15 +97,30 @@ class OsmPlaceSearchRepositoryImpl implements PlaceSearchRepository {
       }
     }
 
+    AppLog.add(
+      '施設',
+      '保存済み${results.length}か所 / 取得が必要${missing.length}か所 '
+          '(キャッシュ確認 ${stopwatch.elapsedMilliseconds}ms)',
+    );
+
     if (missing.isNotEmpty) {
       // まずは1回の問い合わせにまとめる
       await _search(missing, results, Stopwatch()..start());
     }
 
     // 取得できなかった場所はnullのままになる
-    return [
+    final found = [
       for (final coordinate in coordinates) results[_key(coordinate)],
     ];
+
+    AppLog.add(
+      '施設',
+      '検索完了: 取得${found.where((e) => e != null).length}か所 / '
+          '失敗${found.where((e) => e == null).length}か所 '
+          '(${stopwatch.elapsedMilliseconds}ms)',
+    );
+
+    return found;
   }
 
   @override
@@ -112,23 +147,29 @@ class OsmPlaceSearchRepositoryImpl implements PlaceSearchRepository {
     Map<String, List<PlaceCandidate>> results,
     Stopwatch stopwatch,
   ) async {
-    if (stopwatch.elapsed >= _maxSearchDuration) return;
+    if (stopwatch.elapsed >= _maxSearchDuration) {
+      AppLog.add('施設', '${coordinates.length}か所: 制限時間を過ぎたため取得しません');
+      return;
+    }
 
     final List<Map<String, dynamic>> elements;
 
     try {
       elements = await _request(coordinates);
     } on _IncompleteResultException {
+      AppLog.add('施設', '${coordinates.length}か所: 処理しきれず、分けて取り直します');
       await _searchSeparately(coordinates, results, stopwatch);
       return;
     } catch (e) {
       // 通信できない場合などは、分けて取り直しても同じ結果になる
+      AppLog.add('施設', '${coordinates.length}か所: 取得失敗 ($e)');
       return;
     }
 
     // 上限まで返ってきた場合は、一部の場所の施設が欠けている可能性がある
     // (欠けたまま「周辺に施設がない」と保存しないよう、場所を分けて取り直す)
     if (elements.length >= _maxElements && coordinates.length > 1) {
+      AppLog.add('施設', '${coordinates.length}か所: 件数が上限に達したため、分けて取り直します');
       await _searchSeparately(coordinates, results, stopwatch);
       return;
     }
@@ -159,24 +200,70 @@ class OsmPlaceSearchRepositoryImpl implements PlaceSearchRepository {
   Future<List<Map<String, dynamic>>> _request(
     List<Coordinate> coordinates,
   ) async {
+    final query = _buildQuery(coordinates);
+    final stopwatch = Stopwatch()..start();
+
+    Object? lastError;
+    _IncompleteResultException? incomplete;
+
+    for (final endpoint in _endpoints) {
+      // 時間をかけすぎないよう、次のサーバーへの切り替えは上限の時間までにする
+      if (lastError != null && stopwatch.elapsed >= _maxRequestDuration) break;
+
+      final attempt = Stopwatch()..start();
+
+      try {
+        final elements = await _post(endpoint, query);
+        AppLog.add(
+          '施設',
+          '${endpoint.host}: ${coordinates.length}か所 → ${elements.length}件 '
+              '${attempt.elapsedMilliseconds}ms',
+        );
+        return elements;
+      } on _IncompleteResultException catch (e) {
+        incomplete = e;
+        lastError = e;
+        AppLog.add(
+          '施設',
+          '${endpoint.host}: 処理しきれず ${attempt.elapsedMilliseconds}ms ($e)',
+        );
+
+        // 複数の場所をまとめた問い合わせは、サーバーを変えるより場所を分けた方が早い
+        if (coordinates.length > 1) rethrow;
+      } catch (e) {
+        lastError = e;
+        AppLog.add(
+          '施設',
+          '${endpoint.host}: 失敗 ${attempt.elapsedMilliseconds}ms ($e)',
+        );
+      }
+    }
+
+    // 処理しきれなかったサーバーがあった場合は、場所を分けて取り直せる可能性がある
+    throw incomplete ?? lastError ?? Exception('問い合わせ先がありません');
+  }
+
+  // 施設の種類を指定して検索する(キーを正規表現で指定するより速い)
+  String _buildQuery(List<Coordinate> coordinates) {
     final statements = StringBuffer();
 
     for (final coordinate in coordinates) {
       final around =
           'around:$_radiusMeters,${coordinate.latitude},${coordinate.longitude}';
 
-      statements
-        ..writeln(
-          'nwr($around)[name][~"^(amenity|shop|tourism|leisure|office)\$"~"."];',
-        )
-        ..writeln('nwr($around)[name][railway~"^(station|halt)\$"];');
+      for (final key in _facilityKeys) {
+        statements.writeln('nwr($around)[name][$key];');
+      }
+      statements.writeln('nwr($around)[name][railway~"^(station|halt)\$"];');
     }
 
-    final query =
-        '[out:json][timeout:10];($statements);out center tags $_maxElements;';
+    return '[out:json][timeout:$_serverTimeoutSeconds];($statements);'
+        'out center tags $_maxElements;';
+  }
 
+  Future<List<Map<String, dynamic>>> _post(Uri endpoint, String query) async {
     final response = await _client.post(
-      _endpoint,
+      endpoint,
       headers: {'User-Agent': _userAgent},
       body: {'data': query},
     ).timeout(_timeout);

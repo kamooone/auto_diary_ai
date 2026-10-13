@@ -1,6 +1,7 @@
 import 'package:flutter/widgets.dart';
 import 'package:geocoding/geocoding.dart' as geocoding;
 import 'package:isar/isar.dart';
+import '../../../../core/logging/app_log.dart';
 import '../../domain/repositories/place_name_repository.dart';
 import '../models/place_name_cache.dart';
 
@@ -19,14 +20,22 @@ class PlaceNameRepositoryImpl implements PlaceNameRepository {
   // アプリ起動中は、端末への問い合わせも省く
   final _memory = <String, String>{};
 
+  // 取得中の問い合わせ(同じ場所を同時に問い合わせない)
+  final _inFlight = <String, Future<String?>>{};
+
   @override
-  Future<String?> getPlaceName(double latitude, double longitude) async {
+  Future<String?> getPlaceName(double latitude, double longitude) {
     // 小数第4位(約10m)で丸めた座標をキーにする
     final key = '${latitude.toStringAsFixed(4)},${longitude.toStringAsFixed(4)}';
 
     final inMemory = _memory[key];
-    if (inMemory != null) return inMemory;
+    if (inMemory != null) return Future.value(inMemory);
 
+    return _inFlight[key] ??= _fetch(key, latitude, longitude)
+        .whenComplete(() => _inFlight.remove(key));
+  }
+
+  Future<String?> _fetch(String key, double latitude, double longitude) async {
     // 一度取得した場所は、端末に保存した結果を使う
     final saved = await _load(key);
     if (saved != null) {
@@ -34,22 +43,28 @@ class PlaceNameRepositoryImpl implements PlaceNameRepository {
       return saved;
     }
 
+    final stopwatch = Stopwatch()..start();
+
     try {
       final placemarks = await _geocoding.placemarkFromCoordinates(
         latitude,
         longitude,
         locale: _locale,
       );
-      if (placemarks.isEmpty) return null;
+      if (placemarks.isEmpty) {
+        AppLog.add('地名', '$key: 該当なし ${stopwatch.elapsedMilliseconds}ms');
+        return null;
+      }
 
       final name = _format(placemarks.first);
       if (name == null) return null;
 
+      AppLog.add('地名', '$key: 端末に問い合わせ ${stopwatch.elapsedMilliseconds}ms');
       _memory[key] = name;
       await _save(key, name);
       return name;
     } catch (e) {
-      debugPrint('地名の取得に失敗しました: $e');
+      AppLog.add('地名', '$key: 取得失敗 ${stopwatch.elapsedMilliseconds}ms ($e)');
       return null;
     }
   }

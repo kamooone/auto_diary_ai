@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:latlong2/latlong.dart';
+import '../../../../core/logging/app_log.dart';
 import '../../../location/application/providers/location_providers.dart';
 import '../../../location/domain/entities/location.dart';
 import '../../../location/domain/entities/place_candidate.dart';
@@ -197,9 +198,15 @@ class MapViewModel extends Notifier<MapState> {
 
   Future<void> _loadTimeline(DateTime date) async {
     final getTimeline = ref.read(getTimelineByDateUseCaseProvider);
+    final total = Stopwatch()..start();
+    AppLog.add('読込', '${date.month}/${date.day}の読み込みを開始');
 
     // 施設の検索は時間がかかることがあるため、先に地名だけのタイムラインを表示する
-    final quick = await getTimeline.execute(date, estimatePlaces: false);
+    final quick = await AppLog.measure(
+      '読込',
+      '①地名だけのタイムライン',
+      () => getTimeline.execute(date, estimatePlaces: false),
+    );
 
     // 読み込み中に別の日付へ切り替えられた場合は反映しない
     if (state.selectedDate != date) {
@@ -212,7 +219,11 @@ class MapViewModel extends Notifier<MapState> {
     }
 
     // 最も近い施設を、訪れた場所として当てはめる
-    final timeline = await getTimeline.execute(date);
+    final timeline = await AppLog.measure(
+      '読込',
+      '②訪れた場所つきのタイムライン',
+      () => getTimeline.execute(date),
+    );
 
     if (state.selectedDate != date) {
       return;
@@ -223,16 +234,30 @@ class MapViewModel extends Notifier<MapState> {
     // 編集時に選べるよう、施設の候補も読み込む(検索結果は保存済みのものを再利用する)
     final stays = timeline.whereType<Stay>().toList();
 
-    final List<List<PlaceCandidate>> candidates;
+    // 検索できなかった滞在は、続けて検索しても時間がかかるだけなので候補を探さない
+    // (「もう一度取得する」で取り直せる)
+    final targets = [
+      for (final stay in stays)
+        if (!stay.isPlaceSearchFailed) stay,
+    ];
+
+    final List<List<PlaceCandidate>> found;
     try {
-      candidates = await ref
-          .read(getPlaceCandidatesUseCaseProvider)
-          .execute(stays);
+      found = await AppLog.measure(
+        '読込',
+        '③編集用の候補(${targets.length}か所)',
+        () => ref.read(getPlaceCandidatesUseCaseProvider).execute(targets),
+      );
     } catch (e) {
       // 施設を検索できなかった場合、候補は出さない(場所名は手入力できる)
-      debugPrint(e.toString());
       return;
     }
+
+    final candidates = <Stay, List<PlaceCandidate>>{
+      for (var i = 0; i < targets.length; i++) targets[i]: found[i],
+    };
+
+    AppLog.add('読込', '読み込み完了: 合計${total.elapsedMilliseconds}ms');
 
     if (state.selectedDate != date) {
       return;
@@ -240,7 +265,7 @@ class MapViewModel extends Notifier<MapState> {
 
     state = state.copyWith(
       placeCandidates: {
-        for (var i = 0; i < stays.length; i++) stays[i].start: candidates[i],
+        for (final stay in stays) stay.start: candidates[stay] ?? const [],
       },
     );
   }

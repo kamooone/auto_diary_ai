@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:latlong2/latlong.dart';
 import '../../../../common/constants/map_constants.dart';
 import '../../../../core/app_info/install_date_provider.dart';
+import '../../../../core/logging/app_log_panel.dart';
 import '../../../location/domain/entities/timeline_item.dart';
 import '../providers/map_provider.dart';
 import 'widgets/timeline_sheet.dart';
@@ -21,6 +22,9 @@ class _MapPageState extends ConsumerState<MapPage> {
   // タイムラインのシートの高さを操作する
   final _sheetController = DraggableScrollableController();
   bool _movedToCurrentLocation = false; // 初回移動フラグ
+
+  // 動作確認用のログを表示するか
+  bool _showLog = true;
 
   bool _isValidLatLng(LatLng loc) {
     return loc.latitude.isFinite &&
@@ -273,6 +277,25 @@ class _MapPageState extends ConsumerState<MapPage> {
                   .read(mapProvider.notifier)
                   .updateMoveTransport(move, transport: transport, text: text);
             },
+          ),
+          // 動作確認用のログ
+          SafeArea(
+            child: Align(
+              alignment: Alignment.topCenter,
+              child: Padding(
+                padding: const EdgeInsets.all(8),
+                child: _showLog
+                    ? AppLogPanel(onClose: () => setState(() => _showLog = false))
+                    : Align(
+                        alignment: Alignment.centerRight,
+                        child: IconButton.filledTonal(
+                          onPressed: () => setState(() => _showLog = true),
+                          icon: const Icon(Icons.bug_report_outlined),
+                          tooltip: 'ログを表示',
+                        ),
+                      ),
+              ),
+            ),
           ),
         ],
       ),

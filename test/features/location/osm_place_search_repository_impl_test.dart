@@ -318,6 +318,7 @@ void main() {
     var requestCount = 0;
 
     final repository = OsmPlaceSearchRepositoryImpl(
+      endpoints: [Uri.parse('https://first.example/api')],
       client: MockClient((request) async {
         requestCount++;
         throw http.ClientException('offline');
@@ -365,5 +366,100 @@ void main() {
             .having((e) => e.message, 'message', contains('429')),
       ),
     );
+  });
+
+  test('施設の種類を指定して検索し、正規表現でキーを指定しない', () async {
+    String? query;
+
+    final repository = OsmPlaceSearchRepositoryImpl(
+      client: MockClient((request) async {
+        query = request.bodyFields['data'];
+        return json({'elements': []});
+      }),
+    );
+
+    await repository.findNearby([tokyoStation]);
+
+    expect(query, contains('[name][amenity];'));
+    expect(query, contains('[name][shop];'));
+    expect(query, contains('[name][railway~'));
+    expect(query, isNot(contains('~"^(amenity')));
+  });
+
+  test('応答がないサーバーは飛ばして、次のサーバーで取得する', () async {
+    final hosts = <String>[];
+
+    final repository = OsmPlaceSearchRepositoryImpl(
+      endpoints: [
+        Uri.parse('https://first.example/api'),
+        Uri.parse('https://second.example/api'),
+      ],
+      client: MockClient((request) async {
+        hosts.add(request.url.host);
+        if (request.url.host == 'first.example') {
+          return http.Response('busy', 429);
+        }
+
+        return json({
+          'elements': [
+            {
+              'type': 'node',
+              'lat': 35.68124,
+              'lon': 139.76713,
+              'tags': {'name': 'カフェA', 'amenity': 'cafe'},
+            },
+          ],
+        });
+      }),
+    );
+
+    final result = await repository.findNearby([tokyoStation]);
+
+    expect(hosts, ['first.example', 'second.example']);
+    expect(result.single!.map((e) => e.name), ['カフェA']);
+  });
+
+  test('どのサーバーも応答がない場合はnullを返す', () async {
+    var requestCount = 0;
+
+    final repository = OsmPlaceSearchRepositoryImpl(
+      endpoints: [
+        Uri.parse('https://first.example/api'),
+        Uri.parse('https://second.example/api'),
+      ],
+      client: MockClient((request) async {
+        requestCount++;
+        return http.Response('error', 500);
+      }),
+    );
+
+    expect(await repository.findNearby([tokyoStation]), [null]);
+    expect(requestCount, 2);
+  });
+
+  test('複数の場所をまとめた検索が処理しきれなかった場合は、サーバーを変えずに分けて取り直す', () async {
+    const other = (latitude: 35.0, longitude: 135.0);
+    final requests = <int>[];
+
+    final repository = OsmPlaceSearchRepositoryImpl(
+      endpoints: [
+        Uri.parse('https://first.example/api'),
+        Uri.parse('https://second.example/api'),
+      ],
+      client: MockClient((request) async {
+        // 2か所をまとめた問い合わせだけ504になる
+        final count = RegExp('around:').allMatches(request.bodyFields['data']!).length;
+        requests.add(count);
+        if (count > 6) return http.Response('timeout', 504);
+
+        return json({'elements': []});
+      }),
+    );
+
+    final result = await repository.findNearby([tokyoStation, other]);
+
+    expect(result, [isEmpty, isEmpty]);
+    // まとめた問い合わせ(1回)のあと、1か所ずつ取り直す
+    expect(requests, [12, 6, 6]);
   });
 }

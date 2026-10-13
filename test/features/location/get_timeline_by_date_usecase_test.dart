@@ -59,6 +59,21 @@ class FakePlaceNameRepository implements PlaceNameRepository {
   }
 }
 
+/// 問い合わせに時間がかかり、同時に何件問い合わせたかを記録する
+class SlowPlaceNameRepository implements PlaceNameRepository {
+  int running = 0;
+  int maxRunning = 0;
+
+  @override
+  Future<String?> getPlaceName(double latitude, double longitude) async {
+    running++;
+    if (running > maxRunning) maxRunning = running;
+    await Future<void>.delayed(const Duration(milliseconds: 20));
+    running--;
+    return '地名$latitude';
+  }
+}
+
 class FakePlaceSearchRepository implements PlaceSearchRepository {
   bool shouldFail = false;
 
@@ -344,6 +359,41 @@ void main() {
     expect((retried.single as Stay).displayName, 'カフェA');
     expect((retried.single as Stay).isPlaceSearchFailed, isFalse);
     expect(snapshots.saved, isNotNull);
+  });
+
+  test('複数の滞在の地名は、並行して取得し、滞在ごとに当てはめる', () async {
+    final slow = SlowPlaceNameRepository();
+
+    useCase = GetTimelineByDateUseCase(
+      repository: locations,
+      placeNameRepository: slow,
+      timelineEditRepository: edits,
+      placeSearchRepository: placeSearch,
+      activityRepository: FakeActivityRepository(),
+      timelineSnapshotRepository: snapshots,
+      recordingPauseRepository: recordingPauses,
+      registeredPlaceRepository: registeredPlaces,
+    );
+
+    locations.locations = [
+      point(9, 0, 35.0),
+      point(10, 0, 35.0001),
+      point(11, 0, 36.0),
+      point(12, 0, 36.0001),
+      point(13, 0, 37.0),
+      point(14, 0, 37.0001),
+    ];
+
+    final items = await useCase.execute(day, estimatePlaces: false);
+    final stays = items.whereType<Stay>().toList();
+
+    expect(stays.length, greaterThan(1));
+    expect(slow.maxRunning, greaterThan(1));
+    expect(slow.maxRunning, lessThanOrEqualTo(4));
+
+    for (final stay in stays) {
+      expect(stay.placeName, '地名${stay.latitude}');
+    }
   });
 
   test('施設を当てはめない場合は保存しない', () async {
