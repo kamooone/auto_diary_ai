@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:math';
 import 'package:http/http.dart' as http;
+import '../../../../core/async/parallel.dart';
 import '../../../../core/logging/app_log.dart';
 import '../../domain/entities/place_candidate.dart';
 import '../../domain/exceptions/place_search_exception.dart';
@@ -15,33 +16,37 @@ class OsmPlaceSearchRepositoryImpl implements PlaceSearchRepository {
   // 同じ場所を何度も問い合わせないよう、検索結果を保存して再利用する
   final PlaceCandidateCache _cache;
 
-  // 問い合わせ先(先頭から順に試し、応答がなければ次のサーバーに切り替える)
+  // 問い合わせ先(問い合わせを振り分け、応答がなければ次のサーバーに切り替える)
   final List<Uri> _endpoints;
+
+  // 1回の問い合わせを待つ時間
+  final Duration _timeout;
 
   OsmPlaceSearchRepositoryImpl({
     http.Client? client,
     PlaceCandidateCache? cache,
     List<Uri>? endpoints,
+    Duration timeout = const Duration(seconds: 12),
   })  : _client = client ?? http.Client(),
         _cache = cache ?? MemoryPlaceCandidateCache(),
-        _endpoints = endpoints ?? defaultEndpoints;
+        _endpoints = endpoints ?? defaultEndpoints,
+        _timeout = timeout;
 
+  // 応答を確認できたサーバー(応答のなかったミラーは入れない)
   static final defaultEndpoints = [
     Uri.parse('https://overpass-api.de/api/interpreter'),
-    Uri.parse('https://overpass.kumi.systems/api/interpreter'),
-    Uri.parse('https://overpass.private.coffee/api/interpreter'),
+    Uri.parse('https://overpass.openstreetmap.fr/api/interpreter'),
   ];
+
+  // 1回の問い合わせにまとめる場所の数
+  // (まとめるほど重くなり、4か所では約8秒かかって打ち切られたため、少数ずつ並行して問い合わせる)
+  static const _chunkSize = 2;
+
+  // 同時に問い合わせる数(公開サーバーに負荷をかけすぎない)
+  static const _concurrency = 4;
 
   // 公開サーバーの利用条件として、アプリを識別できる情報を送る
   static const _userAgent = 'auto_diary_ai/1.0';
-
-  // 1回の問い合わせを待つ時間(サーバー側の制限[_serverTimeoutSeconds]より少し長くする)
-  static const _timeout = Duration(seconds: 8);
-
-  static const _serverTimeoutSeconds = 6;
-
-  // 別のサーバーに切り替えながら取得を試す時間の上限
-  static const _maxRequestDuration = Duration(seconds: 10);
 
   // 滞在場所からこの距離以内にある施設を候補にする
   static const _radiusMeters = 75;
@@ -52,9 +57,15 @@ class OsmPlaceSearchRepositoryImpl implements PlaceSearchRepository {
   // 1回の問い合わせで受け取る施設の上限
   static const _maxElements = 300;
 
+  // サーバー側で検索を打ち切る時間
+  static const _serverTimeoutSeconds = 10;
+
+  // 別のサーバーに切り替えながら取得を試す時間の上限
+  static const _maxRequestDuration = Duration(seconds: 20);
+
   // 場所を分けて取り直すのは、検索を始めてからこの時間まで
   // (これを過ぎても取得できていない場所は、取得できなかったものとして扱う)
-  static const _maxSearchDuration = Duration(seconds: 15);
+  static const _maxSearchDuration = Duration(seconds: 25);
 
   // 検索する施設の種類(タグのキー)
   static const _facilityKeys = ['amenity', 'shop', 'tourism', 'leisure', 'office'];
@@ -104,8 +115,19 @@ class OsmPlaceSearchRepositoryImpl implements PlaceSearchRepository {
     );
 
     if (missing.isNotEmpty) {
-      // まずは1回の問い合わせにまとめる
-      await _search(missing, results, Stopwatch()..start());
+      // 少数ずつに分け、サーバーを振り分けて並行して問い合わせる
+      final search = Stopwatch()..start();
+      final chunks = [
+        for (var i = 0; i < missing.length; i += _chunkSize)
+          missing.sublist(i, min(i + _chunkSize, missing.length)),
+      ];
+
+      var index = 0;
+      await parallelMap(
+        chunks,
+        (chunk) => _search(chunk, results, search, index++),
+        concurrency: _concurrency,
+      );
     }
 
     // 取得できなかった場所はnullのままになる
@@ -146,6 +168,7 @@ class OsmPlaceSearchRepositoryImpl implements PlaceSearchRepository {
     List<Coordinate> coordinates,
     Map<String, List<PlaceCandidate>> results,
     Stopwatch stopwatch,
+    int first,
   ) async {
     if (stopwatch.elapsed >= _maxSearchDuration) {
       AppLog.add('施設', '${coordinates.length}か所: 制限時間を過ぎたため取得しません');
@@ -155,10 +178,10 @@ class OsmPlaceSearchRepositoryImpl implements PlaceSearchRepository {
     final List<Map<String, dynamic>> elements;
 
     try {
-      elements = await _request(coordinates);
+      elements = await _request(coordinates, first);
     } on _IncompleteResultException {
       AppLog.add('施設', '${coordinates.length}か所: 処理しきれず、分けて取り直します');
-      await _searchSeparately(coordinates, results, stopwatch);
+      await _searchSeparately(coordinates, results, stopwatch, first);
       return;
     } catch (e) {
       // 通信できない場合などは、分けて取り直しても同じ結果になる
@@ -170,7 +193,7 @@ class OsmPlaceSearchRepositoryImpl implements PlaceSearchRepository {
     // (欠けたまま「周辺に施設がない」と保存しないよう、場所を分けて取り直す)
     if (elements.length >= _maxElements && coordinates.length > 1) {
       AppLog.add('施設', '${coordinates.length}か所: 件数が上限に達したため、分けて取り直します');
-      await _searchSeparately(coordinates, results, stopwatch);
+      await _searchSeparately(coordinates, results, stopwatch, first);
       return;
     }
 
@@ -187,26 +210,32 @@ class OsmPlaceSearchRepositoryImpl implements PlaceSearchRepository {
     List<Coordinate> coordinates,
     Map<String, List<PlaceCandidate>> results,
     Stopwatch stopwatch,
+    int first,
   ) async {
     // 1か所だけでも取得できない場合は、これ以上分けられない
     if (coordinates.length == 1) return;
 
     final half = coordinates.length ~/ 2;
 
-    await _search(coordinates.sublist(0, half), results, stopwatch);
-    await _search(coordinates.sublist(half), results, stopwatch);
+    await _search(coordinates.sublist(0, half), results, stopwatch, first);
+    await _search(coordinates.sublist(half), results, stopwatch, first + 1);
   }
 
+  /// [first]番目のサーバーから順に試す(問い合わせごとに変えて、サーバーを振り分ける)
   Future<List<Map<String, dynamic>>> _request(
-    List<Coordinate> coordinates,
-  ) async {
+    List<Coordinate> coordinates, [
+    int first = 0,
+  ]) async {
     final query = _buildQuery(coordinates);
     final stopwatch = Stopwatch()..start();
 
     Object? lastError;
     _IncompleteResultException? incomplete;
+    var timedOut = false;
 
-    for (final endpoint in _endpoints) {
+    for (var i = 0; i < _endpoints.length; i++) {
+      final endpoint = _endpoints[(first + i) % _endpoints.length];
+
       // 時間をかけすぎないよう、次のサーバーへの切り替えは上限の時間までにする
       if (lastError != null && stopwatch.elapsed >= _maxRequestDuration) break;
 
@@ -232,6 +261,7 @@ class OsmPlaceSearchRepositoryImpl implements PlaceSearchRepository {
         if (coordinates.length > 1) rethrow;
       } catch (e) {
         lastError = e;
+        if (e is TimeoutException) timedOut = true;
         AppLog.add(
           '施設',
           '${endpoint.host}: 失敗 ${attempt.elapsedMilliseconds}ms ($e)',
@@ -240,6 +270,11 @@ class OsmPlaceSearchRepositoryImpl implements PlaceSearchRepository {
     }
 
     // 処理しきれなかったサーバーがあった場合は、場所を分けて取り直せる可能性がある
+    // 応答が遅かった場合も、複数の場所をまとめた問い合わせなら、分けると取得できる可能性がある
+    if (timedOut && coordinates.length > 1) {
+      throw _IncompleteResultException('応答がありません');
+    }
+
     throw incomplete ?? lastError ?? Exception('問い合わせ先がありません');
   }
 

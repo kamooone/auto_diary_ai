@@ -462,4 +462,53 @@ void main() {
     // まとめた問い合わせ(1回)のあと、1か所ずつ取り直す
     expect(requests, [12, 6, 6]);
   });
+
+  test('多くの場所は2か所ずつに分け、サーバーを振り分けて取得する', () async {
+    final requests = <({String host, int count})>[];
+
+    final repository = OsmPlaceSearchRepositoryImpl(
+      endpoints: [
+        Uri.parse('https://first.example/api'),
+        Uri.parse('https://second.example/api'),
+      ],
+      client: MockClient((request) async {
+        final count =
+            RegExp('around:').allMatches(request.bodyFields['data']!).length ~/ 6;
+        requests.add((host: request.url.host, count: count));
+        return json({'elements': []});
+      }),
+    );
+
+    final result = await repository.findNearby([
+      for (var i = 0; i < 5; i++) (latitude: 35.0 + i, longitude: 135.0),
+    ]);
+
+    expect(result, everyElement(isEmpty));
+    expect(requests.map((e) => e.count).toList()..sort(), [1, 2, 2]);
+    expect(requests.map((e) => e.host).toSet(), {'first.example', 'second.example'});
+  });
+
+  test('応答が遅くて待ちきれなかった場合は、場所を分けて取り直す', () async {
+    const other = (latitude: 35.0, longitude: 135.0);
+    final counts = <int>[];
+
+    final repository = OsmPlaceSearchRepositoryImpl(
+      timeout: const Duration(milliseconds: 50),
+      endpoints: [Uri.parse('https://first.example/api')],
+      client: MockClient((request) async {
+        final count =
+            RegExp('around:').allMatches(request.bodyFields['data']!).length ~/ 6;
+        counts.add(count);
+
+        // 2か所をまとめた問い合わせだけが遅い
+        if (count > 1) await Future<void>.delayed(const Duration(milliseconds: 300));
+        return json({'elements': []});
+      }),
+    );
+
+    final result = await repository.findNearby([tokyoStation, other]);
+
+    expect(result, [isEmpty, isEmpty]);
+    expect(counts, [2, 1, 1]);
+  });
 }
