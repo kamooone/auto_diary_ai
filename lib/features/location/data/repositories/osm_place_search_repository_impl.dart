@@ -22,15 +22,23 @@ class OsmPlaceSearchRepositoryImpl implements PlaceSearchRepository {
   // 1回の問い合わせを待つ時間
   final Duration _timeout;
 
+  // 応答がないとき、この時間を過ぎたら次のサーバーにも同時に問い合わせる
+  final Duration _hedgeDelay;
+
+  // 失敗したサーバーと、そのときの時刻(しばらく後回しにする)
+  final _failedAt = <Uri, DateTime>{};
+
   OsmPlaceSearchRepositoryImpl({
     http.Client? client,
     PlaceCandidateCache? cache,
     List<Uri>? endpoints,
     Duration timeout = const Duration(seconds: 12),
+    Duration hedgeDelay = const Duration(seconds: 4),
   })  : _client = client ?? http.Client(),
         _cache = cache ?? MemoryPlaceCandidateCache(),
         _endpoints = endpoints ?? defaultEndpoints,
-        _timeout = timeout;
+        _timeout = timeout,
+        _hedgeDelay = hedgeDelay;
 
   // 応答を確認できたサーバー(応答のなかったミラーは入れない)
   static final defaultEndpoints = [
@@ -60,8 +68,8 @@ class OsmPlaceSearchRepositoryImpl implements PlaceSearchRepository {
   // サーバー側で検索を打ち切る時間
   static const _serverTimeoutSeconds = 10;
 
-  // 別のサーバーに切り替えながら取得を試す時間の上限
-  static const _maxRequestDuration = Duration(seconds: 20);
+  // 失敗したサーバーを後回しにする時間
+  static const _failureMemory = Duration(minutes: 5);
 
   // 場所を分けて取り直すのは、検索を始めてからこの時間まで
   // (これを過ぎても取得できていない場所は、取得できなかったものとして扱う)
@@ -217,65 +225,117 @@ class OsmPlaceSearchRepositoryImpl implements PlaceSearchRepository {
 
     final half = coordinates.length ~/ 2;
 
-    await _search(coordinates.sublist(0, half), results, stopwatch, first);
-    await _search(coordinates.sublist(half), results, stopwatch, first + 1);
+    await Future.wait([
+      _search(coordinates.sublist(0, half), results, stopwatch, first),
+      _search(coordinates.sublist(half), results, stopwatch, first + 1),
+    ]);
   }
 
-  /// [first]番目のサーバーから順に試す(問い合わせごとに変えて、サーバーを振り分ける)
+  // 最近失敗したサーバーを後ろにして、[first]番目から順に並べる(問い合わせごとに変えて振り分ける)
+  List<Uri> _orderedEndpoints(int first) {
+    final now = DateTime.now();
+
+    bool isHealthy(Uri endpoint) {
+      final failedAt = _failedAt[endpoint];
+      return failedAt == null || now.difference(failedAt) > _failureMemory;
+    }
+
+    final healthy = [
+      for (final endpoint in _endpoints)
+        if (isHealthy(endpoint)) endpoint,
+    ];
+    final failed = [
+      for (final endpoint in _endpoints)
+        if (!isHealthy(endpoint)) endpoint,
+    ];
+
+    final shift = healthy.isEmpty ? 0 : first % healthy.length;
+
+    return [...healthy.sublist(shift), ...healthy.sublist(0, shift), ...failed];
+  }
+
+  /// サーバーに問い合わせる
+  ///
+  /// 応答が遅い場合は、待たずに次のサーバーにも同時に問い合わせ、先に取得できた結果を使う
   Future<List<Map<String, dynamic>>> _request(
     List<Coordinate> coordinates, [
     int first = 0,
-  ]) async {
+  ]) {
     final query = _buildQuery(coordinates);
-    final stopwatch = Stopwatch()..start();
+    final order = _orderedEndpoints(first);
+    final completer = Completer<List<Map<String, dynamic>>>();
 
+    var started = 0;
+    var pending = 0;
     Object? lastError;
-    _IncompleteResultException? incomplete;
-    var timedOut = false;
+    var isIncomplete = false;
+    Timer? hedge;
 
-    for (var i = 0; i < _endpoints.length; i++) {
-      final endpoint = _endpoints[(first + i) % _endpoints.length];
+    void finish(Object? error, List<Map<String, dynamic>>? elements) {
+      if (completer.isCompleted) return;
+      hedge?.cancel();
 
-      // 時間をかけすぎないよう、次のサーバーへの切り替えは上限の時間までにする
-      if (lastError != null && stopwatch.elapsed >= _maxRequestDuration) break;
+      if (elements != null) {
+        completer.complete(elements);
+        return;
+      }
+
+      // 処理しきれなかった・待ちきれなかった場合は、場所を分けると取得できる可能性がある
+      completer.completeError(
+        isIncomplete && coordinates.length > 1
+            ? _IncompleteResultException('$error')
+            : error ?? Exception('問い合わせ先がありません'),
+      );
+    }
+
+    void startNext() {
+      if (completer.isCompleted || started >= order.length) return;
+
+      final endpoint = order[started++];
+      pending++;
+
+      hedge?.cancel();
+      if (started < order.length) hedge = Timer(_hedgeDelay, startNext);
 
       final attempt = Stopwatch()..start();
 
-      try {
-        final elements = await _post(endpoint, query);
+      _post(endpoint, query).then((elements) {
+        pending--;
+        _failedAt.remove(endpoint);
         AppLog.add(
           '施設',
           '${endpoint.host}: ${coordinates.length}か所 → ${elements.length}件 '
               '${attempt.elapsedMilliseconds}ms',
         );
-        return elements;
-      } on _IncompleteResultException catch (e) {
-        incomplete = e;
+        finish(null, elements);
+      }, onError: (Object e) {
+        pending--;
         lastError = e;
+        _failedAt[endpoint] = DateTime.now();
+        if (e is _IncompleteResultException || e is TimeoutException) {
+          isIncomplete = true;
+        }
         AppLog.add(
           '施設',
-          '${endpoint.host}: 処理しきれず ${attempt.elapsedMilliseconds}ms ($e)',
+          '${endpoint.host}: '
+              '${e is _IncompleteResultException ? '処理しきれず' : '失敗'} '
+              '${attempt.elapsedMilliseconds}ms ($e)',
         );
 
-        // 複数の場所をまとめた問い合わせは、サーバーを変えるより場所を分けた方が早い
-        if (coordinates.length > 1) rethrow;
-      } catch (e) {
-        lastError = e;
-        if (e is TimeoutException) timedOut = true;
-        AppLog.add(
-          '施設',
-          '${endpoint.host}: 失敗 ${attempt.elapsedMilliseconds}ms ($e)',
-        );
-      }
+        if (completer.isCompleted || pending > 0) return;
+
+        // 取得中のものがなければ、次のサーバーに切り替える
+        if (started < order.length) {
+          startNext();
+        } else {
+          finish(lastError, null);
+        }
+      });
     }
 
-    // 処理しきれなかったサーバーがあった場合は、場所を分けて取り直せる可能性がある
-    // 応答が遅かった場合も、複数の場所をまとめた問い合わせなら、分けると取得できる可能性がある
-    if (timedOut && coordinates.length > 1) {
-      throw _IncompleteResultException('応答がありません');
-    }
+    startNext();
 
-    throw incomplete ?? lastError ?? Exception('問い合わせ先がありません');
+    return completer.future;
   }
 
   // 施設の種類を指定して検索する(キーを正規表現で指定するより速い)

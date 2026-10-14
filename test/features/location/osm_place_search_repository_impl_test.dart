@@ -437,7 +437,7 @@ void main() {
     expect(requestCount, 2);
   });
 
-  test('複数の場所をまとめた検索が処理しきれなかった場合は、サーバーを変えずに分けて取り直す', () async {
+  test('複数の場所をまとめた検索がどのサーバーでも処理しきれなかった場合は、分けて取り直す', () async {
     const other = (latitude: 35.0, longitude: 135.0);
     final requests = <int>[];
 
@@ -459,8 +459,10 @@ void main() {
     final result = await repository.findNearby([tokyoStation, other]);
 
     expect(result, [isEmpty, isEmpty]);
-    // まとめた問い合わせ(1回)のあと、1か所ずつ取り直す
-    expect(requests, [12, 6, 6]);
+    // まとめた問い合わせは両方のサーバーで処理しきれず、1か所ずつ取り直す
+    expect(requests.first, 12);
+    expect(requests.where((e) => e == 12), hasLength(2));
+    expect(requests.where((e) => e == 6), hasLength(2));
   });
 
   test('多くの場所は2か所ずつに分け、サーバーを振り分けて取得する', () async {
@@ -510,5 +512,66 @@ void main() {
 
     expect(result, [isEmpty, isEmpty]);
     expect(counts, [2, 1, 1]);
+  });
+
+  test('応答が遅いサーバーは待たずに、次のサーバーの結果を使う', () async {
+    final hosts = <String>[];
+    final stopwatch = Stopwatch()..start();
+
+    final repository = OsmPlaceSearchRepositoryImpl(
+      hedgeDelay: const Duration(milliseconds: 50),
+      endpoints: [
+        Uri.parse('https://slow.example/api'),
+        Uri.parse('https://fast.example/api'),
+      ],
+      client: MockClient((request) async {
+        hosts.add(request.url.host);
+        if (request.url.host == 'slow.example') {
+          await Future<void>.delayed(const Duration(seconds: 2));
+        }
+
+        return json({
+          'elements': [
+            {
+              'type': 'node',
+              'lat': 35.68124,
+              'lon': 139.76713,
+              'tags': {'name': 'カフェA', 'amenity': 'cafe'},
+            },
+          ],
+        });
+      }),
+    );
+
+    final result = await repository.findNearby([tokyoStation]);
+
+    expect(hosts, ['slow.example', 'fast.example']);
+    expect(result.single!.map((e) => e.name), ['カフェA']);
+    expect(stopwatch.elapsedMilliseconds, lessThan(1000));
+  });
+
+  test('失敗したサーバーは、次の問い合わせから後回しにする', () async {
+    final hosts = <String>[];
+
+    final repository = OsmPlaceSearchRepositoryImpl(
+      endpoints: [
+        Uri.parse('https://bad.example/api'),
+        Uri.parse('https://good.example/api'),
+      ],
+      client: MockClient((request) async {
+        hosts.add(request.url.host);
+        if (request.url.host == 'bad.example') {
+          return http.Response('error', 500);
+        }
+
+        return json({'elements': []});
+      }),
+    );
+
+    await repository.findNearby([tokyoStation]);
+    hosts.clear();
+    await repository.findNearby([(latitude: 35.0, longitude: 135.0)]);
+
+    expect(hosts, ['good.example']);
   });
 }
