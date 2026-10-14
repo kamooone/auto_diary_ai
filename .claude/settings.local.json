@@ -15,7 +15,10 @@
     "enabled": true,
     "failIfUnavailable": true,
     "autoAllowBashIfSandboxed": true,
-    "allowUnsandboxedCommands": false,
+    "allowUnsandboxedCommands": true,
+    "excludedCommands": [
+        "tools/deploy.sh *"
+    ],
     "network": {
       "allowedDomains": [
         "services.gradle.org",
@@ -53,9 +56,6 @@
         "~/.claude/shell-snapshots",
         "~/.claude/projects/-Users-kondoukazusa-work-myProject-auto-diary-ai"
       ]
-    },
-    "excludedCommands": [
-      "tools/deploy.sh"
-    ]
+    }
   }
 }
