@@ -9,6 +9,7 @@ import 'package:auto_diary_ai/app/router/app_routes.dart';
 import 'package:auto_diary_ai/core/app_info/app_version_provider.dart';
 import 'package:auto_diary_ai/features/home/presentation/providers/home_providers.dart';
 import 'package:auto_diary_ai/features/location/application/providers/location_providers.dart';
+import '../../../ads/presentation/banner_ad_view.dart';
 import '../viewmodel/home_view_model.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
@@ -152,6 +153,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               },
               child: const Icon(Icons.calendar_month),
             ),
+          ),
+
+          // 下部中央：バナー広告(バージョンの表示の上。左右のボタンと重ならない高さ)
+          const Positioned(
+            left: 0,
+            right: 0,
+            bottom: 80,
+            child: Center(child: BannerAdView()),
           ),
 
           // 下部中央：どの版のアプリが入っているかを確認するための表示

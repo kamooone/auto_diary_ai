@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:isar/isar.dart';
@@ -6,6 +7,8 @@ import 'app.dart';
 import 'core/app_info/install_date_provider.dart';
 import 'core/database/isar_provider.dart';
 import 'core/database/isar_schemas.dart';
+import 'features/ads/application/ads_provider.dart';
+import 'features/ads/data/admob_ad_gateway.dart';
 import 'features/location/data/datasources/isar_location_datasource.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import '../../app/startup/app_initializer.dart';
@@ -41,6 +44,10 @@ void main() async {
     // 通知・位置情報の許可と、位置情報の記録開始
     await AppInitializer.initialize(isar);
 
+    // 広告を使えるように準備する(準備が終わるのを待たずに、アプリを開く)
+    final ads = AdMobAdGateway();
+    unawaited(ads.start());
+
     runApp(
         ProviderScope(
 
@@ -48,6 +55,7 @@ void main() async {
             // これによりアプリ全体で同じ Isar インスタンスを使用できる
             overrides: [
                 isarProvider.overrideWithValue(isar),
+                adGatewayProvider.overrideWithValue(ads),
                 installDateProvider.overrideWithValue(installDate),
             ],
 

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../app/router/app_routes.dart';
+import '../../../ads/application/ads_provider.dart';
 import '../../../plan/application/providers/plan_provider.dart';
 import '../../../plan/presentation/widgets/usage_meter.dart';
 import '../providers/recording_settings_provider.dart';
@@ -53,7 +54,11 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
           ListTile(
             leading: const Icon(Icons.map),
             title: const Text("Map"),
-            onTap: () {
+            onTap: () async {
+              // 地図を表示する直前に、広告を表示する
+              await ref.read(adPolicyProvider).beforeMap();
+              if (!context.mounted) return;
+
               context.push(AppRoutes.map);
             },
           ),

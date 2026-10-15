@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../app/router/app_routes.dart';
 import '../../../../core/app_info/install_date_provider.dart';
+import '../../../ads/application/ads_provider.dart';
 import '../../../plan/application/providers/plan_provider.dart';
 import '../viewmodel/diary_create_view_model.dart';
 import '../../../plan/presentation/widgets/usage_meter.dart';
@@ -237,19 +238,36 @@ class _DiaryAiScreenState extends ConsumerState<DiaryAiScreen> {
             // 今月の使用量の上限に達している場合も、押せない
             onPressed: state.isLoadingSources || isExceeded
                 ? null
-                : () {
-                    viewModel.generateDiary();
-
-                    Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (context) => const DiaryResultScreen(),
-                      ),
-                    );
-                  },
+                : () => _generate(context),
             icon: const Icon(Icons.auto_awesome),
             label: const Text("AIに日記を書いてもらう"),
           ),
         ],
+      ),
+    );
+  }
+
+  // リワード広告を見たあとに、AIに日記を書いてもらう
+  Future<void> _generate(BuildContext context) async {
+    final allowed = await ref.read(adPolicyProvider).beforeGenerate();
+
+    if (!allowed) {
+      if (!context.mounted) return;
+
+      // 広告を最後まで見ないと、日記を書いてもらえない
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("広告を最後まで見ると、AIに日記を書いてもらえます")),
+      );
+      return;
+    }
+
+    if (!context.mounted) return;
+
+    ref.read(diaryCreateProvider.notifier).generateDiary();
+
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => const DiaryResultScreen(),
       ),
     );
   }

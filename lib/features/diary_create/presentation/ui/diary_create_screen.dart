@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/app_info/install_date_provider.dart';
 import '../../application/providers/diary_usecase_providers.dart';
+import '../../../ads/presentation/banner_ad_view.dart';
 import '../providers/diary_create_provider.dart';
 import 'diary_ai_screen.dart';
 import 'widgets/photo_selection_card.dart';
@@ -21,6 +22,13 @@ class DiaryCreateScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(title: const Text("日記作成")),
+      // 画面の下部に、バナー広告を表示する
+      bottomNavigationBar: const SafeArea(
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [BannerAdView()],
+        ),
+      ),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
