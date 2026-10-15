@@ -7,6 +7,7 @@ import '../providers/diary_create_provider.dart';
 import 'diary_result_screen.dart';
 import 'post_select_page.dart';
 import 'timeline_select_page.dart';
+import 'widgets/diary_period_text.dart';
 import 'widgets/photo_selection_card.dart';
 
 /// AIに日記を書いてもらうための情報を選択する画面
@@ -45,15 +46,13 @@ class _DiaryAiScreenState extends ConsumerState<DiaryAiScreen> {
     final viewModel = ref.read(diaryCreateProvider.notifier);
     final plan = ref.watch(diaryPlanProvider);
 
-    final date = state.startDate;
-
     return Scaffold(
       appBar: AppBar(title: const Text("AIに書いてもらう")),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
           Text(
-            "${date.year}年${date.month}月${date.day}日の日記",
+            "${DiaryPeriodText.format(state.startDate, state.endDate)}の日記",
             style: Theme.of(context).textTheme.titleMedium,
           ),
           const SizedBox(height: 4),

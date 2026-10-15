@@ -149,6 +149,33 @@ class DiaryCreateViewModel extends AutoDisposeNotifier<DiaryCreateState> {
     _loadedEnd = null;
   }
 
+  /// 日記の対象期間を変更する(プランで選べる日数を超える場合は、開始日から選べる日数までにする)
+  void setDateRange(DateTime start, DateTime end) {
+    final first = DateTime(start.year, start.month, start.day);
+    var last = DateTime(end.year, end.month, end.day);
+    if (last.isBefore(first)) last = first;
+
+    final maxLast = DateTime(
+      first.year,
+      first.month,
+      first.day + ref.read(diaryPlanProvider).maxDays - 1,
+    );
+    if (last.isAfter(maxLast)) last = maxLast;
+
+    state = state.copyWith(
+      startDate: first,
+      endDate: last,
+      aiPhotos: const [],
+      posts: const [],
+      selectedPosts: const [],
+      timeline: const [],
+      selectedTimeline: const [],
+    );
+
+    _loadedStart = null;
+    _loadedEnd = null;
+  }
+
   void setInputTitle(String text) {
     state = state.copyWith(title: text);
   }

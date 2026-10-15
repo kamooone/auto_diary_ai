@@ -6,12 +6,12 @@ import '../../domain/usecases/generate_diary_usecase.dart';
 import '../../domain/usecases/get_photo_thumbnail_usecase.dart';
 import '../../domain/usecases/get_photos_usecase.dart';
 import '../../../ai/application/providers/ai_provider.dart';
+import '../../../plan/application/providers/plan_provider.dart';
 import '../../../location/application/providers/location_providers.dart';
 
-// 日記作成の制限
-// 課金機能を追加するときは、ここでユーザーのプランに応じた値を返す
+// 日記作成の制限(ユーザーのプランに応じた値)
 final diaryPlanProvider = Provider<DiaryPlan>((ref) {
-  return DiaryPlan.free;
+  return DiaryPlan.forType(ref.watch(planTypeProvider));
 });
 
 // Repository
