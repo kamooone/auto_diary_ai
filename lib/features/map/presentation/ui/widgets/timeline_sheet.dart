@@ -310,7 +310,16 @@ class TimelineSheet extends StatelessWidget {
       return;
     }
 
-    onPlaceNameChanged(stay, choice.placeName);
+    final placeName = choice.placeName;
+
+    // 自動に戻す場合は、登録も取り消す
+    if (placeName == null) {
+      onPlaceNameChanged(stay, null);
+      return;
+    }
+
+    if (!context.mounted) return;
+    await _confirmRegister(context, stay, placeName);
   }
 
   Future<void> _showPlaceSearchFailed(BuildContext context) async {
@@ -348,28 +357,35 @@ class TimelineSheet extends StatelessWidget {
 
     final placeName = result.placeName;
 
-    // 訪れた場所がなかった滞在は、次回以降もこの名前で表示するかを尋ねる
-    // (検索できなかった場合は、ここへ来る前に取得し直してもらっている)
-    final canRegister = placeName != null &&
-        !stay.isPlaceSearchFailed &&
-        stay.estimatedPlaceName == null &&
-        !stay.isPlaceRegistered;
-
-    if (!canRegister) {
-      onPlaceNameChanged(stay, placeName);
+    // 自動に戻す場合は、登録も取り消す
+    if (placeName == null) {
+      onPlaceNameChanged(stay, null);
       return;
     }
 
     if (!context.mounted) return;
+    await _confirmRegister(context, stay, placeName);
+  }
 
+  /// 場所名を自分で決めたときに、次回以降もその名前で表示する(登録する)かを尋ねて保存する
+  /// (訪れた場所を取得できたかどうかにかかわらず尋ねる)
+  Future<void> _confirmRegister(
+    BuildContext context,
+    Stay stay,
+    String placeName,
+  ) async {
     final register = await showDialog<bool>(
       context: context,
       barrierDismissible: false,
       builder: (context) => AlertDialog(
         title: const Text("この場所として登録しますか？"),
         content: Text(
-          "次回以降も、この場所を訪れたときは「$placeName」と表示します。\n"
-          "登録しない場合は、次回以降も訪れた場所を取得します。",
+          stay.isPlaceRegistered
+              ? "登録すると、登録している名前を「$placeName」に変更します。\n"
+                  "登録しない場合は、この滞在だけ「$placeName」にします。"
+              : "次回以降も、この場所を訪れたときは「$placeName」と表示します。\n"
+                  "登録しない場合は、この滞在だけ「$placeName」にして、"
+                  "次回以降は訪れた場所を取得します。",
         ),
         actions: [
           TextButton(

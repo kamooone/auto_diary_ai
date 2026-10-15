@@ -95,7 +95,7 @@ void main() {
     expect(registeredPlaces.places.single.latitude, 35.0);
   });
 
-  test('訪れた場所を取得できていた滞在は、その滞在だけの修正にして登録しない', () async {
+  test('訪れた場所を取得できていた滞在も、登録すると選べば登録する', () async {
     final stay = Stay(
       start: DateTime(2026, 1, 1, 9, 0),
       end: DateTime(2026, 1, 1, 10, 0),
@@ -107,10 +107,25 @@ void main() {
     await useCase.execute(stay, '東京駅バス停', registerPlace: true);
 
     expect(edits.edits.single.placeName, '東京駅バス停');
+    expect(registeredPlaces.places.single.name, '東京駅バス停');
+  });
+
+  test('訪れた場所を取得できていた滞在も、登録しないと選べばその滞在だけの修正にする', () async {
+    final stay = Stay(
+      start: DateTime(2026, 1, 1, 9, 0),
+      end: DateTime(2026, 1, 1, 10, 0),
+      latitude: 35.0,
+      longitude: 139.0,
+      estimatedPlaceName: '東京駅',
+    );
+
+    await useCase.execute(stay, '東京駅バス停');
+
+    expect(edits.edits.single.placeName, '東京駅バス停');
     expect(registeredPlaces.places, isEmpty);
   });
 
-  test('施設を検索できなかった滞在は、その滞在だけの修正にして登録しない', () async {
+  test('施設を検索できなかった滞在も、登録すると選べば登録する', () async {
     final stay = Stay(
       start: DateTime(2026, 1, 1, 9, 0),
       end: DateTime(2026, 1, 1, 10, 0),
@@ -122,7 +137,7 @@ void main() {
     await useCase.execute(stay, '自宅', registerPlace: true);
 
     expect(edits.edits.single.placeName, '自宅');
-    expect(registeredPlaces.places, isEmpty);
+    expect(registeredPlaces.places.single.name, '自宅');
   });
 
   test('登録しないと選んだ場合は、その滞在だけの修正にする', () async {
@@ -132,12 +147,24 @@ void main() {
     expect(registeredPlaces.places, isEmpty);
   });
 
-  test('登録した場所の近くで入力し直すと、登録を新しく増やさず名前を更新する', () async {
+  test('登録した場所の近くで入力し直して登録すると、登録を新しく増やさず名前を更新する', () async {
     await useCase.execute(stayAt(35.0), '行きつけの店', registerPlace: true);
-    await useCase.execute(stayAt(35.0001, hour: 15), '新しい店名');
+    await useCase.execute(
+      stayAt(35.0001, hour: 15),
+      '新しい店名',
+      registerPlace: true,
+    );
 
     expect(registeredPlaces.places, hasLength(1));
     expect(registeredPlaces.places.single.name, '新しい店名');
+  });
+
+  test('登録した場所の近くで入力し直して登録しない場合は、登録した名前を変えない', () async {
+    await useCase.execute(stayAt(35.0), '行きつけの店', registerPlace: true);
+    await useCase.execute(stayAt(35.0001, hour: 15), 'この日だけの名前');
+
+    expect(registeredPlaces.places.single.name, '行きつけの店');
+    expect(edits.edits.map((e) => e.placeName), contains('この日だけの名前'));
   });
 
   test('離れた場所で入力すると、別の場所として登録する', () async {
