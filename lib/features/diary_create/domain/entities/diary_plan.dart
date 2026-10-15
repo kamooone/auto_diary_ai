@@ -4,30 +4,31 @@ import '../../../plan/domain/entities/plan_type.dart';
 class DiaryPlan {
   final PlanType type;
 
-  /// 1回の日記で対象にできる日数
-  final int maxDays;
+  /// AIに書いてもらう日記で、複数日の期間を選べるか
+  /// (選べない場合は、選んだ1日分の情報だけをAIに渡せる)
+  final bool allowsMultipleDays;
 
   /// 1回の日記でAIに渡せる写真の枚数
   final int maxPhotos;
 
   const DiaryPlan({
     required this.type,
-    required this.maxDays,
+    required this.allowsMultipleDays,
     required this.maxPhotos,
   });
 
   /// 無料プラン: 選んだ1日分の情報だけをAIに渡せる
   static const free = DiaryPlan(
     type: PlanType.free,
-    maxDays: 1,
+    allowsMultipleDays: false,
     maxPhotos: 10,
   );
 
-  /// 有料プラン: 複数日分の情報をAIに渡せる
-  // 日数と写真の枚数は仮の値(AWS側の1回の送信サイズの制限は10枚)
+  /// 有料プラン: 選んだ期間の情報をAIに渡せる
+  // 写真の枚数は仮の値(AWS側の1回の送信サイズの制限は10枚)
   static const paid = DiaryPlan(
     type: PlanType.paid,
-    maxDays: 7,
+    allowsMultipleDays: true,
     maxPhotos: 10,
   );
 
@@ -37,7 +38,4 @@ class DiaryPlan {
       PlanType.paid => paid,
     };
   }
-
-  /// 複数日の日記を作れるか
-  bool get allowsMultipleDays => maxDays > 1;
 }

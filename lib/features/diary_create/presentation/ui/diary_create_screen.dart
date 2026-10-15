@@ -4,7 +4,6 @@ import '../../../../core/app_info/install_date_provider.dart';
 import '../../application/providers/diary_usecase_providers.dart';
 import '../providers/diary_create_provider.dart';
 import 'diary_ai_screen.dart';
-import 'widgets/diary_period_text.dart';
 import 'widgets/photo_selection_card.dart';
 
 /// 日記を自分で書く画面
@@ -29,55 +28,27 @@ class DiaryCreateScreen extends ConsumerWidget {
           Card(
             child: ListTile(
               leading: const Icon(Icons.calendar_today),
-              title: Text(plan.allowsMultipleDays ? "日記の期間" : "日記の日付"),
-              subtitle: Text(
-                [
-                  DiaryPeriodText.format(state.startDate, state.endDate),
-                  // 複数日分をまとめて書けるのは有料プランだけ
-                  if (!plan.allowsMultipleDays)
-                    "複数日分をまとめて書くには、有料プランが必要です",
-                ].join("\n"),
-              ),
-              isThreeLine: !plan.allowsMultipleDays,
+              title: const Text("日記の日付"),
+              subtitle: Text("${date.year}年${date.month}月${date.day}日"),
               trailing: const Icon(Icons.chevron_right),
               onTap: () async {
                 final now = DateTime.now();
                 final installDate = ref.read(installDateProvider);
 
-                // アプリを使い始めた日から今日までを選ぶ
-                final firstDate = DateTime(
-                  installDate.year,
-                  installDate.month,
-                  installDate.day,
-                );
-                final lastDate = DateTime(now.year, now.month, now.day);
-
-                if (!plan.allowsMultipleDays) {
-                  final selected = await showDatePicker(
-                    context: context,
-                    initialDate: date,
-                    firstDate: firstDate,
-                    lastDate: lastDate,
-                  );
-
-                  if (selected != null) viewModel.setDate(selected);
-                  return;
-                }
-
-                final range = await showDateRangePicker(
+                // アプリを使い始めた日から今日までの1日を選ぶ
+                final selected = await showDatePicker(
                   context: context,
-                  initialDateRange: DateTimeRange(
-                    start: state.startDate,
-                    end: state.endDate,
+                  initialDate: date,
+                  firstDate: DateTime(
+                    installDate.year,
+                    installDate.month,
+                    installDate.day,
                   ),
-                  firstDate: firstDate,
-                  lastDate: lastDate,
-                  helpText: "最大${plan.maxDays}日間まで選べます",
+                  lastDate: DateTime(now.year, now.month, now.day),
                 );
 
-                if (range != null) {
-                  // 選べる日数を超えた場合は、開始日から選べる日数までにする
-                  viewModel.setDateRange(range.start, range.end);
+                if (selected != null) {
+                  viewModel.setDate(selected);
                 }
               },
             ),

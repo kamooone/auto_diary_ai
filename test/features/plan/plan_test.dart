@@ -22,11 +22,9 @@ class InMemoryPlanRepository implements PlanRepository {
 
 void main() {
   group('DiaryPlan', () {
-    test('無料プランは選んだ1日分だけ、有料プランは複数日分を扱える', () {
-      expect(DiaryPlan.free.maxDays, 1);
+    test('AIに渡す情報は、無料プランは選んだ1日分だけ、有料プランは期間で選べる', () {
       expect(DiaryPlan.free.allowsMultipleDays, isFalse);
 
-      expect(DiaryPlan.paid.maxDays, greaterThan(1));
       expect(DiaryPlan.paid.allowsMultipleDays, isTrue);
     });
 
@@ -113,34 +111,62 @@ void main() {
     });
 
     test('無料プランでは、複数日を選んでも開始日の1日分になる', () {
-      final viewModel = container.read(diaryCreateProvider.notifier);
       container.listen(diaryCreateProvider, (_, __) {});
+      final viewModel = container.read(diaryCreateProvider.notifier);
 
-      viewModel.setDateRange(DateTime(2026, 1, 1), DateTime(2026, 1, 5));
+      viewModel.setAiDateRange(DateTime(2026, 1, 1), DateTime(2026, 1, 5));
 
       final state = container.read(diaryCreateProvider);
-      expect(state.startDate, DateTime(2026, 1, 1));
-      expect(state.endDate, DateTime(2026, 1, 1));
+      expect(state.aiStartDate, DateTime(2026, 1, 1));
+      expect(state.aiEndDate, DateTime(2026, 1, 1));
     });
 
-    test('有料プランでは、選べる日数までの期間を選べる', () async {
+    test('有料プランでは、日数の上限なく期間を選べる', () async {
       await container.read(planTypeProvider.notifier).setPlan(PlanType.paid);
       container.listen(diaryCreateProvider, (_, __) {});
       final viewModel = container.read(diaryCreateProvider.notifier);
 
-      viewModel.setDateRange(DateTime(2026, 1, 1), DateTime(2026, 1, 3));
-      expect(container.read(diaryCreateProvider).endDate, DateTime(2026, 1, 3));
+      viewModel.setAiDateRange(DateTime(2026, 1, 1), DateTime(2026, 6, 30));
 
-      // 選べる日数を超えた分は切り捨てる
-      viewModel.setDateRange(DateTime(2026, 1, 1), DateTime(2026, 2, 28));
-      expect(
-        container.read(diaryCreateProvider).endDate,
-        DateTime(2026, 1, DiaryPlan.paid.maxDays),
-      );
+      final state = container.read(diaryCreateProvider);
+      expect(state.aiStartDate, DateTime(2026, 1, 1));
+      expect(state.aiEndDate, DateTime(2026, 6, 30));
+    });
 
-      // 終了日が開始日より前の場合は、開始日の1日分にする
-      viewModel.setDateRange(DateTime(2026, 1, 5), DateTime(2026, 1, 2));
-      expect(container.read(diaryCreateProvider).endDate, DateTime(2026, 1, 5));
+    test('終了日が開始日より前の場合は、開始日の1日分にする', () async {
+      await container.read(planTypeProvider.notifier).setPlan(PlanType.paid);
+      container.listen(diaryCreateProvider, (_, __) {});
+      final viewModel = container.read(diaryCreateProvider.notifier);
+
+      viewModel.setAiDateRange(DateTime(2026, 1, 5), DateTime(2026, 1, 2));
+
+      expect(container.read(diaryCreateProvider).aiEndDate, DateTime(2026, 1, 5));
+    });
+
+    test('AIに渡す期間を選んでも、自分で書く日記の日付は変わらない', () async {
+      await container.read(planTypeProvider.notifier).setPlan(PlanType.paid);
+      container.listen(diaryCreateProvider, (_, __) {});
+      final viewModel = container.read(diaryCreateProvider.notifier);
+
+      viewModel.setDate(DateTime(2026, 3, 10));
+      viewModel.setAiDateRange(DateTime(2026, 3, 1), DateTime(2026, 3, 5));
+
+      final state = container.read(diaryCreateProvider);
+      expect(state.startDate, DateTime(2026, 3, 10));
+      expect(state.endDate, DateTime(2026, 3, 10));
+    });
+
+    test('日記の日付を選ぶと、AIに渡す期間もその日の1日分に戻る', () async {
+      await container.read(planTypeProvider.notifier).setPlan(PlanType.paid);
+      container.listen(diaryCreateProvider, (_, __) {});
+      final viewModel = container.read(diaryCreateProvider.notifier);
+
+      viewModel.setAiDateRange(DateTime(2026, 3, 1), DateTime(2026, 3, 5));
+      viewModel.setDate(DateTime(2026, 3, 10));
+
+      final state = container.read(diaryCreateProvider);
+      expect(state.aiStartDate, DateTime(2026, 3, 10));
+      expect(state.aiEndDate, DateTime(2026, 3, 10));
     });
 
     test('期間を変えると、AIに渡す選択内容を空に戻す', () async {
@@ -149,7 +175,7 @@ void main() {
       final viewModel = container.read(diaryCreateProvider.notifier);
 
       viewModel.setSelectedPosts(const []);
-      viewModel.setDateRange(DateTime(2026, 1, 1), DateTime(2026, 1, 2));
+      viewModel.setAiDateRange(DateTime(2026, 1, 1), DateTime(2026, 1, 2));
 
       final state = container.read(diaryCreateProvider);
       expect(state.aiPhotos, isEmpty);

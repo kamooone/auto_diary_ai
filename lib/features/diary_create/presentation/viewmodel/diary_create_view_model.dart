@@ -27,9 +27,13 @@ class DiaryCreateState {
   final String? errorMessage;
   final bool isLoading;
 
-  /// 日記の対象期間(1日分の場合は同じ日)
+  /// 自分で書く日記の日付(startDateとendDateは同じ日)
   final DateTime startDate;
   final DateTime endDate;
+
+  /// AIに情報を渡す期間(無料プランは1日分で、同じ日)
+  final DateTime aiStartDate;
+  final DateTime aiEndDate;
 
   /// 自分で書く日記に添える写真(撮影日の制限なし)
   final List<Photo> selectedPhotos;
@@ -58,6 +62,8 @@ class DiaryCreateState {
     this.isLoading = false,
     required this.startDate,
     required this.endDate,
+    required this.aiStartDate,
+    required this.aiEndDate,
     this.selectedPhotos = const [],
     this.aiPhotos = const [],
     this.posts = const [],
@@ -78,6 +84,8 @@ class DiaryCreateState {
     bool? isLoading,
     DateTime? startDate,
     DateTime? endDate,
+    DateTime? aiStartDate,
+    DateTime? aiEndDate,
     List<Photo>? selectedPhotos,
     List<Photo>? aiPhotos,
     List<SharedPost>? posts,
@@ -96,6 +104,8 @@ class DiaryCreateState {
       isLoading: isLoading ?? this.isLoading,
       startDate: startDate ?? this.startDate,
       endDate: endDate ?? this.endDate,
+      aiStartDate: aiStartDate ?? this.aiStartDate,
+      aiEndDate: aiEndDate ?? this.aiEndDate,
       selectedPhotos: selectedPhotos ?? this.selectedPhotos,
       aiPhotos: aiPhotos ?? this.aiPhotos,
       posts: posts ?? this.posts,
@@ -124,6 +134,8 @@ class DiaryCreateViewModel extends AutoDisposeNotifier<DiaryCreateState> {
     return DiaryCreateState(
       startDate: today,
       endDate: today,
+      aiStartDate: today,
+      aiEndDate: today,
     );
   }
 
@@ -131,7 +143,8 @@ class DiaryCreateViewModel extends AutoDisposeNotifier<DiaryCreateState> {
   DateTime? _loadedStart;
   DateTime? _loadedEnd;
 
-  /// 日記の対象日を変更する
+  /// 日記の日付を変更する
+  /// AIに情報を渡す期間も、その日の1日分に戻す(AIの画面で、期間を選び直せる)
   /// 対象日が変わるとAIに渡せる情報も変わるため、AI用の選択内容は空に戻す
   /// (自分で書く日記に添える写真は、日付に関係ないためそのまま残す)
   void setDate(DateTime date) {
@@ -140,6 +153,8 @@ class DiaryCreateViewModel extends AutoDisposeNotifier<DiaryCreateState> {
     state = state.copyWith(
       startDate: day,
       endDate: day,
+      aiStartDate: day,
+      aiEndDate: day,
       aiPhotos: const [],
       posts: const [],
       selectedPosts: const [],
@@ -151,22 +166,20 @@ class DiaryCreateViewModel extends AutoDisposeNotifier<DiaryCreateState> {
     _loadedEnd = null;
   }
 
-  /// 日記の対象期間を変更する(プランで選べる日数を超える場合は、開始日から選べる日数までにする)
-  void setDateRange(DateTime start, DateTime end) {
+  /// AIに情報を渡す期間を変更する
+  /// 無料プランでは1日分だけ(開始日の1日分)。有料プランでは、選んだ期間にする
+  /// 期間が変わるとAIに渡せる情報も変わるため、AI用の選択内容は空に戻す
+  void setAiDateRange(DateTime start, DateTime end) {
     final first = DateTime(start.year, start.month, start.day);
     var last = DateTime(end.year, end.month, end.day);
-    if (last.isBefore(first)) last = first;
 
-    final maxLast = DateTime(
-      first.year,
-      first.month,
-      first.day + ref.read(diaryPlanProvider).maxDays - 1,
-    );
-    if (last.isAfter(maxLast)) last = maxLast;
+    if (last.isBefore(first) || !ref.read(diaryPlanProvider).allowsMultipleDays) {
+      last = first;
+    }
 
     state = state.copyWith(
-      startDate: first,
-      endDate: last,
+      aiStartDate: first,
+      aiEndDate: last,
       aiPhotos: const [],
       posts: const [],
       selectedPosts: const [],
@@ -215,8 +228,8 @@ class DiaryCreateViewModel extends AutoDisposeNotifier<DiaryCreateState> {
   /// AIに書いてもらう画面を開いたときに呼ぶ。同じ期間をすでに読み込んでいる場合は、
   /// ユーザーの選択を保つため読み込み直さない
   Future<void> loadSources() async {
-    final start = state.startDate;
-    final end = state.endDate;
+    final start = state.aiStartDate;
+    final end = state.aiEndDate;
 
     if (state.isLoadingSources) return;
     if (_loadedStart == start && _loadedEnd == end) return;
@@ -273,6 +286,7 @@ class DiaryCreateViewModel extends AutoDisposeNotifier<DiaryCreateState> {
       title: state.title,
       content: state.content,
       photos: state.selectedPhotos,
+      date: state.startDate,
       isAiGenerated: false,
     );
   }
@@ -287,6 +301,8 @@ class DiaryCreateViewModel extends AutoDisposeNotifier<DiaryCreateState> {
       title: title,
       content: content,
       photos: state.aiPhotos,
+      // 複数日の期間の場合は、期間の最後の日の日記にする
+      date: state.aiEndDate,
       isAiGenerated: true,
     );
   }
@@ -295,12 +311,13 @@ class DiaryCreateViewModel extends AutoDisposeNotifier<DiaryCreateState> {
     required String title,
     required String content,
     required List<Photo> photos,
+    required DateTime date,
     required bool isAiGenerated,
   }) async {
     try {
       await ref.read(saveDiaryUseCaseProvider).execute(
         Diary(
-          date: state.startDate,
+          date: date,
           title: title.trim(),
           content: content.trim(),
           isAiGenerated: isAiGenerated,
@@ -325,8 +342,8 @@ class DiaryCreateViewModel extends AutoDisposeNotifier<DiaryCreateState> {
       // ユーザーが選んだ情報だけをAIに渡して、日記を書いてもらう
       final result = await _generateDiaryUseCase.execute(
         note: state.aiNote,
-        startDate: state.startDate,
-        endDate: state.endDate,
+        startDate: state.aiStartDate,
+        endDate: state.aiEndDate,
         photos: state.aiPhotos,
         timeline: state.selectedTimeline,
         posts: state.selectedPosts,

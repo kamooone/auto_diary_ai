@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../app/router/app_routes.dart';
+import '../../../../core/app_info/install_date_provider.dart';
 import '../../../plan/application/providers/plan_provider.dart';
+import '../viewmodel/diary_create_view_model.dart';
 import '../../../plan/presentation/widgets/usage_meter.dart';
 import '../../../location/domain/entities/timeline_item.dart';
 import '../../../share/domain/entities/shared_post.dart';
@@ -60,13 +62,28 @@ class _DiaryAiScreenState extends ConsumerState<DiaryAiScreen> {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          Text(
-            "${DiaryPeriodText.format(state.startDate, state.endDate)}の日記",
-            style: Theme.of(context).textTheme.titleMedium,
+          // 無料プランは1日分だけ、有料プランは期間を選べる
+          Card(
+            child: ListTile(
+              leading: const Icon(Icons.calendar_today),
+              title: Text(plan.allowsMultipleDays ? "日記の期間" : "日記の日付"),
+              subtitle: Text(
+                [
+                  DiaryPeriodText.format(state.aiStartDate, state.aiEndDate),
+                  if (!plan.allowsMultipleDays)
+                    "複数日分をまとめて書くには、有料プランが必要です",
+                ].join("\n"),
+              ),
+              isThreeLine: !plan.allowsMultipleDays,
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => _selectPeriod(context, state, plan.allowsMultipleDays),
+            ),
           ),
           const SizedBox(height: 4),
           Text(
-            "AIに渡す情報を選んでください",
+            plan.allowsMultipleDays
+                ? "AIに渡す情報は、選んだ期間のものから選べます"
+                : "AIに渡す情報は、選んだ日のものから選べます",
             style: Theme.of(context).textTheme.bodySmall,
           ),
           const SizedBox(height: 12),
@@ -106,12 +123,12 @@ class _DiaryAiScreenState extends ConsumerState<DiaryAiScreen> {
           PhotoSelectionCard(
             photos: state.aiPhotos,
             maxPhotos: plan.maxPhotos,
-            from: state.startDate,
+            from: state.aiStartDate,
             // 対象期間の最終日の終わりまで
             to: DateTime(
-              state.endDate.year,
-              state.endDate.month,
-              state.endDate.day + 1,
+              state.aiEndDate.year,
+              state.aiEndDate.month,
+              state.aiEndDate.day + 1,
             ),
             onChanged: viewModel.setAiPhotos,
           ),
@@ -223,6 +240,49 @@ class _DiaryAiScreenState extends ConsumerState<DiaryAiScreen> {
         ],
       ),
     );
+  }
+
+  Future<void> _selectPeriod(
+    BuildContext context,
+    DiaryCreateState state,
+    bool allowsMultipleDays,
+  ) async {
+    final viewModel = ref.read(diaryCreateProvider.notifier);
+
+    final now = DateTime.now();
+    final installDate = ref.read(installDateProvider);
+
+    // アプリを使い始めた日から今日までを選ぶ
+    final firstDate = DateTime(
+      installDate.year,
+      installDate.month,
+      installDate.day,
+    );
+    final lastDate = DateTime(now.year, now.month, now.day);
+
+    if (!allowsMultipleDays) {
+      final selected = await showDatePicker(
+        context: context,
+        initialDate: state.aiStartDate,
+        firstDate: firstDate,
+        lastDate: lastDate,
+      );
+
+      if (selected != null) viewModel.setAiDateRange(selected, selected);
+      return;
+    }
+
+    final range = await showDateRangePicker(
+      context: context,
+      initialDateRange: DateTimeRange(
+        start: state.aiStartDate,
+        end: state.aiEndDate,
+      ),
+      firstDate: firstDate,
+      lastDate: lastDate,
+    );
+
+    if (range != null) viewModel.setAiDateRange(range.start, range.end);
   }
 
   // 読み込みが終わるまではインジケータを表示する
