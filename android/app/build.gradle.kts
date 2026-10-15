@@ -21,8 +21,8 @@ android {
         applicationId = "com.kazusa.auto_diary_ai.auto_diary_ai"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
-        // google_mobile_adsは、Android 6.0(API 23)以上が必要
-        minSdk = maxOf(flutter.minSdkVersion, 23)
+        // google_mobile_adsは、Android 7.0(API 24)以上が必要
+        minSdk = maxOf(flutter.minSdkVersion, 24)
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName

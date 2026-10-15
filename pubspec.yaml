@@ -43,7 +43,7 @@ dependencies:
   photo_manager: ^3.9.0
   receive_sharing_intent: 1.8.0
   http: ^1.2.2
-  google_mobile_ads: ^6.0.0  # AdMob広告
+  google_mobile_ads: ^9.1.0  # AdMob広告
   html: ^0.15.4
   table_calendar: ^3.0.9
   flutter_dotenv: ^5.2.1
