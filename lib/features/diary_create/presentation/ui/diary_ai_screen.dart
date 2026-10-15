@@ -249,6 +249,29 @@ class _DiaryAiScreenState extends ConsumerState<DiaryAiScreen> {
 
   // リワード広告を見たあとに、AIに日記を書いてもらう
   Future<void> _generate(BuildContext context) async {
+    // 広告を見る必要があることを伝えて、許可をもらう
+    final agreed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text("広告を見ますか？"),
+        content: const Text(
+          "AIに日記を書いてもらうには、広告(動画)を最後まで見る必要があります。",
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text("やめる"),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text("広告を見る"),
+          ),
+        ],
+      ),
+    );
+
+    if (agreed != true || !context.mounted) return;
+
     final allowed = await ref.read(adPolicyProvider).beforeGenerate();
 
     if (!allowed) {

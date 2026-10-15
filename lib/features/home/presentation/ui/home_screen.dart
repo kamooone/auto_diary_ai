@@ -141,55 +141,57 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               ],
             ),
 
-          // 左下：カレンダー
-          Positioned(
-            left: 16,
-            bottom: 16,
-            child: FloatingActionButton(
-              heroTag: 'calendar',
-              tooltip: 'カレンダー',
-              onPressed: () {
-                context.push(AppRoutes.calendar);
-              },
-              child: const Icon(Icons.calendar_month),
-            ),
-          ),
-
-          // 下部中央：バナー広告(バージョンの表示の上。左右のボタンと重ならない高さ)
-          const Positioned(
-            left: 0,
-            right: 0,
-            bottom: 80,
-            child: Center(child: BannerAdView()),
-          ),
-
-          // 下部中央：どの版のアプリが入っているかを確認するための表示
+          // 下部：上から、カレンダーと日記作成のボタン、バナー広告、バージョンの表示
+          // (バナー広告を読み込めていない間は、広告の分の空きを作らない)
           Positioned(
             left: 0,
             right: 0,
             bottom: 8,
-            child: Center(
-              child: Text(
-                "バージョン ${ref.watch(appVersionProvider).valueOrNull ?? ""}",
-                style: Theme.of(context)
-                    .textTheme
-                    .bodySmall
-                    ?.copyWith(color: Colors.grey),
-              ),
-            ),
-          ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      // 左：カレンダー
+                      FloatingActionButton(
+                        heroTag: 'calendar',
+                        tooltip: 'カレンダー',
+                        onPressed: () {
+                          context.push(AppRoutes.calendar);
+                        },
+                        child: const Icon(Icons.calendar_month),
+                      ),
 
-          // 右下：日記作成
-          Positioned(
-            right: 16,
-            bottom: 16,
-            child: FloatingActionButton(
-              heroTag: 'diary',
-              tooltip: '日記作成',
-              onPressed: () {
-                context.push(AppRoutes.diaryCreate);
-              },
-              child: const Icon(Icons.add),
+                      // 右：日記作成
+                      FloatingActionButton(
+                        heroTag: 'diary',
+                        tooltip: '日記作成',
+                        onPressed: () {
+                          context.push(AppRoutes.diaryCreate);
+                        },
+                        child: const Icon(Icons.add),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 8),
+
+                // バナー広告
+                const BannerAdView(),
+                const SizedBox(height: 4),
+
+                // どの版のアプリが入っているかを確認するための表示
+                Text(
+                  "バージョン ${ref.watch(appVersionProvider).valueOrNull ?? ""}",
+                  style: Theme.of(context)
+                      .textTheme
+                      .bodySmall
+                      ?.copyWith(color: Colors.grey),
+                ),
+              ],
             ),
           ),
         ],
