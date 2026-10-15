@@ -315,11 +315,13 @@ class OsmPlaceSearchRepositoryImpl implements PlaceSearchRepository {
         if (e is _IncompleteResultException || e is TimeoutException) {
           isIncomplete = true;
         }
+        // 別のサーバーで取得できたあとに、遅れて失敗が分かる場合がある(結果には影響しない)
         AppLog.add(
           '施設',
           '${endpoint.host}: '
               '${e is _IncompleteResultException ? '処理しきれず' : '失敗'} '
-              '${attempt.elapsedMilliseconds}ms ($e)',
+              '${attempt.elapsedMilliseconds}ms ($e)'
+              '${completer.isCompleted ? ' ※別のサーバーで取得済み' : ''}',
         );
 
         if (completer.isCompleted || pending > 0) return;
