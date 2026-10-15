@@ -1,7 +1,10 @@
 import 'dart:async';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import '../../../plan/domain/entities/usage_info.dart';
+import '../../../plan/domain/exceptions/usage_limit_exception.dart';
 import '../../domain/entities/ai_message_request.dart';
+import '../../domain/entities/ai_reply.dart';
 import '../../domain/exceptions/ai_exception.dart';
 import '../../domain/repositories/ai_repository.dart';
 
@@ -9,8 +12,15 @@ class AwsAiRepositoryImpl implements AiRepository {
   final String baseUrl;
   final http.Client _client;
 
-  AwsAiRepositoryImpl(this.baseUrl, {http.Client? client})
-      : _client = client ?? http.Client();
+  // 端末を識別する匿名のID(サーバーが使用量を端末ごとに集計する)
+  final Future<String> Function()? _clientId;
+
+  AwsAiRepositoryImpl(
+    this.baseUrl, {
+    http.Client? client,
+    Future<String> Function()? clientId,
+  })  : _client = client ?? http.Client(),
+        _clientId = clientId;
 
   static const _uploadPath = '/ai/upload-url';
   static const _chatPath = '/ai/chat';
@@ -22,7 +32,7 @@ class AwsAiRepositoryImpl implements AiRepository {
   static const _maxUploadBodyBytes = 5 * 1024 * 1024;
 
   @override
-  Future<String> sendMessage(AiMessageRequest request) async {
+  Future<AiReply> sendMessage(AiMessageRequest request) async {
     // 画像をまとめてS3へアップロードし、S3キーを受け取る
     final uploadedImages = request.images.isEmpty
         ? const <dynamic>[]
@@ -42,7 +52,8 @@ class AwsAiRepositoryImpl implements AiRepository {
     if (answer is! String) {
       throw AiChatException('answer is missing in response');
     }
-    return answer;
+
+    return AiReply(answer: answer, usage: UsageInfo.fromJson(data));
   }
 
   Future<List<dynamic>> _uploadImages(AiMessageRequest request) async {
@@ -88,6 +99,7 @@ class AwsAiRepositoryImpl implements AiRepository {
             Uri.parse('$baseUrl$path'),
             headers: {
               'Content-Type': 'application/json',
+              if (_clientId != null) 'X-Client-Id': await _clientId(),
             },
             body: body,
           )
@@ -96,6 +108,11 @@ class AwsAiRepositoryImpl implements AiRepository {
       throw onError('Request timed out: $path');
     } on http.ClientException catch (e) {
       throw onError('Request failed: $path (${e.message})');
+    }
+
+    // 今月の使用量の上限に達している(使用量が分かる場合は本文に入っている)
+    if (response.statusCode == 429) {
+      throw UsageLimitExceededException(_usageOf(response));
     }
 
     if (response.statusCode != 200) {
@@ -107,5 +124,13 @@ class AwsAiRepositoryImpl implements AiRepository {
       throw onError('Unexpected response: $path');
     }
     return data;
+  }
+
+  UsageInfo? _usageOf(http.Response response) {
+    try {
+      return UsageInfo.fromJson(jsonDecode(utf8.decode(response.bodyBytes)));
+    } catch (_) {
+      return null;
+    }
   }
 }

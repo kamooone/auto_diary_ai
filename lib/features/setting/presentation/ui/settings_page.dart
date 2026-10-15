@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../app/router/app_routes.dart';
 import '../../../plan/application/providers/plan_provider.dart';
-import '../../../plan/domain/entities/plan_type.dart';
+import '../../../plan/presentation/widgets/usage_meter.dart';
 import '../providers/recording_settings_provider.dart';
 
 class SettingsPage extends ConsumerStatefulWidget {
@@ -21,8 +21,14 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
   void initState() {
     super.initState();
 
+    // 今月の使用量を取得する
+    Future.microtask(() => ref.read(usageProvider.notifier).refresh());
+
     _lifecycleListener = AppLifecycleListener(
-      onResume: () => ref.invalidate(recordingSettingsProvider),
+      onResume: () {
+        ref.invalidate(recordingSettingsProvider);
+        ref.read(usageProvider.notifier).refresh();
+      },
     );
   }
 
@@ -36,6 +42,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
   Widget build(BuildContext context) {
     final recording = ref.watch(recordingSettingsProvider).valueOrNull;
     final plan = ref.watch(planTypeProvider);
+    final usage = ref.watch(usageProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -56,14 +63,12 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
           ListTile(
             leading: Icon(plan.isPaid ? Icons.workspace_premium : Icons.person),
             title: const Text("プラン"),
-            subtitle: Text(
-              plan.isPaid
-                  ? "有料プラン: 複数日分の情報をAIに渡して日記を書けます"
-                  : "無料プラン: 選んだ1日分の情報をAIに渡せます",
+            subtitle: Padding(
+              padding: const EdgeInsets.only(top: 8),
+              child: UsageMeter(usage: usage),
             ),
             trailing: Text(plan.label),
-            // 決済を導入するまでは、動作確認のために切り替えられる
-            onTap: _showPlanSelect,
+            onTap: () => context.push(AppRoutes.plan),
           ),
 
           const Divider(),
@@ -105,30 +110,6 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
         ],
       ),
     );
-  }
-
-  // 決済を導入するまでの、動作確認用の切り替え
-  Future<void> _showPlanSelect() async {
-    final current = ref.read(planTypeProvider);
-
-    final selected = await showDialog<PlanType>(
-      context: context,
-      builder: (context) => SimpleDialog(
-        title: const Text("プランを切り替える(動作確認用)"),
-        children: [
-          for (final plan in PlanType.values)
-            ListTile(
-              title: Text(plan.label),
-              trailing: plan == current ? const Icon(Icons.check) : null,
-              onTap: () => Navigator.of(context).pop(plan),
-            ),
-        ],
-      ),
-    );
-
-    if (selected != null) {
-      await ref.read(planTypeProvider.notifier).setPlan(selected);
-    }
   }
 
   Future<void> _setEnabled(bool enabled) async {

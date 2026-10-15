@@ -1,5 +1,6 @@
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../../core/app_info/client_id.dart';
 import '../../data/repositories/aws_ai_repository_impl.dart';
 import '../../domain/repositories/ai_repository.dart';
 
@@ -17,5 +18,6 @@ final apiBaseUrlProvider = Provider<String>((ref) {
 final aiRepositoryProvider = Provider<AiRepository>((ref) {
   return AwsAiRepositoryImpl(
     ref.watch(apiBaseUrlProvider),
+    clientId: ClientId.get,
   );
 });

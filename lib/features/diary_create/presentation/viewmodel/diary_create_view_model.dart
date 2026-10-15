@@ -4,6 +4,8 @@ import '../../../ai/domain/exceptions/ai_exception.dart';
 import '../../../diary/application/providers/diary_providers.dart';
 import '../../../diary/domain/entities/diary.dart';
 import '../../../location/application/providers/location_providers.dart';
+import '../../../plan/application/providers/plan_provider.dart';
+import '../../../plan/domain/exceptions/usage_limit_exception.dart';
 import '../../../location/domain/entities/timeline_item.dart';
 import '../../../share/application/providers/share_providers.dart';
 import '../../../share/domain/entities/shared_post.dart';
@@ -330,12 +332,27 @@ class DiaryCreateViewModel extends AutoDisposeNotifier<DiaryCreateState> {
         posts: state.selectedPosts,
       );
 
+      // 今月の使用量を、画面に反映する
+      final usage = result.usage;
+      if (usage != null) ref.read(usageProvider.notifier).update(usage);
+
       if (_isDisposed) return;
 
       state = state.copyWith(
         generatedTitle: result.title,
         generatedDiary: result.content,
         isLoading: false,
+      );
+    } on UsageLimitExceededException catch (e) {
+      // 上限に達した場合は、使えるようになる時期を画面に示す
+      final usage = e.usage;
+      if (usage != null) ref.read(usageProvider.notifier).update(usage);
+
+      if (_isDisposed) return;
+
+      state = state.copyWith(
+        isLoading: false,
+        errorMessage: "今月のAIの使用量の上限に達しました",
       );
     } on AiUploadException catch (e, stackTrace) {
       debugPrint(e.toString());

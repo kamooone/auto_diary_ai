@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import '../../../../app/router/app_routes.dart';
+import '../../../plan/application/providers/plan_provider.dart';
+import '../../../plan/presentation/widgets/usage_meter.dart';
 import '../../../location/domain/entities/timeline_item.dart';
 import '../../../share/domain/entities/shared_post.dart';
 import '../../application/providers/diary_usecase_providers.dart';
@@ -37,6 +41,9 @@ class _DiaryAiScreenState extends ConsumerState<DiaryAiScreen> {
     // この画面を開いたときに、選んだ日のXの投稿と行動履歴を読み込む
     Future.microtask(() {
       ref.read(diaryCreateProvider.notifier).loadSources();
+
+      // 今月の使用量を取得する
+      ref.read(usageProvider.notifier).refresh();
     });
   }
 
@@ -45,6 +52,8 @@ class _DiaryAiScreenState extends ConsumerState<DiaryAiScreen> {
     final state = ref.watch(diaryCreateProvider);
     final viewModel = ref.read(diaryCreateProvider.notifier);
     final plan = ref.watch(diaryPlanProvider);
+    final usage = ref.watch(usageProvider);
+    final isExceeded = usage?.isExceeded ?? false;
 
     return Scaffold(
       appBar: AppBar(title: const Text("AIに書いてもらう")),
@@ -59,6 +68,37 @@ class _DiaryAiScreenState extends ConsumerState<DiaryAiScreen> {
           Text(
             "AIに渡す情報を選んでください",
             style: Theme.of(context).textTheme.bodySmall,
+          ),
+          const SizedBox(height: 12),
+
+          // 今月の使用量。上限に達している場合は、使えるようになる時期を伝える
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  UsageMeter(usage: usage),
+                  if (isExceeded) ...[
+                    const SizedBox(height: 8),
+                    Text(
+                      plan.type.isPaid
+                          ? "今月の使用量の上限に達しました。次のリセットまでAIは使えません。"
+                          : "今月の使用量の上限に達しました。有料プランにすると、"
+                              "さらに多く使えます。",
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.error,
+                      ),
+                    ),
+                    if (!plan.type.isPaid)
+                      TextButton(
+                        onPressed: () => context.push(AppRoutes.plan),
+                        child: const Text("プランを見る"),
+                      ),
+                  ],
+                ],
+              ),
+            ),
           ),
           const SizedBox(height: 12),
 
@@ -165,7 +205,8 @@ class _DiaryAiScreenState extends ConsumerState<DiaryAiScreen> {
           // ---------- 生成
           ElevatedButton.icon(
             // 読み込みが終わるまでは、選択内容が確定しないため押せないようにする
-            onPressed: state.isLoadingSources
+            // 今月の使用量の上限に達している場合も、押せない
+            onPressed: state.isLoadingSources || isExceeded
                 ? null
                 : () {
                     viewModel.generateDiary();

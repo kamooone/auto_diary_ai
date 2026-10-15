@@ -129,10 +129,16 @@ $postText
 """,
       images: images,
     );
-    final answer = await _aiRepository.sendMessage(request);
+    final reply = await _aiRepository.sendMessage(request);
 
     // 回答をタイトルと本文に分ける
-    return _parser.parse(answer);
+    final diary = _parser.parse(reply.answer);
+
+    return GeneratedDiary(
+      title: diary.title,
+      content: diary.content,
+      usage: reply.usage,
+    );
   }
 
   // 写真の撮影場所(位置情報が付いていない場合はnull)
