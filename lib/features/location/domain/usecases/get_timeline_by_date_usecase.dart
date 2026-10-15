@@ -1,3 +1,4 @@
+import 'dart:async';
 import '../../../../core/async/parallel.dart';
 import '../../../../core/logging/app_log.dart';
 import '../entities/location.dart';
@@ -40,6 +41,9 @@ class GetTimelineByDateUseCase {
   // 地名を同時に問い合わせる数
   static const _placeNameConcurrency = 4;
 
+  // 地名の取得を待つ時間(これを過ぎたら取得できなかったものとして先に進む)
+  final Duration placeNameTimeout;
+
   final TimelineBuilder _builder = TimelineBuilder();
 
   final TransportEstimator _transportEstimator = TransportEstimator();
@@ -59,6 +63,7 @@ class GetTimelineByDateUseCase {
     required this.timelineSnapshotRepository,
     required this.recordingPauseRepository,
     required this.registeredPlaceRepository,
+    this.placeNameTimeout = const Duration(seconds: 8),
   });
 
   /// 指定した日の行動を「滞在」と「移動」に要約して取得
@@ -361,9 +366,14 @@ class GetTimelineByDateUseCase {
         '地名の取得(${namedStays.length}か所)',
         () => parallelMap(
           namedStays,
-          (stay) => placeNameRepository.getPlaceName(
-            stay.latitude,
-            stay.longitude,
+          (stay) => placeNameRepository
+              .getPlaceName(stay.latitude, stay.longitude)
+              .timeout(
+            placeNameTimeout,
+            onTimeout: () {
+              AppLog.add('timeline', '地名の取得が終わらないため、先に進みます');
+              return null;
+            },
           ),
           concurrency: _placeNameConcurrency,
         ),

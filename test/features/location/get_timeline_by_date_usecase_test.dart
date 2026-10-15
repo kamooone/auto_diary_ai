@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:auto_diary_ai/features/location/domain/entities/activity_segment.dart';
 import 'package:auto_diary_ai/features/location/domain/entities/location.dart';
 import 'package:auto_diary_ai/features/location/domain/entities/place_candidate.dart';
@@ -71,6 +73,14 @@ class SlowPlaceNameRepository implements PlaceNameRepository {
     await Future<void>.delayed(const Duration(milliseconds: 20));
     running--;
     return '地名$latitude';
+  }
+}
+
+/// 問い合わせが終わらない
+class HangingPlaceNameRepository implements PlaceNameRepository {
+  @override
+  Future<String?> getPlaceName(double latitude, double longitude) {
+    return Completer<String?>().future;
   }
 }
 
@@ -394,6 +404,26 @@ void main() {
     for (final stay in stays) {
       expect(stay.placeName, '地名${stay.latitude}');
     }
+  });
+
+  test('地名の取得が終わらない場合も、待ちきれずに先に進み、保存しない', () async {
+    useCase = GetTimelineByDateUseCase(
+      repository: locations,
+      placeNameRepository: HangingPlaceNameRepository(),
+      timelineEditRepository: edits,
+      placeSearchRepository: placeSearch,
+      activityRepository: FakeActivityRepository(),
+      timelineSnapshotRepository: snapshots,
+      recordingPauseRepository: recordingPauses,
+      registeredPlaceRepository: registeredPlaces,
+      placeNameTimeout: const Duration(milliseconds: 50),
+    );
+
+    final items = await useCase.execute(day);
+
+    expect(items.whereType<Stay>(), isNotEmpty);
+    expect((items.whereType<Stay>().first).placeName, isNull);
+    expect(snapshots.saved, isNull);
   });
 
   test('施設を当てはめない場合は保存しない', () async {

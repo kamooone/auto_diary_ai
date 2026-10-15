@@ -8,7 +8,7 @@ class AppLogPanel extends StatelessWidget {
   const AppLogPanel({super.key, required this.onClose});
 
   // 表示する行数
-  static const _visibleLines = 14;
+  static const _visibleLines = 18;
 
   @override
   Widget build(BuildContext context) {

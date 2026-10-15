@@ -66,6 +66,9 @@ class MapState {
 }
 
 class MapViewModel extends Notifier<MapState> {
+  // タイムラインの読み込みを待つ時間の上限
+  static const _maxLoadDuration = Duration(seconds: 45);
+
   // 表示中の日の位置情報(移動経路を取り出すために保持する)
   List<Location> _locations = const [];
 
@@ -182,7 +185,11 @@ class MapViewModel extends Notifier<MapState> {
     state = state.copyWith(isLoadingTimeline: true);
 
     try {
-      await _loadTimeline(date);
+      // 何かの処理が終わらなくても、読み込み中の表示が出続けないようにする
+      // (時間切れになっても、読み込みは続き、終わり次第タイムラインに反映される)
+      await _loadTimeline(date).timeout(_maxLoadDuration);
+    } on TimeoutException {
+      AppLog.add('読込', '読み込みが終わらないため、表示を先に完了します');
     } catch (e, stackTrace) {
       debugPrint(e.toString());
       debugPrintStack(stackTrace: stackTrace);

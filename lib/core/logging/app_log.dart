@@ -33,6 +33,9 @@ class AppLog {
     String label,
     Future<T> Function() action,
   ) async {
+    // 終わらない処理がどこで止まっているか分かるよう、開始も残す
+    add(tag, '▶ $label');
+
     final stopwatch = Stopwatch()..start();
     try {
       final result = await action();
