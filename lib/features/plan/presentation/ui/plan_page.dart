@@ -184,7 +184,7 @@ class _Comparison extends StatelessWidget {
             const Divider(height: 1),
             row("AIの使用量", "月ごとの上限あり", "無料より大幅に多い"),
             const Divider(height: 1),
-            row("AIに渡す日記の期間", "選んだ1日分", "複数日分をまとめて"),
+            row("AIに渡す情報の期間", "日記の日付と同じ日", "期間を選べる"),
           ],
         ),
       ),

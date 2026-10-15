@@ -110,15 +110,16 @@ void main() {
       expect(container.read(planTypeProvider), PlanType.paid);
     });
 
-    test('無料プランでは、複数日を選んでも開始日の1日分になる', () {
+    test('無料プランでは、期間を選べず、日記の日付の1日分のまま', () {
       container.listen(diaryCreateProvider, (_, __) {});
       final viewModel = container.read(diaryCreateProvider.notifier);
 
+      viewModel.setDate(DateTime(2026, 1, 3));
       viewModel.setAiDateRange(DateTime(2026, 1, 1), DateTime(2026, 1, 5));
 
       final state = container.read(diaryCreateProvider);
-      expect(state.aiStartDate, DateTime(2026, 1, 1));
-      expect(state.aiEndDate, DateTime(2026, 1, 1));
+      expect(state.aiStartDate, DateTime(2026, 1, 3));
+      expect(state.aiEndDate, DateTime(2026, 1, 3));
     });
 
     test('有料プランでは、日数の上限なく期間を選べる', () async {

@@ -62,28 +62,40 @@ class _DiaryAiScreenState extends ConsumerState<DiaryAiScreen> {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          // 無料プランは1日分だけ、有料プランは期間を選べる
+          // 何月何日の日記を書くか(プランに関わらず1日だけ)
           Card(
             child: ListTile(
               leading: const Icon(Icons.calendar_today),
-              title: Text(plan.allowsMultipleDays ? "日記の期間" : "日記の日付"),
+              title: const Text("日記の日付"),
               subtitle: Text(
-                [
-                  DiaryPeriodText.format(state.aiStartDate, state.aiEndDate),
-                  if (!plan.allowsMultipleDays)
-                    "複数日分をまとめて書くには、有料プランが必要です",
-                ].join("\n"),
+                DiaryPeriodText.format(state.startDate, state.startDate),
               ),
-              isThreeLine: !plan.allowsMultipleDays,
               trailing: const Icon(Icons.chevron_right),
-              onTap: () => _selectPeriod(context, state, plan.allowsMultipleDays),
+              onTap: () => _selectDiaryDate(context, state),
             ),
           ),
+
+          // 有料プランだけ、AIに渡す情報の期間を選べる
+          // (無料プランは、日記の日付と同じ日の情報だけを渡せる)
+          if (plan.allowsMultipleDays) ...[
+            const SizedBox(height: 4),
+            Card(
+              child: ListTile(
+                leading: const Icon(Icons.date_range),
+                title: const Text("AIに渡す情報の期間"),
+                subtitle: Text(
+                  DiaryPeriodText.format(state.aiStartDate, state.aiEndDate),
+                ),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => _selectPeriod(context, state),
+              ),
+            ),
+          ],
           const SizedBox(height: 4),
           Text(
             plan.allowsMultipleDays
-                ? "AIに渡す情報は、選んだ期間のものから選べます"
-                : "AIに渡す情報は、選んだ日のものから選べます",
+                ? "写真・Xの投稿・行動履歴は、選んだ期間のものから選べます"
+                : "写真・Xの投稿・行動履歴は、日記の日付のものから選べます",
             style: Theme.of(context).textTheme.bodySmall,
           ),
           const SizedBox(height: 12),
@@ -242,35 +254,41 @@ class _DiaryAiScreenState extends ConsumerState<DiaryAiScreen> {
     );
   }
 
-  Future<void> _selectPeriod(
-    BuildContext context,
-    DiaryCreateState state,
-    bool allowsMultipleDays,
-  ) async {
-    final viewModel = ref.read(diaryCreateProvider.notifier);
-
+  // アプリを使い始めた日から今日までが、選べる範囲
+  ({DateTime first, DateTime last}) _selectableDates() {
     final now = DateTime.now();
     final installDate = ref.read(installDateProvider);
 
-    // アプリを使い始めた日から今日までを選ぶ
-    final firstDate = DateTime(
-      installDate.year,
-      installDate.month,
-      installDate.day,
+    return (
+      first: DateTime(installDate.year, installDate.month, installDate.day),
+      last: DateTime(now.year, now.month, now.day),
     );
-    final lastDate = DateTime(now.year, now.month, now.day);
+  }
 
-    if (!allowsMultipleDays) {
-      final selected = await showDatePicker(
-        context: context,
-        initialDate: state.aiStartDate,
-        firstDate: firstDate,
-        lastDate: lastDate,
-      );
+  Future<void> _selectDiaryDate(
+    BuildContext context,
+    DiaryCreateState state,
+  ) async {
+    final dates = _selectableDates();
 
-      if (selected != null) viewModel.setAiDateRange(selected, selected);
-      return;
+    final selected = await showDatePicker(
+      context: context,
+      initialDate: state.startDate,
+      firstDate: dates.first,
+      lastDate: dates.last,
+    );
+
+    if (selected != null) {
+      ref.read(diaryCreateProvider.notifier).setDate(selected);
     }
+  }
+
+  // 有料プランだけ
+  Future<void> _selectPeriod(
+    BuildContext context,
+    DiaryCreateState state,
+  ) async {
+    final dates = _selectableDates();
 
     final range = await showDateRangePicker(
       context: context,
@@ -278,11 +296,16 @@ class _DiaryAiScreenState extends ConsumerState<DiaryAiScreen> {
         start: state.aiStartDate,
         end: state.aiEndDate,
       ),
-      firstDate: firstDate,
-      lastDate: lastDate,
+      firstDate: dates.first,
+      lastDate: dates.last,
+      helpText: "AIに渡す情報の期間",
     );
 
-    if (range != null) viewModel.setAiDateRange(range.start, range.end);
+    if (range != null) {
+      ref
+          .read(diaryCreateProvider.notifier)
+          .setAiDateRange(range.start, range.end);
+    }
   }
 
   // 読み込みが終わるまではインジケータを表示する

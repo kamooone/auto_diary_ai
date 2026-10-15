@@ -31,7 +31,8 @@ class DiaryCreateState {
   final DateTime startDate;
   final DateTime endDate;
 
-  /// AIに情報を渡す期間(無料プランは1日分で、同じ日)
+  /// AIに渡す情報(写真・Xの投稿・行動履歴)の期間
+  /// 無料プランは日記の日付と同じ1日分。有料プランは、選んだ期間
   final DateTime aiStartDate;
   final DateTime aiEndDate;
 
@@ -144,7 +145,7 @@ class DiaryCreateViewModel extends AutoDisposeNotifier<DiaryCreateState> {
   DateTime? _loadedEnd;
 
   /// 日記の日付を変更する
-  /// AIに情報を渡す期間も、その日の1日分に戻す(AIの画面で、期間を選び直せる)
+  /// AIに渡す情報の期間も、その日の1日分に戻す(有料プランは、期間を選び直せる)
   /// 対象日が変わるとAIに渡せる情報も変わるため、AI用の選択内容は空に戻す
   /// (自分で書く日記に添える写真は、日付に関係ないためそのまま残す)
   void setDate(DateTime date) {
@@ -166,16 +167,17 @@ class DiaryCreateViewModel extends AutoDisposeNotifier<DiaryCreateState> {
     _loadedEnd = null;
   }
 
-  /// AIに情報を渡す期間を変更する
-  /// 無料プランでは1日分だけ(開始日の1日分)。有料プランでは、選んだ期間にする
+  /// AIに渡す情報の期間を変更する(有料プランのみ)
+  /// 無料プランでは、日記の日付と同じ1日分のまま変わらない
   /// 期間が変わるとAIに渡せる情報も変わるため、AI用の選択内容は空に戻す
   void setAiDateRange(DateTime start, DateTime end) {
+    // 無料プランでは、日記の日付の1日分だけ
+    if (!ref.read(diaryPlanProvider).allowsMultipleDays) return;
+
     final first = DateTime(start.year, start.month, start.day);
     var last = DateTime(end.year, end.month, end.day);
 
-    if (last.isBefore(first) || !ref.read(diaryPlanProvider).allowsMultipleDays) {
-      last = first;
-    }
+    if (last.isBefore(first)) last = first;
 
     state = state.copyWith(
       aiStartDate: first,
@@ -301,8 +303,7 @@ class DiaryCreateViewModel extends AutoDisposeNotifier<DiaryCreateState> {
       title: title,
       content: content,
       photos: state.aiPhotos,
-      // 複数日の期間の場合は、期間の最後の日の日記にする
-      date: state.aiEndDate,
+      date: state.startDate,
       isAiGenerated: true,
     );
   }
@@ -342,6 +343,7 @@ class DiaryCreateViewModel extends AutoDisposeNotifier<DiaryCreateState> {
       // ユーザーが選んだ情報だけをAIに渡して、日記を書いてもらう
       final result = await _generateDiaryUseCase.execute(
         note: state.aiNote,
+        diaryDate: state.startDate,
         startDate: state.aiStartDate,
         endDate: state.aiEndDate,
         photos: state.aiPhotos,

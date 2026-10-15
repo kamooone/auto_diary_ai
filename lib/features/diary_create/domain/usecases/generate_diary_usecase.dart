@@ -32,10 +32,12 @@ class GenerateDiaryUseCase {
 
   /// ユーザーが選んだ情報をもとに日記を生成する
   ///
-  /// [startDate]と[endDate]は日記の対象期間(1日分の場合は同じ日)
+  /// [diaryDate]は日記の日付(何月何日の日記か)
+  /// [startDate]と[endDate]は、AIに渡す情報の期間(1日分の場合は同じ日)
   /// [note]はユーザーがAIに追加で伝えたい内容(なければ空文字)
   Future<GeneratedDiary> execute({
     required String note,
+    required DateTime diaryDate,
     required DateTime startDate,
     required DateTime endDate,
     required List<Photo> photos,
@@ -103,9 +105,9 @@ class GenerateDiaryUseCase {
 ユーザーが追加で伝えたいこと
 ${note.trim().isEmpty ? "(なし)" : note.trim()}
 
-日付
-${_period(startDate, endDate)}
-
+日記の日付
+${_period(diaryDate, diaryDate)}
+${_isSameDay(startDate, endDate) && _isSameDay(startDate, diaryDate) ? "" : "\n渡した情報の期間\n${_period(startDate, endDate)}\n"}
 写真
 ${sentPhotos.length}枚添付しています。
 
@@ -207,5 +209,9 @@ $postText
     return [
       for (var i = 0; i < max; i++) photos[(i * step).round()],
     ];
+  }
+
+  bool _isSameDay(DateTime a, DateTime b) {
+    return a.year == b.year && a.month == b.month && a.day == b.day;
   }
 }
