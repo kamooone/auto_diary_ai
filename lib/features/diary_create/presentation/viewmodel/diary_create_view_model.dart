@@ -264,7 +264,7 @@ class DiaryCreateViewModel extends AutoDisposeNotifier<DiaryCreateState> {
     if (_isDisposed) return;
 
     // 読み込み中に対象日が変更された場合は反映せず、新しい対象日で読み込み直す
-    if (state.startDate != start || state.endDate != end) {
+    if (state.aiStartDate != start || state.aiEndDate != end) {
       state = state.copyWith(isLoadingSources: false);
       return loadSources();
     }

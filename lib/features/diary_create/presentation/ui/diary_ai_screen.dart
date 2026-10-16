@@ -320,7 +320,11 @@ class _DiaryAiScreenState extends ConsumerState<DiaryAiScreen> {
     );
 
     if (selected != null) {
-      ref.read(diaryCreateProvider.notifier).setDate(selected);
+      final viewModel = ref.read(diaryCreateProvider.notifier);
+      viewModel.setDate(selected);
+
+      // 日付が変わると、AIに渡せる情報も変わるため、読み込み直す
+      await viewModel.loadSources();
     }
   }
 
@@ -343,9 +347,11 @@ class _DiaryAiScreenState extends ConsumerState<DiaryAiScreen> {
     );
 
     if (range != null) {
-      ref
-          .read(diaryCreateProvider.notifier)
-          .setAiDateRange(range.start, range.end);
+      final viewModel = ref.read(diaryCreateProvider.notifier);
+      viewModel.setAiDateRange(range.start, range.end);
+
+      // 期間が変わると、AIに渡せる情報も変わるため、読み込み直す
+      await viewModel.loadSources();
     }
   }
 
