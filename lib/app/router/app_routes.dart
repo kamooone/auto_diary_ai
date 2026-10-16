@@ -9,12 +9,14 @@ import '../../features/calendar/presentation/ui/calendar_screen/day_posts_screen
 import '../../features/diary_create/presentation/ui/diary_create_screen.dart';
 import '../../features/plan/presentation/ui/plan_page.dart';
 import '../../features/share/presentation/ui/share_initializer.dart';
+import '../../features/share/presentation/ui/shared_post_list_screen.dart';
 
 class AppRoutes {
   static const home = '/';
   static const diaryCreate = '/diary_create_screen';
   static const settings = '/settings';
   static const plan = '/settings/plan';
+  static const sharedPosts = '/settings/shared_posts';
   static const placeSearchTest = '/settings/place_search_test';
   static const map = '/map';
   static const calendar = '/calendar';
@@ -39,6 +41,10 @@ class AppRoutes {
         GoRoute(
           path: settings,
           builder: (context, state) => const SettingsPage(),
+        ),
+        GoRoute(
+          path: sharedPosts,
+          builder: (context, state) => const SharedPostListScreen(),
         ),
         GoRoute(
           path: plan,

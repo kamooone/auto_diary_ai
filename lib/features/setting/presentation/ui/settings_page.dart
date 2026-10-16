@@ -76,6 +76,13 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
             onTap: () => context.push(AppRoutes.plan),
           ),
 
+          ListTile(
+            leading: const Icon(Icons.share),
+            title: const Text("Xの投稿"),
+            subtitle: const Text("保存した投稿の削除、内容の修正、日時の変更ができます"),
+            onTap: () => context.push(AppRoutes.sharedPosts),
+          ),
+
           const Divider(),
 
           // オン・オフを切り替えられる端末でだけ表示する
