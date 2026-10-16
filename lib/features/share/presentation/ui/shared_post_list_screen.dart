@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../diary_create/domain/services/day_grouper.dart';
+import '../../../diary_create/domain/services/month_filter.dart';
+import '../../../diary_create/presentation/ui/widgets/month_filter_bar.dart';
 import '../../application/providers/share_providers.dart';
 import '../../domain/entities/shared_post.dart';
 import '../formatters/shared_post_format.dart';
@@ -32,22 +34,48 @@ class SharedPostListScreen extends ConsumerWidget {
   }
 }
 
-class _PostList extends ConsumerWidget {
+class _PostList extends ConsumerStatefulWidget {
   const _PostList({required this.posts});
 
   final List<SharedPost> posts;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_PostList> createState() => _PostListState();
+}
+
+class _PostListState extends ConsumerState<_PostList> {
+  // 年と月による絞り込み
+  var _filter = MonthFilter.none;
+
+  @override
+  Widget build(BuildContext context) {
+    // 削除などで、選んでいた月の投稿がなくなったときは、絞り込みを外す
+    final times = widget.posts.map((e) => e.receivedAt).toList();
+    final filter = times.any(_filter.matches) ? _filter : MonthFilter.none;
+    final visible = widget.posts.where((e) => filter.matches(e.receivedAt));
+
     // 日付の新しい順に、見出しと投稿を1列に並べる
     final rows = <Object>[
-      for (final day in groupByDay<SharedPost>(posts, (e) => e.receivedAt)
+      for (final day in groupByDay<SharedPost>(visible.toList(), (e) => e.receivedAt)
           .reversed) ...[
         day.date,
         ...day.items,
       ],
     ];
 
+    return Column(
+      children: [
+        MonthFilterBar(
+          times: times,
+          value: filter,
+          onChanged: (value) => setState(() => _filter = value),
+        ),
+        Expanded(child: _list(context, rows)),
+      ],
+    );
+  }
+
+  Widget _list(BuildContext context, List<Object> rows) {
     return ListView.builder(
       itemCount: rows.length,
       itemBuilder: (context, index) {

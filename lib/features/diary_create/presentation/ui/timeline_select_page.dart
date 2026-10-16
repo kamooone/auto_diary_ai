@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import '../../../location/domain/entities/timeline_item.dart';
 import '../../../location/presentation/formatters/timeline_formatter.dart';
 import '../../domain/services/day_grouper.dart';
+import '../../domain/services/month_filter.dart';
 import 'widgets/day_header.dart';
+import 'widgets/month_filter_bar.dart';
 
 /// AIに渡す行動履歴(滞在と移動)を選択する画面
 /// 「確定」で選択した行動履歴の一覧を返す
@@ -23,13 +25,14 @@ class TimelineSelectPage extends StatefulWidget {
 class _TimelineSelectPageState extends State<TimelineSelectPage> {
   late final _selected = {...widget.initialSelection};
 
-  // 日付ごとの行動履歴
-  late final _days = groupByDay<TimelineItem>(widget.items, (e) => e.start);
+  // 年と月による絞り込み
+  var _filter = MonthFilter.none;
 
-  // 日付ごとの見出しと行動履歴を、1列に並べたもの
-  late final List<Object> _rows = [
-    for (final day in _days) ...[day, ...day.items],
-  ];
+  late final _times = widget.items.map((e) => e.start).toList();
+
+  // 絞り込み後の行動履歴
+  List<TimelineItem> get _visible =>
+      widget.items.where((e) => _filter.matches(e.start)).toList();
 
   // その日の行動履歴が、すべて選択されていれば解除し、そうでなければすべて選択する
   void _toggleDay(DayGroup<TimelineItem> day) {
@@ -44,7 +47,14 @@ class _TimelineSelectPageState extends State<TimelineSelectPage> {
 
   @override
   Widget build(BuildContext context) {
-    final isAllSelected = _selected.length == widget.items.length;
+    final visible = _visible;
+    final isAllSelected = visible.every(_selected.contains);
+
+    // 日付ごとの見出しと行動履歴を、1列に並べたもの
+    final rows = <Object>[
+      for (final day in groupByDay<TimelineItem>(visible, (e) => e.start))
+        ...[day, ...day.items],
+    ];
 
     return Scaffold(
       appBar: AppBar(
@@ -54,20 +64,32 @@ class _TimelineSelectPageState extends State<TimelineSelectPage> {
             onPressed: () {
               setState(() {
                 if (isAllSelected) {
-                  _selected.clear();
+                  _selected.removeAll(visible);
                 } else {
-                  _selected.addAll(widget.items);
+                  _selected.addAll(visible);
                 }
               });
             },
-            child: Text(isAllSelected ? "すべて解除" : "すべて選択"),
+            child: Text(
+              _filter.isActive
+                  ? (isAllSelected ? "表示中を解除" : "表示中を選択")
+                  : (isAllSelected ? "すべて解除" : "すべて選択"),
+            ),
           ),
         ],
       ),
-      body: ListView.builder(
-        itemCount: _rows.length,
+      body: Column(
+        children: [
+          MonthFilterBar(
+            times: _times,
+            value: _filter,
+            onChanged: (filter) => setState(() => _filter = filter),
+          ),
+          Expanded(
+            child: ListView.builder(
+        itemCount: rows.length,
         itemBuilder: (context, index) {
-          final row = _rows[index];
+          final row = rows[index];
 
           // 日付の見出し
           if (row is DayGroup<TimelineItem>) {
@@ -117,6 +139,9 @@ class _TimelineSelectPageState extends State<TimelineSelectPage> {
             },
           );
         },
+            ),
+          ),
+        ],
       ),
       bottomNavigationBar: SafeArea(
         child: Padding(
