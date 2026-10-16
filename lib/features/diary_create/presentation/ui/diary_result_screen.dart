@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../domain/services/diary_copy_text.dart';
 import '../providers/diary_create_provider.dart';
 import '../viewmodel/diary_create_view_model.dart';
 
@@ -71,16 +73,50 @@ class _DiaryResultScreenState extends ConsumerState<DiaryResultScreen> {
                 child: ValueListenableBuilder<TextEditingValue>(
                   valueListenable: _contentController,
                   builder: (context, value, child) {
-                    return ElevatedButton.icon(
-                      onPressed: value.text.trim().isEmpty ? null : _save,
-                      icon: const Icon(Icons.save),
-                      label: const Text("この内容で保存する"),
+                    final isEmpty = value.text.trim().isEmpty;
+
+                    return Row(
+                      children: [
+                        // ほかのAIなどで修正するために、書かれた内容をコピーできる
+                        OutlinedButton.icon(
+                          onPressed: isEmpty ? null : _copy,
+                          icon: const Icon(Icons.copy),
+                          label: const Text("コピー"),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: ElevatedButton.icon(
+                            // 本文が空の日記は保存できない
+                            onPressed: isEmpty ? null : _save,
+                            icon: const Icon(Icons.save),
+                            label: const Text("この内容で保存する"),
+                          ),
+                        ),
+                      ],
                     );
                   },
                 ),
               ),
             )
           : null,
+    );
+  }
+
+  // 修正した内容も含めて、今の入力欄のタイトルと本文をコピーする
+  Future<void> _copy() async {
+    final messenger = ScaffoldMessenger.of(context);
+
+    await Clipboard.setData(
+      ClipboardData(
+        text: DiaryCopyText.format(
+          title: _titleController.text,
+          content: _contentController.text,
+        ),
+      ),
+    );
+
+    messenger.showSnackBar(
+      const SnackBar(content: Text("タイトルと本文をコピーしました")),
     );
   }
 
