@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import '../../../domain/services/month_filter.dart';
 
 /// 年と月のセレクトボックス。一覧を絞り込むのに使う
-/// 複数の月にまたがっていないときは、何も表示しない
+/// 項目がないときは、何も表示しない
 class MonthFilterBar extends StatelessWidget {
   const MonthFilterBar({
     super.key,
@@ -18,7 +18,7 @@ class MonthFilterBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (!MonthFilter.needed(times)) return const SizedBox.shrink();
+    if (times.isEmpty) return const SizedBox.shrink();
 
     final years = MonthFilter.yearsOf(times);
     final months =

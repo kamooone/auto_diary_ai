@@ -29,8 +29,4 @@ class MonthFilter {
             ..sort())
           .reversed
           .toList();
-
-  /// 絞り込みが必要なほど、複数の月にまたがっているか
-  static bool needed(Iterable<DateTime> times) =>
-      times.map((e) => e.year * 12 + e.month).toSet().length > 1;
 }

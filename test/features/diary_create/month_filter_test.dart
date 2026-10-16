@@ -30,7 +30,7 @@ void main() {
     expect(filter.month, isNull);
   });
 
-  testWidgets('1つの月しかないときは表示しない', (tester) async {
+  testWidgets('1つの月しかなくても表示する', (tester) async {
     await tester.pumpWidget(MaterialApp(
       home: Scaffold(
         body: MonthFilterBar(
@@ -40,7 +40,7 @@ void main() {
         ),
       ),
     ));
-    expect(find.byKey(const Key('filterYear')), findsNothing);
+    expect(find.byKey(const Key('filterYear')), findsOneWidget);
   });
 
   testWidgets('年と月を選ぶと通知される', (tester) async {
