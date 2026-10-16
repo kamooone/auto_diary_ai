@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../share/domain/entities/shared_post.dart';
+import '../../domain/services/day_grouper.dart';
+import 'widgets/day_header.dart';
 
 /// AIに渡すXの投稿を選択する画面
 /// 「確定」で選択した投稿の一覧を返す
@@ -19,6 +21,25 @@ class PostSelectPage extends StatefulWidget {
 
 class _PostSelectPageState extends State<PostSelectPage> {
   late final _selected = {...widget.initialSelection};
+
+  // 日付ごとの投稿
+  late final _days = groupByDay<SharedPost>(widget.posts, (e) => e.receivedAt);
+
+  // 日付ごとの見出しと投稿を、1列に並べたもの
+  late final List<Object> _rows = [
+    for (final day in _days) ...[day, ...day.items],
+  ];
+
+  // その日の投稿が、すべて選択されていれば解除し、そうでなければすべて選択する
+  void _toggleDay(DayGroup<SharedPost> day) {
+    setState(() {
+      if (day.items.every(_selected.contains)) {
+        _selected.removeAll(day.items);
+      } else {
+        _selected.addAll(day.items);
+      }
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -43,10 +64,22 @@ class _PostSelectPageState extends State<PostSelectPage> {
         ],
       ),
       body: ListView.separated(
-        itemCount: widget.posts.length,
+        itemCount: _rows.length,
         separatorBuilder: (context, index) => const Divider(height: 1),
         itemBuilder: (context, index) {
-          final post = widget.posts[index];
+          final row = _rows[index];
+
+          // 日付の見出し
+          if (row is DayGroup<SharedPost>) {
+            return DayHeader(
+              date: row.date,
+              selectedCount: row.items.where(_selected.contains).length,
+              totalCount: row.items.length,
+              onToggle: () => _toggleDay(row),
+            );
+          }
+
+          final post = row as SharedPost;
 
           return CheckboxListTile(
             value: _selected.contains(post),
