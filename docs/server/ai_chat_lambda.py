@@ -8,12 +8,14 @@ import base64
 secrets_manager = boto3.client("secretsmanager")
 s3 = boto3.client("s3")
 
-SECRET_NAME = "auto-diary-ai/openai-api-key"
+OPENAI_SECRET_NAME = "auto-diary-ai/openai-api-key"
+GEMINI_SECRET_NAME = "auto-diary/gemini-api-key"
 BUCKET_NAME = "auto-diary-ai-images"
 
-# Secrets Managerの同じシークレットに、次のキーを追加しておく
-#   OPENAI_API_KEY : 有料プランで使う
-#   GEMINI_API_KEY : 無料プランで使う
+# APIキーは、Secrets Managerのシークレットごとに分けて保存している
+#   OPENAI_SECRET_NAME : 有料プランで使う(キー名 OPENAI_API_KEY)
+#   GEMINI_SECRET_NAME : 無料プランで使う(キー名 GEMINI_API_KEY)
+# シークレットの値は、JSON({"GEMINI_API_KEY": "..."})でも、キーだけの文字列でもよい
 OPENAI_MODEL = "gpt-4o-mini"
 GEMINI_MODEL = "gemini-2.5-flash"
 
@@ -34,9 +36,17 @@ class UpstreamError(Exception):
         self.details = details
 
 
-def get_secret():
-    response = secrets_manager.get_secret_value(SecretId=SECRET_NAME)
-    return json.loads(response["SecretString"])
+def get_api_key(secret_name, key_name):
+    response = secrets_manager.get_secret_value(SecretId=secret_name)
+    value = response["SecretString"].strip()
+
+    try:
+        secret = json.loads(value)
+    except ValueError:
+        # JSONではなく、キーだけを保存している場合
+        return value
+
+    return secret[key_name] if isinstance(secret, dict) else value
 
 
 def post_json(provider, url, headers, body):
@@ -169,8 +179,6 @@ def lambda_handler(event, context):
                 "content_type": content_type,
             })
 
-        secret = get_secret()
-
         # S3から画像を取得(どちらのAIにも、Base64で渡す)
         for image in image_keys:
 
@@ -186,11 +194,15 @@ def lambda_handler(event, context):
         # プランに応じて、使うAIを切り替える
         if plan == PAID:
             answer, tokens = ask_openai(
-                secret["OPENAI_API_KEY"], message, image_keys
+                get_api_key(OPENAI_SECRET_NAME, "OPENAI_API_KEY"),
+                message,
+                image_keys,
             )
         else:
             answer, tokens = ask_gemini(
-                secret["GEMINI_API_KEY"], message, image_keys
+                get_api_key(GEMINI_SECRET_NAME, "GEMINI_API_KEY"),
+                message,
+                image_keys,
             )
 
         # S3の画像を削除
