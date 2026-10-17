@@ -342,6 +342,7 @@ class DiaryCreateViewModel extends AutoDisposeNotifier<DiaryCreateState> {
     try {
       // ユーザーが選んだ情報だけをAIに渡して、日記を書いてもらう
       final result = await _generateDiaryUseCase.execute(
+        plan: ref.read(planTypeProvider),
         note: state.aiNote,
         diaryDate: state.startDate,
         startDate: state.aiStartDate,

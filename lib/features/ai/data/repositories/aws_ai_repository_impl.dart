@@ -44,6 +44,7 @@ class AwsAiRepositoryImpl implements AiRepository {
       jsonEncode({
         'message': request.message,
         'images': uploadedImages,
+        'plan': request.plan.name,
       }),
       onError: AiChatException.new,
     );

@@ -1,5 +1,6 @@
 import '../../../ai/domain/entities/ai_message_request.dart';
 import '../../../ai/domain/repositories/ai_repository.dart';
+import '../../../plan/domain/entities/plan_type.dart';
 import '../../../location/domain/entities/timeline_item.dart';
 import '../../../location/domain/repositories/place_name_repository.dart';
 import '../../../share/domain/entities/shared_post.dart';
@@ -43,6 +44,7 @@ class GenerateDiaryUseCase {
     required List<Photo> photos,
     required List<TimelineItem> timeline,
     required List<SharedPost> posts,
+    PlanType plan = PlanType.free,
   }) async {
     // 撮影時刻順に並べ、上限を超える場合は1日全体から均等に間引く
     final sortedPhotos = [...photos]
@@ -94,6 +96,7 @@ class GenerateDiaryUseCase {
         .join("\n\n");
 
     final request = AiMessageRequest(
+      plan: plan,
       message: """
 あなたは優秀な日記作成AIです。
 

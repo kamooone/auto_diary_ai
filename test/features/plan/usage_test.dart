@@ -94,14 +94,34 @@ void main() {
   group('AwsAiRepositoryImpl', () {
     const request = AiMessageRequest(message: 'こんにちは');
 
+    test('有料プランのときは、プランをpaidで送る', () async {
+      Object? sentPlan;
+
+      final repository = AwsAiRepositoryImpl(
+        'https://example.com',
+        client: MockClient((http.Request r) async {
+          sentPlan = jsonDecode(r.body)['plan'];
+          return jsonResponse(200, {'answer': 'ok'});
+        }),
+      );
+
+      await repository.sendMessage(
+        const AiMessageRequest(message: 'こんにちは', plan: PlanType.paid),
+      );
+
+      expect(sentPlan, 'paid');
+    });
+
     test('回答と使用量を受け取り、端末のIDを送る', () async {
       String? clientId;
+      Object? sentPlan;
 
       final repository = AwsAiRepositoryImpl(
         'https://example.com',
         clientId: () async => 'abc123',
         client: MockClient((http.Request r) async {
           clientId = r.headers['X-Client-Id'];
+          if (r.url.path == '/ai/chat') sentPlan = jsonDecode(r.body)['plan'];
 
           return jsonResponse(200, {
             'answer': 'タイトル: 日記\n本文:\nきょうは晴れ',
@@ -114,6 +134,7 @@ void main() {
       final reply = await repository.sendMessage(request);
 
       expect(clientId, 'abc123');
+      expect(sentPlan, 'free');
       expect(reply.answer, contains('きょうは晴れ'));
       expect(reply.usage!.usedTokens, 100);
       expect(reply.usage!.plan, PlanType.free);
