@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ポイント</title>
+  <style>
+    body { font-family: sans-serif; max-width: 480px; margin: 40px auto; padding: 0 16px; }
+    button { font-size: 16px; padding: 10px 20px; }
+    #message { color: #b00020; }
+  </style>
+</head>
+<body>
+  <h1>ポイント</h1>
+
+  <div id="signedOut" hidden>
+    <p>ポイントを使うには、アカウントが必要です。</p>
+    <button id="loginButton">ログイン / アカウント作成</button>
+  </div>
+
+  <div id="signedIn" hidden>
+    <p>ログイン中: <strong id="email"></strong></p>
+    <button id="logoutButton">ログアウト</button>
+  </div>
+
+  <p id="message"></p>
+
+  <script src="config.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
