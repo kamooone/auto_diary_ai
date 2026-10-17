@@ -3,6 +3,7 @@ import boto3
 import urllib.request
 import urllib.error
 import base64
+import traceback
 
 
 secrets_manager = boto3.client("secretsmanager")
@@ -232,5 +233,8 @@ def lambda_handler(event, context):
         })
 
     except Exception as e:
+
+        # 原因を調べられるよう、CloudWatch Logsに残す
+        traceback.print_exc()
 
         return response(500, {"error": str(e)})
