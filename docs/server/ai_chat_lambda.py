@@ -47,7 +47,18 @@ def get_api_key(secret_name, key_name):
         # JSONではなく、キーだけを保存している場合
         return value
 
-    return secret[key_name] if isinstance(secret, dict) else value
+    if not isinstance(secret, dict):
+        return value
+
+    if key_name in secret:
+        return secret[key_name]
+
+    # キー名が違っても、値が1つだけなら、それをAPIキーとして使う
+    if len(secret) == 1:
+        return next(iter(secret.values()))
+
+    # 値(APIキー)は出さずに、キー名だけをエラーに含める
+    raise KeyError(f"{key_name} not found in {secret_name} (keys: {list(secret)})")
 
 
 def post_json(provider, url, headers, body):
