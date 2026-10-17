@@ -3,6 +3,7 @@ import boto3
 import urllib.request
 import urllib.error
 import base64
+import socket
 import traceback
 
 
@@ -18,7 +19,26 @@ BUCKET_NAME = "auto-diary-ai-images"
 #   GEMINI_SECRET_NAME : 無料プランで使う(キー名 GEMINI_API_KEY)
 # シークレットの値は、JSON({"GEMINI_API_KEY": "..."})でも、キーだけの文字列でもよい
 OPENAI_MODEL = "gpt-4o-mini"
-GEMINI_MODEL = "gemini-3.8-flash"
+
+# 無料プランのモデル。混んでいて使えないときは、後ろのモデルに順に切り替える
+# (モデル名は、提供が終わると使えなくなる。使えるモデルは、AI Studioで確認する)
+GEMINI_MODELS = [
+    "gemini-3.8-flash",
+    "gemini-flash-latest",
+    "gemini-flash-lite-latest",
+]
+
+# 次のモデルを試す、Geminiのステータス
+#   404: そのモデルは使えない / 429: 混んでいる・無料枠の制限
+#   500・503・504: Google側の一時的な障害
+# (400・401・403は、キーやリクエストの問題で、モデルを変えても直らないため試さない)
+GEMINI_RETRY_STATUSES = {404, 429, 500, 503, 504}
+
+# 1つのモデルを待つ最長の時間(秒)
+GEMINI_ATTEMPT_TIMEOUT = 10
+
+# API Gatewayの統合タイムアウト(29秒)に間に合わせるため、残りがこれ未満なら次を試さない
+MIN_REMAINING_SECONDS = 12
 
 # 受け付けるプラン。これ以外(未指定を含む)は、無料プランとして扱う
 PAID = "paid"
@@ -61,7 +81,7 @@ def get_api_key(secret_name, key_name):
     raise KeyError(f"{key_name} not found in {secret_name} (keys: {list(secret)})")
 
 
-def post_json(provider, url, headers, body):
+def post_json(provider, url, headers, body, timeout=None):
     request = urllib.request.Request(
         url,
         data=json.dumps(body).encode("utf-8"),
@@ -70,7 +90,7 @@ def post_json(provider, url, headers, body):
     )
 
     try:
-        with urllib.request.urlopen(request) as response:
+        with urllib.request.urlopen(request, timeout=timeout) as response:
             return json.loads(response.read())
     except urllib.error.HTTPError as e:
         raise UpstreamError(
@@ -106,8 +126,12 @@ def ask_openai(api_key, message, images):
     return answer, tokens
 
 
-def ask_gemini(api_key, message, images):
-    """無料プラン: Gemini。(回答, 消費したトークン数)を返す"""
+def ask_gemini(api_key, message, images, context=None):
+    """無料プラン: Gemini。(回答, 消費したトークン数)を返す
+
+    モデルが使えないとき(混んでいる、提供が終わったなど)は、
+    GEMINI_MODELSの順に別のモデルへ切り替える
+    """
     parts = [{"text": message}]
 
     for image in images:
@@ -118,30 +142,67 @@ def ask_gemini(api_key, message, images):
             }
         })
 
-    data = post_json(
-        "Gemini",
-        (
-            "https://generativelanguage.googleapis.com/v1beta/models/"
-            f"{GEMINI_MODEL}:generateContent"
-        ),
-        # URLにキーを付けると、ログに残るため、ヘッダーで渡す
-        {"x-goog-api-key": api_key},
-        {"contents": [{"role": "user", "parts": parts}]},
-    )
+    last_error = None
 
-    candidates = data.get("candidates") or []
+    for model in GEMINI_MODELS:
 
-    if not candidates:
-        # 安全性の判定などで、回答が返らなかった場合
-        raise UpstreamError("Gemini", 200, json.dumps(data, ensure_ascii=False))
+        # 時間が足りなければ、次のモデルは試さない
+        if last_error is not None and context is not None:
+            remaining = context.get_remaining_time_in_millis() / 1000
+            if remaining < MIN_REMAINING_SECONDS:
+                break
 
-    answer = "".join(
-        part.get("text", "")
-        for part in candidates[0].get("content", {}).get("parts", [])
-    )
-    tokens = data.get("usageMetadata", {}).get("totalTokenCount", 0)
+        try:
+            data = post_json(
+                "Gemini",
+                (
+                    "https://generativelanguage.googleapis.com/v1beta/models/"
+                    f"{model}:generateContent"
+                ),
+                # URLにキーを付けると、ログに残るため、ヘッダーで渡す
+                {"x-goog-api-key": api_key},
+                {"contents": [{"role": "user", "parts": parts}]},
+                timeout=GEMINI_ATTEMPT_TIMEOUT,
+            )
+        except UpstreamError as e:
+            if e.status not in GEMINI_RETRY_STATUSES:
+                raise
 
-    return answer, tokens
+            print(json.dumps({
+                "provider": "Gemini", "model": model, "status": e.status,
+                "action": "switch_model",
+            }))
+            last_error = e
+            continue
+        except (socket.timeout, TimeoutError, urllib.error.URLError) as e:
+            # 応答が遅い、または接続できないときも、次のモデルを試す
+            print(json.dumps({
+                "provider": "Gemini", "model": model, "error": str(e),
+                "action": "switch_model",
+            }))
+            last_error = UpstreamError("Gemini", 0, str(e))
+            continue
+
+        candidates = data.get("candidates") or []
+
+        if not candidates:
+            # 安全性の判定などで、回答が返らなかった場合
+            raise UpstreamError(
+                "Gemini", 200, json.dumps(data, ensure_ascii=False)
+            )
+
+        answer = "".join(
+            part.get("text", "")
+            for part in candidates[0].get("content", {}).get("parts", [])
+        )
+        tokens = data.get("usageMetadata", {}).get("totalTokenCount", 0)
+
+        print(json.dumps({"provider": "Gemini", "model": model}))
+
+        return answer, tokens
+
+    # すべてのモデルが使えなかった
+    raise last_error
 
 
 def response(status, body):
@@ -215,6 +276,7 @@ def lambda_handler(event, context):
                 get_api_key(GEMINI_SECRET_NAME, "GEMINI_API_KEY"),
                 message,
                 image_keys,
+                context,
             )
 
         # S3の画像を削除
