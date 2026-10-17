@@ -18,7 +18,7 @@ BUCKET_NAME = "auto-diary-ai-images"
 #   GEMINI_SECRET_NAME : 無料プランで使う(キー名 GEMINI_API_KEY)
 # シークレットの値は、JSON({"GEMINI_API_KEY": "..."})でも、キーだけの文字列でもよい
 OPENAI_MODEL = "gpt-4o-mini"
-GEMINI_MODEL = "gemini-2.5-flash"
+GEMINI_MODEL = "gemini-3.8-flash"
 
 # 受け付けるプラン。これ以外(未指定を含む)は、無料プランとして扱う
 PAID = "paid"
