@@ -23,6 +23,9 @@ const els = {
   notice: document.getElementById("notice"),
   exchangeRule: document.getElementById("exchangeRule"),
   exchangePoints: document.getElementById("exchangePoints"),
+  pairingCode: document.getElementById("pairingCode"),
+  deviceCount: document.getElementById("deviceCount"),
+  deviceList: document.getElementById("deviceList"),
   message: document.getElementById("message"),
 };
 
@@ -157,6 +160,9 @@ async function callApi(method, path, body) {
       insufficient_points: "ポイントが足りません。",
       invalid_points: "ポイントは、1以上の整数で入力してください。",
       request_id_conflict: "同じ操作が重複しました。もう一度お試しください。",
+      invalid_code: "コードが正しくないか、期限が切れています。アプリで新しいコードを表示してください。",
+      device_limit: `紐づけられる端末は${data.maxDevices ?? ""}台までです。使わない端末を解除してください。`,
+      not_found: "対象が見つかりません。",
     };
     throw new Error(
       messages[data.error] ?? `APIの呼び出しに失敗しました (${response.status})`,
@@ -189,6 +195,69 @@ async function loadBalance() {
     return;
   }
   showBalance(await callApi("GET", "/me"));
+}
+
+// ---------- アプリの紐づけ
+
+function showDevices({ devices, maxDevices }) {
+  els.deviceCount.textContent = `${devices.length} / ${maxDevices}`;
+  els.deviceList.replaceChildren();
+
+  for (const device of devices) {
+    const item = document.createElement("li");
+    // 端末の名前は、アプリ側から送られた文字なので、textContentで表示する
+    item.append(
+      `${device.label}(${new Date(device.createdAt * 1000).toLocaleDateString("ja-JP")}に紐づけ) `,
+    );
+
+    const button = document.createElement("button");
+    button.textContent = "解除";
+    button.onclick = () => unlinkDevice(device);
+    item.append(button);
+
+    els.deviceList.append(item);
+  }
+}
+
+async function loadDevices() {
+  showDevices(await callApi("GET", "/devices"));
+}
+
+async function pairDevice() {
+  const code = els.pairingCode.value.trim();
+
+  if (!/^\d{6}$/.test(code)) {
+    show("6桁の数字を入力してください。");
+    return;
+  }
+
+  try {
+    // どの端末のコードかを先に確認して、本人に確かめてもらう
+    const { label } = await callApi("POST", "/pairing/lookup", { code });
+
+    if (!confirm(`「${label}」のアプリを、このアカウントに紐づけますか？\n(ご自身のアプリに表示されたコードのときだけ、紐づけてください)`)) {
+      return;
+    }
+
+    await callApi("POST", "/pairing/confirm", { code });
+    els.pairingCode.value = "";
+    await loadDevices();
+    showNotice(`「${label}」のアプリを紐づけました。アプリの画面に戻ってください。`);
+  } catch (e) {
+    show(e.message);
+  }
+}
+
+async function unlinkDevice(device) {
+  if (!confirm(`「${device.label}」の紐づけを解除しますか？`)) return;
+
+  try {
+    await callApi("DELETE", `/devices/${encodeURIComponent(device.deviceId)}`);
+    await loadDevices();
+    showNotice(`「${device.label}」の紐づけを解除しました。`);
+  } catch (e) {
+    show(e.message);
+  }
 }
 
 async function grantForTest() {
@@ -261,6 +330,7 @@ async function main() {
   document.getElementById("logoutButton").onclick = logout;
   document.getElementById("grantButton").onclick = grantForTest;
   document.getElementById("exchangeButton").onclick = exchange;
+  document.getElementById("pairingButton").onclick = pairDevice;
 
   const query = new URLSearchParams(location.search);
 
@@ -280,6 +350,7 @@ async function main() {
   if (sessionStorage.getItem("access_token")) {
     try {
       await loadBalance();
+      await loadDevices();
     } catch (e) {
       show(e.message);
       render();

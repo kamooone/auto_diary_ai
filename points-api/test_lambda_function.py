@@ -11,6 +11,8 @@ from unittest import mock
 
 os.environ["TABLE_NAME"] = "accounts"
 os.environ["LEDGER_TABLE_NAME"] = "ledger"
+os.environ["PAIRING_TABLE_NAME"] = "pairing"
+os.environ["DEVICES_TABLE_NAME"] = "devices"
 os.environ["ENABLE_DEV_GRANT"] = "true"
 
 # boto3がなくても動かせるよう、偽物を先に登録する
@@ -35,12 +37,42 @@ sys.path.insert(0, os.path.dirname(__file__))
 import lambda_function as m  # noqa: E402
 
 
-def event(route, body=None):
-    return {
+def event(route, body=None, path=None, logged_in=True):
+    result = {
         "routeKey": route,
         "body": json.dumps(body) if body is not None else None,
-        "requestContext": {"authorizer": {"jwt": {"claims": {"sub": "user-1"}}}},
+        "pathParameters": path,
+        "requestContext": {},
     }
+    if logged_in:
+        result["requestContext"] = {
+            "authorizer": {"jwt": {"claims": {"sub": "user-1"}}}
+        }
+    return result
+
+
+def call(route, body=None, path=None, logged_in=True):
+    result = m.lambda_handler(event(route, body, path, logged_in), None)
+    return result["statusCode"], json.loads(result["body"])
+
+
+def conditional_failure(operation):
+    return ClientError(
+        {"Error": {"Code": "ConditionalCheckFailedException"}}, operation
+    )
+
+
+def pairing_item(status="pending", secret="s3cret", expires_in=300, account="user-1"):
+    item = {
+        "code": {"S": "123456"},
+        "status": {"S": status},
+        "claimSecretHash": {"S": m.sha256_hex(secret)},
+        "label": {"S": "Android"},
+        "expiresAt": {"N": str(int(m.time.time()) + expires_in)},
+    }
+    if status == "linked":
+        item["accountId"] = {"S": account}
+    return {"Item": item}
 
 
 def balance_item(points, tokens):
@@ -142,6 +174,161 @@ class MeTest(unittest.TestCase):
         body = json.loads(result["body"])
         self.assertEqual(body["points"], 5)
         self.assertEqual(body["exchange"], {"minPoints": 10000, "tokensPerPoint": 1})
+
+
+class PairingTest(unittest.TestCase):
+    def setUp(self):
+        fake_client.reset_mock(side_effect=True)
+
+    def test_開始すると6桁のコードと合言葉を返し_合言葉はハッシュで保存する(self):
+        status, body = call("POST /pairing/start", {"label": "Android"}, logged_in=False)
+        self.assertEqual(status, 200)
+        self.assertRegex(body["code"], r"^\d{6}$")
+
+        item = fake_client.put_item.call_args.kwargs["Item"]
+        self.assertEqual(item["claimSecretHash"]["S"], m.sha256_hex(body["claimSecret"]))
+        self.assertNotIn(body["claimSecret"], json.dumps(item))
+
+    def test_コードが重なったら作り直す(self):
+        fake_client.put_item.side_effect = [conditional_failure("PutItem"), None]
+        status, _ = call("POST /pairing/start", {}, logged_in=False)
+        self.assertEqual(status, 200)
+        self.assertEqual(fake_client.put_item.call_count, 2)
+
+    def test_端末の名前は長さと文字を制限する(self):
+        self.assertEqual(m.clean_label("A" * 100), "A" * m.MAX_LABEL_LENGTH)
+        self.assertEqual(m.clean_label("a\nb"), "ab")
+        self.assertEqual(m.clean_label(123), "アプリ")
+
+    def test_不正な形のコードは調べずに無効(self):
+        for bad in ("12345", "abcdef", "1234567", None, 123456):
+            status, _ = call("POST /pairing/lookup", {"code": bad})
+            self.assertEqual(status, 404, bad)
+        fake_client.get_item.assert_not_called()
+
+    def test_期限切れのコードは無効(self):
+        fake_client.get_item.return_value = pairing_item(expires_in=-1)
+        status, _ = call("POST /pairing/lookup", {"code": "123456"})
+        self.assertEqual(status, 404)
+
+    def test_確認すると端末の名前を返す(self):
+        fake_client.get_item.return_value = pairing_item()
+        status, body = call("POST /pairing/lookup", {"code": "123456"})
+        self.assertEqual((status, body), (200, {"label": "Android"}))
+
+    def test_確定するとアカウントに結ばれる(self):
+        fake_client.get_item.return_value = pairing_item()
+        fake_client.query.return_value = {"Count": 0}
+        status, _ = call("POST /pairing/confirm", {"code": "123456"})
+        self.assertEqual(status, 200)
+
+        update = fake_client.update_item.call_args.kwargs
+        self.assertEqual(update["ExpressionAttributeValues"][":a"], {"S": "user-1"})
+        # 使っていない値や名前を渡すと、DynamoDBがエラーにする
+        for name in update["ExpressionAttributeValues"]:
+            self.assertIn(name, update["UpdateExpression"] + update["ConditionExpression"])
+
+    def test_端末が上限に達していると確定できない(self):
+        fake_client.get_item.return_value = pairing_item()
+        fake_client.query.return_value = {"Count": m.MAX_DEVICES}
+        status, body = call("POST /pairing/confirm", {"code": "123456"})
+        self.assertEqual((status, body["error"]), (409, "device_limit"))
+        fake_client.update_item.assert_not_called()
+
+    def test_先に確定されたコードは二重に確定できない(self):
+        fake_client.get_item.return_value = pairing_item()
+        fake_client.query.return_value = {"Count": 0}
+        fake_client.update_item.side_effect = conditional_failure("UpdateItem")
+        status, _ = call("POST /pairing/confirm", {"code": "123456"})
+        self.assertEqual(status, 404)
+
+    def test_未確定のうちは待つ(self):
+        fake_client.get_item.return_value = pairing_item("pending")
+        status, body = call(
+            "POST /pairing/claim",
+            {"code": "123456", "claimSecret": "s3cret"},
+            logged_in=False,
+        )
+        self.assertEqual((status, body["status"]), (202, "pending"))
+        fake_client.put_item.assert_not_called()
+
+    def test_合言葉が違うとトークンを渡さない(self):
+        fake_client.get_item.return_value = pairing_item("linked")
+        status, _ = call(
+            "POST /pairing/claim",
+            {"code": "123456", "claimSecret": "wrong"},
+            logged_in=False,
+        )
+        self.assertEqual(status, 404)
+        fake_client.put_item.assert_not_called()
+
+    def test_確定済みなら端末を登録してトークンを渡す(self):
+        fake_client.get_item.return_value = pairing_item("linked")
+        status, body = call(
+            "POST /pairing/claim",
+            {"code": "123456", "claimSecret": "s3cret"},
+            logged_in=False,
+        )
+        self.assertEqual((status, body["status"]), (200, "linked"))
+
+        device_id, secret = body["deviceToken"].split(".")
+        fake_client.delete_item.assert_called_once()  # コードは使い切り
+        device = fake_client.put_item.call_args.kwargs["Item"]
+        self.assertEqual(device["deviceId"], {"S": device_id})
+        self.assertEqual(device["accountId"], {"S": "user-1"})
+        self.assertEqual(device["tokenHash"], {"S": m.sha256_hex(secret)})
+        self.assertNotIn(secret, json.dumps(device))
+
+    def test_トークンは1回しか渡さない(self):
+        fake_client.get_item.return_value = pairing_item("linked")
+        fake_client.delete_item.side_effect = conditional_failure("DeleteItem")
+        status, _ = call(
+            "POST /pairing/claim",
+            {"code": "123456", "claimSecret": "s3cret"},
+            logged_in=False,
+        )
+        self.assertEqual(status, 404)
+        fake_client.put_item.assert_not_called()
+
+    def test_ログインが必要なルートは_ログインなしでは動かない(self):
+        for route in ("GET /me", "POST /pairing/confirm", "GET /devices"):
+            status, _ = call(route, {}, logged_in=False)
+            self.assertEqual(status, 500, route)
+        fake_client.update_item.assert_not_called()
+
+
+class DevicesTest(unittest.TestCase):
+    def setUp(self):
+        fake_client.reset_mock(side_effect=True)
+
+    def test_自分の端末だけを新しい順でなく古い順に一覧する(self):
+        fake_client.query.return_value = {
+            "Items": [
+                {"deviceId": {"S": "b"}, "label": {"S": "iPhone"}, "createdAt": {"N": "20"}},
+                {"deviceId": {"S": "a"}, "label": {"S": "Android"}, "createdAt": {"N": "10"}},
+            ]
+        }
+        status, body = call("GET /devices")
+        self.assertEqual(status, 200)
+        self.assertEqual([d["deviceId"] for d in body["devices"]], ["a", "b"])
+        self.assertEqual(body["maxDevices"], m.MAX_DEVICES)
+        self.assertNotIn("tokenHash", json.dumps(body))
+
+    def test_解除は自分の端末だけ(self):
+        device_id = "a" * 32
+        status, _ = call("DELETE /devices/{deviceId}", path={"deviceId": device_id})
+        self.assertEqual(status, 200)
+        kwargs = fake_client.delete_item.call_args.kwargs
+        self.assertEqual(kwargs["ConditionExpression"], "accountId = :a")
+
+        fake_client.delete_item.side_effect = conditional_failure("DeleteItem")
+        status, _ = call("DELETE /devices/{deviceId}", path={"deviceId": device_id})
+        self.assertEqual(status, 404)
+
+    def test_形の違うIDは受け付けない(self):
+        status, _ = call("DELETE /devices/{deviceId}", path={"deviceId": "../x"})
+        self.assertEqual(status, 404)
+        fake_client.delete_item.assert_not_called()
 
 
 if __name__ == "__main__":

@@ -237,3 +237,63 @@ CloudFrontの「無効化」タブで、`/*` を指定して作成すると、�
 ```
 python3 -m unittest points-api/test_lambda_function.py
 ```
+
+---
+
+## 手順5: アプリとの紐づけ
+
+### 流れ
+1. アプリが `POST /pairing/start` を呼ぶ → サーバーが **6桁のコード** と **合言葉(claimSecret)** を返す(コードは10分で失効)。
+2. アプリの画面にコードを表示する。合言葉は、アプリの中だけに持つ(画面には出さない)。
+3. ユーザーがWebにログインして、コードを入力する → `POST /pairing/lookup` で端末の名前を確認し、
+   確認ダイアログで本人に確かめてから、`POST /pairing/confirm` で端末とアカウントを結ぶ。
+4. アプリは、`POST /pairing/claim`(コードと合言葉)を、数秒おきに呼ぶ。
+   確定済みになると、**端末用のトークン**(`<端末ID>.<秘密の文字列>`)が1回だけ返る。
+5. アプリはトークンを安全な場所(Keychain/Keystore)に保存する。手順6で、`/ai/chat` に付ける。
+
+### セキュリティ上の約束
+- サーバーに保存するのは、合言葉と、端末の秘密の文字列の **ハッシュだけ**(漏れても元の値は分からない)。
+- コードは使い切り。トークンを渡したら、コードの行は削除する。
+- 「画面を見ただけの人」は、合言葉を知らないので、トークンを横取りできない。
+- 想定される攻撃: 「このコードをWebに入力して」と言われて、ログイン中の人が他人のアプリを紐づけてしまう。
+  → Webは、確認ダイアログで端末の名前を見せ、「ご自身のアプリのコードだけ」と注意書きを出す。
+- 端末は、アカウントごとに3台まで(`MAX_DEVICES`)。Webから解除できる。
+
+### 作業
+1. DynamoDBのテーブルを2つ作る(東京)
+   - `auto-diary-points-pairing`: パーティションキー `code`(文字列)。
+     作成後、「追加の設定」→「有効期限 (TTL)」を有効にして、属性名は `expiresAt`
+     (期限切れの行を、DynamoDBが自動で削除する)。
+   - `auto-diary-points-devices`: パーティションキー `deviceId`(文字列)。
+     作成後、「インデックス」→「インデックスを作成」: パーティションキー `accountId`(文字列)、
+     名前 `accountId-index`、射影は「すべて」。
+2. Lambdaの環境変数に追加
+   - `PAIRING_TABLE_NAME` = `auto-diary-points-pairing`
+   - `DEVICES_TABLE_NAME` = `auto-diary-points-devices`
+3. 実行ロールのインラインポリシーに、次を追加する(ARNは自分のもの)
+   - pairingテーブル: `dynamodb:PutItem`、`dynamodb:GetItem`、`dynamodb:UpdateItem`、`dynamodb:DeleteItem`
+   - devicesテーブル: `dynamodb:PutItem`、`dynamodb:DeleteItem`
+   - devicesテーブルのインデックス(`<devicesのARN>/index/accountId-index`): `dynamodb:Query`
+4. Lambdaのコードを `points-api/lambda_function.py` の内容に置き換えて、Deploy
+5. API Gatewayにルートを追加する
+   - ログインが必要(オーソライザー `cognito` を付ける):
+     `POST /pairing/lookup`、`POST /pairing/confirm`、`GET /devices`、`DELETE /devices/{deviceId}`
+   - ログイン不要(**オーソライザーを付けない**): `POST /pairing/start`、`POST /pairing/claim`
+   - 6つとも、統合はLambda(`auto-diary-points-api`)。
+6. ログイン不要の2つに、呼び出し回数の制限をかける
+   - 「ステージ」→ `$default` →「スロットリング」(ルートごとの設定)で、
+     `POST /pairing/start` と `POST /pairing/claim` を、毎秒5回・バースト10回くらいにする。
+7. ページ(`index.html`、`app.js`)をS3へ上げて、CloudFrontのキャッシュを削除する
+
+### 確認(アプリの実装前は、`curl` で試せる)
+```
+# アプリの代わり: コードを発行する(ログイン不要)
+curl -s -X POST https://<API>/pairing/start -H 'Content-Type: application/json' -d '{"label":"テスト端末"}'
+```
+返ってきた `code` を、Webの「アプリを紐づける」に入力する → 端末が一覧に出る。
+その後、`code` と `claimSecret` で、次を呼ぶと、`deviceToken` が返る。
+```
+curl -s -X POST https://<API>/pairing/claim -H 'Content-Type: application/json' -d '{"code":"<code>","claimSecret":"<claimSecret>"}'
+```
+- 2回目の `claim` は、404になる(トークンは1回しか渡さない)。
+- Webの「解除」で、一覧から消える。
