@@ -8,6 +8,7 @@
     body { font-family: sans-serif; max-width: 480px; margin: 40px auto; padding: 0 16px; }
     button { font-size: 16px; padding: 10px 20px; }
     #message { color: #b00020; }
+    #notice { color: #1b5e20; }
   </style>
 </head>
 <body>
@@ -22,11 +23,22 @@
     <p>ログイン中: <strong id="email"></strong></p>
     <p>ポイント: <strong id="points">-</strong></p>
     <p>トークン: <strong id="tokens">-</strong></p>
-    <p><button id="grantButton">テスト用: ポイントを10追加</button></p>
+
+    <h2>トークンに交換</h2>
+    <p id="exchangeRule"></p>
+    <p>
+      <input id="exchangePoints" type="number" min="1" step="1" inputmode="numeric">
+      ポイント
+      <button id="exchangeButton">トークンに交換</button>
+    </p>
+
+    <h2>テスト用(公開前に無効にする)</h2>
+    <p><button id="grantButton">ポイントを10,000追加</button></p>
     <button id="logoutButton">ログアウト</button>
   </div>
 
   <p id="message"></p>
+  <p id="notice"></p>
 
   <script src="config.js"></script>
   <script src="app.js"></script>

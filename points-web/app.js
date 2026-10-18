@@ -20,6 +20,9 @@ const els = {
   email: document.getElementById("email"),
   points: document.getElementById("points"),
   tokens: document.getElementById("tokens"),
+  notice: document.getElementById("notice"),
+  exchangeRule: document.getElementById("exchangeRule"),
+  exchangePoints: document.getElementById("exchangePoints"),
   message: document.getElementById("message"),
 };
 
@@ -48,7 +51,15 @@ function readJwt(token) {
 
 function show(message) {
   els.message.textContent = message;
+  els.notice.textContent = "";
 }
+
+function showNotice(message) {
+  els.notice.textContent = message;
+  els.message.textContent = "";
+}
+
+const yen = new Intl.NumberFormat("ja-JP");
 
 // ---------- ログイン
 
@@ -137,16 +148,39 @@ async function callApi(method, path, body) {
     sessionStorage.clear();
     throw new Error("ログインの期限が切れました。もう一度ログインしてください。");
   }
+  const data = await response.json().catch(() => ({}));
+
   if (!response.ok) {
-    throw new Error(`APIの呼び出しに失敗しました (${response.status})`);
+    // サーバーが返した理由を、分かりやすい言葉にする
+    const messages = {
+      below_minimum: `${yen.format(data.minPoints ?? 0)}ポイント以上から交換できます。`,
+      insufficient_points: "ポイントが足りません。",
+      invalid_points: "ポイントは、1以上の整数で入力してください。",
+      request_id_conflict: "同じ操作が重複しました。もう一度お試しください。",
+    };
+    throw new Error(
+      messages[data.error] ?? `APIの呼び出しに失敗しました (${response.status})`,
+    );
   }
 
-  return response.json();
+  return data;
 }
 
+let minExchangePoints = null;
+
 function showBalance(balance) {
-  els.points.textContent = balance.points;
-  els.tokens.textContent = balance.tokens;
+  els.points.textContent = yen.format(balance.points);
+  els.tokens.textContent = yen.format(balance.tokens);
+
+  // 交換のルールは、サーバーが決めた値を表示する
+  const rule = balance.exchange;
+  if (rule) {
+    minExchangePoints = rule.minPoints;
+    els.exchangeRule.textContent =
+      `${yen.format(rule.minPoints)}ポイント以上から交換できます` +
+      `(1ポイント = ${rule.tokensPerPoint}トークン)`;
+    if (!els.exchangePoints.value) els.exchangePoints.value = rule.minPoints;
+  }
 }
 
 async function loadBalance() {
@@ -159,9 +193,45 @@ async function loadBalance() {
 
 async function grantForTest() {
   try {
-    showBalance(await callApi("POST", "/dev/grant", { amount: 10 }));
+    showBalance(await callApi("POST", "/dev/grant", { amount: 10000 }));
+    showNotice("テスト用に、10,000ポイントを追加しました。");
   } catch (e) {
     show(e.message);
+  }
+}
+
+// ボタンを押した1回の操作ごとに、IDを作る。
+// 通信が失敗して、同じ操作を送り直しても、サーバーは1回しか実行しない。
+let pendingExchange = null;
+
+async function exchange() {
+  const points = Number(els.exchangePoints.value);
+
+  if (!Number.isInteger(points) || points <= 0) {
+    show("ポイントは、1以上の整数で入力してください。");
+    return;
+  }
+  if (minExchangePoints !== null && points < minExchangePoints) {
+    show(`${yen.format(minExchangePoints)}ポイント以上から交換できます。`);
+    return;
+  }
+
+  // 同じポイント数の操作の送り直しなら、同じIDを使う
+  if (!pendingExchange || pendingExchange.points !== points) {
+    pendingExchange = { points, requestId: crypto.randomUUID() };
+  }
+
+  const button = document.getElementById("exchangeButton");
+  button.disabled = true;
+
+  try {
+    showBalance(await callApi("POST", "/exchange", pendingExchange));
+    pendingExchange = null;
+    showNotice(`${yen.format(points)}ポイントを、トークンに交換しました。`);
+  } catch (e) {
+    show(e.message);
+  } finally {
+    button.disabled = false;
   }
 }
 
@@ -190,6 +260,7 @@ async function main() {
   document.getElementById("loginButton").onclick = login;
   document.getElementById("logoutButton").onclick = logout;
   document.getElementById("grantButton").onclick = grantForTest;
+  document.getElementById("exchangeButton").onclick = exchange;
 
   const query = new URLSearchParams(location.search);
 

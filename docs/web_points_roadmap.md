@@ -198,3 +198,42 @@ CloudFrontの「無効化」タブで、`/*` を指定して作成すると、�
 - `points-web/config.js` の `apiBase` に、呼び出しURLを入れる。
 - ローカル(`python3 -m http.server 8080`)で確認してから、S3へ上げ直し、CloudFrontで `/*` を無効化する。
 - ログイン後、ポイント0・トークン0が出て、「テスト用: ポイントを10追加」で10ずつ増えれば成功。
+
+---
+
+## 手順4: ポイント → トークンの交換
+
+### ルール(コードの先頭の定数。変えるときはここだけ直す)
+- 1ポイント = 1トークン(`TOKENS_PER_POINT`)
+- 1回の交換で、最低 10,000 ポイントを使う(`MIN_EXCHANGE_POINTS`)。上限は、持っているポイントまで。
+
+### 仕組み
+- `POST /exchange` に `{"points": 12000, "requestId": "..."}` を送る。
+- 残高の更新(ポイントを引き、トークンを足す)と、履歴(ledgerテーブル)への記録を、
+  DynamoDBのトランザクションで同時に行う。
+- 「ポイントが足りているときだけ更新する」条件を付けてあるので、
+  同時に2回押されても、残高がマイナスにならない。
+- `requestId` が同じリクエストは、約10分間、1回しか実行されない(送り直しの二重実行を防ぐ)。
+
+### 作業
+1. DynamoDBに、履歴のテーブルを作る
+   - テーブル名: `auto-diary-points-ledger`
+   - パーティションキー: `accountId`(文字列)、ソートキー: `entryId`(文字列)
+2. Lambdaの環境変数に `LEDGER_TABLE_NAME` = `auto-diary-points-ledger` を追加する
+3. Lambdaの実行ロールのインラインポリシーを、2つのテーブルに合わせて直す
+   - accountsテーブル: `dynamodb:UpdateItem`、`dynamodb:GetItem`
+   - ledgerテーブル: `dynamodb:PutItem`
+4. Lambdaのコードを `points-api/lambda_function.py` の内容に置き換えて、Deploy
+5. API Gatewayに、ルート `POST /exchange` を追加し、統合(Lambda)とオーソライザー(`cognito`)を付ける
+6. ページ(`index.html`、`app.js`)を、ローカルで確認してから、S3へ上げてCloudFrontのキャッシュを削除する
+
+### 確認
+- 「ポイントを10,000追加」→「トークンに交換」で、ポイントが減り、トークンが増える。
+- 10,000未満を入れると、「10,000ポイント以上から交換できます」と出る。
+- ポイントより多く入れると、「ポイントが足りません」と出る。
+- ledgerテーブルに、`dev_grant` と `exchange` の履歴が1行ずつ増える。
+
+### Lambdaの単体テスト(AWSにつながない)
+```
+python3 -m unittest points-api/test_lambda_function.py
+```
