@@ -123,15 +123,21 @@ def change_balance(
     """
     now = int(time.time())
 
+    # DynamoDBは、式の中で使っていない値が渡されると、エラーにする。
+    # そのため、式に出てくる値だけを渡す。
+    all_values = {
+        ":zero": {"N": "0"},
+        ":now": {"N": str(now)},
+        **values,
+    }
+    expressions = update_expression + " " + (condition or "")
+    used_values = {k: v for k, v in all_values.items() if k in expressions}
+
     update = {
         "TableName": TABLE_NAME,
         "Key": {"accountId": {"S": account_id}},
         "UpdateExpression": update_expression,
-        "ExpressionAttributeValues": {
-            ":zero": {"N": "0"},
-            ":now": {"N": str(now)},
-            **values,
-        },
+        "ExpressionAttributeValues": used_values,
     }
     if condition:
         update["ConditionExpression"] = condition

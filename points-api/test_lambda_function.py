@@ -81,6 +81,11 @@ class ExchangeTest(unittest.TestCase):
         self.assertEqual(put["Item"]["tokensDelta"], {"N": "12000"})
         self.assertEqual(args["ClientRequestToken"], "abc")
 
+        # DynamoDBは、式で使っていない値が渡されるとエラーにする
+        expressions = update["UpdateExpression"] + " " + update["ConditionExpression"]
+        for name in update["ExpressionAttributeValues"]:
+            self.assertIn(name, expressions)
+
     def test_ポイントが足りないときは交換されない(self):
         fake_client.transact_write_items.side_effect = ClientError(
             {
@@ -120,8 +125,12 @@ class DevGrantTest(unittest.TestCase):
     def test_履歴も残る(self):
         result = m.lambda_handler(event("POST /dev/grant", {"amount": 10}), None)
         self.assertEqual(result["statusCode"], 200)
-        put = fake_client.transact_write_items.call_args.kwargs["TransactItems"][1]["Put"]
-        self.assertEqual(put["Item"]["type"], {"S": "dev_grant"})
+        items = fake_client.transact_write_items.call_args.kwargs["TransactItems"]
+        self.assertEqual(items[1]["Put"]["Item"]["type"], {"S": "dev_grant"})
+
+        update = items[0]["Update"]
+        for name in update["ExpressionAttributeValues"]:
+            self.assertIn(name, update["UpdateExpression"])
 
 
 class MeTest(unittest.TestCase):
