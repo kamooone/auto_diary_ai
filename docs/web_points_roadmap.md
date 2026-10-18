@@ -161,3 +161,40 @@ CloudFrontの「無効化」タブで、`/*` を指定して作成すると、�
 - 2-2で、「ログイン中: メールアドレス」が表示されたか。
 - 表示されなかった場合は、画面に出たメッセージと、ブラウザのアドレス欄のURL
   (`code=` や `state=` の値は、伏せてよい)。
+
+---
+
+## 手順3: ポイント残高のAPI(モック)
+
+ログインしたアカウントの残高を、DynamoDBに持ち、APIで返す。
+コードは `points-api/lambda_function.py`(Lambda)と、`points-web/`(ページ)に用意してある。
+
+### 3-1. DynamoDBのテーブル
+- DynamoDB → 「テーブルの作成」。リージョンは東京。
+- テーブル名: `auto-diary-points-accounts`
+- パーティションキー: `accountId`(文字列)
+- 設定: 「デフォルト設定」でよい(オンデマンド)。
+- 1アカウントが1行。項目は `points`(ポイント)、`tokens`(トークン)、`createdAt`。
+  `accountId` には、Cognito の `sub`(アカウント固有のID)を使う。メールアドレスは保存しない。
+
+### 3-2. Lambda関数
+- Lambda → 「関数の作成」→「一から作成」。名前: `auto-diary-points-api`、ランタイム: Python(最新)、
+  実行ロール: 「基本的なLambdaアクセス権限で新しいロールを作成」。
+- コード: `points-api/lambda_function.py` の中身を、エディタに貼って「Deploy」。
+- 「設定」→「環境変数」: `TABLE_NAME` = `auto-diary-points-accounts`、`ENABLE_DEV_GRANT` = `true`。
+- 「設定」→「アクセス権限」→ 実行ロールを開き、インラインポリシーを追加して、
+  対象のテーブルにだけ `dynamodb:UpdateItem` を許可する(リソースは、テーブルのARN)。
+
+### 3-3. API Gateway(HTTP API)
+- API Gateway → 「APIを作成」→ **HTTP API**。統合: 上のLambda。
+- ルート: `GET /me`、`POST /dev/grant`。ステージ: `$default`(自動デプロイ)。
+- 認可 → 「オーソライザーを作成」(JWT): 発行者 `https://cognito-idp.ap-northeast-1.amazonaws.com/<ユーザープールID>`、
+  対象者 = アプリクライアントID。2つのルートに割り当てる。
+- CORS: 許可するオリジンに `https://dq2edjyr3ccb9.cloudfront.net` と `http://localhost:8080`、
+  ヘッダーは `authorization,content-type`、メソッドは `GET,POST,OPTIONS`。
+- 「呼び出しURL」(`https://xxxx.execute-api.ap-northeast-1.amazonaws.com`)を控える。
+
+### 3-4. ページを動かす
+- `points-web/config.js` の `apiBase` に、呼び出しURLを入れる。
+- ローカル(`python3 -m http.server 8080`)で確認してから、S3へ上げ直し、CloudFrontで `/*` を無効化する。
+- ログイン後、ポイント0・トークン0が出て、「テスト用: ポイントを10追加」で10ずつ増えれば成功。
