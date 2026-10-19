@@ -77,6 +77,13 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
           ),
 
           ListTile(
+            leading: const Icon(Icons.savings),
+            title: const Text("ポイント・トークン"),
+            subtitle: const Text("Webのアカウントと紐づけて、使える量を増やします"),
+            onTap: () => context.push(AppRoutes.points),
+          ),
+
+          ListTile(
             leading: const Icon(Icons.share),
             title: const Text("Xの投稿"),
             subtitle: const Text("保存した投稿の削除、内容の修正、日時の変更ができます"),

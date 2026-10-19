@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path_provider/path_provider.dart';
 import '../../../../core/app_info/client_id.dart';
 import '../../../ai/application/providers/ai_provider.dart';
+import '../../../points/application/providers/device_link_provider.dart';
 import '../../data/aws_usage_repository_impl.dart';
 import '../../data/file_plan_repository.dart';
 import '../../domain/entities/plan_type.dart';
@@ -52,6 +53,8 @@ final usageRepositoryProvider = Provider<UsageRepository>((ref) {
   return AwsUsageRepositoryImpl(
     ref.watch(apiBaseUrlProvider),
     clientId: ClientId.get,
+    deviceToken: ref.read(deviceLinkProvider.notifier).token,
+    onInvalidDeviceToken: ref.read(deviceLinkProvider.notifier).unlink,
   );
 });
 
@@ -65,7 +68,9 @@ class UsageNotifier extends Notifier<UsageInfo?> {
 
   /// サーバーから使用量を取得する(取得できなかった場合は、前の値のままにする)
   Future<void> refresh() async {
-    final usage = await ref.read(usageRepositoryProvider).fetch();
+    final usage = await ref
+        .read(usageRepositoryProvider)
+        .fetch(plan: ref.read(planTypeProvider));
     if (usage != null) update(usage);
   }
 

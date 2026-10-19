@@ -15,12 +15,22 @@ class AwsAiRepositoryImpl implements AiRepository {
   // 端末を識別する匿名のID(サーバーが使用量を端末ごとに集計する)
   final Future<String> Function()? _clientId;
 
+  // Webのアカウントと紐づけたときの、端末用のトークン(紐づけていなければnull)
+  final Future<String?> Function()? _deviceToken;
+
+  // サーバーに端末用のトークンを断られた(解除された)ときに呼ぶ
+  final Future<void> Function()? _onInvalidDeviceToken;
+
   AwsAiRepositoryImpl(
     this.baseUrl, {
     http.Client? client,
     Future<String> Function()? clientId,
+    Future<String?> Function()? deviceToken,
+    Future<void> Function()? onInvalidDeviceToken,
   })  : _client = client ?? http.Client(),
-        _clientId = clientId;
+        _clientId = clientId,
+        _deviceToken = deviceToken,
+        _onInvalidDeviceToken = onInvalidDeviceToken;
 
   static const _uploadPath = '/ai/upload-url';
   static const _chatPath = '/ai/chat';
@@ -92,19 +102,18 @@ class AwsAiRepositoryImpl implements AiRepository {
     String body, {
     required Exception Function(String message) onError,
   }) async {
-    final http.Response response;
+    http.Response response;
 
     try {
-      response = await _client
-          .post(
-            Uri.parse('$baseUrl$path'),
-            headers: {
-              'Content-Type': 'application/json',
-              if (_clientId != null) 'X-Client-Id': await _clientId(),
-            },
-            body: body,
-          )
-          .timeout(_timeout);
+      var token = await _deviceToken?.call();
+      response = await _send(path, body, token);
+
+      // 紐づけが解除されている。トークンを捨てて、紐づけなしで送り直す
+      if (response.statusCode == 401 && token != null) {
+        await _onInvalidDeviceToken?.call();
+        token = null;
+        response = await _send(path, body, token);
+      }
     } on TimeoutException {
       throw onError('Request timed out: $path');
     } on http.ClientException catch (e) {
@@ -125,6 +134,20 @@ class AwsAiRepositoryImpl implements AiRepository {
       throw onError('Unexpected response: $path');
     }
     return data;
+  }
+
+  Future<http.Response> _send(String path, String body, String? token) async {
+    return _client
+        .post(
+          Uri.parse('$baseUrl$path'),
+          headers: {
+            'Content-Type': 'application/json',
+            if (_clientId != null) 'X-Client-Id': await _clientId(),
+            if (token != null) 'X-Device-Token': token,
+          },
+          body: body,
+        )
+        .timeout(_timeout);
   }
 
   UsageInfo? _usageOf(http.Response response) {

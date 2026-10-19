@@ -14,11 +14,16 @@ class UsageInfo {
   /// 使用量がリセットされる日時(分からない場合はnull)
   final DateTime? resetsAt;
 
+  /// Webのアカウントのトークン残高(紐づけていない場合は0)
+  /// 毎月の枠を使い切ったあとに使われる。limitTokensには含まれている
+  final int tokenBalance;
+
   const UsageInfo({
     this.plan,
     required this.usedTokens,
     required this.limitTokens,
     this.resetsAt,
+    this.tokenBalance = 0,
   });
 
   /// 残りのトークン数(0未満にはしない)
@@ -35,7 +40,7 @@ class UsageInfo {
   /// サーバーの応答から読み取る(形式が想定と違う場合はnull)
   ///
   /// 例: {"plan": "free", "usage": {"usedTokens": 1200, "limitTokens": 50000,
-  ///       "resetsAt": "2026-11-01T00:00:00+09:00"}}
+  ///       "resetsAt": "2026-11-01T00:00:00+09:00"}, "tokenBalance": 0}
   static UsageInfo? fromJson(Object? json) {
     if (json is! Map) return null;
 
@@ -48,12 +53,14 @@ class UsageInfo {
 
     final resetsAt = usage['resetsAt'];
     final plan = json['plan'];
+    final balance = json['tokenBalance'];
 
     return UsageInfo(
       plan: PlanType.values.where((e) => e.name == plan).firstOrNull,
       usedTokens: used.toInt(),
       limitTokens: limit.toInt(),
       resetsAt: resetsAt is String ? DateTime.tryParse(resetsAt) : null,
+      tokenBalance: balance is num ? balance.toInt() : 0,
     );
   }
 }

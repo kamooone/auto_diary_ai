@@ -8,6 +8,7 @@ import 'package:auto_diary_ai/features/map/presentation/ui/map_page.dart';
 import '../../features/calendar/presentation/ui/calendar_screen/day_posts_screen.dart';
 import '../../features/diary_create/presentation/ui/diary_create_screen.dart';
 import '../../features/plan/presentation/ui/plan_page.dart';
+import '../../features/points/presentation/ui/points_page.dart';
 import '../../features/share/presentation/ui/share_initializer.dart';
 import '../../features/share/presentation/ui/shared_post_list_screen.dart';
 
@@ -16,6 +17,7 @@ class AppRoutes {
   static const diaryCreate = '/diary_create_screen';
   static const settings = '/settings';
   static const plan = '/settings/plan';
+  static const points = '/settings/points';
   static const sharedPosts = '/settings/shared_posts';
   static const placeSearchTest = '/settings/place_search_test';
   static const map = '/map';
@@ -49,6 +51,10 @@ class AppRoutes {
         GoRoute(
           path: plan,
           builder: (context, state) => const PlanPage(),
+        ),
+        GoRoute(
+          path: points,
+          builder: (context, state) => const PointsPage(),
         ),
         GoRoute(
           path: placeSearchTest,

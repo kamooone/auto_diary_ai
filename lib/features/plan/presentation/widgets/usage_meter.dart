@@ -51,6 +51,11 @@ class UsageMeter extends StatelessWidget {
           ].join("・"),
           style: theme.textTheme.bodySmall,
         ),
+        if (usage.tokenBalance > 0)
+          Text(
+            "うち、アカウントのトークン ${_number(usage.tokenBalance)}",
+            style: theme.textTheme.bodySmall,
+          ),
       ],
     );
   }

@@ -1,6 +1,7 @@
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/app_info/client_id.dart';
+import '../../../points/application/providers/device_link_provider.dart';
 import '../../data/repositories/aws_ai_repository_impl.dart';
 import '../../domain/repositories/ai_repository.dart';
 
@@ -19,5 +20,7 @@ final aiRepositoryProvider = Provider<AiRepository>((ref) {
   return AwsAiRepositoryImpl(
     ref.watch(apiBaseUrlProvider),
     clientId: ClientId.get,
+    deviceToken: ref.read(deviceLinkProvider.notifier).token,
+    onInvalidDeviceToken: ref.read(deviceLinkProvider.notifier).unlink,
   );
 });

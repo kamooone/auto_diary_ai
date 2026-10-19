@@ -26,7 +26,7 @@ class FakeUsageRepository implements UsageRepository {
   UsageInfo? usage;
 
   @override
-  Future<UsageInfo?> fetch() async => usage;
+  Future<UsageInfo?> fetch({PlanType plan = PlanType.free}) async => usage;
 }
 
 http.Response jsonResponse(int status, Object body) {
