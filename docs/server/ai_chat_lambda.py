@@ -5,10 +5,19 @@ import urllib.error
 import base64
 import socket
 import traceback
+import os
+import re
+import hashlib
+import hmac
+import time
+from datetime import datetime, timedelta, timezone
+
+from botocore.exceptions import ClientError
 
 
 secrets_manager = boto3.client("secretsmanager")
 s3 = boto3.client("s3")
+dynamodb = boto3.client("dynamodb")
 
 OPENAI_SECRET_NAME = "auto-diary-ai/openai-api-key"
 GEMINI_SECRET_NAME = "auto-diary/gemini-api-key"
@@ -43,6 +52,31 @@ MIN_REMAINING_SECONDS = 12
 # 受け付けるプラン。これ以外(未指定を含む)は、無料プランとして扱う
 PAID = "paid"
 FREE = "free"
+
+# 使用量と、アカウントのトークン残高を保存するテーブル
+#   USAGE_TABLE_NAME    : 月ごとの使用量(キー usageKey = "<端末のID>#<年-月>")
+#   ACCOUNTS_TABLE_NAME : ポイントAPIのアカウント(残高 tokens)
+#   DEVICES_TABLE_NAME  : ポイントAPIの、紐づけ済みの端末
+USAGE_TABLE_NAME = os.environ.get("USAGE_TABLE_NAME", "auto-diary-ai-usage")
+ACCOUNTS_TABLE_NAME = os.environ.get(
+    "ACCOUNTS_TABLE_NAME", "auto-diary-points-accounts"
+)
+DEVICES_TABLE_NAME = os.environ.get(
+    "DEVICES_TABLE_NAME", "auto-diary-points-devices"
+)
+
+# 毎月使えるトークン数(プランごと。仮の値。変えるときはここだけ直す)
+# アカウントのトークンは、この枠を使い切ったあとに減る(使える量が増えるだけ)
+MONTHLY_LIMIT_TOKENS = {FREE: 50_000, PAID: 500_000}
+
+# 月の区切りは、日本時間
+JST = timezone(timedelta(hours=9))
+
+# 端末を識別する匿名のID(アプリのインストールごとに1つ)
+CLIENT_ID_PATTERN = re.compile(r"^[A-Za-z0-9_-]{8,64}$")
+
+# 使用量の行は、月が替わって2か月たったら、DynamoDBが自動で削除する
+USAGE_ROW_TTL_SECONDS = 62 * 24 * 60 * 60
 
 # AIの提供元が返したエラーを、アプリには429で返さない
 # (アプリは、429を「今月の使用量の上限に達した」として扱うため)
@@ -205,6 +239,149 @@ def ask_gemini(api_key, message, images, context=None):
     raise last_error
 
 
+class InvalidDeviceToken(Exception):
+    """紐づけが解除された(または偽の)端末用トークン"""
+
+
+def header_of(event, name):
+    headers = event.get("headers") or {}
+    for key, value in headers.items():
+        if key.lower() == name:
+            return value
+    return None
+
+
+def month_window(now=None):
+    """今月のキー("2026-10")と、リセットされる日時(来月1日0時、日本時間)"""
+    now = (now or datetime.now(JST)).astimezone(JST)
+    first = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    next_first = (first + timedelta(days=32)).replace(day=1)
+    return first.strftime("%Y-%m"), next_first.isoformat()
+
+
+def sha256_hex(value):
+    return hashlib.sha256(value.encode("utf-8")).hexdigest()
+
+
+def account_of_device_token(token):
+    """端末用のトークンから、アカウントのIDを返す
+
+    トークンがない場合はNone(アカウントなしで使う)。
+    あるのに正しくない場合(紐づけを解除したなど)は、InvalidDeviceTokenにする。
+    """
+    if not token:
+        return None
+
+    device_id, dot, secret = token.partition(".")
+
+    if not dot or not device_id or not secret:
+        raise InvalidDeviceToken()
+
+    result = dynamodb.get_item(
+        TableName=DEVICES_TABLE_NAME,
+        Key={"deviceId": {"S": device_id}},
+    )
+    item = result.get("Item")
+
+    if item is None or not hmac.compare_digest(
+        item["tokenHash"]["S"], sha256_hex(secret)
+    ):
+        raise InvalidDeviceToken()
+
+    return item["accountId"]["S"]
+
+
+def read_used_tokens(usage_key):
+    result = dynamodb.get_item(
+        TableName=USAGE_TABLE_NAME,
+        Key={"usageKey": {"S": usage_key}},
+        ConsistentRead=True,
+    )
+    item = result.get("Item")
+    return int(item["usedTokens"]["N"]) if item else 0
+
+
+def read_token_balance(account_id):
+    if account_id is None:
+        return 0
+
+    result = dynamodb.get_item(
+        TableName=ACCOUNTS_TABLE_NAME,
+        Key={"accountId": {"S": account_id}},
+        ConsistentRead=True,
+    )
+    item = result.get("Item")
+    return int(item["tokens"]["N"]) if item else 0
+
+
+def usage_payload(plan, used, balance, resets_at):
+    """アプリに返す使用量
+
+    毎月の枠(limit)に、アカウントのトークン(balance)を足したものを、
+    使える量の合計として返す。usedTokensは、毎月の枠の中で使った量。
+    """
+    limit = MONTHLY_LIMIT_TOKENS[plan]
+
+    return {
+        "plan": plan,
+        "usage": {
+            "usedTokens": min(used, limit),
+            "limitTokens": limit + balance,
+            "resetsAt": resets_at,
+        },
+        "tokenBalance": balance,
+    }
+
+
+def is_exceeded(plan, used, balance):
+    return MONTHLY_LIMIT_TOKENS[plan] - used + balance <= 0
+
+
+def record_usage(usage_key, plan, account_id, tokens, used, balance):
+    """使ったトークンを、毎月の枠 → アカウントのトークンの順に減らす
+
+    戻り値: (毎月の枠で使った量, アカウントのトークンから減らした量)
+    """
+    if tokens <= 0:
+        return 0, 0
+
+    from_allowance = min(tokens, max(0, MONTHLY_LIMIT_TOKENS[plan] - used))
+    from_balance = min(tokens - from_allowance, balance)
+
+    if from_allowance > 0:
+        dynamodb.update_item(
+            TableName=USAGE_TABLE_NAME,
+            Key={"usageKey": {"S": usage_key}},
+            UpdateExpression="ADD usedTokens :n SET expiresAt = :ttl",
+            ExpressionAttributeValues={
+                ":n": {"N": str(from_allowance)},
+                ":ttl": {"N": str(int(time.time()) + USAGE_ROW_TTL_SECONDS)},
+            },
+        )
+
+    if from_balance > 0 and account_id is not None:
+        try:
+            dynamodb.update_item(
+                TableName=ACCOUNTS_TABLE_NAME,
+                Key={"accountId": {"S": account_id}},
+                UpdateExpression="SET tokens = tokens - :n",
+                # 同時に使われても、残高がマイナスにならない
+                ConditionExpression="tokens >= :n",
+                ExpressionAttributeValues={":n": {"N": str(from_balance)}},
+            )
+        except ClientError as e:
+            if e.response["Error"]["Code"] != "ConditionalCheckFailedException":
+                raise
+            # 同時に使われて、残高が足りなくなった。AIはすでに使ったため、
+            # 減らせなかった分は、ログに残す
+            print(json.dumps({
+                "warning": "balance_changed", "fromBalance": from_balance,
+            }))
+            from_balance = 0
+
+    return from_allowance, from_balance
+
+
 def response(status, body):
     return {
         "statusCode": status,
@@ -212,11 +389,76 @@ def response(status, body):
     }
 
 
+def read_state(event, plan):
+    """端末のID・アカウント・今月の使用量・トークン残高をまとめて取得する
+
+    戻り値: dict。端末のIDがないとき・トークンが正しくないときは、
+    (エラーのレスポンス, None)で返す
+    """
+    client_id = header_of(event, "x-client-id")
+
+    if not client_id or not CLIENT_ID_PATTERN.match(client_id):
+        return response(400, {"error": "client_id_required"}), None
+
+    try:
+        account_id = account_of_device_token(
+            header_of(event, "x-device-token")
+        )
+    except InvalidDeviceToken:
+        return response(401, {"error": "invalid_device_token"}), None
+
+    month, resets_at = month_window()
+    usage_key = f"{client_id}#{month}"
+
+    return None, {
+        "usage_key": usage_key,
+        "account_id": account_id,
+        "resets_at": resets_at,
+        "used": read_used_tokens(usage_key),
+        "balance": read_token_balance(account_id),
+    }
+
+
+def delete_uploaded_images(images):
+    """AIを使わずに終わるとき、アプリがアップロードした画像をS3から消す"""
+    if not isinstance(images, list):
+        return
+
+    for image in images:
+        s3_key = image.get("s3_key") if isinstance(image, dict) else None
+
+        if not s3_key:
+            continue
+
+        try:
+            s3.delete_object(Bucket=BUCKET_NAME, Key=s3_key)
+        except Exception:
+            traceback.print_exc()
+
+
+def plan_usage(event):
+    """GET /plan/usage: 今月の使用量。プランは、クエリ(?plan=paid)で受け取る"""
+    params = event.get("queryStringParameters") or {}
+    plan = PAID if params.get("plan") == PAID else FREE
+
+    error, state = read_state(event, plan)
+
+    if error is not None:
+        return error
+
+    return response(200, usage_payload(
+        plan, state["used"], state["balance"], state["resets_at"]
+    ))
+
+
 def lambda_handler(event, context):
 
     image_keys = []
 
     try:
+        if event.get("routeKey") == "GET /plan/usage":
+            return plan_usage(event)
+
         body = json.loads(event.get("body", "{}"))
 
         message = body.get("message", "")
@@ -228,6 +470,22 @@ def lambda_handler(event, context):
         # (注意: アプリが申告した値のため、課金の確認をするまでは信用できない。
         #  課金を実装したら、購入の確認結果から決める)
         plan = PAID if body.get("plan") == PAID else FREE
+
+        error, state = read_state(event, plan)
+
+        if error is not None:
+            return error
+
+        # 上限に達している場合は、AIを呼ばずに断る
+        if is_exceeded(plan, state["used"], state["balance"]):
+            delete_uploaded_images(body.get("images"))
+
+            return response(429, {
+                "error": "usage_limit_exceeded",
+                **usage_payload(
+                    plan, state["used"], state["balance"], state["resets_at"]
+                ),
+            })
 
         images = body.get("images", [])
 
@@ -287,10 +545,27 @@ def lambda_handler(event, context):
                 Key=image["s3_key"],
             )
 
-        # tokensは、使用量の集計に使う(集計は別途実装)
-        print(json.dumps({"plan": plan, "tokens": tokens}))
+        # 使ったトークンを、毎月の枠 → アカウントのトークンの順に減らす
+        from_allowance, from_balance = record_usage(
+            state["usage_key"], plan, state["account_id"], tokens,
+            state["used"], state["balance"],
+        )
 
-        return response(200, {"answer": answer, "plan": plan})
+        print(json.dumps({
+            "plan": plan, "tokens": tokens,
+            "fromAllowance": from_allowance, "fromBalance": from_balance,
+            "linked": state["account_id"] is not None,
+        }))
+
+        return response(200, {
+            "answer": answer,
+            **usage_payload(
+                plan,
+                state["used"] + from_allowance,
+                state["balance"] - from_balance,
+                state["resets_at"],
+            ),
+        })
 
     except UpstreamError as e:
 

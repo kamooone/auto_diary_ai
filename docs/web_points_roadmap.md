@@ -298,3 +298,36 @@ curl -s -X POST https://<API>/pairing/claim -H 'Content-Type: application/json' 
 ```
 - 2回目の `claim` は、404になる(トークンは1回しか渡さない)。
 - Webの「解除」で、一覧から消える。
+
+---
+
+## 手順6: AIの使用量とトークンの消費
+
+### 決めたこと
+- 使用量は、**アカウントの有無に関わらず**、全員が減る。アプリには「残り○%」を表示する。
+- 毎月の枠(`MONTHLY_LIMIT_TOKENS`。無料50,000・有料500,000は仮の値)を使い切ると、
+  紐づけ済みのアカウントのトークン残高から減る。**アカウントは、使える量を増やすだけ**。
+- 使うAIは、プランだけで決まる(無料=Gemini、有料=GPT)。トークン残高があっても変わらない。
+- 減らす量は、AIが返した **実際の使用量**(Geminiは `totalTokenCount`、OpenAIは `usage.total_tokens`)。
+- 端末の識別は `X-Client-Id`、アカウントとの紐づけは `X-Device-Token`(正しくなければ401)。
+
+### 作業(AWS)
+1. DynamoDBに、使用量のテーブルを作る(東京)
+   - テーブル名: `auto-diary-ai-usage`、パーティションキー: `usageKey`(文字列)
+   - 作成後、「追加設定」→ TTL を有効にして、属性名は `expiresAt`
+2. AIのLambdaの環境変数に追加(名前が違うときだけ。省略すると、下の値になる)
+   - `USAGE_TABLE_NAME` = `auto-diary-ai-usage`
+   - `ACCOUNTS_TABLE_NAME` = `auto-diary-points-accounts`
+   - `DEVICES_TABLE_NAME` = `auto-diary-points-devices`
+3. AIのLambdaの実行ロールに、権限を追加
+   - usage: `dynamodb:GetItem`、`dynamodb:UpdateItem`
+   - accounts: `dynamodb:GetItem`、`dynamodb:UpdateItem`
+   - devices: `dynamodb:GetItem`
+4. AIのLambdaのコードを `docs/server/ai_chat_lambda.py` の内容に置き換えて、Deploy
+5. `/ai/chat` を公開しているAPI Gatewayに、ルート `GET /plan/usage`(AIのLambdaを統合)を追加する
+   (オーソライザーは付けない)
+
+### Lambdaの単体テスト(AWSにつながない)
+```
+python3 -m unittest docs/server/test_ai_chat_lambda.py
+```
