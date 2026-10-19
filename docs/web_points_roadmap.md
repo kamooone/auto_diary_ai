@@ -281,8 +281,9 @@ python3 -m unittest points-api/test_lambda_function.py
    - ログイン不要(**オーソライザーを付けない**): `POST /pairing/start`、`POST /pairing/claim`
    - 6つとも、統合はLambda(`auto-diary-points-api`)。
 6. ログイン不要の2つに、呼び出し回数の制限をかける
-   - 「ステージ」→ `$default` →「スロットリング」(ルートごとの設定)で、
-     `POST /pairing/start` と `POST /pairing/claim` を、毎秒5回・バースト10回くらいにする。
+   - コンソールには、ルートごとのスロットリングの設定が見当たらなかったため、**公開前の宿題**とする
+     (手順の最後の「本番に向けた総点検」で、AWS CLIの `update-stage --route-settings` などで設定する)。
+   - 目安は、`POST /pairing/start` と `POST /pairing/claim` を、毎秒5回・バースト10回くらい。
 7. ページ(`index.html`、`app.js`)をS3へ上げて、CloudFrontのキャッシュを削除する
 
 ### 確認(アプリの実装前は、`curl` で試せる)
