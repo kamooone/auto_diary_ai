@@ -254,6 +254,30 @@ class AiChatUsageTest(unittest.TestCase):
         self.assertEqual(body["plan"], "free")
         self.gemini.assert_not_called()
 
+    def test_plan_usage_from_rest_api_event(self):
+        # REST APIのプロキシ統合は、routeKeyがなく、httpMethodとresourceで届く
+        event = usage_event()
+        del event["routeKey"]
+        event["httpMethod"] = "GET"
+        event["resource"] = "/plan/usage"
+
+        status, body = call(event)
+
+        self.assertEqual(status, 200)
+        self.assertEqual(body["usage"]["limitTokens"], FREE_LIMIT)
+        self.gemini.assert_not_called()
+
+    def test_chat_from_rest_api_event_is_not_usage_request(self):
+        event = chat_event()
+        del event["routeKey"]
+        event["httpMethod"] = "POST"
+        event["resource"] = "/ai/chat"
+
+        status, _ = call(event)
+
+        self.assertEqual(status, 200)
+        self.gemini.assert_called_once()
+
     def test_plan_usage_requires_client_id(self):
         event = usage_event()
         event["headers"] = {}

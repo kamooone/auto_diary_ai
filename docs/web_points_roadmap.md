@@ -324,8 +324,9 @@ curl -s -X POST https://<API>/pairing/claim -H 'Content-Type: application/json' 
    - accounts: `dynamodb:GetItem`、`dynamodb:UpdateItem`
    - devices: `dynamodb:GetItem`
 4. AIのLambdaのコードを `docs/server/ai_chat_lambda.py` の内容に置き換えて、Deploy
-5. `/ai/chat` を公開しているAPI Gatewayに、ルート `GET /plan/usage`(AIのLambdaを統合)を追加する
-   (オーソライザーは付けない)
+5. `/ai/chat` を公開しているAPI Gatewayに、`GET /plan/usage`(AIのLambdaを統合)を追加する
+   (オーソライザーは付けない)。`/ai/chat` のAPIは **REST API** のため、リソース `/plan` →
+   `/usage` を作り、GETメソッド(Lambdaプロキシ統合)を作って、**APIをデプロイ**する。
 
 ### Lambdaの単体テスト(AWSにつながない)
 ```

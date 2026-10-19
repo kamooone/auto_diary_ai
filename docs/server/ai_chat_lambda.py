@@ -436,6 +436,18 @@ def delete_uploaded_images(images):
             traceback.print_exc()
 
 
+def is_plan_usage_request(event):
+    """GET /plan/usage か(HTTP APIとREST APIの、どちらの形式でも判定する)"""
+    if event.get("routeKey") == "GET /plan/usage":
+        return True
+
+    # REST API(プロキシ統合): httpMethod と resource で分かる
+    return (
+        event.get("httpMethod") == "GET"
+        and event.get("resource") == "/plan/usage"
+    )
+
+
 def plan_usage(event):
     """GET /plan/usage: 今月の使用量。プランは、クエリ(?plan=paid)で受け取る"""
     params = event.get("queryStringParameters") or {}
@@ -456,7 +468,7 @@ def lambda_handler(event, context):
     image_keys = []
 
     try:
-        if event.get("routeKey") == "GET /plan/usage":
+        if is_plan_usage_request(event):
             return plan_usage(event)
 
         body = json.loads(event.get("body", "{}"))
