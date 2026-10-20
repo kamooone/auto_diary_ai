@@ -6,7 +6,7 @@ plugins {
 }
 
 android {
-    namespace = "com.kazusa.auto_diary_ai.auto_diary_ai"
+    namespace = "com.kazusa.auto_diary_ai"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
@@ -18,7 +18,7 @@ android {
 
     defaultConfig {
         // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
-        applicationId = "com.kazusa.auto_diary_ai.auto_diary_ai"
+        applicationId = "com.kazusa.auto_diary_ai"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
         // google_mobile_adsは、Android 7.0(API 24)以上が必要

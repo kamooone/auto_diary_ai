@@ -1,4 +1,4 @@
-package com.kazusa.auto_diary_ai.auto_diary_ai
+package com.kazusa.auto_diary_ai
 
 import android.Manifest
 import android.annotation.SuppressLint

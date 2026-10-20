@@ -1,4 +1,4 @@
-package com.kazusa.auto_diary_ai.auto_diary_ai
+package com.kazusa.auto_diary_ai
 
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine

@@ -1,4 +1,4 @@
-package com.kazusa.auto_diary_ai.auto_diary_ai
+package com.kazusa.auto_diary_ai
 
 import android.app.PendingIntent
 import android.appwidget.AppWidgetManager
@@ -40,7 +40,7 @@ class RecordingWidgetProvider : AppWidgetProvider() {
     }
 
     companion object {
-        private const val ACTION_TOGGLE = "com.kazusa.auto_diary_ai.auto_diary_ai.TOGGLE_RECORDING"
+        private const val ACTION_TOGGLE = "com.kazusa.auto_diary_ai.TOGGLE_RECORDING"
 
         private fun component(context: Context) =
             ComponentName(context, RecordingWidgetProvider::class.java)
