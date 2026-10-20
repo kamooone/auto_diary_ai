@@ -35,14 +35,19 @@ class FakeDynamo:
 
     def update_item(self, TableName, Key, ExpressionAttributeValues, **kw):
         key = next(iter(Key.values()))["S"]
-        n = int(ExpressionAttributeValues[":n"]["N"])
         table = self.tables[TableName]
 
         if TableName == "usage":
             row = table.setdefault(key, {"usedTokens": {"N": "0"}})
-            row["usedTokens"] = {"N": str(int(row["usedTokens"]["N"]) + n)}
+            for name, field in ((":a", "usedTokens"), (":b", "balanceUsedTokens")):
+                before = int(row.get(field, {"N": "0"})["N"])
+                row[field] = {
+                    "N": str(before + int(ExpressionAttributeValues[name]["N"]))
+                }
             row["expiresAt"] = ExpressionAttributeValues[":ttl"]
             return {}
+
+        n = int(ExpressionAttributeValues[":n"]["N"])
 
         row = table[key]
         if int(row["tokens"]["N"]) < n:
@@ -133,6 +138,12 @@ class AiChatUsageTest(unittest.TestCase):
         row = fake_dynamo.tables["usage"].get(self.usage_key)
         return int(row["usedTokens"]["N"]) if row else 0
 
+    def set_balance_used(self, tokens):
+        row = fake_dynamo.tables["usage"].setdefault(
+            self.usage_key, {"usedTokens": {"N": "0"}}
+        )
+        row["balanceUsedTokens"] = {"N": str(tokens)}
+
     def link_device(self, balance):
         fake_dynamo.tables["devices"]["dev1"] = {
             "deviceId": {"S": "dev1"},
@@ -201,7 +212,9 @@ class AiChatUsageTest(unittest.TestCase):
         self.assertEqual(self.balance(), 4000)
         self.assertEqual(self.used(), FREE_LIMIT)
         self.assertEqual(body["tokenBalance"], 4000)
-        self.assertEqual(body["usage"]["limitTokens"], FREE_LIMIT + 4000)
+        # 使った量は、残高から使った分も含み、分母は縮まない
+        self.assertEqual(body["usage"]["usedTokens"], FREE_LIMIT + 1000)
+        self.assertEqual(body["usage"]["limitTokens"], FREE_LIMIT + 5000)
 
     def test_usage_is_split_between_allowance_and_balance(self):
         self.link_device(balance=5000)
@@ -240,6 +253,39 @@ class AiChatUsageTest(unittest.TestCase):
 
         self.gemini.assert_not_called()
         self.assertEqual(self.balance(), 5000)
+
+    def test_display_matches_54000_of_60000_example(self):
+        # 残高10,000 を足した状態で、合計54,000 使った場合
+        self.link_device(balance=10_000)
+        self.set_used(FREE_LIMIT)
+        self.set_balance_used(3_000)
+        fake_dynamo.tables["accounts"]["acc1"] = {"tokens": {"N": "7000"}}
+
+        status, body = call(usage_event(device_token="dev1.secret"))
+
+        self.assertEqual(status, 200)
+        self.assertEqual(body["usage"]["usedTokens"], 53_000)
+        self.assertEqual(body["usage"]["limitTokens"], 60_000)
+        self.assertEqual(body["tokenBalance"], 7_000)
+
+        status, body = call(chat_event(device_token="dev1.secret"))
+
+        # さらに1,000 使うと、54,000 / 60,000
+        self.assertEqual(body["usage"]["usedTokens"], 54_000)
+        self.assertEqual(body["usage"]["limitTokens"], 60_000)
+
+    def test_next_month_resets_used_but_keeps_balance(self):
+        self.link_device(balance=6_000)
+        self.set_used(FREE_LIMIT)
+        self.set_balance_used(4_000)
+        # 翌月の行はまだないため、使った量は0に戻る
+        with mock.patch.object(
+            m, "month_window", return_value=("2026-11", "2026-12-01T00:00:00+09:00")
+        ):
+            status, body = call(usage_event(device_token="dev1.secret"))
+
+        self.assertEqual(body["usage"]["usedTokens"], 0)
+        self.assertEqual(body["usage"]["limitTokens"], FREE_LIMIT + 6_000)
 
     def test_plan_usage(self):
         self.link_device(balance=2500)

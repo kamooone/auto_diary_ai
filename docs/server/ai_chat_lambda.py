@@ -292,13 +292,21 @@ def account_of_device_token(token):
 
 
 def read_used_tokens(usage_key):
+    """今月に使った量を返す: (毎月の枠から使った量, アカウントのトークンから使った量)"""
     result = dynamodb.get_item(
         TableName=USAGE_TABLE_NAME,
         Key={"usageKey": {"S": usage_key}},
         ConsistentRead=True,
     )
     item = result.get("Item")
-    return int(item["usedTokens"]["N"]) if item else 0
+
+    if not item:
+        return 0, 0
+
+    return (
+        int(item["usedTokens"]["N"]),
+        int(item.get("balanceUsedTokens", {"N": "0"})["N"]),
+    )
 
 
 def read_token_balance(account_id):
@@ -314,19 +322,21 @@ def read_token_balance(account_id):
     return int(item["tokens"]["N"]) if item else 0
 
 
-def usage_payload(plan, used, balance, resets_at):
+def usage_payload(plan, used, balance_used, balance, resets_at):
     """アプリに返す使用量
 
-    毎月の枠(limit)に、アカウントのトークン(balance)を足したものを、
-    使える量の合計として返す。usedTokensは、毎月の枠の中で使った量。
+    今月の使用量 = 毎月の枠の中で使った量 + アカウントのトークンから使った量
+    使える量の合計 = 毎月の枠 + 今月の初めのトークン残高
+                  (= 毎月の枠 + 今のトークン残高 + 今月にトークンから使った量)
+    月の途中で分母が縮まないため、「54,000 / 60,000」のように見える。
     """
     limit = MONTHLY_LIMIT_TOKENS[plan]
 
     return {
         "plan": plan,
         "usage": {
-            "usedTokens": min(used, limit),
-            "limitTokens": limit + balance,
+            "usedTokens": min(used, limit) + balance_used,
+            "limitTokens": limit + balance + balance_used,
             "resetsAt": resets_at,
         },
         "tokenBalance": balance,
@@ -348,17 +358,6 @@ def record_usage(usage_key, plan, account_id, tokens, used, balance):
     from_allowance = min(tokens, max(0, MONTHLY_LIMIT_TOKENS[plan] - used))
     from_balance = min(tokens - from_allowance, balance)
 
-    if from_allowance > 0:
-        dynamodb.update_item(
-            TableName=USAGE_TABLE_NAME,
-            Key={"usageKey": {"S": usage_key}},
-            UpdateExpression="ADD usedTokens :n SET expiresAt = :ttl",
-            ExpressionAttributeValues={
-                ":n": {"N": str(from_allowance)},
-                ":ttl": {"N": str(int(time.time()) + USAGE_ROW_TTL_SECONDS)},
-            },
-        )
-
     if from_balance > 0 and account_id is not None:
         try:
             dynamodb.update_item(
@@ -378,6 +377,20 @@ def record_usage(usage_key, plan, account_id, tokens, used, balance):
                 "warning": "balance_changed", "fromBalance": from_balance,
             }))
             from_balance = 0
+
+    if from_allowance > 0 or from_balance > 0:
+        dynamodb.update_item(
+            TableName=USAGE_TABLE_NAME,
+            Key={"usageKey": {"S": usage_key}},
+            UpdateExpression=(
+                "ADD usedTokens :a, balanceUsedTokens :b SET expiresAt = :ttl"
+            ),
+            ExpressionAttributeValues={
+                ":a": {"N": str(from_allowance)},
+                ":b": {"N": str(from_balance)},
+                ":ttl": {"N": str(int(time.time()) + USAGE_ROW_TTL_SECONDS)},
+            },
+        )
 
     return from_allowance, from_balance
 
@@ -409,12 +422,14 @@ def read_state(event, plan):
 
     month, resets_at = month_window()
     usage_key = f"{client_id}#{month}"
+    used, balance_used = read_used_tokens(usage_key)
 
     return None, {
         "usage_key": usage_key,
         "account_id": account_id,
         "resets_at": resets_at,
-        "used": read_used_tokens(usage_key),
+        "used": used,
+        "balance_used": balance_used,
         "balance": read_token_balance(account_id),
     }
 
@@ -459,7 +474,8 @@ def plan_usage(event):
         return error
 
     return response(200, usage_payload(
-        plan, state["used"], state["balance"], state["resets_at"]
+        plan, state["used"], state["balance_used"], state["balance"],
+        state["resets_at"],
     ))
 
 
@@ -495,7 +511,8 @@ def lambda_handler(event, context):
             return response(429, {
                 "error": "usage_limit_exceeded",
                 **usage_payload(
-                    plan, state["used"], state["balance"], state["resets_at"]
+                    plan, state["used"], state["balance_used"],
+                    state["balance"], state["resets_at"],
                 ),
             })
 
@@ -574,6 +591,7 @@ def lambda_handler(event, context):
             **usage_payload(
                 plan,
                 state["used"] + from_allowance,
+                state["balance_used"] + from_balance,
                 state["balance"] - from_balance,
                 state["resets_at"],
             ),
