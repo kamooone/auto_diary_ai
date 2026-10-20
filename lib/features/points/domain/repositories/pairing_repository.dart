@@ -8,4 +8,8 @@ abstract class PairingRepository {
 
   /// Webで紐づけが確定したかを確認する。通信できない場合は例外
   Future<PairingClaimResult> claim(PairingSession session);
+
+  /// サーバーに、この端末の紐づけの解除を伝える(Webの端末一覧からも消える)
+  /// 通信できなくても例外にはしない(端末での解除は、そのまま進める)
+  Future<void> unlink(String deviceToken);
 }

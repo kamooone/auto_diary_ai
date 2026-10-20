@@ -644,6 +644,24 @@ def device_of_token(token):
     return item
 
 
+def unlink_self(event):
+    """アプリが呼ぶ。端末用のトークンを持つ端末自身が、紐づけを解除する
+
+    Webの端末一覧からも消える。トークンを持っていることが、本人の証明になる。
+    """
+    device = device_of_token(header_of(event, "x-device-token"))
+
+    if device is None:
+        return response(401, {"error": "invalid_device_token"})
+
+    dynamodb.delete_item(
+        TableName=DEVICES_TABLE_NAME,
+        Key={"deviceId": device["deviceId"]},
+    )
+
+    return response(200, {"unlinked": True})
+
+
 def grant_event(event):
     """ゲームが呼ぶ。成果の種類を受け取り、サーバーが決めた量のポイントを付ける
 
@@ -823,6 +841,8 @@ def lambda_handler(event, context):
             return pairing_claim(event.get("body"))
         if route == "POST /events":
             return grant_event(event)
+        if route == "POST /device/unlink":
+            return unlink_self(event)
 
         # ここから先は、ログインが必要。オーソライザーが付いていないと、
         # account_id_of が失敗して、エラーになる(何も実行されない)

@@ -446,6 +446,33 @@ class AppPairingTest(unittest.TestCase):
         )
 
 
+class UnlinkSelfTest(unittest.TestCase):
+    def setUp(self):
+        fake_client.reset_mock(side_effect=True)
+        fake_client.get_item.return_value = device_row()
+
+    def send(self, token):
+        headers = {"X-Device-Token": token} if token else {}
+        return call("POST /device/unlink", {}, logged_in=False, headers=headers)
+
+    def test_端末自身が解除すると端末の行が消える(self):
+        status, body = self.send(f"dev1.{DEVICE_SECRET}")
+
+        self.assertEqual(status, 200)
+        self.assertTrue(body["unlinked"])
+        kwargs = fake_client.delete_item.call_args.kwargs
+        self.assertEqual(kwargs["TableName"], m.DEVICES_TABLE_NAME)
+        self.assertEqual(kwargs["Key"], {"deviceId": {"S": "dev1"}})
+
+    def test_トークンが違うと解除できない(self):
+        for token in ["dev1.wrong", "garbage", None]:
+            status, body = self.send(token)
+            self.assertEqual(status, 401)
+            self.assertEqual(body["error"], "invalid_device_token")
+
+        fake_client.delete_item.assert_not_called()
+
+
 class EventsTest(unittest.TestCase):
     def setUp(self):
         fake_client.reset_mock(side_effect=True)

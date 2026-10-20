@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../data/secure_device_token_store.dart';
 import '../../domain/repositories/device_token_store.dart';
+import 'pairing_provider.dart';
 
 final deviceTokenStoreProvider = Provider<DeviceTokenStore>((ref) {
   return SecureDeviceTokenStore();
@@ -36,6 +37,15 @@ class DeviceLinkNotifier extends Notifier<bool> {
     _isChanged = true;
     await ref.read(deviceTokenStoreProvider).save(token);
     state = true;
+  }
+
+  /// ユーザーが解除する。サーバーにも伝えて、Webの端末一覧からも消す
+  Future<void> unlinkFromServer() async {
+    final token = await this.token();
+    if (token != null) {
+      await ref.read(pairingRepositoryProvider).unlink(token);
+    }
+    await unlink();
   }
 
   /// 端末のトークンを捨てる(Webで解除された、またはアプリで解除した)

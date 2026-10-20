@@ -72,7 +72,7 @@ func _ready() -> void:
 	_unlink_dialog.dialog_text = (
 		"この端末では、アカウントのトークンを使えなくなります。"
 		+ "トークンの残高は、アカウントに残ります。"
-		+ "Webの端末一覧にも残るため、完全に外すには、Webでも解除してください。"
+		+ "Webの端末一覧からも、この端末が消えます。"
 	)
 	_unlink_dialog.dialog_autowrap = true
 	_unlink_dialog.ok_button_text = "解除する"

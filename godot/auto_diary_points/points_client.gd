@@ -127,9 +127,13 @@ func open_web(code: String = "") -> void:
 	OS.shell_open(url)
 
 
-## このゲームでの紐づけを解除する(サーバーのアカウント側には残る。Webでも解除できる)
+## このゲームでの紐づけを解除する。サーバーにも伝えて、Webの端末一覧からも消す
+## (通信できなくても、この端末では解除する。Webからも解除できる)
 func unlink() -> void:
+	var token := _device_token
 	_clear_link()
+	if not token.is_empty():
+		await _request("/device/unlink", {}, {"X-Device-Token": token})
 
 
 ## 成果を知らせる。紐づけていなければ何もしない

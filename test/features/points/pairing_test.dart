@@ -69,6 +69,13 @@ class FakePairingRepository implements PairingRepository {
     return session;
   }
 
+  final unlinkedTokens = <String>[];
+
+  @override
+  Future<void> unlink(String deviceToken) async {
+    unlinkedTokens.add(deviceToken);
+  }
+
   @override
   Future<PairingClaimResult> claim(PairingSession session) async {
     claimCount++;
@@ -107,6 +114,23 @@ void main() {
   group('AwsPairingRepositoryImpl', () {
     AwsPairingRepositoryImpl build(http.Client client) =>
         AwsPairingRepositoryImpl('https://example.com', client: client);
+
+    test('解除をサーバーに伝える。通信できなくても例外にしない', () async {
+      String? token;
+      final repository = build(MockClient((r) async {
+        expect(r.url.path, '/device/unlink');
+        token = r.headers['X-Device-Token'];
+        return jsonResponse(200, {'unlinked': true});
+      }));
+
+      await repository.unlink('id.secret');
+      expect(token, 'id.secret');
+
+      final offline = build(MockClient((r) async {
+        throw http.ClientException('offline');
+      }));
+      await offline.unlink('id.secret');
+    });
 
     test('コードを発行する', () async {
       Map<String, dynamic>? sent;
@@ -451,6 +475,24 @@ void main() {
 
       await container.read(deviceLinkProvider.notifier).unlink();
 
+      expect(store.token, isNull);
+      expect(container.read(deviceLinkProvider), isFalse);
+    });
+
+    test('ユーザーが解除すると、サーバーにも伝える', () async {
+      final store = InMemoryTokenStore()..token = 'id.secret';
+      final repository = FakePairingRepository();
+      final container = ProviderContainer(
+        overrides: [
+          deviceTokenStoreProvider.overrideWithValue(store),
+          pairingRepositoryProvider.overrideWithValue(repository),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      await container.read(deviceLinkProvider.notifier).unlinkFromServer();
+
+      expect(repository.unlinkedTokens, ['id.secret']);
       expect(store.token, isNull);
       expect(container.read(deviceLinkProvider), isFalse);
     });

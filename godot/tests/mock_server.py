@@ -44,6 +44,12 @@ class Handler(BaseHTTPRequestHandler):
                 return self.reply(202, {"status": "pending"})
             return self.reply(200, {"status": "linked", "deviceToken": TOKEN})
 
+        if path == "/device/unlink":
+            if self.headers.get("X-Device-Token") != TOKEN:
+                return self.reply(401, {"error": "invalid_device_token"})
+            state["unlinked"] = state.get("unlinked", 0) + 1
+            return self.reply(200, {"unlinked": True})
+
         if path == "/events":
             if self.headers.get("X-App-Key") != KEY:
                 return self.reply(401, {"error": "invalid_app"})

@@ -136,7 +136,7 @@ class _LinkedCard extends ConsumerWidget {
         content: const Text(
           "この端末では、アカウントのトークンを使えなくなります。"
           "トークンの残高は、アカウントに残ります。"
-          "Webの端末一覧にも残るため、完全に外すには、Webでも解除してください。",
+          "Webの端末一覧からも、この端末が消えます。",
         ),
         actions: [
           TextButton(
@@ -153,7 +153,7 @@ class _LinkedCard extends ConsumerWidget {
 
     if (agreed != true) return;
 
-    await ref.read(deviceLinkProvider.notifier).unlink();
+    await ref.read(deviceLinkProvider.notifier).unlinkFromServer();
     await ref.read(usageProvider.notifier).refresh();
   }
 }

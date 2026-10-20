@@ -223,6 +223,33 @@ async function loadDevices() {
   showDevices(await callApi("GET", "/devices"));
 }
 
+// 一覧を、自動で最新にする(アプリ側で解除したときや、アプリが紐づけを終えたときのため)
+const DEVICE_REFRESH_MS = 5000;
+
+async function refreshDevicesQuietly() {
+  if (document.hidden || !sessionStorage.getItem("access_token")) return;
+
+  try {
+    await loadDevices();
+  } catch {
+    // 通信の失敗は、次の更新で取り戻すため、表示しない
+  }
+}
+
+// 紐づけの直後は、一覧の件数が増えるまで、短い間隔で確かめる
+async function waitForDeviceChange() {
+  const before = els.deviceList.children.length;
+
+  for (let i = 0; i < 20; i++) {
+    await new Promise((resolve) => setTimeout(resolve, 1500));
+    await refreshDevicesQuietly();
+    if (els.deviceList.children.length !== before) return;
+  }
+}
+
+setInterval(refreshDevicesQuietly, DEVICE_REFRESH_MS);
+document.addEventListener("visibilitychange", refreshDevicesQuietly);
+
 async function pairDevice() {
   const code = els.pairingCode.value.trim();
 
@@ -241,8 +268,10 @@ async function pairDevice() {
 
     await callApi("POST", "/pairing/confirm", { code });
     els.pairingCode.value = "";
-    await loadDevices();
     showNotice(`「${appName}」を紐づけました。アプリの画面に戻ってください。`);
+    await loadDevices();
+    // 端末は、アプリが確認に来たときに登録される。数秒かかるため、一覧が変わるまで確かめる
+    waitForDeviceChange();
   } catch (e) {
     show(e.message);
   }

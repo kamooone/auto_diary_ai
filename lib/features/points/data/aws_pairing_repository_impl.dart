@@ -73,12 +73,29 @@ class AwsPairingRepositoryImpl implements PairingRepository {
     return PairingLinked(token);
   }
 
-  Future<http.Response> _post(String path, Map<String, Object?> body) async {
+  @override
+  Future<void> unlink(String deviceToken) async {
+    try {
+      await _post(
+        '/device/unlink',
+        {},
+        headers: {'X-Device-Token': deviceToken},
+      );
+    } on PairingException {
+      // 通信できなくても、端末側では解除する。Webからも解除できる
+    }
+  }
+
+  Future<http.Response> _post(
+    String path,
+    Map<String, Object?> body, {
+    Map<String, String> headers = const {},
+  }) async {
     try {
       return await _client
           .post(
             Uri.parse('$baseUrl$path'),
-            headers: {'Content-Type': 'application/json'},
+            headers: {'Content-Type': 'application/json', ...headers},
             body: jsonEncode(body),
           )
           .timeout(_timeout);

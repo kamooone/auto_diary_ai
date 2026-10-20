@@ -49,13 +49,17 @@ func set_server(values: Dictionary) -> void:
 	http.queue_free()
 
 
-func server_events() -> Array:
+func server_state() -> Dictionary:
 	var http := HTTPRequest.new()
 	root.add_child(http)
 	http.request(server_url + "/_state")
 	var response: Array = await http.request_completed
 	http.queue_free()
-	return JSON.parse_string((response[3] as PackedByteArray).get_string_from_utf8()).events
+	return JSON.parse_string((response[3] as PackedByteArray).get_string_from_utf8())
+
+
+func server_events() -> Array:
+	return (await server_state()).events
 
 
 func _run() -> void:
@@ -116,6 +120,8 @@ func _run() -> void:
 	var other := make_client()
 	other.unlink()
 	check(not other.is_linked(), "解除できる")
+	await create_timer(0.5).timeout
+	check((await server_state()).get("unlinked", 0) == 1, "解除をサーバーにも伝える")
 	var count_before := (await server_events()).size()
 	other.send_event("stage_clear")
 	await create_timer(0.5).timeout
