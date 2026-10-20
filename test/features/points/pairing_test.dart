@@ -87,6 +87,23 @@ http.Response jsonResponse(int status, Object body) {
 }
 
 void main() {
+  group('pointsWebUri', () {
+    test('コードを渡すと、pairの値として付ける', () {
+      expect(
+        pointsWebUri('https://example.com/index.html', code: '123456')
+            .toString(),
+        'https://example.com/index.html?pair=123456',
+      );
+    });
+
+    test('コードがなければ、そのままのURL', () {
+      expect(
+        pointsWebUri('https://example.com/index.html').toString(),
+        'https://example.com/index.html',
+      );
+    });
+  });
+
   group('AwsPairingRepositoryImpl', () {
     AwsPairingRepositoryImpl build(http.Client client) =>
         AwsPairingRepositoryImpl('https://example.com', client: client);

@@ -25,6 +25,15 @@ final pointsWebUrlProvider = Provider<String>((ref) {
       _defaultPointsWebUrl;
 });
 
+/// Webのページを開くURL
+/// [code]を渡すと、Webの入力欄にコードが入った状態で開く(紐づけるかは本人が決める)
+Uri pointsWebUri(String baseUrl, {String? code}) {
+  final uri = Uri.parse(baseUrl);
+  if (code == null) return uri;
+
+  return uri.replace(queryParameters: {...uri.queryParameters, 'pair': code});
+}
+
 final pairingRepositoryProvider = Provider<PairingRepository>((ref) {
   return AwsPairingRepositoryImpl(ref.watch(pointsApiUrlProvider));
 });

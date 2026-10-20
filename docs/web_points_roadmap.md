@@ -332,3 +332,56 @@ curl -s -X POST https://<API>/pairing/claim -H 'Content-Type: application/json' 
 ```
 python3 -m unittest docs/server/test_ai_chat_lambda.py
 ```
+
+---
+
+## 手順7: ゲームアプリからのポイント(アプリごとの紐づけ)
+
+### 決めたこと
+- ポイントが貯まるのは、4つのゲームだけ(auto_diary では貯めない)。
+- 紐づけは「アカウント × アプリ × 端末」。**同じアプリは、アカウントごとに3台まで**(アプリごとに数える)。
+- ゲームごとに、秘密のキーを持つ。アプリIDはキーから決まる(名乗りでは決まらない)。
+- ゲームは、成果の種類だけを送る。ポイントの量は、サーバーが決める。
+- 上限: 成果ごとの回数(1日1回など)と、アカウントの1日の合計(通常届かない値)。
+- 使い方の詳細は `docs/game_points_api.md`。
+
+### 作業(AWS)
+1. DynamoDBに、回数の記録のテーブルを作る(東京)
+   - テーブル名: `auto-diary-points-grants`、パーティションキー: `counterKey`(文字列)
+   - 作成後、「追加設定」→ TTL を有効にして、属性名は `expiresAt`
+2. ポイントのLambdaの環境変数を追加
+   - `GRANTS_TABLE_NAME` = `auto-diary-points-grants`
+   - `APP_KEY_HASHES` = ゲームごとのキーのハッシュ(JSON)。作り方は下
+3. ポイントのLambdaの実行ロールのポリシーに追加
+   - grantsテーブル: `dynamodb:PutItem`、`dynamodb:UpdateItem`
+   - devicesテーブル: `dynamodb:GetItem`(今までのPutItem、DeleteItemに加えて)
+   - (accountsは `UpdateItem`、ledgerは `PutItem` と `TransactWriteItems` が使える状態。すでにあり)
+4. Lambdaのコードを `points-api/lambda_function.py` の内容に置き換えて、Deploy
+5. API Gateway(ポイントのAPI)に、ルート `POST /events` を追加する。
+   統合はポイントのLambda、**オーソライザーは付けない**。
+6. ページ(`index.html`、`app.js`)をS3へ上げて、CloudFrontのキャッシュを削除する
+
+### キーの作り方
+```
+python3 tools/make_app_key.py kamoooneshot
+```
+- 「キー」はゲームに入れる(他人に見せない)。「ハッシュ」だけを、`APP_KEY_HASHES` に入れる。
+- `APP_KEY_HASHES` は、次の形のJSONで、まとめて1つの環境変数にする。
+```
+{"kamoooneshot": "<ハッシュ>", "escape_2": "<ハッシュ>", "escape_3": "<ハッシュ>", "escape_4": "<ハッシュ>"}
+```
+- キーを入れていないゲームは、紐づけも成果の通知もできない(あとから足せる)。
+
+### 確認(curlで試せる)
+ゲームのキーを `KEY` として、次の順に試す。
+1. `POST /pairing/start`(ヘッダー `X-App-Key`、本文 `{"appId":"kamoooneshot","label":"curl"}`)→ コード
+2. Webでコードを入力して、確認画面にゲーム名が出ることを確認 → 紐づける
+3. `POST /pairing/claim` → `deviceToken`
+4. `POST /events`(ヘッダー `X-App-Key`・`X-Device-Token`、本文 `{"eventId":"test-0001","type":"daily_first_play"}`)
+   → `granted: 100`。同じ本文をもう一度送ると `duplicate`。別の `eventId` で送ると `event_limit`。
+5. Webの画面で、ポイントが増えている。
+
+### Lambdaの単体テスト(AWSにつながない)
+```
+python3 -m unittest points-api/test_lambda_function.py
+```

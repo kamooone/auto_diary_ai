@@ -58,11 +58,15 @@ class _Description extends StatelessWidget {
   }
 }
 
-Future<void> _openWeb(BuildContext context, WidgetRef ref) async {
+Future<void> _openWeb(
+  BuildContext context,
+  WidgetRef ref, {
+  String? code,
+}) async {
   final messenger = ScaffoldMessenger.of(context);
 
   final opened = await launchUrl(
-    Uri.parse(ref.read(pointsWebUrlProvider)),
+    pointsWebUri(ref.read(pointsWebUrlProvider), code: code),
     mode: LaunchMode.externalApplication,
   ).catchError((_) => false);
 
@@ -248,9 +252,10 @@ class _PairingCard extends ConsumerWidget {
           ),
           const SizedBox(height: 16),
           FilledButton.icon(
-            onPressed: () => _openWeb(context, ref),
+            // 同じ端末なら、コードを入力する手間を省く
+            onPressed: () => _openWeb(context, ref, code: code),
             icon: const Icon(Icons.open_in_new),
-            label: const Text("Webを開く"),
+            label: const Text("Webを開いて紐づける"),
           ),
           const SizedBox(height: 8),
           OutlinedButton(

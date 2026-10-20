@@ -161,7 +161,7 @@ async function callApi(method, path, body) {
       invalid_points: "ポイントは、1以上の整数で入力してください。",
       request_id_conflict: "同じ操作が重複しました。もう一度お試しください。",
       invalid_code: "コードが正しくないか、期限が切れています。アプリで新しいコードを表示してください。",
-      device_limit: `紐づけられる端末は${data.maxDevices ?? ""}台までです。使わない端末を解除してください。`,
+      device_limit: `同じアプリに紐づけられる端末は${data.maxDevices ?? ""}台までです。使わない端末を解除してください。`,
       not_found: "対象が見つかりません。",
     };
     throw new Error(
@@ -199,15 +199,15 @@ async function loadBalance() {
 
 // ---------- アプリの紐づけ
 
-function showDevices({ devices, maxDevices }) {
-  els.deviceCount.textContent = `${devices.length} / ${maxDevices}`;
+function showDevices({ devices }) {
+  els.deviceCount.textContent = String(devices.length);
   els.deviceList.replaceChildren();
 
   for (const device of devices) {
     const item = document.createElement("li");
     // 端末の名前は、アプリ側から送られた文字なので、textContentで表示する
     item.append(
-      `${device.label}(${new Date(device.createdAt * 1000).toLocaleDateString("ja-JP")}に紐づけ) `,
+      `${device.appName}(${device.label}・${new Date(device.createdAt * 1000).toLocaleDateString("ja-JP")}に紐づけ) `,
     );
 
     const button = document.createElement("button");
@@ -233,28 +233,29 @@ async function pairDevice() {
 
   try {
     // どの端末のコードかを先に確認して、本人に確かめてもらう
-    const { label } = await callApi("POST", "/pairing/lookup", { code });
+    const { label, appName } = await callApi("POST", "/pairing/lookup", { code });
 
-    if (!confirm(`「${label}」のアプリを、このアカウントに紐づけますか？\n(ご自身のアプリに表示されたコードのときだけ、紐づけてください)`)) {
+    if (!confirm(`「${appName}」(${label})を、このアカウントに紐づけますか？\n(ご自身のアプリに表示されたコードのときだけ、紐づけてください)`)) {
       return;
     }
 
     await callApi("POST", "/pairing/confirm", { code });
     els.pairingCode.value = "";
     await loadDevices();
-    showNotice(`「${label}」のアプリを紐づけました。アプリの画面に戻ってください。`);
+    showNotice(`「${appName}」を紐づけました。アプリの画面に戻ってください。`);
   } catch (e) {
     show(e.message);
   }
 }
 
 async function unlinkDevice(device) {
-  if (!confirm(`「${device.label}」の紐づけを解除しますか？`)) return;
+  const name = `${device.appName}(${device.label})`;
+  if (!confirm(`「${name}」の紐づけを解除しますか？`)) return;
 
   try {
     await callApi("DELETE", `/devices/${encodeURIComponent(device.deviceId)}`);
     await loadDevices();
-    showNotice(`「${device.label}」の紐づけを解除しました。`);
+    showNotice(`「${name}」の紐づけを解除しました。`);
   } catch (e) {
     show(e.message);
   }
@@ -320,6 +321,17 @@ function render() {
   els.signedIn.hidden = false;
 }
 
+// 自動で入れるのは入力欄まで。紐づけるかどうかは、本人が内容を見て決める
+function fillPendingPairingCode() {
+  const pending = sessionStorage.getItem("pending_pair");
+  if (!pending) return;
+
+  sessionStorage.removeItem("pending_pair");
+  els.pairingCode.value = pending;
+  els.pairingCode.scrollIntoView({ block: "center" });
+  showNotice("アプリのコードを入力しました。内容を確かめて、「紐づける」を押してください。");
+}
+
 async function main() {
   if (!cognitoDomain || !clientId) {
     show("config.js に、Cognito のドメインとクライアントIDを入れてください。");
@@ -333,6 +345,13 @@ async function main() {
   document.getElementById("pairingButton").onclick = pairDevice;
 
   const query = new URLSearchParams(location.search);
+
+  // アプリの「Webを開く」から来たときは、コードを入力欄に入れる(ログインを挟むため、保存しておく)
+  const pair = query.get("pair");
+  if (/^\d{6}$/.test(pair ?? "")) {
+    sessionStorage.setItem("pending_pair", pair);
+    history.replaceState(null, "", location.pathname);
+  }
 
   try {
     if (query.get("error")) {
@@ -351,6 +370,7 @@ async function main() {
     try {
       await loadBalance();
       await loadDevices();
+      fillPendingPairingCode();
     } catch (e) {
       show(e.message);
       render();

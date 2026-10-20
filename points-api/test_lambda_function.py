@@ -37,11 +37,12 @@ sys.path.insert(0, os.path.dirname(__file__))
 import lambda_function as m  # noqa: E402
 
 
-def event(route, body=None, path=None, logged_in=True):
+def event(route, body=None, path=None, logged_in=True, headers=None):
     result = {
         "routeKey": route,
         "body": json.dumps(body) if body is not None else None,
         "pathParameters": path,
+        "headers": headers or {},
         "requestContext": {},
     }
     if logged_in:
@@ -51,8 +52,8 @@ def event(route, body=None, path=None, logged_in=True):
     return result
 
 
-def call(route, body=None, path=None, logged_in=True):
-    result = m.lambda_handler(event(route, body, path, logged_in), None)
+def call(route, body=None, path=None, logged_in=True, headers=None):
+    result = m.lambda_handler(event(route, body, path, logged_in, headers), None)
     return result["statusCode"], json.loads(result["body"])
 
 
@@ -62,7 +63,10 @@ def conditional_failure(operation):
     )
 
 
-def pairing_item(status="pending", secret="s3cret", expires_in=300, account="user-1"):
+def pairing_item(
+    status="pending", secret="s3cret", expires_in=300, account="user-1",
+    app_id=None,
+):
     item = {
         "code": {"S": "123456"},
         "status": {"S": status},
@@ -70,6 +74,8 @@ def pairing_item(status="pending", secret="s3cret", expires_in=300, account="use
         "label": {"S": "Android"},
         "expiresAt": {"N": str(int(m.time.time()) + expires_in)},
     }
+    if app_id:
+        item["appId"] = {"S": app_id}
     if status == "linked":
         item["accountId"] = {"S": account}
     return {"Item": item}
@@ -214,11 +220,14 @@ class PairingTest(unittest.TestCase):
     def test_確認すると端末の名前を返す(self):
         fake_client.get_item.return_value = pairing_item()
         status, body = call("POST /pairing/lookup", {"code": "123456"})
-        self.assertEqual((status, body), (200, {"label": "Android"}))
+        self.assertEqual(status, 200)
+        self.assertEqual(body["label"], "Android")
+        # アプリIDがない行は、auto_diaryとして扱う
+        self.assertEqual(body["appId"], "auto_diary")
 
     def test_確定するとアカウントに結ばれる(self):
         fake_client.get_item.return_value = pairing_item()
-        fake_client.query.return_value = {"Count": 0}
+        fake_client.query.return_value = {"Items": []}
         status, _ = call("POST /pairing/confirm", {"code": "123456"})
         self.assertEqual(status, 200)
 
@@ -230,14 +239,18 @@ class PairingTest(unittest.TestCase):
 
     def test_端末が上限に達していると確定できない(self):
         fake_client.get_item.return_value = pairing_item()
-        fake_client.query.return_value = {"Count": m.MAX_DEVICES}
+        # アプリIDがない(これまでのauto_diary)端末も、auto_diaryとして数える
+        fake_client.query.return_value = {
+            "Items": [{"appId": {"S": "auto_diary"}}] * (m.MAX_DEVICES - 1)
+            + [{}]
+        }
         status, body = call("POST /pairing/confirm", {"code": "123456"})
         self.assertEqual((status, body["error"]), (409, "device_limit"))
         fake_client.update_item.assert_not_called()
 
     def test_先に確定されたコードは二重に確定できない(self):
         fake_client.get_item.return_value = pairing_item()
-        fake_client.query.return_value = {"Count": 0}
+        fake_client.query.return_value = {"Items": []}
         fake_client.update_item.side_effect = conditional_failure("UpdateItem")
         status, _ = call("POST /pairing/confirm", {"code": "123456"})
         self.assertEqual(status, 404)
@@ -329,6 +342,283 @@ class DevicesTest(unittest.TestCase):
         status, _ = call("DELETE /devices/{deviceId}", path={"deviceId": "../x"})
         self.assertEqual(status, 404)
         fake_client.delete_item.assert_not_called()
+
+
+GAME_KEY = "game-key-kamoooneshot"
+OTHER_KEY = "game-key-escape-2"
+
+m.APP_KEY_HASHES = {
+    "kamoooneshot": m.sha256_hex(GAME_KEY),
+    "escape_2": m.sha256_hex(OTHER_KEY),
+}
+
+DEVICE_SECRET = "device-secret"
+
+
+def device_row(app_id="kamoooneshot", account="user-1"):
+    item = {
+        "deviceId": {"S": "dev1"},
+        "accountId": {"S": account},
+        "tokenHash": {"S": m.sha256_hex(DEVICE_SECRET)},
+    }
+    if app_id:
+        item["appId"] = {"S": app_id}
+    return {"Item": item}
+
+
+class AppPairingTest(unittest.TestCase):
+    def setUp(self):
+        fake_client.reset_mock(side_effect=True)
+
+    def start(self, body, key=None):
+        headers = {"X-App-Key": key} if key else None
+        return call("POST /pairing/start", body, logged_in=False, headers=headers)
+
+    def test_appIdがなければauto_diaryで_キーは要らない(self):
+        status, _ = self.start({"label": "Android"})
+        self.assertEqual(status, 200)
+        self.assertEqual(
+            fake_client.put_item.call_args.kwargs["Item"]["appId"], {"S": "auto_diary"}
+        )
+
+    def test_ゲームはキーが合えば紐づけを始められる(self):
+        status, _ = self.start({"appId": "kamoooneshot"}, key=GAME_KEY)
+        self.assertEqual(status, 200)
+        self.assertEqual(
+            fake_client.put_item.call_args.kwargs["Item"]["appId"],
+            {"S": "kamoooneshot"},
+        )
+
+    def test_キーがない_または別のゲームのキーでは始められない(self):
+        for key in (None, "wrong", OTHER_KEY):
+            status, body = self.start({"appId": "kamoooneshot"}, key=key)
+            self.assertEqual((status, body["error"]), (403, "invalid_app"), key)
+        fake_client.put_item.assert_not_called()
+
+    def test_登録されていないアプリは始められない(self):
+        status, body = self.start({"appId": "unknown_app"}, key=GAME_KEY)
+        self.assertEqual((status, body["error"]), (400, "invalid_app"))
+
+    def test_確認画面にアプリ名が出る(self):
+        fake_client.get_item.return_value = pairing_item(app_id="escape_2")
+        status, body = call("POST /pairing/lookup", {"code": "123456"})
+        self.assertEqual((status, body["appName"]), (200, "脱出ゲーム２"))
+
+    def test_上限はアプリごとに数える(self):
+        # auto_diaryが3台でも、ゲームの紐づけは別に数える
+        fake_client.get_item.return_value = pairing_item(app_id="kamoooneshot")
+        fake_client.query.return_value = {
+            "Items": [{"appId": {"S": "auto_diary"}}] * m.MAX_DEVICES
+        }
+        status, _ = call("POST /pairing/confirm", {"code": "123456"})
+        self.assertEqual(status, 200)
+
+        fake_client.query.return_value = {
+            "Items": [{"appId": {"S": "kamoooneshot"}}] * m.MAX_DEVICES
+        }
+        status, body = call("POST /pairing/confirm", {"code": "123456"})
+        self.assertEqual((status, body["error"]), (409, "device_limit"))
+
+    def test_端末にアプリIDを保存する(self):
+        fake_client.get_item.return_value = pairing_item("linked", app_id="escape_2")
+        status, _ = call(
+            "POST /pairing/claim",
+            {"code": "123456", "claimSecret": "s3cret"},
+            logged_in=False,
+        )
+        self.assertEqual(status, 200)
+        device = fake_client.put_item.call_args.kwargs["Item"]
+        self.assertEqual(device["appId"], {"S": "escape_2"})
+
+    def test_一覧にアプリ名が出る(self):
+        fake_client.query.return_value = {
+            "Items": [
+                {"deviceId": {"S": "a"}, "label": {"S": "iPad"},
+                 "appId": {"S": "kamoooneshot"}, "createdAt": {"N": "1"}},
+                {"deviceId": {"S": "b"}, "label": {"S": "iPhone"},
+                 "createdAt": {"N": "2"}},
+            ]
+        }
+        _, body = call("GET /devices")
+        self.assertEqual(
+            [(d["appId"], d["appName"]) for d in body["devices"]],
+            [("kamoooneshot", "KamoooneShot"), ("auto_diary", "auto_diary")],
+        )
+
+
+class EventsTest(unittest.TestCase):
+    def setUp(self):
+        fake_client.reset_mock(side_effect=True)
+        fake_client.get_item.side_effect = self.get_item
+        self.device = device_row()
+
+    def get_item(self, **kwargs):
+        if kwargs["TableName"] == m.DEVICES_TABLE_NAME:
+            return self.device
+        return balance_item(150, 0)
+
+    def send(self, body, key=GAME_KEY, token=f"dev1.{DEVICE_SECRET}"):
+        headers = {}
+        if key:
+            headers["X-App-Key"] = key
+        if token:
+            headers["X-Device-Token"] = token
+        return call("POST /events", body, logged_in=False, headers=headers)
+
+    def valid(self, **extra):
+        return {"eventId": "event-0001", "type": "stage_clear", **extra}
+
+    def transaction(self):
+        items = fake_client.transact_write_items.call_args.kwargs["TransactItems"]
+        return items
+
+    def test_成果を送るとサーバーが決めたポイントが付く(self):
+        # ゲームがポイントの量を送ってきても、無視する
+        status, body = self.send(self.valid(points=999999))
+
+        self.assertEqual(status, 200)
+        self.assertEqual(body["granted"], 50)
+
+        items = self.transaction()
+        balance = next(i["Update"] for i in items if i.get("Update", {}).get("TableName") == m.TABLE_NAME)
+        self.assertEqual(balance["ExpressionAttributeValues"][":p"], {"N": "50"})
+
+    def test_履歴に_アプリと成果の種類が残る(self):
+        self.send(self.valid())
+
+        ledger = [
+            i["Put"] for i in self.transaction()
+            if "Put" in i and i["Put"]["TableName"] == m.LEDGER_TABLE_NAME
+        ][0]["Item"]
+        self.assertEqual(ledger["type"], {"S": "game_grant"})
+        self.assertEqual(ledger["appId"], {"S": "kamoooneshot"})
+        self.assertEqual(ledger["eventType"], {"S": "stage_clear"})
+        self.assertEqual(ledger["pointsDelta"], {"N": "50"})
+
+    def test_式に使わない値は渡さない(self):
+        # DynamoDBは、式で使っていない値が渡されるとエラーにする
+        self.send({"eventId": "event-0002", "type": "daily_first_play"})
+
+        for item in self.transaction():
+            update = item.get("Update")
+            if not update:
+                continue
+            expressions = update["UpdateExpression"] + " " + update.get(
+                "ConditionExpression", ""
+            )
+            for name in update["ExpressionAttributeValues"]:
+                self.assertIn(name, expressions)
+
+    def test_キーが合わなければ付かない(self):
+        for key in (None, "wrong"):
+            status, body = self.send(self.valid(), key=key)
+            self.assertEqual((status, body["error"]), (401, "invalid_app"), key)
+        fake_client.transact_write_items.assert_not_called()
+
+    def test_端末用のトークンが正しくなければ付かない(self):
+        for token in (None, "garbage", "dev1.wrong"):
+            status, body = self.send(self.valid(), token=token)
+            self.assertEqual(
+                (status, body["error"]), (401, "invalid_device_token"), token
+            )
+        self.device = {}
+        status, _ = self.send(self.valid())
+        self.assertEqual(status, 401)
+        fake_client.transact_write_items.assert_not_called()
+
+    def test_別のアプリの端末用トークンでは付かない(self):
+        self.device = device_row(app_id="escape_2")
+        status, body = self.send(self.valid())
+        self.assertEqual((status, body["error"]), (403, "app_mismatch"))
+        fake_client.transact_write_items.assert_not_called()
+
+    def test_登録されていない成果と不正なeventIdは受け付けない(self):
+        status, body = self.send({"eventId": "event-0001", "type": "free_points"})
+        self.assertEqual((status, body["error"]), (400, "unknown_event"))
+
+        for bad in (None, "short", "a b c d e f g h", 123):
+            status, body = self.send({"eventId": bad, "type": "stage_clear"})
+            self.assertEqual((status, body["error"]), (400, "invalid_event_id"), bad)
+        fake_client.transact_write_items.assert_not_called()
+
+    def cancelled(self, *failed):
+        items = self.transaction_names()
+        reasons = [
+            {"Code": "ConditionalCheckFailed" if name in failed else "None"}
+            for name in items
+        ]
+        return ClientError(
+            {"Error": {"Code": "TransactionCanceledException"},
+             "CancellationReasons": reasons},
+            "TransactWriteItems",
+        )
+
+    def transaction_names(self):
+        # 項目の並び: event, (per_day), (total), ceiling, balance, ledger
+        names = ["event"]
+        if "maxPerDay" in m.EVENT_RULES[self.event_type]:
+            names.append("per_day")
+        names += ["ceiling", "balance", "ledger"]
+        return names
+
+    def test_同じeventIdは二重に付けない(self):
+        self.event_type = "daily_first_play"
+        fake_client.transact_write_items.side_effect = self.cancelled("event")
+
+        status, body = self.send({"eventId": "event-0001", "type": "daily_first_play"})
+
+        self.assertEqual(status, 200)
+        self.assertEqual((body["granted"], body["reason"]), (0, "duplicate"))
+
+    def test_1日の回数の上限に達したら付かない(self):
+        self.event_type = "daily_first_play"
+        fake_client.transact_write_items.side_effect = self.cancelled("per_day")
+
+        status, body = self.send({"eventId": "event-0002", "type": "daily_first_play"})
+
+        self.assertEqual(status, 200)
+        self.assertEqual((body["granted"], body["reason"]), (0, "event_limit"))
+
+    def test_1日の合計の上限に達したら付かない(self):
+        self.event_type = "stage_clear"
+        fake_client.transact_write_items.side_effect = self.cancelled("ceiling")
+
+        status, body = self.send(self.valid())
+
+        self.assertEqual(status, 200)
+        self.assertEqual((body["granted"], body["reason"]), (0, "daily_ceiling"))
+
+    def test_上限の条件は_アカウントごとの1日の合計で判断する(self):
+        self.send(self.valid())
+
+        ceiling = [
+            i["Update"] for i in self.transaction()
+            if "Update" in i and i["Update"]["Key"].get("counterKey", {}).get("S", "").startswith("sum#user-1#")
+        ][0]
+        values = ceiling["ExpressionAttributeValues"]
+        self.assertEqual(values[":room"], {"N": str(m.DAILY_POINTS_CEILING - 50)})
+        self.assertIn("pts <= :room", ceiling["ConditionExpression"])
+
+    def test_回数の記録はアカウントとアプリと成果ごとに分かれる(self):
+        self.send({"eventId": "event-0003", "type": "daily_first_play"})
+
+        keys = [
+            i["Update"]["Key"]["counterKey"]["S"]
+            for i in self.transaction()
+            if "Update" in i and "counterKey" in i["Update"]["Key"]
+        ]
+        self.assertTrue(any(
+            k.startswith("day#user-1#") and k.endswith("#kamoooneshot#daily_first_play")
+            for k in keys
+        ))
+
+    def test_想定外のエラーは500(self):
+        fake_client.transact_write_items.side_effect = ClientError(
+            {"Error": {"Code": "ProvisionedThroughputExceededException"}},
+            "TransactWriteItems",
+        )
+        status, body = self.send(self.valid())
+        self.assertEqual((status, body["error"]), (500, "internal_error"))
 
 
 if __name__ == "__main__":
