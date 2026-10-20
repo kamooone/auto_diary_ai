@@ -7,7 +7,7 @@ set +x
 
 cd "$(dirname "$0")/.."
 
-export PLAY_SERVICE_ACCOUNT_FILE="/Users/kondoukazusa/work/keys/auto_diary_ai/play-service-account.json"
+export PLAY_SERVICE_ACCOUNT_FILE="/Users/kondoukazusa/keystores/play-service-account.json"
 AAB="$(pwd)/build/app/outputs/bundle/release/app-release.aab"
 
 if [ ! -r "$PLAY_SERVICE_ACCOUNT_FILE" ]; then
