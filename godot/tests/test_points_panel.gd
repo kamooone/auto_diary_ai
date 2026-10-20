@@ -47,29 +47,43 @@ func _run() -> void:
 
 	print("[未紐づけ]")
 	var b := buttons(panel)
-	check(b["コードを発行して、アカウントと紐づける"].visible, "発行ボタンが出る")
-	check(not b["紐づけを解除"].visible, "解除ボタンは出ない")
+	check(b["コードを発行する"].visible, "発行ボタンが出る")
+	check(b["Webを開く"].visible, "Webを開くボタンが出る")
+	check(not b["Webでポイントを交換する"].visible, "交換ボタンは出ない")
+	check(not b["この端末の紐づけを解除"].visible, "解除ボタンは出ない")
 	check(not b["Webを開いて紐づける"].visible, "コード発行前は、Webボタンが出ない")
 
 	print("[コード表示]")
-	b["コードを発行して、アカウントと紐づける"].pressed.emit()
-	var code_label: Label = panel.get_child(1)
+	b["コードを発行する"].pressed.emit()
+	var code_label: Label = panel.get_node("Code")
 	await wait_until(func() -> bool: return code_label.text == "123456")
 	check(code_label.text == "123456", "コードが画面に出る")
 	check(b["Webを開いて紐づける"].visible and b["キャンセル"].visible, "Webボタンとキャンセルが出る")
+	check(b["コードをコピー"].visible, "コピーボタンが出る")
+	check(not b["コードを発行する"].visible, "発行ボタンは消える")
 
 	print("[紐づけ完了]")
 	await wait_until(func() -> bool: return points.is_linked())
 	await process_frame
-	check(panel.get_child(0).text.contains("紐づけ済み"), "紐づけ済みの表示になる")
-	check(b["紐づけを解除"].visible, "解除ボタンが出る")
+	check(panel.get_node("Title").text == "アカウントと紐づけ済み", "紐づけ済みの表示になる")
+	check(b["この端末の紐づけを解除"].visible, "解除ボタンが出る")
+	check(b["Webでポイントを交換する"].visible, "交換ボタンが出る")
+	check(not b["コードをコピー"].visible, "コピーボタンは消える")
 	check(not code_label.visible, "コードは消える")
 
 	print("[解除]")
-	b["紐づけを解除"].pressed.emit()
+	b["この端末の紐づけを解除"].pressed.emit()
+	await process_frame
+	var dialog: ConfirmationDialog = null
+	for child in panel.get_children():
+		if child is ConfirmationDialog:
+			dialog = child
+	check(dialog != null and dialog.visible, "確認ダイアログが出る")
+	check(points.is_linked(), "確認の前は、解除されない")
+	dialog.confirmed.emit()
 	await process_frame
 	check(not points.is_linked(), "解除できる")
-	check(b["コードを発行して、アカウントと紐づける"].visible, "発行ボタンに戻る")
+	check(b["コードを発行する"].visible, "発行ボタンに戻る")
 
 	print("")
 	print("失敗: %d" % failures)
