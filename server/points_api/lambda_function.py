@@ -75,7 +75,6 @@ APPS = {
 #   maxPerDay   : 1日(日本時間)に付く回数の上限(1アカウントあたり)
 #   maxTotal    : 生涯で付く回数の上限
 EVENT_RULES = {
-    "daily_first_play": {"points": 100, "maxPerDay": 1},
     "stage_clear": {"points": 50},
 }
 

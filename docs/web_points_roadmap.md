@@ -377,7 +377,7 @@ python3 tools/make_app_key.py kamoooneshot
 1. `POST /pairing/start`(ヘッダー `X-App-Key`、本文 `{"appId":"kamoooneshot","label":"curl"}`)→ コード
 2. Webでコードを入力して、確認画面にゲーム名が出ることを確認 → 紐づける
 3. `POST /pairing/claim` → `deviceToken`
-4. `POST /events`(ヘッダー `X-App-Key`・`X-Device-Token`、本文 `{"eventId":"test-0001","type":"daily_first_play"}`)
+4. `POST /events`(ヘッダー `X-App-Key`・`X-Device-Token`、本文 `{"eventId":"test-0001","type":"stage_clear"}`)
    → `granted: 100`。同じ本文をもう一度送ると `duplicate`。別の `eventId` で送ると `event_limit`。
 5. Webの画面で、ポイントが増えている。
 

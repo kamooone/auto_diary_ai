@@ -59,8 +59,8 @@ class Handler(BaseHTTPRequestHandler):
                 state["fail_next_event"] -= 1
                 return self.reply(503, {})
             state["events"].append(body)
-            if body["type"] == "daily_first_play" and sum(
-                1 for e in state["events"] if e["type"] == "daily_first_play"
+            if body["type"] == "limited_event" and sum(
+                1 for e in state["events"] if e["type"] == "limited_event"
             ) > 1:
                 return self.reply(200, {"granted": 0, "reason": "event_limit"})
             return self.reply(200, {"granted": 50, "points": 50 * len(state["events"])})

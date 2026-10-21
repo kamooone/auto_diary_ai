@@ -76,10 +76,9 @@ def main():
     print("\n[4] 成果を送ります")
     event_id = uuid.uuid4().hex
     tries = [
-        ("daily_first_play を送る(100ポイントのはず)", event_id, "daily_first_play"),
-        ("同じ eventId をもう一度送る(duplicate のはず)", event_id, "daily_first_play"),
-        ("別の eventId で daily_first_play(event_limit のはず)", uuid.uuid4().hex, "daily_first_play"),
-        ("stage_clear を送る(50ポイントのはず)", uuid.uuid4().hex, "stage_clear"),
+        ("stage_clear を送る(50ポイントのはず)", event_id, "stage_clear"),
+        ("同じ eventId をもう一度送る(duplicate のはず)", event_id, "stage_clear"),
+        ("別の eventId で stage_clear(もう一度50ポイントのはず)", uuid.uuid4().hex, "stage_clear"),
     ]
     for title, event_id_to_send, event_type in tries:
         status, result = call(
@@ -89,7 +88,6 @@ def main():
         time.sleep(0.5)
 
     print("\n完了。Web のページを再読み込みして、ポイントが増えているか確認してください。")
-    print("(今日すでに daily_first_play を送っていた場合、1回目も event_limit になります)")
     return 0
 
 

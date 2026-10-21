@@ -511,6 +511,13 @@ class EventRulesDocTest(unittest.TestCase):
 
 class EventsTest(unittest.TestCase):
     def setUp(self):
+        # 1日の回数の上限つきの成果は、いまの本番のルールにないため、テスト用に足す
+        patcher = mock.patch.dict(
+            m.EVENT_RULES, {"limited_event": {"points": 100, "maxPerDay": 1}}
+        )
+        patcher.start()
+        self.addCleanup(patcher.stop)
+
         fake_client.reset_mock(side_effect=True)
         fake_client.get_item.side_effect = self.get_item
         self.device = device_row()
@@ -560,7 +567,7 @@ class EventsTest(unittest.TestCase):
 
     def test_式に使わない値は渡さない(self):
         # DynamoDBは、式で使っていない値が渡されるとエラーにする
-        self.send({"eventId": "event-0002", "type": "daily_first_play"})
+        self.send({"eventId": "event-0002", "type": "limited_event"})
 
         for item in self.transaction():
             update = item.get("Update")
@@ -625,19 +632,19 @@ class EventsTest(unittest.TestCase):
         return names
 
     def test_同じeventIdは二重に付けない(self):
-        self.event_type = "daily_first_play"
+        self.event_type = "limited_event"
         fake_client.transact_write_items.side_effect = self.cancelled("event")
 
-        status, body = self.send({"eventId": "event-0001", "type": "daily_first_play"})
+        status, body = self.send({"eventId": "event-0001", "type": "limited_event"})
 
         self.assertEqual(status, 200)
         self.assertEqual((body["granted"], body["reason"]), (0, "duplicate"))
 
     def test_1日の回数の上限に達したら付かない(self):
-        self.event_type = "daily_first_play"
+        self.event_type = "limited_event"
         fake_client.transact_write_items.side_effect = self.cancelled("per_day")
 
-        status, body = self.send({"eventId": "event-0002", "type": "daily_first_play"})
+        status, body = self.send({"eventId": "event-0002", "type": "limited_event"})
 
         self.assertEqual(status, 200)
         self.assertEqual((body["granted"], body["reason"]), (0, "event_limit"))
@@ -663,7 +670,7 @@ class EventsTest(unittest.TestCase):
         self.assertIn("pts <= :room", ceiling["ConditionExpression"])
 
     def test_回数の記録はアカウントとアプリと成果ごとに分かれる(self):
-        self.send({"eventId": "event-0003", "type": "daily_first_play"})
+        self.send({"eventId": "event-0003", "type": "limited_event"})
 
         keys = [
             i["Update"]["Key"]["counterKey"]["S"]
@@ -671,7 +678,7 @@ class EventsTest(unittest.TestCase):
             if "Update" in i and "counterKey" in i["Update"]["Key"]
         ]
         self.assertTrue(any(
-            k.startswith("day#user-1#") and k.endswith("#kamoooneshot#daily_first_play")
+            k.startswith("day#user-1#") and k.endswith("#kamoooneshot#limited_event")
             for k in keys
         ))
 

@@ -26,9 +26,6 @@
 ```gdscript
 # ステージをクリアしたとき
 Points.send_event("stage_clear")
-
-# 1日の初回プレイ(ゲームを起動したとき。1日1回しか付かないので、毎回送ってよい)
-Points.send_event("daily_first_play")
 ```
 
 - ポイントの量は送らない(サーバーが決める)。成果の種類と量は、`server/points_api/lambda_function.py` の `EVENT_RULES`。

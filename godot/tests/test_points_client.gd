@@ -95,10 +95,10 @@ func _run() -> void:
 	check(granted == [[50, 50]], "ポイントが付いたと通知される")
 	check(client.pending_event_count() == 0, "送れたら、ためておかない")
 
-	client.send_event("daily_first_play")
-	client.send_event("daily_first_play")
+	client.send_event("limited_event")
+	client.send_event("limited_event")
 	await wait_until(func() -> bool: return skipped.size() == 1)
-	check(skipped == [["daily_first_play", "event_limit"]], "付かなかった理由が通知される")
+	check(skipped == [["limited_event", "event_limit"]], "付かなかった理由が通知される")
 
 	print("[送り直し]")
 	await set_server({"fail_next_event": 1})
