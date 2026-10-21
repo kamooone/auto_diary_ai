@@ -473,6 +473,42 @@ class UnlinkSelfTest(unittest.TestCase):
         fake_client.delete_item.assert_not_called()
 
 
+class EventRulesDocTest(unittest.TestCase):
+    """ゲームに渡す説明(docs/game_points_api.md)の成果の一覧が、サーバーのルールと一致するか
+
+    ゲームは、成果の名前をそれぞれのプロジェクトに書いている。サーバーのルールを変えたのに
+    説明を直し忘れる(または逆)ことを防ぐ。
+    """
+
+    DOC = os.path.join(
+        os.path.dirname(__file__), "..", "..", "docs", "game_points_api.md"
+    )
+
+    def documented_events(self):
+        with open(self.DOC, encoding="utf-8") as f:
+            lines = f.read().splitlines()
+
+        start = next(i for i, line in enumerate(lines) if line.startswith("## ルールと上限"))
+        events = {}
+        for line in lines[start + 1:]:
+            if line.startswith("## "):
+                break
+            cells = [c.strip() for c in line.strip().strip("|").split("|")]
+            if line.startswith("|") and len(cells) >= 2 and cells[0].startswith("`"):
+                events[cells[0].strip("`")] = int(cells[1])
+        return events
+
+    def test_説明の一覧とサーバーのルールの名前とポイントが一致する(self):
+        documented = self.documented_events()
+        actual = {name: rule["points"] for name, rule in m.EVENT_RULES.items()}
+
+        self.assertEqual(
+            documented,
+            actual,
+            "EVENT_RULES を変えたら、docs/game_points_api.md の表も直す(ゲームの更新も確認する)",
+        )
+
+
 class EventsTest(unittest.TestCase):
     def setUp(self):
         fake_client.reset_mock(side_effect=True)
