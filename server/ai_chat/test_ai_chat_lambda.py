@@ -1,6 +1,6 @@
 """AIのLambdaの、使用量まわりの動作確認(AWSにつながず、DynamoDBを偽物に差し替えて行う)
 
-  python3 -m unittest docs/server/test_ai_chat_lambda.py
+  python3 -m unittest server/ai_chat/test_ai_chat_lambda.py
 """
 import hashlib
 import json

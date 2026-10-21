@@ -3,7 +3,7 @@
 4つのゲームアプリ(KamoooneShot・脱出ゲーム２・3・4)が使うAPI。
 ポイントの獲得と交換は、すべてサーバーとWebで行う。ゲームは、「紐づけ」と「成果の通知」だけを行う。
 
-- ベースURL: ポイントのAPI(`points-web/config.js` の `apiBase` と同じ)
+- ベースURL: ポイントのAPI(`server/points_web/config.js` の `apiBase` と同じ)
 - アカウントがなくても、ゲームは普通に遊べる。紐づけは、ポイントを貯めたい人だけが行う(任意)。
 
 ## アプリID
@@ -15,7 +15,7 @@
 | `escape_3` | 脱出ゲーム3 |
 | `escape_4` | 脱出ゲーム4 |
 
-アプリIDと表示名は、`points-api/lambda_function.py` の `APPS` で変えられる。
+アプリIDと表示名は、`server/points_api/lambda_function.py` の `APPS` で変えられる。
 
 ## アプリのキー
 
@@ -74,7 +74,7 @@ auto_diary の「ポイント・トークン」と同じ流れ。ゲームの画
 
 ## ルールと上限(サーバー側。仮の値)
 
-`points-api/lambda_function.py` の `EVENT_RULES` で決める。変えるときも、ゲームの更新は要らない。
+`server/points_api/lambda_function.py` の `EVENT_RULES` で決める。変えるときも、ゲームの更新は要らない。
 
 | 成果の種類 | ポイント | 回数の上限 |
 |---|---|---|

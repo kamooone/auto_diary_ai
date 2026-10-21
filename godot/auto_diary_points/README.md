@@ -31,7 +31,7 @@ Points.send_event("stage_clear")
 Points.send_event("daily_first_play")
 ```
 
-- ポイントの量は送らない(サーバーが決める)。成果の種類と量は、`points-api/lambda_function.py` の `EVENT_RULES`。
+- ポイントの量は送らない(サーバーが決める)。成果の種類と量は、`server/points_api/lambda_function.py` の `EVENT_RULES`。
 - 紐づけていなければ、何もしない。送るかどうかを、ゲーム側で判断する必要はない。
 - 通信できないときは、端末にためておき、あとで自動で送り直す(同じ成果が二重に付くことはない)。
 

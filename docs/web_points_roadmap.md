@@ -93,11 +93,11 @@
 
 ## 手順2: ログインできるWebページ
 
-ページは `points-web/` に用意してある(Flutterの `web/` とは別のフォルダ)。
+ページは `server/points_web/` に用意してある(Flutterの `web/` とは別のフォルダ)。
 
 ### 2-1. 設定ファイルに値を入れる
 
-`points-web/config.js` の2つの値を、手順1で控えた値にする。
+`server/points_web/config.js` の2つの値を、手順1で控えた値にする。
 - `cognitoDomain`: Cognito のドメイン(`https://….auth.ap-northeast-1.amazoncognito.com`。末尾に `/` は付けない)
 - `clientId`: アプリクライアントID
 
@@ -108,7 +108,7 @@
 2. ターミナルで次を実行する。
 
 ```
-cd points-web
+cd server/points_web
 python3 -m http.server 8080
 ```
 
@@ -167,7 +167,7 @@ CloudFrontの「無効化」タブで、`/*` を指定して作成すると、�
 ## 手順3: ポイント残高のAPI(モック)
 
 ログインしたアカウントの残高を、DynamoDBに持ち、APIで返す。
-コードは `points-api/lambda_function.py`(Lambda)と、`points-web/`(ページ)に用意してある。
+コードは `server/points_api/lambda_function.py`(Lambda)と、`server/points_web/`(ページ)に用意してある。
 
 ### 3-1. DynamoDBのテーブル
 - DynamoDB → 「テーブルの作成」。リージョンは東京。
@@ -180,7 +180,7 @@ CloudFrontの「無効化」タブで、`/*` を指定して作成すると、�
 ### 3-2. Lambda関数
 - Lambda → 「関数の作成」→「一から作成」。名前: `auto-diary-points-api`、ランタイム: Python(最新)、
   実行ロール: 「基本的なLambdaアクセス権限で新しいロールを作成」。
-- コード: `points-api/lambda_function.py` の中身を、エディタに貼って「Deploy」。
+- コード: `server/points_api/lambda_function.py` の中身を、エディタに貼って「Deploy」。
 - 「設定」→「環境変数」: `TABLE_NAME` = `auto-diary-points-accounts`、`ENABLE_DEV_GRANT` = `true`。
 - 「設定」→「アクセス権限」→ 実行ロールを開き、インラインポリシーを追加して、
   対象のテーブルにだけ `dynamodb:UpdateItem` を許可する(リソースは、テーブルのARN)。
@@ -195,7 +195,7 @@ CloudFrontの「無効化」タブで、`/*` を指定して作成すると、�
 - 「呼び出しURL」(`https://xxxx.execute-api.ap-northeast-1.amazonaws.com`)を控える。
 
 ### 3-4. ページを動かす
-- `points-web/config.js` の `apiBase` に、呼び出しURLを入れる。
+- `server/points_web/config.js` の `apiBase` に、呼び出しURLを入れる。
 - ローカル(`python3 -m http.server 8080`)で確認してから、S3へ上げ直し、CloudFrontで `/*` を無効化する。
 - ログイン後、ポイント0・トークン0が出て、「テスト用: ポイントを10追加」で10ずつ増えれば成功。
 
@@ -223,7 +223,7 @@ CloudFrontの「無効化」タブで、`/*` を指定して作成すると、�
 3. Lambdaの実行ロールのインラインポリシーを、2つのテーブルに合わせて直す
    - accountsテーブル: `dynamodb:UpdateItem`、`dynamodb:GetItem`
    - ledgerテーブル: `dynamodb:PutItem`
-4. Lambdaのコードを `points-api/lambda_function.py` の内容に置き換えて、Deploy
+4. Lambdaのコードを `server/points_api/lambda_function.py` の内容に置き換えて、Deploy
 5. API Gatewayに、ルート `POST /exchange` を追加し、統合(Lambda)とオーソライザー(`cognito`)を付ける
 6. ページ(`index.html`、`app.js`)を、ローカルで確認してから、S3へ上げてCloudFrontのキャッシュを削除する
 
@@ -235,7 +235,7 @@ CloudFrontの「無効化」タブで、`/*` を指定して作成すると、�
 
 ### Lambdaの単体テスト(AWSにつながない)
 ```
-python3 -m unittest points-api/test_lambda_function.py
+python3 -m unittest server/points_api/test_lambda_function.py
 ```
 
 ---
@@ -274,7 +274,7 @@ python3 -m unittest points-api/test_lambda_function.py
    - pairingテーブル: `dynamodb:PutItem`、`dynamodb:GetItem`、`dynamodb:UpdateItem`、`dynamodb:DeleteItem`
    - devicesテーブル: `dynamodb:PutItem`、`dynamodb:DeleteItem`
    - devicesテーブルのインデックス(`<devicesのARN>/index/accountId-index`): `dynamodb:Query`
-4. Lambdaのコードを `points-api/lambda_function.py` の内容に置き換えて、Deploy
+4. Lambdaのコードを `server/points_api/lambda_function.py` の内容に置き換えて、Deploy
 5. API Gatewayにルートを追加する
    - ログインが必要(オーソライザー `cognito` を付ける):
      `POST /pairing/lookup`、`POST /pairing/confirm`、`GET /devices`、`DELETE /devices/{deviceId}`
@@ -323,14 +323,14 @@ curl -s -X POST https://<API>/pairing/claim -H 'Content-Type: application/json' 
    - usage: `dynamodb:GetItem`、`dynamodb:UpdateItem`
    - accounts: `dynamodb:GetItem`、`dynamodb:UpdateItem`
    - devices: `dynamodb:GetItem`
-4. AIのLambdaのコードを `docs/server/ai_chat_lambda.py` の内容に置き換えて、Deploy
+4. AIのLambdaのコードを `server/ai_chat/ai_chat_lambda.py` の内容に置き換えて、Deploy
 5. `/ai/chat` を公開しているAPI Gatewayに、`GET /plan/usage`(AIのLambdaを統合)を追加する
    (オーソライザーは付けない)。`/ai/chat` のAPIは **REST API** のため、リソース `/plan` →
    `/usage` を作り、GETメソッド(Lambdaプロキシ統合)を作って、**APIをデプロイ**する。
 
 ### Lambdaの単体テスト(AWSにつながない)
 ```
-python3 -m unittest docs/server/test_ai_chat_lambda.py
+python3 -m unittest server/ai_chat/test_ai_chat_lambda.py
 ```
 
 ---
@@ -356,7 +356,7 @@ python3 -m unittest docs/server/test_ai_chat_lambda.py
    - grantsテーブル: `dynamodb:PutItem`、`dynamodb:UpdateItem`
    - devicesテーブル: `dynamodb:GetItem`(今までのPutItem、DeleteItemに加えて)
    - (accountsは `UpdateItem`、ledgerは `PutItem` と `TransactWriteItems` が使える状態。すでにあり)
-4. Lambdaのコードを `points-api/lambda_function.py` の内容に置き換えて、Deploy
+4. Lambdaのコードを `server/points_api/lambda_function.py` の内容に置き換えて、Deploy
 5. API Gateway(ポイントのAPI)に、ルート `POST /events` を追加する。
    統合はポイントのLambda、**オーソライザーは付けない**。
 6. ページ(`index.html`、`app.js`)をS3へ上げて、CloudFrontのキャッシュを削除する
@@ -383,5 +383,5 @@ python3 tools/make_app_key.py kamoooneshot
 
 ### Lambdaの単体テスト(AWSにつながない)
 ```
-python3 -m unittest points-api/test_lambda_function.py
+python3 -m unittest server/points_api/test_lambda_function.py
 ```
