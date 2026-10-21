@@ -8,7 +8,8 @@
     "disableBypassPermissionsMode": "disable",
     "blockReadsOutsideWorkingDirectories": true,
     "allow": [
-      "Bash(tools/deploy.sh *)"
+      "Bash(tools/deploy.sh *)",
+      "Bash(tools/deploy_play.sh *)"
     ]
   },
   "sandbox": {
@@ -27,7 +28,9 @@
         "maven.google.com",
         "repo.maven.apache.org",
         "repo1.maven.org",
-        "api.foojay.io"
+        "api.foojay.io",
+        "androidpublisher.googleapis.com",
+        "oauth2.googleapis.com"
       ],
       "allowLocalBinding": true
     },
@@ -56,6 +59,12 @@
         "~/.claude/shell-snapshots",
         "~/.claude/projects/-Users-kondoukazusa-work-myProject-auto-diary-ai"
       ]
-    }
+    },
+    "excludedCommands": [
+        "tools/deploy.sh",
+        "tools/deploy.sh *",
+        "tools/deploy_play.sh",
+        "tools/deploy_play.sh *"
+    ]
   }
 }
