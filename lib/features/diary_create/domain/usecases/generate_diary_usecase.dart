@@ -8,6 +8,7 @@ import '../entities/generated_diary.dart';
 import '../entities/photo.dart';
 import '../repositories/photo_repository.dart';
 import '../services/generated_diary_parser.dart';
+import '../services/timeline_text.dart';
 
 class GenerateDiaryUseCase {
   final AiRepository _aiRepository;
@@ -20,9 +21,9 @@ class GenerateDiaryUseCase {
     required AiRepository aiRepository,
     required PhotoRepository photoRepository,
     required PlaceNameRepository placeNameRepository,
-  })  : _aiRepository = aiRepository,
-        _photoRepository = photoRepository,
-        _placeNameRepository = placeNameRepository;
+  }) : _aiRepository = aiRepository,
+       _photoRepository = photoRepository,
+       _placeNameRepository = placeNameRepository;
 
   // 1回の送信で扱える写真の枚数(AWS側のサイズ制限による上限)
   static const maxPhotos = 10;
@@ -80,24 +81,16 @@ class GenerateDiaryUseCase {
     final photoInfoText = photoInfos.join("\n");
 
     // 位置情報は「滞在した場所」と「移動」に要約して渡す
-    final timelineText = timeline.map((e) {
-      final time = "${_time(e.start)}〜${_time(e.end)}";
-
-      return switch (e) {
-        Stay() => "$time 滞在: ${_place(e)}",
-        Move() => "$time 移動${_transport(e)}: 約${_distance(e.distanceMeters)}",
-        RecordingOff() => "$time 記録なし",
-      };
-    }).join("\n");
+    final timelineText = TimelineText.format(timeline);
 
     final postText = posts
-        .map((e) =>
-    "${e.receivedAt}\n${e.text}\n${e.url}")
+        .map((e) => "${e.receivedAt}\n${e.text}\n${e.url}")
         .join("\n\n");
 
     final request = AiMessageRequest(
       plan: plan,
-      message: """
+      message:
+          """
 あなたは優秀な日記作成AIです。
 
 添付した写真も必ず確認し、
@@ -160,58 +153,22 @@ $postText
         "緯度${location.latitude.toStringAsFixed(4)} 経度${location.longitude.toStringAsFixed(4)}付近";
   }
 
-  // 滞在した場所(ユーザーが確認したものと、周辺の施設からの推定を区別して伝える)
-  String _place(Stay stay) {
-    final address = stay.placeName ??
-        "緯度${stay.latitude.toStringAsFixed(4)} 経度${stay.longitude.toStringAsFixed(4)}付近";
-
-    if (!stay.isPlaceEstimated) return address;
-
-    return "${stay.estimatedPlaceName}(推定。住所: $address)";
-  }
-
-  // 移動手段(ユーザーが選んだものと、速度からの推定を区別して伝える)
-  String _transport(Move move) {
-    // ユーザーが書いた説明があれば、それをそのまま伝える
-    final text = move.transportText;
-    if (text != null) return "($text)";
-
-    final transport = move.transport;
-    if (transport == null) return "";
-
-    return move.isTransportEdited
-        ? "(${transport.label})"
-        : "(${transport.label}と推定)";
-  }
-
   String _period(DateTime start, DateTime end) {
     String date(DateTime d) => "${d.year}年${d.month}月${d.day}日";
 
     final isSameDay =
-        start.year == end.year && start.month == end.month && start.day == end.day;
+        start.year == end.year &&
+        start.month == end.month &&
+        start.day == end.day;
 
     return isSameDay ? date(start) : "${date(start)}〜${date(end)}";
-  }
-
-  String _time(DateTime time) {
-    final hour = time.hour.toString().padLeft(2, '0');
-    final minute = time.minute.toString().padLeft(2, '0');
-    return "$hour:$minute";
-  }
-
-  String _distance(double meters) {
-    return meters >= 1000
-        ? "${(meters / 1000).toStringAsFixed(1)}km"
-        : "${meters.round()}m";
   }
 
   List<Photo> _pickEvenly(List<Photo> photos, int max) {
     if (photos.length <= max) return photos;
 
     final step = (photos.length - 1) / (max - 1);
-    return [
-      for (var i = 0; i < max; i++) photos[(i * step).round()],
-    ];
+    return [for (var i = 0; i < max; i++) photos[(i * step).round()]];
   }
 
   bool _isSameDay(DateTime a, DateTime b) {

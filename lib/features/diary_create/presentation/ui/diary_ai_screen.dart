@@ -18,6 +18,9 @@ import 'post_select_page.dart';
 import 'timeline_select_page.dart';
 import 'widgets/diary_period_text.dart';
 import 'widgets/photo_selection_card.dart';
+import 'widgets/token_shortage_dialog.dart';
+import '../../domain/services/token_estimator.dart';
+import '../../domain/usecases/generate_diary_usecase.dart';
 
 /// AIに日記を書いてもらうための情報を選択する画面
 class DiaryAiScreen extends ConsumerStatefulWidget {
@@ -238,6 +241,15 @@ class _DiaryAiScreenState extends ConsumerState<DiaryAiScreen> {
           const SizedBox(height: 16),
 
           // ---------- 生成
+          if (usage != null)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: Text(
+                "消費トークンの目安: 約${formatTokens(_estimate(state))}"
+                "(残り ${formatTokens(usage.remainingTokens)})",
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+            ),
           ElevatedButton.icon(
             // 読み込みが終わるまでは、選択内容が確定しないため押せないようにする
             // 今月の使用量の上限に達している場合も、押せない
@@ -254,6 +266,25 @@ class _DiaryAiScreenState extends ConsumerState<DiaryAiScreen> {
 
   // リワード広告を見たあとに、AIに日記を書いてもらう
   Future<void> _generate(BuildContext context) async {
+    // 今月の残りでは足りない見込みなら、広告を見てもらう前に知らせる
+    final usage = ref.read(usageProvider);
+    final state = ref.read(diaryCreateProvider);
+
+    if (usage != null && _estimate(state) > usage.remainingTokens) {
+      final choice = await showTokenShortageDialog(
+        context,
+        estimated: _estimate(state),
+        remaining: usage.remainingTokens,
+      );
+      if (!context.mounted) return;
+
+      if (choice == TokenShortageChoice.openPoints) {
+        context.push(AppRoutes.points);
+        return;
+      }
+      if (choice == TokenShortageChoice.cancel) return;
+    }
+
     // 広告を見る必要があることを伝えて、許可をもらう
     final agreed = await showDialog<bool>(
       context: context,
@@ -294,6 +325,18 @@ class _DiaryAiScreenState extends ConsumerState<DiaryAiScreen> {
     Navigator.of(
       context,
     ).push(MaterialPageRoute(builder: (context) => const DiaryResultScreen()));
+  }
+
+  // 選んだ情報から求めた、消費トークンの目安
+  int _estimate(DiaryCreateState state) {
+    return TokenEstimator.estimate(
+      note: state.aiNote,
+      timeline: state.selectedTimeline,
+      posts: state.selectedPosts,
+      photoCount: state.aiPhotos.length > GenerateDiaryUseCase.maxPhotos
+          ? GenerateDiaryUseCase.maxPhotos
+          : state.aiPhotos.length,
+    );
   }
 
   // アプリを使い始めた日から今日までが、選べる範囲
