@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../application/providers/plan_provider.dart';
+import '../../domain/entities/plan_availability.dart';
 import '../../domain/entities/plan_product.dart';
 import '../../domain/entities/plan_type.dart';
 import '../../domain/repositories/purchase_repository.dart';
+import '../widgets/usage_limit_guidance.dart';
 import '../widgets/usage_meter.dart';
 
-/// プランの確認と、有料プランの購入
+/// AIの使用量の確認(有料プランを出す場合は、プランの確認と購入も)
 class PlanPage extends ConsumerStatefulWidget {
   const PlanPage({super.key});
 
@@ -32,7 +34,7 @@ class _PlanPageState extends ConsumerState<PlanPage> {
     final products = ref.watch(planProductsProvider).valueOrNull ?? const [];
 
     return Scaffold(
-      appBar: AppBar(title: const Text("プラン")),
+      appBar: AppBar(title: Text(paidPlanEnabled ? "プラン" : "AIの使用量")),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
@@ -42,13 +44,18 @@ class _PlanPageState extends ConsumerState<PlanPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text("現在のプラン", style: Theme.of(context).textTheme.bodySmall),
-                  const SizedBox(height: 2),
-                  Text(
-                    plan.label,
-                    style: Theme.of(context).textTheme.titleLarge,
-                  ),
-                  const SizedBox(height: 16),
+                  if (paidPlanEnabled) ...[
+                    Text(
+                      "現在のプラン",
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      plan.label,
+                      style: Theme.of(context).textTheme.titleLarge,
+                    ),
+                    const SizedBox(height: 16),
+                  ],
                   UsageMeter(usage: usage),
                 ],
               ),
@@ -56,50 +63,55 @@ class _PlanPageState extends ConsumerState<PlanPage> {
           ),
           const SizedBox(height: 16),
 
-          // ---------- プランの違い
-          const _Comparison(),
-          const SizedBox(height: 16),
+          if (!paidPlanEnabled && (usage?.isExceeded ?? false))
+            const UsageLimitGuidance(),
 
-          // ---------- 購入
-          if (!plan.isPaid) ...[
-            if (products.isEmpty)
-              const FilledButton(
-                onPressed: null,
-                child: Text("有料プランに変更(準備中)"),
-              )
-            else
-              for (final product in products)
-                FilledButton(
-                  onPressed: _isProcessing ? null : () => _buy(product),
-                  child: Text(_buyLabel(product)),
-                ),
-            const SizedBox(height: 8),
-          ],
-          OutlinedButton(
-            onPressed: _isProcessing ? null : _restore,
-            child: const Text("購入を復元する"),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            "有料プランは、Google PlayまたはApp Storeの定期購入です。"
-            "解約は各ストアのアカウント設定から行えます。",
-            style: Theme.of(context).textTheme.bodySmall,
-          ),
+          if (paidPlanEnabled) ...[
+            // ---------- プランの違い
+            const _Comparison(),
+            const SizedBox(height: 16),
 
-          // ---------- 動作確認用
-          // 決済を導入するまで、プランによる画面の違いを確かめられるようにする
-          const Divider(height: 32),
-          Text("動作確認用", style: Theme.of(context).textTheme.bodySmall),
-          SegmentedButton<PlanType>(
-            segments: [
-              for (final type in PlanType.values)
-                ButtonSegment(value: type, label: Text(type.label)),
+            // ---------- 購入
+            if (!plan.isPaid) ...[
+              if (products.isEmpty)
+                const FilledButton(
+                  onPressed: null,
+                  child: Text("有料プランに変更(準備中)"),
+                )
+              else
+                for (final product in products)
+                  FilledButton(
+                    onPressed: _isProcessing ? null : () => _buy(product),
+                    child: Text(_buyLabel(product)),
+                  ),
+              const SizedBox(height: 8),
             ],
-            selected: {plan},
-            onSelectionChanged: (selection) {
-              ref.read(planTypeProvider.notifier).setPlan(selection.first);
-            },
-          ),
+            OutlinedButton(
+              onPressed: _isProcessing ? null : _restore,
+              child: const Text("購入を復元する"),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              "有料プランは、Google PlayまたはApp Storeの定期購入です。"
+              "解約は各ストアのアカウント設定から行えます。",
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+
+            // ---------- 動作確認用
+            // 決済を導入するまで、プランによる画面の違いを確かめられるようにする
+            const Divider(height: 32),
+            Text("動作確認用", style: Theme.of(context).textTheme.bodySmall),
+            SegmentedButton<PlanType>(
+              segments: [
+                for (final type in PlanType.values)
+                  ButtonSegment(value: type, label: Text(type.label)),
+              ],
+              selected: {plan},
+              onSelectionChanged: (selection) {
+                ref.read(planTypeProvider.notifier).setPlan(selection.first);
+              },
+            ),
+          ],
         ],
       ),
     );

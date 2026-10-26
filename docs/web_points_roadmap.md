@@ -305,9 +305,10 @@ curl -s -X POST https://<API>/pairing/claim -H 'Content-Type: application/json' 
 
 ### 決めたこと
 - 使用量は、**アカウントの有無に関わらず**、全員が減る。アプリには「残り○%」を表示する。
-- 毎月の枠(`MONTHLY_LIMIT_TOKENS`。無料50,000・有料500,000は仮の値)を使い切ると、
+- 毎月の枠(`MONTHLY_LIMIT_TOKENS`。無料3,000・有料500,000は仮の値)を使い切ると、
   紐づけ済みのアカウントのトークン残高から減る。**アカウントは、使える量を増やすだけ**。
 - 使うAIは、プランだけで決まる(無料=Gemini、有料=GPT)。トークン残高があっても変わらない。
+  アプリ内課金は一時やめたため、`PAID_ENABLED` が `true` でない間は、全員が無料(Gemini)として扱われる。
 - 減らす量は、AIが返した **実際の使用量**(Geminiは `totalTokenCount`、OpenAIは `usage.total_tokens`)。
 - 端末の識別は `X-Client-Id`、アカウントとの紐づけは `X-Device-Token`(正しくなければ401)。
 

@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../app/router/app_routes.dart';
 import '../../../ads/application/ads_provider.dart';
 import '../../../plan/application/providers/plan_provider.dart';
+import '../../../plan/domain/entities/plan_availability.dart';
 import '../../../plan/presentation/widgets/usage_meter.dart';
 import '../providers/recording_settings_provider.dart';
 
@@ -46,9 +47,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     final usage = ref.watch(usageProvider);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text("Settings"),
-      ),
+      appBar: AppBar(title: const Text("Settings")),
       body: ListView(
         children: [
           ListTile(
@@ -66,13 +65,19 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
           const Divider(),
 
           ListTile(
-            leading: Icon(plan.isPaid ? Icons.workspace_premium : Icons.person),
-            title: const Text("プラン"),
+            leading: Icon(
+              !paidPlanEnabled
+                  ? Icons.data_usage
+                  : plan.isPaid
+                  ? Icons.workspace_premium
+                  : Icons.person,
+            ),
+            title: Text(paidPlanEnabled ? "プラン" : "AIの使用量"),
             subtitle: Padding(
               padding: const EdgeInsets.only(top: 8),
               child: UsageMeter(usage: usage),
             ),
-            trailing: Text(plan.label),
+            trailing: paidPlanEnabled ? Text(plan.label) : null,
             onTap: () => context.push(AppRoutes.plan),
           ),
 
@@ -140,15 +145,14 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
 
     if (!succeeded) {
       messenger.showSnackBar(
-        const SnackBar(
-          content: Text("記録を開始できませんでした。位置情報を許可してください"),
-        ),
+        const SnackBar(content: Text("記録を開始できませんでした。位置情報を許可してください")),
       );
     }
   }
 
   Future<void> _addWidget(RecordingSettingsState recording) async {
-    final requested = recording.isWidgetPinSupported &&
+    final requested =
+        recording.isWidgetPinSupported &&
         await ref.read(recordingSettingsProvider.notifier).requestPinWidget();
 
     if (requested || !mounted) return;
@@ -177,9 +181,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text("ホーム画面から削除してください"),
-        content: const Text(
-          "ホーム画面のボタンを長押しして、「削除」を選んでください。",
-        ),
+        content: const Text("ホーム画面のボタンを長押しして、「削除」を選んでください。"),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),

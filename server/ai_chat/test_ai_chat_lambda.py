@@ -175,6 +175,18 @@ class AiChatUsageTest(unittest.TestCase):
         self.assertEqual(body["tokenBalance"], 0)
         self.gemini.assert_called_once()
 
+    def test_paid_plan_is_treated_as_free_while_disabled(self):
+        status, body = call(chat_event(plan="paid"))
+
+        self.assertEqual(status, 200)
+        self.gemini.assert_called_once()
+        self.openai.assert_not_called()
+        self.assertEqual(body["usage"]["limitTokens"], FREE_LIMIT)
+
+        status, body = call(usage_event(plan="paid"))
+        self.assertEqual(body["plan"], "free")
+
+    @mock.patch.object(m, "PAID_ENABLED", True)
     def test_paid_plan_uses_gpt_and_its_own_limit(self):
         status, body = call(chat_event(plan="paid"))
 
@@ -254,8 +266,8 @@ class AiChatUsageTest(unittest.TestCase):
         self.gemini.assert_not_called()
         self.assertEqual(self.balance(), 5000)
 
-    def test_display_matches_54000_of_60000_example(self):
-        # 残高10,000 を足した状態で、合計54,000 使った場合
+    def test_display_adds_balance_to_the_monthly_limit(self):
+        # 残高10,000 を足した状態で、毎月の枠 + 3,000 使った場合
         self.link_device(balance=10_000)
         self.set_used(FREE_LIMIT)
         self.set_balance_used(3_000)
@@ -264,15 +276,15 @@ class AiChatUsageTest(unittest.TestCase):
         status, body = call(usage_event(device_token="dev1.secret"))
 
         self.assertEqual(status, 200)
-        self.assertEqual(body["usage"]["usedTokens"], 53_000)
-        self.assertEqual(body["usage"]["limitTokens"], 60_000)
+        self.assertEqual(body["usage"]["usedTokens"], FREE_LIMIT + 3_000)
+        self.assertEqual(body["usage"]["limitTokens"], FREE_LIMIT + 10_000)
         self.assertEqual(body["tokenBalance"], 7_000)
 
         status, body = call(chat_event(device_token="dev1.secret"))
 
-        # さらに1,000 使うと、54,000 / 60,000
-        self.assertEqual(body["usage"]["usedTokens"], 54_000)
-        self.assertEqual(body["usage"]["limitTokens"], 60_000)
+        # さらに1,000 使うと、枠 + 4,000 / 枠 + 10,000
+        self.assertEqual(body["usage"]["usedTokens"], FREE_LIMIT + 4_000)
+        self.assertEqual(body["usage"]["limitTokens"], FREE_LIMIT + 10_000)
 
     def test_next_month_resets_used_but_keeps_balance(self):
         self.link_device(balance=6_000)

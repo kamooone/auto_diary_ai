@@ -66,10 +66,15 @@
 設定画面やプラン画面で、今月の使用量を表示するために呼ぶ。
 
 - クエリ `?plan=free` または `?plan=paid`(アプリが現在のプランを伝える)。
+  Lambda の環境変数 `PAID_ENABLED` が `true` でない間は、`paid` を伝えても無料として扱う(返る `plan` も `free`)。
 - 成功(200): 上の `plan`・`usage`・`tokenBalance` を返す。
 - 未対応(404など)の場合、アプリは使用量を表示しない。
 
 ## 有料プランの判定(アプリ内課金を入れるときに追加)
+
+**いまは課金を始めていない。** サーバーは、環境変数 `PAID_ENABLED` が `true` のときだけ有料プランを受け付ける(未設定は無料のまま)。
+アプリは、`lib/features/plan/domain/entities/plan_availability.dart` の `paidPlanEnabled` が `false` の間、有料プランの画面を出さない。
+課金を始めるときは、この2つを `true` にして、下の購読の確認を足す。
 
 アプリ内課金(Google Play・App Store)を入れるときに、サーバーでの購読の確認を追加する。
 詳細は、課金の実装時に決める。想定は次のとおり。

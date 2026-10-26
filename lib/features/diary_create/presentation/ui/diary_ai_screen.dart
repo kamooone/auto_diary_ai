@@ -6,6 +6,8 @@ import '../../../../core/app_info/install_date_provider.dart';
 import '../../../ads/application/ads_provider.dart';
 import '../../../plan/application/providers/plan_provider.dart';
 import '../viewmodel/diary_create_view_model.dart';
+import '../../../plan/domain/entities/plan_availability.dart';
+import '../../../plan/presentation/widgets/usage_limit_guidance.dart';
 import '../../../plan/presentation/widgets/usage_meter.dart';
 import '../../../location/domain/entities/timeline_item.dart';
 import '../../../share/domain/entities/shared_post.dart';
@@ -111,16 +113,19 @@ class _DiaryAiScreenState extends ConsumerState<DiaryAiScreen> {
                   UsageMeter(usage: usage),
                   if (isExceeded) ...[
                     const SizedBox(height: 8),
-                    Text(
-                      plan.type.isPaid
-                          ? "今月の使用量の上限に達しました。次のリセットまでAIは使えません。"
-                          : "今月の使用量の上限に達しました。有料プランにすると、"
-                              "さらに多く使えます。",
-                      style: TextStyle(
-                        color: Theme.of(context).colorScheme.error,
-                      ),
-                    ),
-                    if (!plan.type.isPaid)
+                    if (paidPlanEnabled)
+                      Text(
+                        plan.type.isPaid
+                            ? "今月の使用量の上限に達しました。次のリセットまでAIは使えません。"
+                            : "今月の使用量の上限に達しました。有料プランにすると、"
+                                  "さらに多く使えます。",
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.error,
+                        ),
+                      )
+                    else
+                      const UsageLimitGuidance(),
+                    if (paidPlanEnabled && !plan.type.isPaid)
                       TextButton(
                         onPressed: () => context.push(AppRoutes.plan),
                         child: const Text("プランを見る"),
@@ -164,16 +169,16 @@ class _DiaryAiScreenState extends ConsumerState<DiaryAiScreen> {
                   trailing: _trailing(state.isLoadingSources),
                   enabled: state.posts.isNotEmpty,
                   onTap: () async {
-                    final posts =
-                        await Navigator.of(context).push<List<SharedPost>>(
-                      MaterialPageRoute(
-                        fullscreenDialog: true,
-                        builder: (context) => PostSelectPage(
-                          posts: state.posts,
-                          initialSelection: state.selectedPosts,
-                        ),
-                      ),
-                    );
+                    final posts = await Navigator.of(context)
+                        .push<List<SharedPost>>(
+                          MaterialPageRoute(
+                            fullscreenDialog: true,
+                            builder: (context) => PostSelectPage(
+                              posts: state.posts,
+                              initialSelection: state.selectedPosts,
+                            ),
+                          ),
+                        );
 
                     if (posts != null) {
                       viewModel.setSelectedPosts(posts);
@@ -195,16 +200,16 @@ class _DiaryAiScreenState extends ConsumerState<DiaryAiScreen> {
                   trailing: _trailing(state.isLoadingSources),
                   enabled: state.timeline.isNotEmpty,
                   onTap: () async {
-                    final items =
-                        await Navigator.of(context).push<List<TimelineItem>>(
-                      MaterialPageRoute(
-                        fullscreenDialog: true,
-                        builder: (context) => TimelineSelectPage(
-                          items: state.timeline,
-                          initialSelection: state.selectedTimeline,
-                        ),
-                      ),
-                    );
+                    final items = await Navigator.of(context)
+                        .push<List<TimelineItem>>(
+                          MaterialPageRoute(
+                            fullscreenDialog: true,
+                            builder: (context) => TimelineSelectPage(
+                              items: state.timeline,
+                              initialSelection: state.selectedTimeline,
+                            ),
+                          ),
+                        );
 
                     if (items != null) {
                       viewModel.setSelectedTimeline(items);
@@ -254,9 +259,7 @@ class _DiaryAiScreenState extends ConsumerState<DiaryAiScreen> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text("広告を見ますか？"),
-        content: const Text(
-          "AIに日記を書いてもらうには、広告(動画)を最後まで見る必要があります。",
-        ),
+        content: const Text("AIに日記を書いてもらうには、広告(動画)を最後まで見る必要があります。"),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
@@ -288,11 +291,9 @@ class _DiaryAiScreenState extends ConsumerState<DiaryAiScreen> {
 
     ref.read(diaryCreateProvider.notifier).generateDiary();
 
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (context) => const DiaryResultScreen(),
-      ),
-    );
+    Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (context) => const DiaryResultScreen()));
   }
 
   // アプリを使い始めた日から今日までが、選べる範囲

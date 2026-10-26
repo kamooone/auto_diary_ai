@@ -53,6 +53,10 @@ MIN_REMAINING_SECONDS = 12
 PAID = "paid"
 FREE = "free"
 
+# 有料プランを受け付けるか(環境変数 PAID_ENABLED が "true" のときだけ)
+# アプリ内課金を始めるまでは、アプリが「有料」と申告しても、無料として扱う
+PAID_ENABLED = os.environ.get("PAID_ENABLED", "false").lower() == "true"
+
 # 使用量と、アカウントのトークン残高を保存するテーブル
 #   USAGE_TABLE_NAME    : 月ごとの使用量(キー usageKey = "<端末のID>#<年-月>")
 #   ACCOUNTS_TABLE_NAME : ポイントAPIのアカウント(残高 tokens)
@@ -67,7 +71,7 @@ DEVICES_TABLE_NAME = os.environ.get(
 
 # 毎月使えるトークン数(プランごと。仮の値。変えるときはここだけ直す)
 # アカウントのトークンは、この枠を使い切ったあとに減る(使える量が増えるだけ)
-MONTHLY_LIMIT_TOKENS = {FREE: 50_000, PAID: 500_000}
+MONTHLY_LIMIT_TOKENS = {FREE: 3_000, PAID: 500_000}
 
 # 月の区切りは、日本時間
 JST = timezone(timedelta(hours=9))
@@ -343,6 +347,11 @@ def usage_payload(plan, used, balance_used, balance, resets_at):
     }
 
 
+def requested_plan(value):
+    """アプリが申告したプランを、受け付けるプランにする"""
+    return PAID if PAID_ENABLED and value == PAID else FREE
+
+
 def is_exceeded(plan, used, balance):
     return MONTHLY_LIMIT_TOKENS[plan] - used + balance <= 0
 
@@ -466,7 +475,7 @@ def is_plan_usage_request(event):
 def plan_usage(event):
     """GET /plan/usage: 今月の使用量。プランは、クエリ(?plan=paid)で受け取る"""
     params = event.get("queryStringParameters") or {}
-    plan = PAID if params.get("plan") == PAID else FREE
+    plan = requested_plan(params.get("plan"))
 
     error, state = read_state(event, plan)
 
@@ -497,7 +506,7 @@ def lambda_handler(event, context):
         # アプリから受け取ったプラン
         # (注意: アプリが申告した値のため、課金の確認をするまでは信用できない。
         #  課金を実装したら、購入の確認結果から決める)
-        plan = PAID if body.get("plan") == PAID else FREE
+        plan = requested_plan(body.get("plan"))
 
         error, state = read_state(event, plan)
 
