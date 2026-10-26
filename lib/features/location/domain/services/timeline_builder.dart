@@ -9,7 +9,7 @@ class TimelineBuilder {
   static const _stayRadiusMeters = 100.0;
 
   // この時間以上とどまった場合に滞在とみなす
-  static const _minStayDuration = Duration(minutes: 5);
+  static const _minStayDuration = Duration(minutes: 2);
 
   // これ未満の移動は位置のぶれとみなして表示しない
   static const _minMoveMeters = 30.0;

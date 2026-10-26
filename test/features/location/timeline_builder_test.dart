@@ -21,7 +21,23 @@ void main() {
     expect(builder.build([]), isEmpty);
   });
 
-  test('同じ場所に5分以上いると滞在になる', () {
+  test('同じ場所に2分以上いると滞在になり、2分に満たなければならない', () {
+    final shortStay = builder.build([
+      point(9, 0, 35.0),
+      point(9, 1, 35.0001),
+      point(9, 20, 35.01),
+    ]);
+    expect(shortStay.whereType<Stay>().where((e) => e.start.hour == 9 && e.start.minute == 0), isEmpty);
+
+    final stay = builder.build([
+      point(9, 0, 35.0),
+      point(9, 2, 35.0001),
+      point(9, 20, 35.01),
+    ]);
+    expect((stay.first as Stay).end, DateTime(2026, 1, 1, 9, 2));
+  });
+
+  test('同じ場所に長くいると滞在になる', () {
     final items = builder.build([
       point(9, 0, 35.0),
       point(11, 0, 35.0001),
