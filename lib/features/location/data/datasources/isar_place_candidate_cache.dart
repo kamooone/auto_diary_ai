@@ -29,6 +29,7 @@ class IsarPlaceCandidateCache implements PlaceCandidateCache {
           name: candidate['name'] as String,
           category: candidate['category'] as String?,
           distanceMeters: (candidate['distanceMeters'] as num).toDouble(),
+          floor: candidate['floor'] as String?,
         ),
     ];
   }
@@ -43,6 +44,7 @@ class IsarPlaceCandidateCache implements PlaceCandidateCache {
             'name': candidate.name,
             'category': candidate.category,
             'distanceMeters': candidate.distanceMeters,
+            'floor': candidate.floor,
           },
       ])
       ..fetchedAt = DateTime.now();

@@ -261,6 +261,7 @@ class TimelineSheet extends StatelessWidget {
                   subtitle: Text(
                     [
                       if (candidate.category != null) candidate.category!,
+                      if (candidate.floor != null) candidate.floor!,
                       "約${candidate.distanceMeters.round()}m",
                     ].join("・"),
                   ),

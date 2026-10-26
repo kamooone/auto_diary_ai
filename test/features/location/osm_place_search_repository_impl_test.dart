@@ -45,6 +45,46 @@ void main() {
     expect(result.single!.last.category, 'ショッピングモール');
   });
 
+  test('登録されている階を候補に付ける', () async {
+    Map<String, dynamic> shop(String name, Map<String, String> extra) => {
+          'type': 'node',
+          'lat': 35.68124,
+          'lon': 139.76713,
+          'tags': {'name': name, 'shop': 'books', ...extra},
+        };
+
+    final repository = OsmPlaceSearchRepositoryImpl(
+      client: MockClient((request) async {
+        return json({
+          'elements': [
+            shop('二階の店', {'level': '2'}),
+            shop('地下の店', {'level': '-1'}),
+            shop('複数階の店', {'level': '2;1'}),
+            shop('階数の記載の店', {'addr:floor': '3'}),
+            shop('ゼロの店', {'level': '0'}),
+            shop('読めない店', {'level': '1-3'}),
+            shop('地上と地下の店', {'level': '-1;1'}),
+            shop('登録なしの店', {}),
+          ],
+        });
+      }),
+    );
+
+    final result = await repository.findNearby([tokyoStation]);
+    final floors = {for (final e in result.single!) e.name: e.floor};
+
+    expect(floors, {
+      '二階の店': '2階',
+      '地下の店': '地下1階',
+      '複数階の店': '1・2階',
+      '階数の記載の店': '3階',
+      'ゼロの店': null,
+      '読めない店': null,
+      '地上と地下の店': null,
+      '登録なしの店': null,
+    });
+  });
+
   test('範囲外・名前なし・駐車場などは候補にしない', () async {
     final repository = OsmPlaceSearchRepositoryImpl(
       client: MockClient((request) async {

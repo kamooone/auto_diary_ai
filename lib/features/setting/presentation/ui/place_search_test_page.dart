@@ -134,6 +134,7 @@ class _PlaceSearchTestPageState extends ConsumerState<PlaceSearchTestPage> {
               [
                 "${candidate.distanceMeters.round()}m",
                 if (candidate.category != null) candidate.category!,
+                if (candidate.floor != null) candidate.floor!,
               ].join(" ・ "),
             ),
           ),

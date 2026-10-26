@@ -441,6 +441,7 @@ class OsmPlaceSearchRepositoryImpl implements PlaceSearchRepository {
           name: name,
           category: category,
           distanceMeters: distance,
+          floor: _floor(tags),
         ),
       );
     }
@@ -448,6 +449,31 @@ class OsmPlaceSearchRepositoryImpl implements PlaceSearchRepository {
     candidates.sort((a, b) => a.distanceMeters.compareTo(b.distanceMeters));
 
     return candidates.take(_maxCandidates).toList();
+  }
+
+  // 階の表示(「2階」「1・2階」「地下1階」)。登録がない・読み取れない場合はnull
+  //
+  // OSMでは、日本の建物は1階が「1」、地下1階が「-1」と登録されることが多い。
+  // 「0」は1階を指すのか判断できないため、表示しない。
+  String? _floor(Map<String, dynamic> tags) {
+    final raw = tags['level'] ?? tags['addr:floor'];
+    if (raw is! String) return null;
+
+    final levels = <int>[];
+    for (final part in raw.split(';')) {
+      final level = int.tryParse(part.trim());
+      if (level == null || level == 0) return null;
+      levels.add(level);
+    }
+    if (levels.isEmpty) return null;
+
+    // 地上と地下にまたがる場合など、まとめて表せないものは表示しない
+    if (levels.any((e) => e < 0) && levels.any((e) => e > 0)) return null;
+
+    levels.sort((a, b) => a.abs().compareTo(b.abs()));
+    final numbers = levels.map((e) => e.abs()).join('・');
+
+    return levels.first < 0 ? '地下$numbers階' : '$numbers階';
   }
 
   String? _category(Map<String, dynamic> tags) {

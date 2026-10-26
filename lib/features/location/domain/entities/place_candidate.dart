@@ -8,9 +8,13 @@ class PlaceCandidate {
   /// 滞在場所からの距離(m)
   final double distanceMeters;
 
+  /// 施設がある階(「2階」「地下1階」など。登録されていない場合はnull)
+  final String? floor;
+
   const PlaceCandidate({
     required this.name,
     this.category,
     required this.distanceMeters,
+    this.floor,
   });
 }
