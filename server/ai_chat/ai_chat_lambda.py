@@ -31,10 +31,11 @@ OPENAI_MODEL = "gpt-4o-mini"
 
 # 無料プランのモデル。混んでいて使えないときは、後ろのモデルに順に切り替える
 # (モデル名は、提供が終わると使えなくなる。使えるモデルは、AI Studioで確認する)
+# gemini-3.8-flashは、混雑や応答なしで成功することがほとんどなく、待つ時間を使い切るため、最後にしてある
 GEMINI_MODELS = [
-    "gemini-3.8-flash",
     "gemini-flash-latest",
     "gemini-flash-lite-latest",
+    "gemini-3.8-flash",
 ]
 
 # 次のモデルを試す、Geminiのステータス
