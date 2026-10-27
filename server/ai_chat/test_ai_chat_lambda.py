@@ -345,5 +345,61 @@ class AiChatUsageTest(unittest.TestCase):
         self.assertEqual(status, 400)
 
 
+class AskGeminiTimeoutTest(unittest.TestCase):
+    """Geminiの待ち時間(写真が多いと時間がかかるため、10秒では足りなかった)"""
+
+    OK = {
+        "candidates": [{"content": {"parts": [{"text": "回答"}]}}],
+        "usageMetadata": {"totalTokenCount": 10},
+    }
+
+    def run_gemini(self, outcomes):
+        """outcomes: 呼ばれるたびの結果(例外か応答)と、その間に進む秒数のリスト"""
+        clock = [0.0]
+        timeouts = []
+        queue = list(outcomes)
+
+        def fake_post(provider, url, headers, body, timeout=None):
+            timeouts.append(timeout)
+            result, seconds = queue.pop(0)
+            clock[0] += seconds
+            if isinstance(result, Exception):
+                raise result
+            return result
+
+        with mock.patch.object(m, "post_json", fake_post), \
+                mock.patch.object(m.time, "monotonic", lambda: clock[0]):
+            try:
+                answer = m.ask_gemini("key", "message", [])
+            except m.UpstreamError as e:
+                answer = e
+
+        return answer, timeouts
+
+    def test_first_model_may_take_longer_than_ten_seconds(self):
+        answer, timeouts = self.run_gemini([(self.OK, 15)])
+
+        self.assertEqual(answer, ("回答", 10))
+        self.assertEqual(timeouts, [m.GEMINI_ATTEMPT_TIMEOUT])
+        self.assertGreater(m.GEMINI_ATTEMPT_TIMEOUT, 10)
+
+    def test_no_second_model_when_the_first_used_up_the_time(self):
+        answer, timeouts = self.run_gemini(
+            [(TimeoutError("timed out"), m.GEMINI_ATTEMPT_TIMEOUT)]
+        )
+
+        self.assertIsInstance(answer, m.UpstreamError)
+        self.assertEqual(len(timeouts), 1)
+
+    def test_second_model_is_tried_after_a_quick_failure(self):
+        quick = m.UpstreamError("Gemini", 503, "busy")
+        answer, timeouts = self.run_gemini([(quick, 1), (self.OK, 5)])
+
+        self.assertEqual(answer, ("回答", 10))
+        self.assertEqual(len(timeouts), 2)
+        # 残りの時間を超えて待たない
+        self.assertLessEqual(timeouts[1], m.GEMINI_TOTAL_BUDGET - 1)
+
+
 if __name__ == "__main__":
     unittest.main()

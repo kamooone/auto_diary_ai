@@ -44,10 +44,18 @@ GEMINI_MODELS = [
 GEMINI_RETRY_STATUSES = {404, 429, 500, 503, 504}
 
 # 1つのモデルを待つ最長の時間(秒)
-GEMINI_ATTEMPT_TIMEOUT = 10
+# 写真が多い日記は、10秒では足りず、時間切れになった
+GEMINI_ATTEMPT_TIMEOUT = 25
 
-# API Gatewayの統合タイムアウト(29秒)に間に合わせるため、残りがこれ未満なら次を試さない
+# API Gatewayの統合タイムアウト(29秒)に間に合わせるため、Geminiに使える時間(秒)
+# (Geminiを呼ぶ前の処理と、回答を返す処理の分を引いてある)
+GEMINI_TOTAL_BUDGET = 26
+
+# 次のモデルを試すには、残りの時間がこれ以上必要(秒)
 MIN_REMAINING_SECONDS = 12
+
+# Lambdaの残り時間から、回答を受け取ったあとの記録などの分として引く時間(秒)
+RESERVED_SECONDS = 3
 
 # 受け付けるプラン。これ以外(未指定を含む)は、無料プランとして扱う
 PAID = "paid"
@@ -181,14 +189,22 @@ def ask_gemini(api_key, message, images, context=None):
         })
 
     last_error = None
+    started = time.monotonic()
+
+    def seconds_left():
+        left = GEMINI_TOTAL_BUDGET - (time.monotonic() - started)
+
+        if context is not None:
+            lambda_left = context.get_remaining_time_in_millis() / 1000
+            left = min(left, lambda_left - RESERVED_SECONDS)
+
+        return left
 
     for model in GEMINI_MODELS:
 
         # 時間が足りなければ、次のモデルは試さない
-        if last_error is not None and context is not None:
-            remaining = context.get_remaining_time_in_millis() / 1000
-            if remaining < MIN_REMAINING_SECONDS:
-                break
+        if last_error is not None and seconds_left() < MIN_REMAINING_SECONDS:
+            break
 
         try:
             data = post_json(
@@ -200,7 +216,7 @@ def ask_gemini(api_key, message, images, context=None):
                 # URLにキーを付けると、ログに残るため、ヘッダーで渡す
                 {"x-goog-api-key": api_key},
                 {"contents": [{"role": "user", "parts": parts}]},
-                timeout=GEMINI_ATTEMPT_TIMEOUT,
+                timeout=max(1, min(GEMINI_ATTEMPT_TIMEOUT, seconds_left())),
             )
         except UpstreamError as e:
             if e.status not in GEMINI_RETRY_STATUSES:
