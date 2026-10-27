@@ -9,11 +9,12 @@ import 'timeline_text.dart';
 /// 足りないと誤って断らないよう、**多めに**見積もる。
 ///
 /// 係数は仮の値。実際に使った量を測って、決め直す。
+/// (実測: 何も渡さない日記が313トークン)
 class TokenEstimator {
   const TokenEstimator._();
 
   // 指示文(日付・形式の指定など、毎回同じ部分)
-  static const instructionTokens = 500;
+  static const instructionTokens = 300;
 
   // 日本語の文章の1文字あたり(日時や数字を含むため、1文字を1トークンとして多めに見る)
   static const tokensPerChar = 1.0;
@@ -22,7 +23,7 @@ class TokenEstimator {
   static const tokensPerPhoto = 1200;
 
   // 日記の本文とタイトル、AIが考える分
-  static const outputTokens = 3000;
+  static const outputTokens = 1000;
 
   /// [multiplier]は、AIの種類による消費量の倍率(サーバーが決める。通常は1)
   static int estimate({
