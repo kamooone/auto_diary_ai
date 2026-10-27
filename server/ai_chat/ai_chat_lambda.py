@@ -206,6 +206,8 @@ def ask_gemini(api_key, message, images, context=None):
         if last_error is not None and seconds_left() < MIN_REMAINING_SECONDS:
             break
 
+        attempt_started = time.monotonic()
+
         try:
             data = post_json(
                 "Gemini",
@@ -224,16 +226,20 @@ def ask_gemini(api_key, message, images, context=None):
 
             print(json.dumps({
                 "provider": "Gemini", "model": model, "status": e.status,
+                # Googleが返した理由(長いものは切る)。キーは含まれない
+                "details": str(e.details)[:300],
+                "seconds": round(time.monotonic() - attempt_started, 1),
                 "action": "switch_model",
-            }))
+            }, ensure_ascii=False))
             last_error = e
             continue
         except (socket.timeout, TimeoutError, urllib.error.URLError) as e:
             # 応答が遅い、または接続できないときも、次のモデルを試す
             print(json.dumps({
                 "provider": "Gemini", "model": model, "error": str(e),
+                "seconds": round(time.monotonic() - attempt_started, 1),
                 "action": "switch_model",
-            }))
+            }, ensure_ascii=False))
             last_error = UpstreamError("Gemini", 0, str(e))
             continue
 
