@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/foundation.dart';
+import '../../../../core/logging/app_log.dart';
 import '../../../ai/domain/exceptions/ai_exception.dart';
 import '../../../diary/application/providers/diary_providers.dart';
 import '../../../diary/domain/entities/diary.dart';
@@ -375,6 +376,7 @@ class DiaryCreateViewModel extends AutoDisposeNotifier<DiaryCreateState> {
         errorMessage: "今月のAIの使用量の上限に達しました",
       );
     } on AiUploadException catch (e, stackTrace) {
+      AppLog.add('日記', '写真のアップロードに失敗: $e');
       debugPrint(e.toString());
       debugPrintStack(stackTrace: stackTrace);
 
@@ -385,6 +387,7 @@ class DiaryCreateViewModel extends AutoDisposeNotifier<DiaryCreateState> {
         errorMessage: "写真のアップロードに失敗しました",
       );
     } catch (e, stackTrace) {
+      AppLog.add('日記', '生成に失敗: $e');
       debugPrint(e.toString());
       debugPrintStack(stackTrace: stackTrace);
 
