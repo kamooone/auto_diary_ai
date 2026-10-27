@@ -35,8 +35,8 @@ class AwsAiRepositoryImpl implements AiRepository {
   static const _uploadPath = '/ai/upload-url';
   static const _chatPath = '/ai/chat';
 
-  // API Gateway(REST)の統合タイムアウトが29秒のため、少し余裕を持たせる
-  static const _timeout = Duration(seconds: 35);
+  // API Gateway(REST)の統合タイムアウトを60秒に引き上げたため、少し余裕を持たせる
+  static const _timeout = Duration(seconds: 65);
 
   // Lambda同期呼び出しのペイロード上限(6MB)に収まるよう、Base64後の合計サイズを制限する
   static const _maxUploadBodyBytes = 5 * 1024 * 1024;

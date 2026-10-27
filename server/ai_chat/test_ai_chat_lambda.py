@@ -402,13 +402,27 @@ class AskGeminiTimeoutTest(unittest.TestCase):
         self.assertEqual(timeouts, [m.GEMINI_ATTEMPT_TIMEOUT])
         self.assertGreater(m.GEMINI_ATTEMPT_TIMEOUT, 10)
 
-    def test_no_second_model_when_the_first_used_up_the_time(self):
-        answer, timeouts = self.run_gemini(
-            [(TimeoutError("timed out"), m.GEMINI_ATTEMPT_TIMEOUT)]
-        )
+    def test_next_model_gets_the_remaining_time_after_a_timeout(self):
+        left = m.GEMINI_TOTAL_BUDGET - m.GEMINI_ATTEMPT_TIMEOUT
+        self.assertGreaterEqual(left, m.MIN_REMAINING_SECONDS)
+
+        answer, timeouts = self.run_gemini([
+            (TimeoutError("timed out"), m.GEMINI_ATTEMPT_TIMEOUT),
+            (self.OK, 5),
+        ])
+
+        self.assertEqual(answer, ("回答", 10))
+        self.assertEqual(timeouts, [m.GEMINI_ATTEMPT_TIMEOUT, left])
+
+    def test_no_third_model_when_the_time_is_used_up(self):
+        left = m.GEMINI_TOTAL_BUDGET - m.GEMINI_ATTEMPT_TIMEOUT
+        answer, timeouts = self.run_gemini([
+            (TimeoutError("timed out"), m.GEMINI_ATTEMPT_TIMEOUT),
+            (TimeoutError("timed out"), left),
+        ])
 
         self.assertIsInstance(answer, m.UpstreamError)
-        self.assertEqual(len(timeouts), 1)
+        self.assertEqual(len(timeouts), 2)
 
     def test_second_model_is_tried_after_a_quick_failure(self):
         quick = m.UpstreamError("Gemini", 503, "busy")

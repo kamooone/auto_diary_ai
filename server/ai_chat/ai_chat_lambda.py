@@ -48,12 +48,14 @@ GEMINI_RETRY_STATUSES = {404, 429, 500, 503, 504}
 GEMINI_THINKING_CONFIG = {"thinkingLevel": "low"}
 
 # 1つのモデルを待つ最長の時間(秒)
-# 写真が多い日記は、10秒では足りず、時間切れになった
-GEMINI_ATTEMPT_TIMEOUT = 25
+# 写真が多い日記は、10秒では足りず、時間切れになった。
+# 遅いモデルで時間を使い切らないよう、全体の予算より短くしてある
+GEMINI_ATTEMPT_TIMEOUT = 40
 
-# API Gatewayの統合タイムアウト(29秒)に間に合わせるため、Geminiに使える時間(秒)
+# API Gatewayの統合タイムアウト(60秒に引き上げ済み)に間に合わせるため、Geminiに使える時間(秒)
 # (Geminiを呼ぶ前の処理と、回答を返す処理の分を引いてある)
-GEMINI_TOTAL_BUDGET = 26
+# API Gatewayと、このLambdaのタイムアウトは、どちらも60秒にしておくこと
+GEMINI_TOTAL_BUDGET = 54
 
 # 次のモデルを試すには、残りの時間がこれ以上必要(秒)
 MIN_REMAINING_SECONDS = 12
