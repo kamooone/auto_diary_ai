@@ -43,6 +43,10 @@ GEMINI_MODELS = [
 # (400・401・403は、キーやリクエストの問題で、モデルを変えても直らないため試さない)
 GEMINI_RETRY_STATUSES = {404, 429, 500, 503, 504}
 
+# 考える量を減らして、速くする(日記の文章づくりに、深い思考は要らない)
+# 3系のモデルの指定。合わないモデルが400を返したときは、指定なしでやり直す
+GEMINI_THINKING_CONFIG = {"thinkingLevel": "low"}
+
 # 1つのモデルを待つ最長の時間(秒)
 # 写真が多い日記は、10秒では足りず、時間切れになった
 GEMINI_ATTEMPT_TIMEOUT = 25
@@ -208,8 +212,15 @@ def ask_gemini(api_key, message, images, context=None):
 
         attempt_started = time.monotonic()
 
-        try:
-            data = post_json(
+        def request(with_thinking):
+            body = {"contents": [{"role": "user", "parts": parts}]}
+
+            if with_thinking:
+                body["generationConfig"] = {
+                    "thinkingConfig": GEMINI_THINKING_CONFIG
+                }
+
+            return post_json(
                 "Gemini",
                 (
                     "https://generativelanguage.googleapis.com/v1beta/models/"
@@ -217,9 +228,24 @@ def ask_gemini(api_key, message, images, context=None):
                 ),
                 # URLにキーを付けると、ログに残るため、ヘッダーで渡す
                 {"x-goog-api-key": api_key},
-                {"contents": [{"role": "user", "parts": parts}]},
+                body,
                 timeout=max(1, min(GEMINI_ATTEMPT_TIMEOUT, seconds_left())),
             )
+
+        try:
+            try:
+                data = request(True)
+            except UpstreamError as e:
+                if e.status != 400:
+                    raise
+
+                # このモデルは思考の指定に対応していないため、指定なしでやり直す
+                print(json.dumps({
+                    "provider": "Gemini", "model": model, "status": 400,
+                    "details": str(e.details)[:300],
+                    "action": "retry_without_thinking",
+                }, ensure_ascii=False))
+                data = request(False)
         except UpstreamError as e:
             if e.status not in GEMINI_RETRY_STATUSES:
                 raise
@@ -255,9 +281,18 @@ def ask_gemini(api_key, message, images, context=None):
             part.get("text", "")
             for part in candidates[0].get("content", {}).get("parts", [])
         )
-        tokens = data.get("usageMetadata", {}).get("totalTokenCount", 0)
+        usage = data.get("usageMetadata", {})
+        tokens = usage.get("totalTokenCount", 0)
 
-        print(json.dumps({"provider": "Gemini", "model": model}))
+        # 入力・出力・思考の内訳(見積もりの係数を決めるために残す)
+        print(json.dumps({
+            "provider": "Gemini", "model": model,
+            "prompt": usage.get("promptTokenCount", 0),
+            "output": usage.get("candidatesTokenCount", 0),
+            "thoughts": usage.get("thoughtsTokenCount", 0),
+            "total": tokens,
+            "seconds": round(time.monotonic() - attempt_started, 1),
+        }))
 
         return answer, tokens
 

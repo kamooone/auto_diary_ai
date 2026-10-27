@@ -376,6 +376,25 @@ class AskGeminiTimeoutTest(unittest.TestCase):
 
         return answer, timeouts
 
+    def test_thinking_is_limited_and_retried_without_on_400(self):
+        bodies = []
+
+        def fake_post(provider, url, headers, body, timeout=None):
+            bodies.append(body)
+            if len(bodies) == 1:
+                raise m.UpstreamError("Gemini", 400, "bad thinking")
+            return self.OK
+
+        with mock.patch.object(m, "post_json", fake_post):
+            answer = m.ask_gemini("key", "message", [])
+
+        self.assertEqual(answer, ("回答", 10))
+        self.assertEqual(
+            bodies[0]["generationConfig"]["thinkingConfig"],
+            m.GEMINI_THINKING_CONFIG,
+        )
+        self.assertNotIn("generationConfig", bodies[1])
+
     def test_first_model_may_take_longer_than_ten_seconds(self):
         answer, timeouts = self.run_gemini([(self.OK, 15)])
 
