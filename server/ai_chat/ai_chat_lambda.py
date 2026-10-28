@@ -88,7 +88,8 @@ DEVICES_TABLE_NAME = os.environ.get(
 
 # 毎月使えるトークン数(プランごと。仮の値。変えるときはここだけ直す)
 # アカウントのトークンは、この枠を使い切ったあとに減る(使える量が増えるだけ)
-MONTHLY_LIMIT_TOKENS = {FREE: 3_000, PAID: 500_000}
+# (トークン見積もりの実機テスト中は、無料プランを100,000にしている。リリース前に3,000へ戻すこと)
+MONTHLY_LIMIT_TOKENS = {FREE: 100_000, PAID: 500_000}
 
 # 月の区切りは、日本時間
 JST = timezone(timedelta(hours=9))

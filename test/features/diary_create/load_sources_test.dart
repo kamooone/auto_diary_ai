@@ -88,7 +88,9 @@ void main() {
     final state = container.read(diaryCreateProvider);
     expect(state.timeline, hasLength(1));
     expect(state.timeline.single.start, DateTime(2026, 1, 5, 9));
-    expect(state.selectedTimeline, hasLength(1));
+    // 読み込んだ直後は、すべて未選択
+    expect(state.selectedTimeline, isEmpty);
+    expect(state.selectedPosts, isEmpty);
   });
 
   test('有料プランで日記の日付と違う期間を選んでも、読み込みは終わり、期間の行動履歴が出る', () async {

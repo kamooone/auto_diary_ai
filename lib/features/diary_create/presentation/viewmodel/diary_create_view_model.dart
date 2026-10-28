@@ -226,7 +226,7 @@ class DiaryCreateViewModel extends AutoDisposeNotifier<DiaryCreateState> {
     state = state.copyWith(selectedTimeline: List.unmodifiable(items));
   }
 
-  /// 対象期間のXの投稿と行動履歴を読み込む(最初はすべて選択済みにする)
+  /// 対象期間のXの投稿と行動履歴を読み込む(最初はすべて未選択にする)
   ///
   /// AIに書いてもらう画面を開いたときに呼ぶ。同じ期間をすでに読み込んでいる場合は、
   /// ユーザーの選択を保つため読み込み直さない
@@ -275,9 +275,9 @@ class DiaryCreateViewModel extends AutoDisposeNotifier<DiaryCreateState> {
 
     state = state.copyWith(
       posts: List.unmodifiable(posts),
-      selectedPosts: List.unmodifiable(posts),
+      selectedPosts: const [],
       timeline: List.unmodifiable(timeline),
-      selectedTimeline: List.unmodifiable(timeline),
+      selectedTimeline: const [],
       isLoadingSources: false,
     );
   }
