@@ -20,7 +20,6 @@ import 'widgets/diary_period_text.dart';
 import 'widgets/photo_selection_card.dart';
 import 'widgets/token_shortage_dialog.dart';
 import '../../domain/services/token_estimator.dart';
-import '../../domain/usecases/generate_diary_usecase.dart';
 
 /// AIに日記を書いてもらうための情報を選択する画面
 class DiaryAiScreen extends ConsumerStatefulWidget {
@@ -143,7 +142,6 @@ class _DiaryAiScreenState extends ConsumerState<DiaryAiScreen> {
           // AIには、日記の日付に撮影した写真だけを渡せる
           PhotoSelectionCard(
             photos: state.aiPhotos,
-            maxPhotos: plan.maxPhotos,
             from: state.aiStartDate,
             // 対象期間の最終日の終わりまで
             to: DateTime(
@@ -333,9 +331,7 @@ class _DiaryAiScreenState extends ConsumerState<DiaryAiScreen> {
       note: state.aiNote,
       timeline: state.selectedTimeline,
       posts: state.selectedPosts,
-      photoCount: state.aiPhotos.length > GenerateDiaryUseCase.maxPhotos
-          ? GenerateDiaryUseCase.maxPhotos
-          : state.aiPhotos.length,
+      photoCount: state.aiPhotos.length,
     );
   }
 

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../diary_create/application/providers/diary_usecase_providers.dart';
 import '../../../diary_create/domain/entities/photo.dart';
 import '../../../diary_create/presentation/ui/widgets/photo_selection_card.dart';
 import '../../application/providers/diary_providers.dart';
@@ -69,7 +68,6 @@ class _DiaryEditScreenState extends ConsumerState<DiaryEditScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final plan = ref.watch(diaryPlanProvider);
     final date = widget.diary.date;
 
     return Scaffold(
@@ -106,7 +104,6 @@ class _DiaryEditScreenState extends ConsumerState<DiaryEditScreen> {
           // 写真は、撮影日に関係なく選び直せる
           PhotoSelectionCard(
             photos: _photos,
-            maxPhotos: plan.maxPhotos,
             onChanged: (photos) {
               setState(() => _photos = photos);
             },

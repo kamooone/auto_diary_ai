@@ -25,9 +25,6 @@ class GenerateDiaryUseCase {
        _photoRepository = photoRepository,
        _placeNameRepository = placeNameRepository;
 
-  // 1回の送信で扱える写真の枚数(AWS側のサイズ制限による上限)
-  static const maxPhotos = 10;
-
   // 送信する画像の長辺サイズ(px)とJPEG品質
   static const _maxImageSide = 1024;
   static const _jpegQuality = 80;
@@ -47,10 +44,9 @@ class GenerateDiaryUseCase {
     required List<SharedPost> posts,
     PlanType plan = PlanType.free,
   }) async {
-    // 撮影時刻順に並べ、上限を超える場合は1日全体から均等に間引く
-    final sortedPhotos = [...photos]
+    // 撮影時刻順に並べる(選んだ写真は、枚数に関係なくすべて送る)
+    final candidates = [...photos]
       ..sort((a, b) => a.createdAt.compareTo(b.createdAt));
-    final candidates = _pickEvenly(sortedPhotos, maxPhotos);
 
     // 縮小したJPEGに変換する(取得できなかった写真は送らない)
     final sentPhotos = <Photo>[];
@@ -162,13 +158,6 @@ $postText
         start.day == end.day;
 
     return isSameDay ? date(start) : "${date(start)}〜${date(end)}";
-  }
-
-  List<Photo> _pickEvenly(List<Photo> photos, int max) {
-    if (photos.length <= max) return photos;
-
-    final step = (photos.length - 1) / (max - 1);
-    return [for (var i = 0; i < max; i++) photos[(i * step).round()]];
   }
 
   bool _isSameDay(DateTime a, DateTime b) {

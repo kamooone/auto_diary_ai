@@ -10,13 +10,11 @@ class PhotoPickerPage extends ConsumerStatefulWidget {
   const PhotoPickerPage({
     super.key,
     required this.initialSelection,
-    required this.maxSelection,
     this.from,
     this.to,
   });
 
   final List<Photo> initialSelection;
-  final int maxSelection;
 
   /// 表示する写真の撮影期間([from]以上[to]未満)
   /// 指定しない場合は、端末内のすべての写真を表示する
@@ -84,15 +82,6 @@ class _PhotoPickerPageState extends ConsumerState<PhotoPickerPage> {
       return;
     }
 
-    if (_selected.length >= widget.maxSelection) {
-      ScaffoldMessenger.of(context)
-        ..hideCurrentSnackBar()
-        ..showSnackBar(
-          SnackBar(content: Text("写真は最大${widget.maxSelection}枚まで選択できます")),
-        );
-      return;
-    }
-
     setState(() => _selected.add(photo));
   }
 
@@ -100,7 +89,7 @@ class _PhotoPickerPageState extends ConsumerState<PhotoPickerPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text("写真を選択 (${_selected.length}/${widget.maxSelection})"),
+        title: Text("写真を選択 (${_selected.length}枚)"),
       ),
       body: _buildBody(),
       bottomNavigationBar: SafeArea(

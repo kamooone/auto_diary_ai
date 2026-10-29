@@ -8,7 +8,6 @@ class PhotoSelectionCard extends StatelessWidget {
   const PhotoSelectionCard({
     super.key,
     required this.photos,
-    required this.maxPhotos,
     this.from,
     this.to,
     required this.onChanged,
@@ -16,8 +15,6 @@ class PhotoSelectionCard extends StatelessWidget {
 
   /// 選択済みの写真
   final List<Photo> photos;
-
-  final int maxPhotos;
 
   /// 選べる写真の撮影期間([from]以上[to]未満)
   /// 指定しない場合は、端末内のすべての写真から選べる
@@ -34,7 +31,7 @@ class PhotoSelectionCard extends StatelessWidget {
           ListTile(
             leading: const Icon(Icons.photo_library),
             title: const Text("写真"),
-            subtitle: Text("${photos.length}枚を選択中（最大$maxPhotos枚）"),
+            subtitle: Text("${photos.length}枚を選択中"),
             trailing: const Icon(Icons.chevron_right),
             onTap: () async {
               final selected = await Navigator.of(context).push<List<Photo>>(
@@ -42,7 +39,6 @@ class PhotoSelectionCard extends StatelessWidget {
                   fullscreenDialog: true,
                   builder: (context) => PhotoPickerPage(
                     initialSelection: photos,
-                    maxSelection: maxPhotos,
                     from: from,
                     to: to,
                   ),
