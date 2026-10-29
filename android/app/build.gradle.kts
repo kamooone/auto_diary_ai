@@ -28,29 +28,38 @@ android {
         versionName = flutter.versionName
     }
 
+    // リリースの署名情報は、環境変数で受け取る(tools/deploy.sh が設定する)
+    val keystoreFile = System.getenv("ANDROID_KEYSTORE_FILE")
+    val keystorePassword = System.getenv("ANDROID_KEYSTORE_PASSWORD")
+    val keyAliasName = System.getenv("ANDROID_KEY_ALIAS")
+    val keyPasswordValue = System.getenv("ANDROID_KEY_PASSWORD")
+    val hasReleaseSigning = listOf(
+        keystoreFile, keystorePassword, keyAliasName, keyPasswordValue
+    ).none { it.isNullOrBlank() }
+
     signingConfigs {
         create("release") {
-            val keystoreFile = System.getenv("ANDROID_KEYSTORE_FILE")
-            val keystorePassword = System.getenv("ANDROID_KEYSTORE_PASSWORD")
-            val keyAlias = System.getenv("ANDROID_KEY_ALIAS")
-            val keyPassword = System.getenv("ANDROID_KEY_PASSWORD")
-
-            if (
-                keystoreFile.isNullOrBlank() ||
-                keystorePassword.isNullOrBlank() ||
-                keyAlias.isNullOrBlank() ||
-                keyPassword.isNullOrBlank()
-            ) {
-                throw GradleException(
-                    "Release signing credentials are not available. " +
-                    "Use tools/deploy.sh to build the release AAB."
-                )
+            if (hasReleaseSigning) {
+                storeFile = file(keystoreFile!!)
+                storePassword = keystorePassword
+                keyAlias = keyAliasName
+                keyPassword = keyPasswordValue
             }
+        }
+    }
 
-            storeFile = file(keystoreFile)
-            storePassword = keystorePassword
-            this.keyAlias = keyAlias
-            this.keyPassword = keyPassword
+    // 署名情報がないのは、リリースをビルドするときだけエラーにする
+    // (デバッグ実行は、署名情報なしで動かせる)
+    gradle.taskGraph.whenReady {
+        val buildsRelease = allTasks.any {
+            it.project == project && it.name.contains("Release", ignoreCase = true)
+        }
+
+        if (buildsRelease && !hasReleaseSigning) {
+            throw GradleException(
+                "Release signing credentials are not available. " +
+                "Use tools/deploy_play.sh to build the release AAB."
+            )
         }
     }
 
