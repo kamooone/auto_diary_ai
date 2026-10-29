@@ -3,7 +3,6 @@ import '../../../ai/domain/entities/ai_message_request.dart';
 import '../../../ai/domain/repositories/ai_repository.dart';
 import '../../../plan/domain/entities/plan_type.dart';
 import '../../../location/domain/entities/timeline_item.dart';
-import '../../../location/domain/repositories/place_name_repository.dart';
 import '../../../share/domain/entities/shared_post.dart';
 import '../entities/generated_diary.dart';
 import '../entities/photo.dart';
@@ -14,17 +13,14 @@ import '../services/timeline_text.dart';
 class GenerateDiaryUseCase {
   final AiRepository _aiRepository;
   final PhotoRepository _photoRepository;
-  final PlaceNameRepository _placeNameRepository;
 
   final GeneratedDiaryParser _parser = GeneratedDiaryParser();
 
   GenerateDiaryUseCase({
     required AiRepository aiRepository,
     required PhotoRepository photoRepository,
-    required PlaceNameRepository placeNameRepository,
   }) : _aiRepository = aiRepository,
-       _photoRepository = photoRepository,
-       _placeNameRepository = placeNameRepository;
+       _photoRepository = photoRepository;
 
   // 送信する画像の長辺サイズ(px)とJPEG品質
   static const _maxImageSide = 1024;
@@ -69,18 +65,6 @@ class GenerateDiaryUseCase {
       }
     }
 
-    // 撮影場所が分かる写真は、位置履歴が欠けた時間帯の手がかりになる
-    final photoInfos = <String>[];
-    for (final (index, photo) in sentPhotos.indexed) {
-      final place = await _photoPlace(photo);
-
-      photoInfos.add("""
-      写真 ${index + 1}枚目
-      撮影日時: ${photo.createdAt}${place == null ? "" : "\n      撮影場所: $place"}
-      """);
-    }
-    final photoInfoText = photoInfos.join("\n");
-
     // 位置情報は「滞在した場所」と「移動」に要約して渡す
     final timelineText = TimelineText.format(timeline);
 
@@ -108,9 +92,6 @@ ${_isSameDay(startDate, endDate) && _isSameDay(startDate, diaryDate) ? "" : "\n�
 写真
 ${sentPhotos.length}枚添付しています。
 
-写真の撮影日時と撮影場所
-$photoInfoText
-
 行動履歴(滞在した場所と移動)
 ※「推定」と付いた場所や移動手段は、位置情報から自動で推定したものです。
 $timelineText
@@ -118,7 +99,7 @@ $timelineText
 Xの投稿
 $postText
 
-写真の内容だけでなく、撮影日時・撮影場所と行動履歴も照らし合わせて、時系列に沿った自然な日記を作成してください。
+写真の内容と行動履歴も照らし合わせて、時系列に沿った自然な日記を作成してください。
 
 回答は必ず次の形式で書いてください。前置きや説明、記号による装飾は付けないでください。
 
@@ -138,27 +119,6 @@ $postText
       content: diary.content,
       usage: reply.usage,
     );
-  }
-
-  // 写真の撮影場所(位置情報が付いていない場合はnull)
-  Future<String?> _photoPlace(Photo photo) async {
-    // 撮影場所が取れなくても日記は作れるため、待ちすぎない
-    final location = await AppLog.measure(
-      '写真',
-      '撮影場所 ${photo.id}',
-      () => _photoRepository
-          .getLocation(photo)
-          .timeout(const Duration(seconds: 15), onTimeout: () => null),
-    );
-    if (location == null) return null;
-
-    final placeName = await _placeNameRepository.getPlaceName(
-      location.latitude,
-      location.longitude,
-    );
-
-    return placeName ??
-        "緯度${location.latitude.toStringAsFixed(4)} 経度${location.longitude.toStringAsFixed(4)}付近";
   }
 
   String _period(DateTime start, DateTime end) {

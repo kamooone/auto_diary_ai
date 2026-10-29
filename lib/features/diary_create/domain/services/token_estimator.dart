@@ -19,7 +19,7 @@ class TokenEstimator {
   // 日本語の文章の1文字あたり(日時や数字を含むため、1文字を1トークンとして多めに見る)
   static const tokensPerChar = 1.0;
 
-  // 写真1枚あたり(画像と、撮影日時・場所の情報)
+  // 写真1枚あたり
   static const tokensPerPhoto = 1200;
 
   // 日記の本文とタイトル、AIが考える分

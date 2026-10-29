@@ -4,7 +4,6 @@ import 'dart:typed_data';
 import 'package:photo_manager/photo_manager.dart';
 import '../../../../core/logging/app_log.dart';
 import '../../domain/entities/photo.dart';
-import '../../domain/entities/photo_location.dart';
 import '../../domain/exceptions/photo_exception.dart';
 import '../../domain/repositories/photo_repository.dart';
 
@@ -24,15 +23,7 @@ class PhotoRepositoryImpl implements PhotoRepository {
     DateTime? from,
     DateTime? to,
   }) async {
-    // 撮影場所も読み取れるよう、Androidでは位置情報付きで許可を求める
-    final permission = await PhotoManager.requestPermissionExtend(
-      requestOption: const PermissionRequestOption(
-        androidPermission: AndroidPermission(
-          type: RequestType.common,
-          mediaLocation: true,
-        ),
-      ),
-    );
+    final permission = await PhotoManager.requestPermissionExtend();
 
     if (!permission.hasAccess) {
       throw PhotoPermissionException();
@@ -84,28 +75,6 @@ class PhotoRepositoryImpl implements PhotoRepository {
     return asset?.thumbnailDataWithSize(
       const ThumbnailSize.square(_thumbnailSide),
     );
-  }
-
-  @override
-  Future<PhotoLocation?> getLocation(Photo photo) async {
-    final asset = await _findAsset(photo.id);
-    if (asset == null) return null;
-
-    try {
-      final latLng = await asset.latlngAsync();
-
-      // 位置情報が付いていない写真は(0, 0)が返る
-      if (latLng == null || (latLng.latitude == 0 && latLng.longitude == 0)) {
-        return null;
-      }
-
-      return PhotoLocation(
-        latitude: latLng.latitude,
-        longitude: latLng.longitude,
-      );
-    } catch (e) {
-      return null;
-    }
   }
 
   @override
