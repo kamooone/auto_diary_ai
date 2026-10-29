@@ -1,3 +1,4 @@
+import '../../../../core/logging/app_log.dart';
 import '../../../ai/domain/entities/ai_message_request.dart';
 import '../../../ai/domain/repositories/ai_repository.dart';
 import '../../../plan/domain/entities/plan_type.dart';
@@ -52,10 +53,14 @@ class GenerateDiaryUseCase {
     final sentPhotos = <Photo>[];
     final images = <AiImage>[];
     for (final photo in candidates) {
-      final bytes = await _photoRepository.getJpeg(
-        photo,
-        maxSide: _maxImageSide,
-        quality: _jpegQuality,
+      final bytes = await AppLog.measure(
+        '写真',
+        '縮小 ${photo.id}',
+        () => _photoRepository.getJpeg(
+          photo,
+          maxSide: _maxImageSide,
+          quality: _jpegQuality,
+        ),
       );
 
       if (bytes != null) {
@@ -137,7 +142,14 @@ $postText
 
   // 写真の撮影場所(位置情報が付いていない場合はnull)
   Future<String?> _photoPlace(Photo photo) async {
-    final location = await _photoRepository.getLocation(photo);
+    // 撮影場所が取れなくても日記は作れるため、待ちすぎない
+    final location = await AppLog.measure(
+      '写真',
+      '撮影場所 ${photo.id}',
+      () => _photoRepository
+          .getLocation(photo)
+          .timeout(const Duration(seconds: 15), onTimeout: () => null),
+    );
     if (location == null) return null;
 
     final placeName = await _placeNameRepository.getPlaceName(

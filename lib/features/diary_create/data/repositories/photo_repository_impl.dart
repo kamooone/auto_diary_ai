@@ -1,6 +1,8 @@
+import 'dart:async';
 import 'dart:math';
 import 'dart:typed_data';
 import 'package:photo_manager/photo_manager.dart';
+import '../../../../core/logging/app_log.dart';
 import '../../domain/entities/photo.dart';
 import '../../domain/entities/photo_location.dart';
 import '../../domain/exceptions/photo_exception.dart';
@@ -8,6 +10,9 @@ import '../../domain/repositories/photo_repository.dart';
 
 class PhotoRepositoryImpl implements PhotoRepository {
   static const _thumbnailSide = 200;
+
+  // 縮小が終わらない写真(10MBを超えるものなど)で、いつまでも待たないための時間
+  static const _jpegTimeout = Duration(seconds: 20);
 
   // 取得済みのAssetEntityをidから引けるように保持する
   final _assets = <String, AssetEntity>{};
@@ -112,11 +117,28 @@ class PhotoRepositoryImpl implements PhotoRepository {
     final asset = await _findAsset(photo.id);
     if (asset == null) return null;
 
-    return asset.thumbnailDataWithSize(
-      _fitSize(asset, maxSide),
-      format: ThumbnailFormat.jpeg,
-      quality: quality,
-    );
+    // 時間内に縮小できなければ、半分の大きさで試し直す
+    for (final side in [maxSide, maxSide ~/ 2]) {
+      try {
+        final bytes = await asset
+            .thumbnailDataWithSize(
+              _fitSize(asset, side),
+              format: ThumbnailFormat.jpeg,
+              quality: quality,
+            )
+            .timeout(_jpegTimeout);
+
+        if (bytes != null) return bytes;
+      } on TimeoutException {
+        AppLog.add(
+          '写真',
+          '縮小が${_jpegTimeout.inSeconds}秒で終わらない: '
+              '${asset.width}x${asset.height} 長辺$side',
+        );
+      }
+    }
+
+    return null;
   }
 
   Future<AssetEntity?> _findAsset(String id) async {
