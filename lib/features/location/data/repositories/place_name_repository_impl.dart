@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/widgets.dart';
 import 'package:geocoding/geocoding.dart' as geocoding;
 import 'package:isar/isar.dart';
@@ -14,6 +16,9 @@ class PlaceNameRepositoryImpl implements PlaceNameRepository {
 
   // 地名の変更を反映するため、古い結果は取り直す
   static const _maxAge = Duration(days: 180);
+
+  // 端末の地名検索は、応答が返らないことがあるため、いつまでも待たない
+  static const _geocodingTimeout = Duration(seconds: 10);
 
   final _geocoding = geocoding.Geocoding();
 
@@ -46,11 +51,9 @@ class PlaceNameRepositoryImpl implements PlaceNameRepository {
     final stopwatch = Stopwatch()..start();
 
     try {
-      final placemarks = await _geocoding.placemarkFromCoordinates(
-        latitude,
-        longitude,
-        locale: _locale,
-      );
+      final placemarks = await _geocoding
+          .placemarkFromCoordinates(latitude, longitude, locale: _locale)
+          .timeout(_geocodingTimeout);
       if (placemarks.isEmpty) {
         AppLog.add('地名', '$key: 該当なし ${stopwatch.elapsedMilliseconds}ms');
         return null;
