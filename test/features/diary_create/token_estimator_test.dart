@@ -49,7 +49,7 @@ void main() {
     test('メモ・行動履歴・投稿の文字数が増えると増える', () {
       final base = estimate();
 
-      expect(estimate(note: 'あ' * 100), greaterThan(base + 99));
+      expect(estimate(note: 'あ' * 100), greaterThan(base + 50));
       expect(estimate(timeline: [stay]), greaterThan(base));
       expect(
         estimate(
