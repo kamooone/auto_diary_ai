@@ -72,8 +72,27 @@ exceptions.ClientError = ClientError
 sys.modules["botocore"] = botocore
 sys.modules["botocore.exceptions"] = exceptions
 
-sys.path.insert(0, os.path.dirname(__file__))
-import ai_chat_lambda as m  # noqa: E402
+LAMBDA_PATH = os.path.join(os.path.dirname(__file__), "ai_chat_lambda.py")
+LIMIT_PLACEHOLDER = "/* ここは直接入力する */"
+
+
+def load_lambda():
+    """月の上限は、ファイルでは「直接入力する」の印のため、テスト用の数字に置き換えて読み込む"""
+    with open(LAMBDA_PATH, encoding="utf-8") as f:
+        source = f.read()
+
+    assert source.count(LIMIT_PLACEHOLDER) == 2
+    source = source.replace(LIMIT_PLACEHOLDER, "3_000", 1)
+    source = source.replace(LIMIT_PLACEHOLDER, "500_000", 1)
+
+    module = types.ModuleType("ai_chat_lambda")
+    module.__file__ = LAMBDA_PATH
+    sys.modules["ai_chat_lambda"] = module
+    exec(compile(source, LAMBDA_PATH, "exec"), module.__dict__)
+    return module
+
+
+m = load_lambda()
 
 CLIENT_ID = "a" * 32
 FREE_LIMIT = m.MONTHLY_LIMIT_TOKENS[m.FREE]
@@ -432,6 +451,15 @@ class AskGeminiTimeoutTest(unittest.TestCase):
         self.assertEqual(len(timeouts), 2)
         # 残りの時間を超えて待たない
         self.assertLessEqual(timeouts[1], m.GEMINI_TOTAL_BUDGET - 1)
+
+
+class UnfilledLimitTest(unittest.TestCase):
+    def test_上限を入力せずに貼ると_構文エラーになる(self):
+        with open(LAMBDA_PATH, encoding="utf-8") as f:
+            source = f.read()
+
+        with self.assertRaises(SyntaxError):
+            compile(source, LAMBDA_PATH, "exec")
 
 
 if __name__ == "__main__":
