@@ -1,0 +1,71 @@
+import 'package:auto_diary_ai/features/diary/domain/entities/diary.dart';
+import 'package:auto_diary_ai/features/diary_create/domain/services/summary_text.dart';
+import 'package:auto_diary_ai/features/diary_create/domain/services/token_estimator.dart';
+import 'package:flutter_test/flutter_test.dart';
+
+Diary diary(int month, int day, String title, String content) => Diary(
+  date: DateTime(2026, month, day),
+  title: title,
+  content: content,
+  isAiGenerated: false,
+  createdAt: DateTime(2026, month, day, 21),
+);
+
+void main() {
+  group('SummaryText', () {
+    test('日付の古い順に、日付・タイトル・本文を並べる', () {
+      final text = SummaryText.format([
+        diary(2, 3, '二つ目', '本文2'),
+        diary(1, 5, '一つ目', '本文1'),
+      ]);
+
+      expect(text, '2026年1月5日 一つ目\n本文1\n\n2026年2月3日 二つ目\n本文2');
+    });
+
+    test('タイトルがない日記は、日付だけを見出しにする', () {
+      expect(SummaryText.format([diary(1, 1, '', '本文')]), '2026年1月1日\n本文');
+    });
+
+    test('件数が多いほど、長く書くよう指示する', () {
+      expect(SummaryText.lengthGuide(5), contains('300'));
+      expect(SummaryText.lengthGuide(30), contains('500〜800'));
+      expect(SummaryText.lengthGuide(365), contains('1,000〜1,500'));
+    });
+
+    test('365件×500文字は、上限に収まる', () {
+      final diaries = [
+        for (var i = 0; i < 365; i++)
+          Diary(
+            date: DateTime(2026, 1, 1).add(Duration(days: i)),
+            title: 'タイトル',
+            content: 'あ' * 500,
+            isAiGenerated: true,
+            createdAt: DateTime(2026, 1, 1),
+          ),
+      ];
+
+      expect(SummaryText.length(diaries), lessThan(SummaryText.maxChars));
+    });
+  });
+
+  group('TokenEstimator(まとめ日記)', () {
+    int estimate(List<Diary> diaries) => TokenEstimator.estimate(
+      note: '',
+      timeline: const [],
+      posts: const [],
+      photoCount: 0,
+      diaries: diaries,
+    );
+
+    test('日記の文字数に応じて増える', () {
+      final one = estimate([diary(1, 1, 't', 'あ' * 500)]);
+      final two = estimate([
+        diary(1, 1, 't', 'あ' * 500),
+        diary(1, 2, 't', 'あ' * 500),
+      ]);
+
+      expect(two, greaterThan(one + 200));
+      expect(one, greaterThan(estimate(const [])));
+    });
+  });
+}

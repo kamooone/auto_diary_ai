@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../app/router/app_routes.dart';
 import '../../../../core/app_info/install_date_provider.dart';
-import '../../../ads/application/ads_provider.dart';
 import '../../../plan/application/providers/plan_provider.dart';
 import '../viewmodel/diary_create_view_model.dart';
 import '../../../plan/domain/entities/plan_availability.dart';
@@ -14,6 +13,7 @@ import '../../../share/domain/entities/shared_post.dart';
 import '../../application/providers/diary_usecase_providers.dart';
 import '../providers/diary_create_provider.dart';
 import 'diary_result_screen.dart';
+import 'generate_flow.dart';
 import 'post_select_page.dart';
 import 'timeline_select_page.dart';
 import 'widgets/diary_period_text.dart';
@@ -264,59 +264,13 @@ class _DiaryAiScreenState extends ConsumerState<DiaryAiScreen> {
 
   // リワード広告を見たあとに、AIに日記を書いてもらう
   Future<void> _generate(BuildContext context) async {
-    // 今月の残りでは足りない見込みなら、広告を見てもらう前に知らせる
-    final usage = ref.read(usageProvider);
-    final state = ref.read(diaryCreateProvider);
-
-    if (usage != null && _estimate(state) > usage.remainingTokens) {
-      final choice = await showTokenShortageDialog(
-        context,
-        estimated: _estimate(state),
-        remaining: usage.remainingTokens,
-      );
-      if (!context.mounted) return;
-
-      if (choice == TokenShortageChoice.openPoints) {
-        context.push(AppRoutes.points);
-        return;
-      }
-      if (choice == TokenShortageChoice.cancel) return;
-    }
-
-    // 広告を見る必要があることを伝えて、許可をもらう
-    final agreed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text("広告を見ますか？"),
-        content: const Text("AIに日記を書いてもらうには、広告(動画)を最後まで見る必要があります。"),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: const Text("やめる"),
-          ),
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            child: const Text("広告を見る"),
-          ),
-        ],
-      ),
+    final ok = await confirmBeforeGenerate(
+      context,
+      ref,
+      estimatedTokens: _estimate(ref.read(diaryCreateProvider)),
     );
 
-    if (agreed != true || !context.mounted) return;
-
-    final allowed = await ref.read(adPolicyProvider).beforeGenerate();
-
-    if (!allowed) {
-      if (!context.mounted) return;
-
-      // 広告を最後まで見ないと、日記を書いてもらえない
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("広告を最後まで見ると、AIに日記を書いてもらえます")),
-      );
-      return;
-    }
-
-    if (!context.mounted) return;
+    if (!ok || !context.mounted) return;
 
     ref.read(diaryCreateProvider.notifier).generateDiary();
 

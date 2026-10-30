@@ -1,5 +1,7 @@
+import '../../../diary/domain/entities/diary.dart';
 import '../../../location/domain/entities/timeline_item.dart';
 import '../../../share/domain/entities/shared_post.dart';
+import 'summary_text.dart';
 import 'timeline_text.dart';
 
 /// AIに日記を書いてもらうときに使うトークン数の、目安を求める
@@ -32,12 +34,17 @@ class TokenEstimator {
   // AIが考える分(0〜800でばらつく)は含めない
   static const outputTokens = 50;
 
+  // まとめ日記の出力(期間全体をまとめた文章)。件数が多いほど長いが、少なめにする
+  static const summaryOutputTokens = 300;
+
+  /// [diaries]は、まとめ日記の材料にする作成済みの日記(写真・投稿・履歴とは同時に選ばない)
   /// [multiplier]は、AIの種類による消費量の倍率(サーバーが決める。通常は1)
   static int estimate({
     required String note,
     required List<TimelineItem> timeline,
     required List<SharedPost> posts,
     required int photoCount,
+    List<Diary> diaries = const [],
     double multiplier = 1,
   }) {
     final chars =
@@ -52,7 +59,8 @@ class TokenEstimator {
         note.length * noteTokensPerChar +
         chars * tokensPerChar +
         photoCount * tokensPerPhoto +
-        outputTokens;
+        SummaryText.length(diaries) * noteTokensPerChar +
+        (diaries.isEmpty ? outputTokens : summaryOutputTokens);
 
     return (tokens * multiplier).ceil();
   }

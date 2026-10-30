@@ -11,6 +11,7 @@ import '../../../location/domain/entities/timeline_item.dart';
 import '../../../share/application/providers/share_providers.dart';
 import '../../../share/domain/entities/shared_post.dart';
 import '../../application/providers/diary_usecase_providers.dart';
+import '../../domain/entities/generated_diary.dart';
 import '../../domain/entities/photo.dart';
 
 class DiaryCreateState {
@@ -54,6 +55,9 @@ class DiaryCreateState {
   /// Xの投稿と行動履歴を読み込み中かどうか
   final bool isLoadingSources;
 
+  /// まとめ日記の材料にする、作成済みの日記
+  final List<Diary> summaryDiaries;
+
   DiaryCreateState({
     this.title = '',
     this.content = '',
@@ -73,6 +77,7 @@ class DiaryCreateState {
     this.timeline = const [],
     this.selectedTimeline = const [],
     this.isLoadingSources = false,
+    this.summaryDiaries = const [],
   });
 
   DiaryCreateState copyWith({
@@ -95,6 +100,7 @@ class DiaryCreateState {
     List<TimelineItem>? timeline,
     List<TimelineItem>? selectedTimeline,
     bool? isLoadingSources,
+    List<Diary>? summaryDiaries,
   }) {
     return DiaryCreateState(
       title: title ?? this.title,
@@ -115,6 +121,7 @@ class DiaryCreateState {
       timeline: timeline ?? this.timeline,
       selectedTimeline: selectedTimeline ?? this.selectedTimeline,
       isLoadingSources: isLoadingSources ?? this.isLoadingSources,
+      summaryDiaries: summaryDiaries ?? this.summaryDiaries,
     );
   }
 }
@@ -214,6 +221,11 @@ class DiaryCreateViewModel extends AutoDisposeNotifier<DiaryCreateState> {
   // AIに渡す写真をセット
   void setAiPhotos(List<Photo> photos) {
     state = state.copyWith(aiPhotos: List.unmodifiable(photos));
+  }
+
+  // まとめ日記の材料にする日記をセット
+  void setSummaryDiaries(List<Diary> diaries) {
+    state = state.copyWith(summaryDiaries: List.unmodifiable(diaries));
   }
 
   // AIに渡すXの投稿をセット
@@ -335,14 +347,9 @@ class DiaryCreateViewModel extends AutoDisposeNotifier<DiaryCreateState> {
     }
   }
 
-  Future<void> generateDiary() async {
-    if (state.isLoading) return;
-
-    state = state.copyWith(isLoading: true, clearError: true);
-
-    try {
-      // ユーザーが選んだ情報だけをAIに渡して、日記を書いてもらう
-      final result = await _generateDiaryUseCase.execute(
+  Future<void> generateDiary() {
+    return _generate(
+      () => _generateDiaryUseCase.execute(
         plan: ref.read(planTypeProvider),
         note: state.aiNote,
         diaryDate: state.startDate,
@@ -351,7 +358,29 @@ class DiaryCreateViewModel extends AutoDisposeNotifier<DiaryCreateState> {
         photos: state.aiPhotos,
         timeline: state.selectedTimeline,
         posts: state.selectedPosts,
-      );
+      ),
+    );
+  }
+
+  /// 選んだ作成済みの日記を、AIにまとめてもらう
+  Future<void> generateSummaryDiary() {
+    return _generate(
+      () => ref.read(generateSummaryDiaryUseCaseProvider).execute(
+        plan: ref.read(planTypeProvider),
+        note: state.aiNote,
+        diaries: state.summaryDiaries,
+      ),
+    );
+  }
+
+  // 日記を書いてもらい、結果(または失敗)を状態に反映する
+  Future<void> _generate(Future<GeneratedDiary> Function() request) async {
+    if (state.isLoading) return;
+
+    state = state.copyWith(isLoading: true, clearError: true);
+
+    try {
+      final result = await request();
 
       // 今月の使用量を、画面に反映する
       final usage = result.usage;

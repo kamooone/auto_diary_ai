@@ -1,0 +1,166 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../diary/application/providers/diary_providers.dart';
+import '../../../diary/domain/entities/diary.dart';
+import '../../../plan/application/providers/plan_provider.dart';
+import '../../../plan/presentation/widgets/usage_meter.dart';
+import '../../domain/services/summary_text.dart';
+import '../../domain/services/token_estimator.dart';
+import '../providers/diary_create_provider.dart';
+import 'diary_result_screen.dart';
+import 'diary_select_page.dart';
+import 'generate_flow.dart';
+import 'widgets/token_shortage_dialog.dart';
+
+/// 作成済みの日記を選んで、AIにまとめの日記(月のまとめ・1年の振り返りなど)を書いてもらう画面
+class SummaryDiaryScreen extends ConsumerStatefulWidget {
+  const SummaryDiaryScreen({super.key});
+
+  @override
+  ConsumerState<SummaryDiaryScreen> createState() => _SummaryDiaryScreenState();
+}
+
+class _SummaryDiaryScreenState extends ConsumerState<SummaryDiaryScreen> {
+  late final _noteController = TextEditingController(
+    text: ref.read(diaryCreateProvider).aiNote,
+  );
+
+  @override
+  void initState() {
+    super.initState();
+
+    // 今月の使用量を取得する
+    Future.microtask(() => ref.read(usageProvider.notifier).refresh());
+  }
+
+  @override
+  void dispose() {
+    _noteController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final state = ref.watch(diaryCreateProvider);
+    final viewModel = ref.read(diaryCreateProvider.notifier);
+    final diaries = ref.watch(diariesProvider).valueOrNull ?? const <Diary>[];
+    final usage = ref.watch(usageProvider);
+    final isExceeded = usage?.isExceeded ?? false;
+
+    final selected = state.summaryDiaries;
+    final isTooLong = SummaryText.length(selected) > SummaryText.maxChars;
+
+    return Scaffold(
+      appBar: AppBar(title: const Text("まとめ日記")),
+      body: ListView(
+        padding: const EdgeInsets.all(16),
+        children: [
+          Text(
+            "作成済みの日記を選ぶと、AIが1つの日記にまとめます。"
+            "月のまとめや、1年の振り返りに使えます。",
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
+          const SizedBox(height: 12),
+
+          Card(
+            child: UsageMeter(usage: usage),
+          ),
+          const SizedBox(height: 12),
+
+          Card(
+            child: ListTile(
+              leading: const Icon(Icons.menu_book),
+              title: const Text("まとめる日記"),
+              subtitle: Text(
+                diaries.isEmpty
+                    ? "まだ日記がありません"
+                    : "${diaries.length}件中${selected.length}件を選択中",
+              ),
+              trailing: const Icon(Icons.chevron_right),
+              enabled: diaries.isNotEmpty,
+              onTap: () => _select(context, diaries, selected),
+            ),
+          ),
+          const SizedBox(height: 12),
+
+          TextField(
+            controller: _noteController,
+            decoration: const InputDecoration(
+              labelText: "AIに追加で伝えたいこと",
+              hintText: "例: 今年1年の振り返りとして、前向きな言葉で締めてほしい",
+              border: OutlineInputBorder(),
+              alignLabelWithHint: true,
+            ),
+            keyboardType: TextInputType.multiline,
+            minLines: 3,
+            maxLines: 8,
+            onChanged: viewModel.setAiNote,
+          ),
+          const SizedBox(height: 16),
+
+          if (usage != null && selected.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: Text(
+                "消費トークンの目安: 約${formatTokens(_estimate(selected))}"
+                "(残り ${formatTokens(usage.remainingTokens)})",
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+            ),
+          ElevatedButton.icon(
+            // 日記を選ぶまでは押せない。使用量の上限に達している場合も、押せない
+            onPressed: selected.isEmpty || isTooLong || isExceeded
+                ? null
+                : () => _generate(context, selected),
+            icon: const Icon(Icons.auto_awesome),
+            label: const Text("AIにまとめてもらう"),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _select(
+    BuildContext context,
+    List<Diary> diaries,
+    List<Diary> selected,
+  ) async {
+    final result = await Navigator.of(context).push<List<Diary>>(
+      MaterialPageRoute(
+        fullscreenDialog: true,
+        builder: (context) =>
+            DiarySelectPage(diaries: diaries, initialSelection: selected),
+      ),
+    );
+
+    if (result != null) {
+      ref.read(diaryCreateProvider.notifier).setSummaryDiaries(result);
+    }
+  }
+
+  Future<void> _generate(BuildContext context, List<Diary> selected) async {
+    final ok = await confirmBeforeGenerate(
+      context,
+      ref,
+      estimatedTokens: _estimate(selected),
+    );
+
+    if (!ok || !context.mounted) return;
+
+    ref.read(diaryCreateProvider.notifier).generateSummaryDiary();
+
+    Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (context) => const DiaryResultScreen()));
+  }
+
+  int _estimate(List<Diary> selected) {
+    return TokenEstimator.estimate(
+      note: ref.read(diaryCreateProvider).aiNote,
+      timeline: const [],
+      posts: const [],
+      photoCount: 0,
+      diaries: selected,
+    );
+  }
+}

@@ -3,6 +3,7 @@ import '../../data/repositories/photo_repository_impl.dart';
 import '../../domain/repositories/photo_repository.dart';
 import '../../domain/entities/diary_plan.dart';
 import '../../domain/usecases/generate_diary_usecase.dart';
+import '../../domain/usecases/generate_summary_diary_usecase.dart';
 import '../../domain/usecases/get_photo_thumbnail_usecase.dart';
 import '../../domain/usecases/get_photos_usecase.dart';
 import '../../../ai/application/providers/ai_provider.dart';
@@ -23,6 +24,13 @@ final generateDiaryUseCaseProvider = Provider<GenerateDiaryUseCase>((ref) {
   return GenerateDiaryUseCase(
     aiRepository: ref.watch(aiRepositoryProvider),
     photoRepository: ref.watch(photoRepositoryProvider),
+  );
+});
+
+final generateSummaryDiaryUseCaseProvider =
+    Provider<GenerateSummaryDiaryUseCase>((ref) {
+  return GenerateSummaryDiaryUseCase(
+    aiRepository: ref.watch(aiRepositoryProvider),
   );
 });
 
