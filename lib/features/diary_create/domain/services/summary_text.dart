@@ -8,6 +8,9 @@ class SummaryText {
   /// 365件×500文字(約18万文字)の約3倍。超えると、通信のサイズ上限に近づく
   static const maxChars = 600000;
 
+  /// まとめるには、2件以上の日記が必要
+  static const minCount = 2;
+
   /// 日付の古い順に、日付・タイトル・本文を並べる
   /// (同じ日付の日記は、作成した順)
   static String format(List<Diary> diaries) {

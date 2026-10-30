@@ -98,6 +98,14 @@ class _SummaryDiaryScreenState extends ConsumerState<SummaryDiaryScreen> {
           ),
           const SizedBox(height: 16),
 
+          if (selected.length < SummaryText.minCount)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: Text(
+                "日記を${SummaryText.minCount}件以上選んでください",
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+            ),
           if (usage != null && selected.isNotEmpty)
             Padding(
               padding: const EdgeInsets.only(bottom: 8),
@@ -108,8 +116,8 @@ class _SummaryDiaryScreenState extends ConsumerState<SummaryDiaryScreen> {
               ),
             ),
           ElevatedButton.icon(
-            // 日記を選ぶまでは押せない。使用量の上限に達している場合も、押せない
-            onPressed: selected.isEmpty || isTooLong || isExceeded
+            // 2件以上選ぶまでは押せない。使用量の上限に達している場合も、押せない
+            onPressed: selected.length < SummaryText.minCount || isTooLong || isExceeded
                 ? null
                 : () => _generate(context, selected),
             icon: const Icon(Icons.auto_awesome),

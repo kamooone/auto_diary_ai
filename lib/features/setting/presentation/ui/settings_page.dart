@@ -6,6 +6,7 @@ import '../../../ads/application/ads_provider.dart';
 import '../../../plan/application/providers/plan_provider.dart';
 import '../../../plan/domain/entities/plan_availability.dart';
 import '../../../plan/presentation/widgets/usage_meter.dart';
+import 'test_diary_page.dart';
 import '../providers/recording_settings_provider.dart';
 
 class SettingsPage extends ConsumerStatefulWidget {
@@ -129,6 +130,18 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
             subtitle: const Text("地名や緯度・経度を入力して、取得できるかを確かめます"),
             onTap: () {
               context.push(AppRoutes.placeSearchTest);
+            },
+          ),
+
+          // まとめ日記を試すための日記を、まとめて追加・削除できるようにする
+          ListTile(
+            leading: const Icon(Icons.bug_report),
+            title: const Text("テスト用の日記"),
+            subtitle: const Text("まとめ日記を試すための日記を、まとめて追加・削除します"),
+            onTap: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(builder: (context) => const TestDiaryPage()),
+              );
             },
           ),
         ],
