@@ -120,87 +120,70 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         ),
       ],
 
-      body: Stack(
+      body: Column(
         children: [
-          // 月の切り替えは、選択中の月が一覧に反映されてから表示する
-          if (state.months.isEmpty)
-            const Center(
-              child: Text("まだ日記がありません\n右下のボタンから日記を作成できます"),
-            )
-          else if (state.months.contains(selectedMonth))
-            Column(
+          // 日記の一覧。下の日記作成ボタンとバナー広告には被らない
+          Expanded(
+            child: Stack(
               children: [
-                MonthDropdown(
-                  months: state.months,
-                  selectedMonth: selectedMonth,
-                  onChanged: (month) {
-                    viewModel.setMonth(month);
-                  },
-                ),
-                Expanded(
-                  child: DiaryListView(
-                    months: state.months,
-                    filteredItemsPerMonth: state.filteredItemsPerMonth,
-                    pageController: pageController,
-                    onPageChanged: viewModel.onPageChanged,
-                  ),
-                ),
-              ],
-            ),
-
-          // 下部：上から、カレンダーと日記作成のボタン、バナー広告、バージョンの表示
-          // (バナー広告を読み込めていない間は、広告の分の空きを作らない)
-          Positioned(
-            left: 0,
-            right: 0,
-            bottom: 8,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                // 月の切り替えは、選択中の月が一覧に反映されてから表示する
+                if (state.months.isEmpty)
+                  const Center(
+                    child: Text("まだ日記がありません\n右下のボタンから日記を作成できます"),
+                  )
+                else if (state.months.contains(selectedMonth))
+                  Column(
                     children: [
-                      // 左：カレンダー
-                      FloatingActionButton(
-                        heroTag: 'calendar',
-                        tooltip: 'カレンダー',
-                        onPressed: () {
-                          context.push(AppRoutes.calendar);
+                      MonthDropdown(
+                        months: state.months,
+                        selectedMonth: selectedMonth,
+                        onChanged: (month) {
+                          viewModel.setMonth(month);
                         },
-                        child: const Icon(Icons.calendar_month),
                       ),
-
-                      // 右：日記作成
-                      FloatingActionButton(
-                        heroTag: 'diary',
-                        tooltip: '日記作成',
-                        onPressed: () {
-                          context.push(AppRoutes.diaryCreate);
-                        },
-                        child: const Icon(Icons.add),
+                      Expanded(
+                        child: DiaryListView(
+                          months: state.months,
+                          filteredItemsPerMonth: state.filteredItemsPerMonth,
+                          pageController: pageController,
+                          onPageChanged: viewModel.onPageChanged,
+                        ),
                       ),
                     ],
                   ),
-                ),
-                const SizedBox(height: 8),
 
-                // バナー広告
-                const BannerAdView(),
-                const SizedBox(height: 4),
-
-                // どの版のアプリが入っているかを確認するための表示
-                Text(
-                  "バージョン ${ref.watch(appVersionProvider).valueOrNull ?? ""}",
-                  style: Theme.of(context)
-                      .textTheme
-                      .bodySmall
-                      ?.copyWith(color: Colors.grey),
+                // 右下：日記作成(一覧の上に重ねる)
+                Positioned(
+                  right: 16,
+                  bottom: 8,
+                  child: FloatingActionButton(
+                    heroTag: 'diary',
+                    tooltip: '日記作成',
+                    onPressed: () {
+                      context.push(AppRoutes.diaryCreate);
+                    },
+                    child: const Icon(Icons.add),
+                  ),
                 ),
               ],
             ),
           ),
+
+          // 下部：バナー広告、バージョンの表示
+          // (バナー広告を読み込めていない間は、広告の分の空きを作らない)
+          const SizedBox(height: 4),
+          const BannerAdView(),
+          const SizedBox(height: 4),
+
+          // どの版のアプリが入っているかを確認するための表示
+          Text(
+            "バージョン ${ref.watch(appVersionProvider).valueOrNull ?? ""}",
+            style: Theme.of(context)
+                .textTheme
+                .bodySmall
+                ?.copyWith(color: Colors.grey),
+          ),
+          const SizedBox(height: 8),
         ],
       ),
     );
