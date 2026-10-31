@@ -4,6 +4,7 @@ import '../../../diary/domain/entities/diary.dart';
 import '../../../plan/domain/entities/plan_type.dart';
 import '../entities/generated_diary.dart';
 import '../services/generated_diary_parser.dart';
+import '../services/summary_rules.dart';
 import '../services/summary_text.dart';
 
 /// 作成済みの日記を複数まとめて、1つの日記(月のまとめ・1年の振り返りなど)にする
@@ -32,13 +33,7 @@ class GenerateSummaryDiaryUseCase {
 これらを材料に、この期間を振り返る日記を1つ書いてください。あわせて、その内容に合ったタイトルも書いてください。
 
 書き方
-・本人が書いた日記として、「私は〜」「〜した」のように、素直な言葉で書いてください。
-・印象に残った出来事は、日付(○月○日)と具体的な内容(場所、人、食べたもの、したことなど)を入れて書いてください。「充実した日々だった」のような、誰の日記にも当てはまる一般的な言葉だけで済ませないでください。
-・出来事を1日ずつ順に並べるのではなく、大きな出来事、何度も繰り返したこと、気持ちや状況の変化を選んでまとめてください。同じことが何度もあった場合は、「何度も」「ほぼ毎日」のように頻度で触れてください。
-・時間の流れに沿って、前半と後半の違いなど、変化がわかるように書いてください。
-・「心温まる」「ささやかな幸せ」「噛み締める」のような、飾りの多い決まり文句は避けてください。
-・日記に書かれていないことや、日記から読み取れない気持ちは、書かないでください。
-・長さは${SummaryText.lengthGuide(diaries.length)}にしてください。
+${SummaryRules.text(lengthGuide: SummaryText.lengthGuide(diaries.length))}
 
 ユーザーが追加で伝えたいこと
 ${note.trim().isEmpty ? "(なし)" : note.trim()}

@@ -8,6 +8,7 @@ import '../entities/generated_diary.dart';
 import '../entities/photo.dart';
 import '../repositories/photo_repository.dart';
 import '../services/generated_diary_parser.dart';
+import '../services/summary_rules.dart';
 import '../services/timeline_text.dart';
 
 class GenerateDiaryUseCase {
@@ -88,7 +89,7 @@ ${note.trim().isEmpty ? "(なし)" : note.trim()}
 
 日記の日付
 ${_period(diaryDate, diaryDate)}
-${_isSameDay(startDate, endDate) && _isSameDay(startDate, diaryDate) ? "" : "\n渡した情報の期間\n${_period(startDate, endDate)}\n"}
+${_isSameDay(startDate, endDate) && _isSameDay(startDate, diaryDate) ? "" : "\n渡した情報の期間\n${_period(startDate, endDate)}\n"}${_isSameDay(startDate, endDate) ? "" : "\n複数日の情報をまとめた日記を書くときの書き方\n${SummaryRules.text()}\n"}
 写真
 ${sentPhotos.length}枚添付しています。
 
