@@ -15,7 +15,7 @@ void main() {
 
   test('各日記は500文字前後で、テスト用と見分けられる', () {
     for (final d in diaries) {
-      expect(d.content.length, inInclusiveRange(350, 650));
+      expect(d.content.length, inInclusiveRange(430, 700));
       expect(TestDiaryGenerator.isTestDiary(d), isTrue);
     }
   });
