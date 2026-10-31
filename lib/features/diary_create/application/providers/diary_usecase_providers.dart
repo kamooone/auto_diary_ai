@@ -1,4 +1,8 @@
+import 'dart:io';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:path_provider/path_provider.dart';
+import '../../data/repositories/file_writing_style_repository.dart';
+import '../../domain/repositories/writing_style_repository.dart';
 import '../../data/repositories/photo_repository_impl.dart';
 import '../../domain/repositories/photo_repository.dart';
 import '../../domain/entities/diary_plan.dart';
@@ -17,6 +21,13 @@ final diaryPlanProvider = Provider<DiaryPlan>((ref) {
 // Repository
 final photoRepositoryProvider = Provider<PhotoRepository>((ref) {
   return PhotoRepositoryImpl();
+});
+
+final writingStyleRepositoryProvider = Provider<WritingStyleRepository>((ref) {
+  return FileWritingStyleRepository(() async {
+    final dir = await getApplicationSupportDirectory();
+    return File('${dir.path}/writing_style.json');
+  });
 });
 
 // UseCase

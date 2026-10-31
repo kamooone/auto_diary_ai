@@ -349,7 +349,8 @@ class DiaryCreateViewModel extends AutoDisposeNotifier<DiaryCreateState> {
 
   Future<void> generateDiary() {
     return _generate(
-      () => _generateDiaryUseCase.execute(
+      () async => _generateDiaryUseCase.execute(
+        writingStyle: await _writingStyle(),
         plan: ref.read(planTypeProvider),
         note: state.aiNote,
         diaryDate: state.startDate,
@@ -365,12 +366,18 @@ class DiaryCreateViewModel extends AutoDisposeNotifier<DiaryCreateState> {
   /// 選んだ作成済みの日記を、AIにまとめてもらう
   Future<void> generateSummaryDiary() {
     return _generate(
-      () => ref.read(generateSummaryDiaryUseCaseProvider).execute(
+      () async => ref.read(generateSummaryDiaryUseCaseProvider).execute(
+        writingStyle: await _writingStyle(),
         plan: ref.read(planTypeProvider),
         note: state.aiNote,
         diaries: state.summaryDiaries,
       ),
     );
+  }
+
+  // 設定画面で決めた、文体の希望
+  Future<String> _writingStyle() {
+    return ref.read(writingStyleRepositoryProvider).load();
   }
 
   // 日記を書いてもらい、結果(または失敗)を状態に反映する
