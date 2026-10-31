@@ -9,7 +9,6 @@ import '../entities/photo.dart';
 import '../repositories/photo_repository.dart';
 import '../services/generated_diary_parser.dart';
 import '../services/timeline_text.dart';
-import '../services/writing_style.dart';
 
 class GenerateDiaryUseCase {
   final AiRepository _aiRepository;
@@ -41,7 +40,6 @@ class GenerateDiaryUseCase {
     required List<TimelineItem> timeline,
     required List<SharedPost> posts,
     PlanType plan = PlanType.free,
-    String writingStyle = WritingStyle.defaultText,
   }) async {
     // 撮影時刻順に並べる(選んだ写真は、枚数に関係なくすべて送る)
     final candidates = [...photos]
@@ -87,7 +85,7 @@ class GenerateDiaryUseCase {
 
 ユーザーが追加で伝えたいこと
 ${note.trim().isEmpty ? "(なし)" : note.trim()}
-${WritingStyle.section(writingStyle)}
+
 日記の日付
 ${_period(diaryDate, diaryDate)}
 ${_isSameDay(startDate, endDate) && _isSameDay(startDate, diaryDate) ? "" : "\n渡した情報の期間\n${_period(startDate, endDate)}\n"}

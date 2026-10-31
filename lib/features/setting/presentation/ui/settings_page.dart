@@ -7,7 +7,6 @@ import '../../../plan/application/providers/plan_provider.dart';
 import '../../../plan/domain/entities/plan_availability.dart';
 import '../../../plan/presentation/widgets/usage_meter.dart';
 import 'test_diary_page.dart';
-import 'writing_style_page.dart';
 import '../providers/recording_settings_provider.dart';
 
 class SettingsPage extends ConsumerStatefulWidget {
@@ -123,18 +122,6 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
             ),
             const Divider(),
           ],
-
-          ListTile(
-            leading: const Icon(Icons.edit_note),
-            title: const Text("日記の文体"),
-            subtitle: const Text("AIが書く日記の、一人称や書き方の希望を決めます"),
-            onTap: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(builder: (context) => const WritingStylePage()),
-              );
-            },
-          ),
-          const Divider(),
 
           // 外出しなくても、訪れた場所を取得できるかを確かめられるようにする
           ListTile(
