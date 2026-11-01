@@ -106,13 +106,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
       actions: [
         IconButton(
-          icon: const Icon(Icons.auto_stories),
-          tooltip: "まとめ日記",
-          onPressed: () {
-            context.push(AppRoutes.summaryDiary);
-          },
-        ),
-        IconButton(
           icon: const Icon(Icons.settings),
           onPressed: () {
             context.push(AppRoutes.settings);
