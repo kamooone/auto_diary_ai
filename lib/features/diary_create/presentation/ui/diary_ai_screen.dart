@@ -257,25 +257,6 @@ class _DiaryAiScreenState extends ConsumerState<DiaryAiScreen> {
             icon: const Icon(Icons.auto_awesome),
             label: const Text("AIに日記を書いてもらう"),
           ),
-
-          // 材料を選ぶ項目とは別に、作成済みの日記をまとめる画面への入口を置く
-          const SizedBox(height: 16),
-          Row(
-            children: [
-              const Expanded(child: Divider()),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 12),
-                child: Text("または", style: Theme.of(context).textTheme.bodySmall),
-              ),
-              const Expanded(child: Divider()),
-            ],
-          ),
-          const SizedBox(height: 16),
-          OutlinedButton.icon(
-            onPressed: () => context.push(AppRoutes.summaryDiary),
-            icon: const Icon(Icons.auto_stories),
-            label: const Text("作成済みの日記をまとめる"),
-          ),
         ],
       ),
     );

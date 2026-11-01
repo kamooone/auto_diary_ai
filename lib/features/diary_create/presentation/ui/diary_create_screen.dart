@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import '../../../../app/router/app_routes.dart';
 import '../../../../core/app_info/install_date_provider.dart';
 import '../../../ads/presentation/banner_ad_view.dart';
 import '../providers/diary_create_provider.dart';
@@ -126,7 +128,15 @@ class DiaryCreateScreen extends ConsumerWidget {
               );
             },
             icon: const Icon(Icons.auto_awesome),
-            label: const Text("AIに書いてもらう"),
+            label: const Text("AIに日記を書いてもらう"),
+          ),
+          const SizedBox(height: 8),
+
+          // ---------- 作成済みの日記をまとめる場合は専用の画面へ
+          OutlinedButton.icon(
+            onPressed: () => context.push(AppRoutes.summaryDiary),
+            icon: const Icon(Icons.auto_stories),
+            label: const Text("作成済みの日記をまとめる"),
           ),
         ],
       ),
