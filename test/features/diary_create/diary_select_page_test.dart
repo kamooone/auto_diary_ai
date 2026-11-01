@@ -41,4 +41,15 @@ void main() {
 
     expect(find.text('2026年1月  0/2'), findsOneWidget);
   });
+
+  testWidgets('日ごとの全選択は出さない', (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: DiarySelectPage(diaries: diaries, initialSelection: const []),
+      ),
+    );
+
+    expect(find.text('この日をすべて選択'), findsNothing);
+    expect(find.text('2026年1月1日（木）'), findsOneWidget);
+  });
 }

@@ -48,13 +48,6 @@ class _DiarySelectPageState extends State<DiarySelectPage> {
 
   bool _isSelected(Diary diary) => _selectedIds.contains(diary.id);
 
-  // その日の日記が、すべて選択されていれば解除し、そうでなければすべて選択する
-  void _toggleDay(DayGroup<Diary> day) {
-    setState(() {
-      day.items.every(_isSelected) ? _unselect(day.items) : _select(day.items);
-    });
-  }
-
   // その月の日記が、すべて選択されていれば解除し、そうでなければすべて選択する
   void _toggleMonth(MonthGroup month) {
     setState(() {
@@ -176,11 +169,11 @@ class _DiarySelectPageState extends State<DiarySelectPage> {
 
         // 日付の見出し
         if (row is DayGroup<Diary>) {
+          // 日記は1日に1件のことが多いため、日ごとの全選択は付けない(月ごとの全選択がある)
           return DayHeader(
             date: row.date,
             selectedCount: row.items.where(_isSelected).length,
             totalCount: row.items.length,
-            onToggle: () => _toggleDay(row),
           );
         }
 
