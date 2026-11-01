@@ -52,4 +52,27 @@ void main() {
     expect(find.text('この日をすべて選択'), findsNothing);
     expect(find.text('2026年1月1日（木）'), findsOneWidget);
   });
+
+  testWidgets('1件だけ選んでいる間は確定できない(2件以上で確定できる)', (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: DiarySelectPage(diaries: diaries, initialSelection: [diaries[0]]),
+      ),
+    );
+
+    expect(find.text('日記を2件以上選んでください'), findsOneWidget);
+    expect(
+      tester.widget<ElevatedButton>(find.byType(ElevatedButton)).onPressed,
+      isNull,
+    );
+
+    await tester.tap(find.text('この月をすべて選択').first);
+    await tester.pump();
+
+    expect(find.text('日記を2件以上選んでください'), findsNothing);
+    expect(
+      tester.widget<ElevatedButton>(find.byType(ElevatedButton)).onPressed,
+      isNotNull,
+    );
+  });
 }

@@ -134,7 +134,8 @@ class _SummaryDiaryScreenState extends ConsumerState<SummaryDiaryScreen> {
 
           // 選んだ日記を見て、書き方をAIに相談する
           OutlinedButton.icon(
-            onPressed: selected.isEmpty || isExceeded
+            // 1つにするには、2件以上必要なので、それまでは相談もできない
+            onPressed: selected.length < SummaryText.minCount || isExceeded
                 ? null
                 : () => _consult(context, selected),
             icon: const Icon(Icons.chat_outlined),

@@ -65,6 +65,9 @@ class _DiarySelectPageState extends State<DiarySelectPage> {
     final chars = SummaryText.length(selected);
     final isTooLong = chars > SummaryText.maxChars;
 
+    // 1件だけでは1つの日記にならないので、確定できない(0件に戻すのはかまわない)
+    final isTooFew = selected.length == 1;
+
     // 月ごとの見出し、日付ごとの見出し、日記を、1列に並べたもの
     final days = groupByDay<Diary>(visible, (e) => e.date);
     final rows = <Object>[];
@@ -123,6 +126,16 @@ class _DiarySelectPageState extends State<DiarySelectPage> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
+              if (isTooFew)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: Text(
+                    "日記を${SummaryText.minCount}件以上選んでください",
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.error,
+                    ),
+                  ),
+                ),
               if (isTooLong)
                 Padding(
                   padding: const EdgeInsets.only(bottom: 8),
@@ -137,7 +150,7 @@ class _DiarySelectPageState extends State<DiarySelectPage> {
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
-                  onPressed: isTooLong
+                  onPressed: isTooLong || isTooFew
                       ? null
                       : () => Navigator.of(context).pop(selected),
                   child: Text("確定（${selected.length}件）"),
