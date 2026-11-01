@@ -26,6 +26,12 @@ void main() {
       expect(SummaryText.format([diary(1, 1, '', '本文')]), '2026年1月1日\n本文');
     });
 
+    test('長さの目安は日記の量の10〜15%で、下限と上限がある', () {
+      expect(SummaryText.lengthGuide(15856), '1600〜2400文字');
+      expect(SummaryText.lengthGuide(1000), '300〜500文字');
+      expect(SummaryText.lengthGuide(500000), '6000〜8000文字');
+    });
+
     test('365件×500文字は、上限に収まる', () {
       final diaries = [
         for (var i = 0; i < 365; i++)

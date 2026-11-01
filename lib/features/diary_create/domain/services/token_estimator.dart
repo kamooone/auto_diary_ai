@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import '../../../diary/domain/entities/diary.dart';
 import '../../../location/domain/entities/timeline_item.dart';
 import '../../../share/domain/entities/shared_post.dart';
@@ -34,9 +36,10 @@ class TokenEstimator {
   // AIが考える分(0〜800でばらつく)は含めない
   static const outputTokens = 50;
 
-  // まとめ日記の出力の、日記1文字あたり。日記の内容をすべて書き直すため、出力も日記の量に比例する。
-  // 実測の出力は日記の量とほぼ同じだと見込まれるので、少なめにする(要実測)
-  static const summaryOutputTokensPerChar = 0.3;
+  // 日記を1つにするときの出力。日記の文字数の10〜15%の長さで書くので、日記1文字あたりは少なめにし、
+  // 長さの上限(8,000文字)に合わせて上限も付ける(要実測)
+  static const summaryOutputTokensPerChar = 0.05;
+  static const summaryOutputTokensMax = 3000;
 
   /// [diaries]は、まとめ日記の材料にする作成済みの日記(写真・投稿・履歴とは同時に選ばない)
   /// [multiplier]は、AIの種類による消費量の倍率(サーバーが決める。通常は1)
@@ -63,7 +66,10 @@ class TokenEstimator {
         SummaryText.length(diaries) * noteTokensPerChar +
         (diaries.isEmpty
             ? outputTokens
-            : SummaryText.length(diaries) * summaryOutputTokensPerChar);
+            : math.min(
+                SummaryText.length(diaries) * summaryOutputTokensPerChar,
+                summaryOutputTokensMax.toDouble(),
+              ));
 
     return (tokens * multiplier).ceil();
   }

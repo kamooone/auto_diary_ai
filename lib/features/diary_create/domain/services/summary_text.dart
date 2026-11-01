@@ -27,6 +27,15 @@ class SummaryText {
   /// 選んだ日記の文字数(上限と比べるのに使う)
   static int length(List<Diary> diaries) => format(diaries).length;
 
+  /// 書いてほしい文章の長さの目安。日記の文字数([chars])の10〜15%
+  /// (少なすぎると細部が残らず、多すぎると時間とトークンがかかるため、下限と上限を設ける)
+  static String lengthGuide(int chars) {
+    final low = ((chars * 0.10).clamp(300, 6000) / 100).round() * 100;
+    final high = ((chars * 0.15).clamp(low + 200, 8000) / 100).round() * 100;
+
+    return "$low〜$high文字";
+  }
+
   static String _one(Diary diary) {
     final date = diary.date;
     final title = diary.title.trim();
