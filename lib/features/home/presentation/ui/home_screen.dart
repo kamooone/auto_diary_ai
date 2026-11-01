@@ -106,6 +106,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
       actions: [
         IconButton(
+          icon: const Icon(Icons.calendar_month),
+          tooltip: "カレンダー",
+          onPressed: () {
+            context.push(AppRoutes.calendar);
+          },
+        ),
+        IconButton(
           icon: const Icon(Icons.settings),
           onPressed: () {
             context.push(AppRoutes.settings);
