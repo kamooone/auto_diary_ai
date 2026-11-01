@@ -13,6 +13,7 @@ import 'diary_result_screen.dart';
 import 'diary_select_page.dart';
 import 'generate_flow.dart';
 import 'summary_consult_screen.dart';
+import 'widgets/style_choice_card.dart';
 import 'widgets/token_shortage_dialog.dart';
 
 /// 作成済みの日記を選んで、AIに1つの日記(月の振り返り・1年の振り返りなど)にしてもらう画面
@@ -109,13 +110,12 @@ class _SummaryDiaryScreenState extends ConsumerState<SummaryDiaryScreen> {
           // ---------- 書き方
           Text("書き方", style: Theme.of(context).textTheme.titleSmall),
           const SizedBox(height: 4),
-          Card(
-            child: Column(
-              children: [
-                for (final style in SummaryStyle.values)
-                  _styleTile(context, style, state.summaryStyle),
-              ],
-            ),
+          StyleChoiceCard<SummaryStyle>(
+            values: SummaryStyle.values,
+            selected: state.summaryStyle,
+            label: (style) => style.label,
+            description: (style) => style.description,
+            onSelected: viewModel.setSummaryStyle,
           ),
           if (state.summaryStyle == SummaryStyle.custom) ...[
             const SizedBox(height: 8),
@@ -200,25 +200,6 @@ class _SummaryDiaryScreenState extends ConsumerState<SummaryDiaryScreen> {
           ),
         ],
       ),
-    );
-  }
-
-  // 書き方の選択肢1つ(選んでいるものには、印を付ける)
-  Widget _styleTile(
-    BuildContext context,
-    SummaryStyle style,
-    SummaryStyle current,
-  ) {
-    final isSelected = style == current;
-
-    return ListTile(
-      leading: Icon(
-        isSelected ? Icons.radio_button_checked : Icons.radio_button_unchecked,
-        color: isSelected ? Theme.of(context).colorScheme.primary : null,
-      ),
-      title: Text(style.label),
-      subtitle: Text(style.description),
-      onTap: () => ref.read(diaryCreateProvider.notifier).setSummaryStyle(style),
     );
   }
 

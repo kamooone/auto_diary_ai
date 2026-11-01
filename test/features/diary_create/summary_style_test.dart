@@ -5,7 +5,10 @@ import 'package:auto_diary_ai/features/ai/domain/repositories/ai_repository.dart
 import 'package:auto_diary_ai/features/diary/domain/entities/diary.dart';
 import 'package:auto_diary_ai/features/diary_create/data/repositories/file_summary_style_repository.dart';
 import 'package:auto_diary_ai/features/diary_create/application/providers/diary_usecase_providers.dart';
+import 'package:auto_diary_ai/features/diary_create/data/repositories/file_diary_style_repository.dart';
+import 'package:auto_diary_ai/features/diary_create/domain/entities/diary_style.dart';
 import 'package:auto_diary_ai/features/diary_create/domain/entities/summary_style.dart';
+import 'package:auto_diary_ai/features/diary_create/domain/repositories/diary_style_repository.dart';
 import 'package:auto_diary_ai/features/diary_create/domain/repositories/summary_style_repository.dart';
 import 'package:auto_diary_ai/features/diary_create/presentation/providers/diary_create_provider.dart';
 import 'package:auto_diary_ai/features/diary_create/domain/services/consult_reply_parser.dart';
@@ -57,7 +60,56 @@ class MemoryStyleRepository implements SummaryStyleRepository {
   Future<void> save(SummaryStyle style) async => saved = style;
 }
 
+class MemoryDiaryStyleRepository implements DiaryStyleRepository {
+  DiaryStyle saved = DiaryStyle.diary;
+
+  @override
+  Future<DiaryStyle> load() async => saved;
+
+  @override
+  Future<void> save(DiaryStyle style) async => saved = style;
+}
+
 void main() {
+  group('ふつうの日記の、自分で指定', () {
+    test('画面を離れて消すと、指示は空になり、日記に戻る', () {
+      final container = ProviderContainer(
+        overrides: [
+          diaryStyleRepositoryProvider.overrideWithValue(
+            MemoryDiaryStyleRepository(),
+          ),
+        ],
+      );
+      addTearDown(container.dispose);
+      container.listen(diaryCreateProvider, (_, __) {});
+
+      final viewModel = container.read(diaryCreateProvider.notifier);
+      viewModel.setDiaryStyle(DiaryStyle.custom);
+      viewModel.setDiaryCustom('短く');
+      viewModel.clearDiaryCustom();
+
+      final state = container.read(diaryCreateProvider);
+      expect(state.diaryStyle, DiaryStyle.diary);
+      expect(state.diaryCustom, '');
+    });
+
+    test('前回の選択を覚えていて、自分で指定は日記に戻る', () async {
+      final dir = Directory.systemTemp.createTempSync();
+      addTearDown(() => dir.deleteSync(recursive: true));
+      final repository = FileDiaryStyleRepository(
+        () async => File('${dir.path}/style.json'),
+      );
+
+      expect(await repository.load(), DiaryStyle.diary);
+
+      await repository.save(DiaryStyle.record);
+      expect(await repository.load(), DiaryStyle.record);
+
+      await repository.save(DiaryStyle.custom);
+      expect(await repository.load(), DiaryStyle.diary);
+    });
+  });
+
   group('自分で指定の書き方の指示', () {
     test('画面を離れて消すと、指示は空になり、読み物に戻る', () {
       final repository = MemoryStyleRepository();

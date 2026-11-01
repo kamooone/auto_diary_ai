@@ -18,7 +18,9 @@ import 'post_select_page.dart';
 import 'timeline_select_page.dart';
 import 'widgets/diary_period_text.dart';
 import 'widgets/photo_selection_card.dart';
+import 'widgets/style_choice_card.dart';
 import 'widgets/token_shortage_dialog.dart';
+import '../../domain/entities/diary_style.dart';
 import '../../domain/services/token_estimator.dart';
 
 /// AIに日記を書いてもらうための情報を選択する画面
@@ -35,8 +37,18 @@ class _DiaryAiScreenState extends ConsumerState<DiaryAiScreen> {
     text: ref.read(diaryCreateProvider).aiNote,
   );
 
+  // 「自分で指定」の、書き方の指示
+  final _customController = TextEditingController();
+
+  late final _viewModel = ref.read(diaryCreateProvider.notifier);
+
   @override
   void dispose() {
+    // 「自分で指定」に書いた指示は、画面を離れたら消す
+    final viewModel = _viewModel;
+    Future.microtask(viewModel.clearDiaryCustom);
+
+    _customController.dispose();
     _noteController.dispose();
     super.dispose();
   }
@@ -48,6 +60,9 @@ class _DiaryAiScreenState extends ConsumerState<DiaryAiScreen> {
     // この画面を開いたときに、選んだ日のXの投稿と行動履歴を読み込む
     Future.microtask(() {
       ref.read(diaryCreateProvider.notifier).loadSources();
+
+      // 前回選んだ書き方を戻す
+      ref.read(diaryCreateProvider.notifier).loadDiaryStyle();
 
       // 今月の使用量を取得する
       ref.read(usageProvider.notifier).refresh();
@@ -222,6 +237,34 @@ class _DiaryAiScreenState extends ConsumerState<DiaryAiScreen> {
           ),
           const SizedBox(height: 12),
 
+          // ---------- 書き方(日記の期間に関わらず、同じ選択肢)
+          Text("書き方", style: Theme.of(context).textTheme.titleSmall),
+          const SizedBox(height: 4),
+          StyleChoiceCard<DiaryStyle>(
+            values: DiaryStyle.values,
+            selected: state.diaryStyle,
+            label: (style) => style.label,
+            description: (style) => style.description,
+            onSelected: viewModel.setDiaryStyle,
+          ),
+          if (state.diaryStyle == DiaryStyle.custom) ...[
+            const SizedBox(height: 8),
+            TextField(
+              controller: _customController,
+              decoration: const InputDecoration(
+                labelText: "どんな書き方にしたいか",
+                hintText: "例: 食べたものを中心に、です・ます調で、300文字くらいで書いてほしい",
+                border: OutlineInputBorder(),
+                alignLabelWithHint: true,
+              ),
+              keyboardType: TextInputType.multiline,
+              minLines: 3,
+              maxLines: 8,
+              onChanged: viewModel.setDiaryCustom,
+            ),
+          ],
+          const SizedBox(height: 12),
+
           // ---------- AIに追加で伝えたいこと
           TextField(
             controller: _noteController,
@@ -251,7 +294,12 @@ class _DiaryAiScreenState extends ConsumerState<DiaryAiScreen> {
           ElevatedButton.icon(
             // 読み込みが終わるまでは、選択内容が確定しないため押せないようにする
             // 今月の使用量の上限に達している場合も、押せない
-            onPressed: state.isLoadingSources || isExceeded
+            // 「自分で指定」は、書き方を書くまでは押せない
+            onPressed:
+                state.isLoadingSources ||
+                    isExceeded ||
+                    (state.diaryStyle == DiaryStyle.custom &&
+                        state.diaryCustom.trim().isEmpty)
                 ? null
                 : () => _generate(context),
             icon: const Icon(Icons.auto_awesome),

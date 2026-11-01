@@ -4,6 +4,7 @@ import 'package:auto_diary_ai/features/ai/domain/repositories/ai_repository.dart
 import 'package:auto_diary_ai/features/diary/domain/entities/diary.dart';
 import 'package:auto_diary_ai/features/diary_create/domain/entities/photo.dart';
 import 'package:auto_diary_ai/features/diary_create/domain/repositories/photo_repository.dart';
+import 'package:auto_diary_ai/features/diary_create/domain/entities/diary_style.dart';
 import 'package:auto_diary_ai/features/diary_create/domain/services/summary_rules.dart';
 import 'package:auto_diary_ai/features/diary_create/domain/usecases/generate_diary_usecase.dart';
 import 'package:auto_diary_ai/features/diary_create/domain/usecases/generate_summary_diary_usecase.dart';
@@ -28,7 +29,12 @@ void main() {
   const marker = '複数日の情報をまとめた日記を書くときの書き方';
   final rule = SummaryRules.text().split('\n').first;
 
-  Future<String> normal(DateTime start, DateTime end) async {
+  Future<String> normal(
+    DateTime start,
+    DateTime end, {
+    DiaryStyle style = DiaryStyle.diary,
+    String custom = '',
+  }) async {
     final ai = CapturingAi();
     await GenerateDiaryUseCase(aiRepository: ai, photoRepository: NoPhotos())
         .execute(
@@ -39,6 +45,8 @@ void main() {
           photos: const <Photo>[],
           timeline: const [],
           posts: const [],
+          style: style,
+          customInstruction: custom,
         );
     return ai.message!;
   }
@@ -54,6 +62,69 @@ void main() {
 
     expect(message, contains(marker));
     expect(message, contains(rule));
+  });
+
+  group('ふつうの日記の書き方', () {
+    final day = DateTime(2026, 1, 1);
+
+    test('日記は、今までの書き方(時系列に沿った自然な日記)', () async {
+      final message = await normal(day, day);
+
+      expect(message, contains('書き方(日記)'));
+      expect(message, contains('時系列に沿った自然な日記'));
+    });
+
+    test('書き方ごとに、指示が違う', () async {
+      expect(
+        await normal(day, day, style: DiaryStyle.blog),
+        contains('書き方(ブログ風)'),
+      );
+      expect(
+        await normal(day, day, style: DiaryStyle.record),
+        contains('「9:00 駅に到着」'),
+      );
+      expect(
+        await normal(day, day, style: DiaryStyle.bullets),
+        contains('「・出来事」'),
+      );
+    });
+
+    test('期間が複数日でも、同じ選択肢で書き分けられる', () async {
+      final end = DateTime(2026, 1, 7);
+
+      expect(
+        await normal(day, end, style: DiaryStyle.bullets),
+        contains('書き方(箇条書き)'),
+      );
+      // 日記のときだけ、複数日をまとめる書き方を加える
+      expect(await normal(day, end), contains(marker));
+      expect(
+        await normal(day, end, style: DiaryStyle.bullets),
+        isNot(contains(marker)),
+      );
+    });
+
+    test('自分で指定は、書いた指示を渡し、意味不明なときは日記で書かせる', () async {
+      final message = await normal(
+        day,
+        day,
+        style: DiaryStyle.custom,
+        custom: 'ですます調で短く',
+      );
+
+      expect(message, contains('ですます調で短く'));
+      expect(message, contains('意味不明なとき'));
+      expect(message, contains('書き方(日記)'));
+    });
+
+    test('どの書き方でも、渡した情報にないことは書かせない', () async {
+      for (final style in DiaryStyle.values) {
+        expect(
+          await normal(day, day, style: style, custom: '短く'),
+          contains('付け足さないでください'),
+        );
+      }
+    });
   });
 
   test('日記を1つにするときは、形をAIに判断させ、日記の内容と長さの目安を渡す', () async {

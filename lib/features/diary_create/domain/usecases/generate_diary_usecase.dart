@@ -8,7 +8,8 @@ import '../entities/generated_diary.dart';
 import '../entities/photo.dart';
 import '../repositories/photo_repository.dart';
 import '../services/generated_diary_parser.dart';
-import '../services/summary_rules.dart';
+import '../entities/diary_style.dart';
+import '../services/diary_style_prompt.dart';
 import '../services/timeline_text.dart';
 
 class GenerateDiaryUseCase {
@@ -41,6 +42,8 @@ class GenerateDiaryUseCase {
     required List<TimelineItem> timeline,
     required List<SharedPost> posts,
     PlanType plan = PlanType.free,
+    DiaryStyle style = DiaryStyle.diary,
+    String customInstruction = '',
   }) async {
     // 撮影時刻順に並べる(選んだ写真は、枚数に関係なくすべて送る)
     final candidates = [...photos]
@@ -82,14 +85,14 @@ class GenerateDiaryUseCase {
 添付した写真も必ず確認し、
 写真から読み取れる内容も日記に反映してください。
 
-以下の情報を参考に、自然な日記と、その内容に合ったタイトルを書いてください。
+以下の情報を参考に、日記と、その内容に合ったタイトルを書いてください。
 
 ユーザーが追加で伝えたいこと
 ${note.trim().isEmpty ? "(なし)" : note.trim()}
 
 日記の日付
 ${_period(diaryDate, diaryDate)}
-${_isSameDay(startDate, endDate) && _isSameDay(startDate, diaryDate) ? "" : "\n渡した情報の期間\n${_period(startDate, endDate)}\n"}${_isSameDay(startDate, endDate) ? "" : "\n複数日の情報をまとめた日記を書くときの書き方\n${SummaryRules.text()}\n"}
+${_isSameDay(startDate, endDate) && _isSameDay(startDate, diaryDate) ? "" : "\n渡した情報の期間\n${_period(startDate, endDate)}\n"}
 写真
 ${sentPhotos.length}枚添付しています。
 
@@ -100,7 +103,8 @@ $timelineText
 Xの投稿
 $postText
 
-写真の内容と行動履歴も照らし合わせて、時系列に沿った自然な日記を作成してください。
+${DiaryStylePrompt.section(style: style, customInstruction: customInstruction, isMultiDay: !_isSameDay(startDate, endDate))}
+渡された情報にない出来事、気持ち、感想は、付け足さないでください。
 
 回答は必ず次の形式で書いてください。前置きや説明、記号による装飾は付けないでください。
 

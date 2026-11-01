@@ -11,6 +11,7 @@ import '../../../location/domain/entities/timeline_item.dart';
 import '../../../share/application/providers/share_providers.dart';
 import '../../../share/domain/entities/shared_post.dart';
 import '../../application/providers/diary_usecase_providers.dart';
+import '../../domain/entities/diary_style.dart';
 import '../../domain/entities/generated_diary.dart';
 import '../../domain/entities/summary_style.dart';
 import '../../domain/entities/photo.dart';
@@ -56,6 +57,10 @@ class DiaryCreateState {
   /// Xの投稿と行動履歴を読み込み中かどうか
   final bool isLoadingSources;
 
+  /// ふつうのAI日記の書き方と、「自分で指定」のときの書き方の指示
+  final DiaryStyle diaryStyle;
+  final String diaryCustom;
+
   /// 日記を1つにするときの、材料にする作成済みの日記と、書き方
   final List<Diary> summaryDiaries;
   final SummaryStyle summaryStyle;
@@ -82,6 +87,8 @@ class DiaryCreateState {
     this.timeline = const [],
     this.selectedTimeline = const [],
     this.isLoadingSources = false,
+    this.diaryStyle = DiaryStyle.diary,
+    this.diaryCustom = '',
     this.summaryDiaries = const [],
     this.summaryStyle = SummaryStyle.reading,
     this.summaryCustom = '',
@@ -107,6 +114,8 @@ class DiaryCreateState {
     List<TimelineItem>? timeline,
     List<TimelineItem>? selectedTimeline,
     bool? isLoadingSources,
+    DiaryStyle? diaryStyle,
+    String? diaryCustom,
     List<Diary>? summaryDiaries,
     SummaryStyle? summaryStyle,
     String? summaryCustom,
@@ -130,6 +139,8 @@ class DiaryCreateState {
       timeline: timeline ?? this.timeline,
       selectedTimeline: selectedTimeline ?? this.selectedTimeline,
       isLoadingSources: isLoadingSources ?? this.isLoadingSources,
+      diaryStyle: diaryStyle ?? this.diaryStyle,
+      diaryCustom: diaryCustom ?? this.diaryCustom,
       summaryDiaries: summaryDiaries ?? this.summaryDiaries,
       summaryStyle: summaryStyle ?? this.summaryStyle,
       summaryCustom: summaryCustom ?? this.summaryCustom,
@@ -236,6 +247,45 @@ class DiaryCreateViewModel extends AutoDisposeNotifier<DiaryCreateState> {
   // まとめ日記の材料にする日記をセット
   void setSummaryDiaries(List<Diary> diaries) {
     state = state.copyWith(summaryDiaries: List.unmodifiable(diaries));
+  }
+
+  /// 前回のふつうのAI日記の書き方の選択を読み込む(画面を開いたときに呼ぶ)
+  Future<void> loadDiaryStyle() async {
+    final style = await ref.read(diaryStyleRepositoryProvider).load();
+    if (_isDisposed) return;
+
+    state = state.copyWith(diaryStyle: style);
+  }
+
+  /// ふつうのAI日記の書き方を選ぶ(次回のために保存する)
+  void setDiaryStyle(DiaryStyle style) {
+    state = state.copyWith(diaryStyle: style);
+    _saveDiaryStyle();
+  }
+
+  /// 「自分で指定」の書き方の指示を書き換える(書いた指示は、保存しない)
+  void setDiaryCustom(String text) {
+    state = state.copyWith(diaryCustom: text);
+  }
+
+  /// 「自分で指定」に書いた指示を消す(画面を離れたときに呼ぶ)。
+  /// 「自分で指定」を選んでいたときは、日記に戻す
+  void clearDiaryCustom() {
+    if (_isDisposed) return;
+
+    final wasCustom = state.diaryStyle == DiaryStyle.custom;
+    state = state.copyWith(
+      diaryCustom: '',
+      diaryStyle: wasCustom ? DiaryStyle.diary : null,
+    );
+    if (wasCustom) _saveDiaryStyle();
+  }
+
+  void _saveDiaryStyle() {
+    ref
+        .read(diaryStyleRepositoryProvider)
+        .save(state.diaryStyle)
+        .catchError((Object e) => AppLog.add('日記', '書き方の保存に失敗: $e'));
   }
 
   /// 前回の書き方の選択を読み込む(画面を開いたときに呼ぶ)
@@ -416,6 +466,8 @@ class DiaryCreateViewModel extends AutoDisposeNotifier<DiaryCreateState> {
         photos: state.aiPhotos,
         timeline: state.selectedTimeline,
         posts: state.selectedPosts,
+        style: state.diaryStyle,
+        customInstruction: state.diaryCustom,
       ),
     );
   }
