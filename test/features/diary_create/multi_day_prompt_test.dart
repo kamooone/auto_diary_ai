@@ -56,7 +56,7 @@ void main() {
     expect(message, contains(rule));
   });
 
-  test('まとめ日記も、同じ書き方の指示と、長さの指示を使う', () async {
+  test('まとめ日記は、省略せずに全部書くよう指示し、日記の内容を渡す', () async {
     final ai = CapturingAi();
     await GenerateSummaryDiaryUseCase(aiRepository: ai).execute(
       note: '',
@@ -64,15 +64,16 @@ void main() {
         for (var i = 1; i <= 2; i++)
           Diary(
             date: DateTime(2026, 1, i),
-            title: 't',
-            content: 'c',
+            title: 't$i',
+            content: 'c$i',
             isAiGenerated: false,
             createdAt: DateTime(2026, 1, i),
           ),
       ],
     );
 
-    expect(ai.message, contains(rule));
-    expect(ai.message, contains('長さは'));
+    expect(ai.message, contains('省略せずに'));
+    expect(ai.message, contains('2026年1月1日 t1\nc1'));
+    expect(ai.message, isNot(contains('文字程度')));
   });
 }

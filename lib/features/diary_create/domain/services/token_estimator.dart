@@ -34,8 +34,9 @@ class TokenEstimator {
   // AIが考える分(0〜800でばらつく)は含めない
   static const outputTokens = 50;
 
-  // まとめ日記の出力(期間全体をまとめた文章)。件数が多いほど長いが、少なめにする
-  static const summaryOutputTokens = 300;
+  // まとめ日記の出力の、日記1文字あたり。日記の内容をすべて書き直すため、出力も日記の量に比例する。
+  // 実測の出力は日記の量とほぼ同じだと見込まれるので、少なめにする(要実測)
+  static const summaryOutputTokensPerChar = 0.3;
 
   /// [diaries]は、まとめ日記の材料にする作成済みの日記(写真・投稿・履歴とは同時に選ばない)
   /// [multiplier]は、AIの種類による消費量の倍率(サーバーが決める。通常は1)
@@ -60,7 +61,9 @@ class TokenEstimator {
         chars * tokensPerChar +
         photoCount * tokensPerPhoto +
         SummaryText.length(diaries) * noteTokensPerChar +
-        (diaries.isEmpty ? outputTokens : summaryOutputTokens);
+        (diaries.isEmpty
+            ? outputTokens
+            : SummaryText.length(diaries) * summaryOutputTokensPerChar);
 
     return (tokens * multiplier).ceil();
   }

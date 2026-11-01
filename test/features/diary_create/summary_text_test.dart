@@ -26,12 +26,6 @@ void main() {
       expect(SummaryText.format([diary(1, 1, '', '本文')]), '2026年1月1日\n本文');
     });
 
-    test('件数が多いほど、長く書くよう指示する', () {
-      expect(SummaryText.lengthGuide(5), contains('300'));
-      expect(SummaryText.lengthGuide(30), contains('500〜800'));
-      expect(SummaryText.lengthGuide(365), contains('1,000〜1,500'));
-    });
-
     test('365件×500文字は、上限に収まる', () {
       final diaries = [
         for (var i = 0; i < 365; i++)

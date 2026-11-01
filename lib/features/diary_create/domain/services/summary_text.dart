@@ -27,14 +27,6 @@ class SummaryText {
   /// 選んだ日記の文字数(上限と比べるのに使う)
   static int length(List<Diary> diaries) => format(diaries).length;
 
-  /// 書いてほしい文章の長さ。日記の件数が多いほど、長くする
-  static String lengthGuide(int count) {
-    if (count <= 10) return "300〜500文字程度";
-    if (count <= 40) return "500〜800文字程度";
-    if (count <= 100) return "800〜1,200文字程度";
-    return "1,000〜1,500文字程度";
-  }
-
   static String _one(Diary diary) {
     final date = diary.date;
     final title = diary.title.trim();
