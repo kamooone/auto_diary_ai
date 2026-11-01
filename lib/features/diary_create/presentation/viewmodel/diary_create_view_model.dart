@@ -13,7 +13,6 @@ import '../../../share/domain/entities/shared_post.dart';
 import '../../application/providers/diary_usecase_providers.dart';
 import '../../domain/entities/generated_diary.dart';
 import '../../domain/entities/summary_style.dart';
-import '../../domain/repositories/summary_style_repository.dart';
 import '../../domain/entities/photo.dart';
 
 class DiaryCreateState {
@@ -241,13 +240,10 @@ class DiaryCreateViewModel extends AutoDisposeNotifier<DiaryCreateState> {
 
   /// 前回の書き方の選択を読み込む(画面を開いたときに呼ぶ)
   Future<void> loadSummaryStyle() async {
-    final setting = await ref.read(summaryStyleRepositoryProvider).load();
+    final style = await ref.read(summaryStyleRepositoryProvider).load();
     if (_isDisposed) return;
 
-    state = state.copyWith(
-      summaryStyle: setting.style,
-      summaryCustom: setting.customInstruction,
-    );
+    state = state.copyWith(summaryStyle: style);
   }
 
   /// 書き方を選ぶ(次回のために保存する)
@@ -257,9 +253,22 @@ class DiaryCreateViewModel extends AutoDisposeNotifier<DiaryCreateState> {
   }
 
   /// 「自分で指定」の書き方の指示を書き換える
+  /// (書いた指示は、保存しない)
   void setSummaryCustom(String text) {
     state = state.copyWith(summaryCustom: text);
-    _saveSummaryStyle();
+  }
+
+  /// 「自分で指定」に書いた指示を消す(画面を離れたときに呼ぶ)。
+  /// 「自分で指定」を選んでいたときは、読み物に戻す
+  void clearSummaryCustom() {
+    if (_isDisposed) return;
+
+    final wasCustom = state.summaryStyle == SummaryStyle.custom;
+    state = state.copyWith(
+      summaryCustom: '',
+      summaryStyle: wasCustom ? SummaryStyle.reading : null,
+    );
+    if (wasCustom) _saveSummaryStyle();
   }
 
   /// 相談でAIが提案した書き方を、「自分で指定」にして反映する
@@ -268,18 +277,12 @@ class DiaryCreateViewModel extends AutoDisposeNotifier<DiaryCreateState> {
       summaryStyle: SummaryStyle.custom,
       summaryCustom: text,
     );
-    _saveSummaryStyle();
   }
 
   void _saveSummaryStyle() {
     ref
         .read(summaryStyleRepositoryProvider)
-        .save(
-          SummaryStyleSetting(
-            style: state.summaryStyle,
-            customInstruction: state.summaryCustom,
-          ),
-        )
+        .save(state.summaryStyle)
         .catchError((Object e) => AppLog.add('日記', '書き方の保存に失敗: $e'));
   }
 

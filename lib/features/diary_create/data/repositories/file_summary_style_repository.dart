@@ -11,34 +11,25 @@ class FileSummaryStyleRepository implements SummaryStyleRepository {
   FileSummaryStyleRepository(this._resolveFile);
 
   @override
-  Future<SummaryStyleSetting> load() async {
+  Future<SummaryStyle> load() async {
     try {
       final file = await _resolveFile();
-      if (!await file.exists()) return const SummaryStyleSetting();
+      if (!await file.exists()) return SummaryStyle.reading;
 
       final data = jsonDecode(await file.readAsString());
-      if (data is! Map) return const SummaryStyleSetting();
+      final style = SummaryStyle.fromName(data is Map ? data['style'] : null);
 
-      final custom = data['custom'];
-
-      return SummaryStyleSetting(
-        style: SummaryStyle.fromName(data['style']),
-        customInstruction: custom is String ? custom : '',
-      );
+      // 書いた指示は残さないので、「自分で指定」は読み物に戻す
+      return style == SummaryStyle.custom ? SummaryStyle.reading : style;
     } catch (_) {
-      return const SummaryStyleSetting();
+      return SummaryStyle.reading;
     }
   }
 
   @override
-  Future<void> save(SummaryStyleSetting setting) async {
+  Future<void> save(SummaryStyle style) async {
     final file = await _resolveFile();
     await file.parent.create(recursive: true);
-    await file.writeAsString(
-      jsonEncode({
-        'style': setting.style.name,
-        'custom': setting.customInstruction,
-      }),
-    );
+    await file.writeAsString(jsonEncode({'style': style.name}));
   }
 }

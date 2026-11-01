@@ -31,6 +31,8 @@ class _SummaryDiaryScreenState extends ConsumerState<SummaryDiaryScreen> {
   // 「自分で指定」の、書き方の指示
   final _customController = TextEditingController();
 
+  late final _viewModel = ref.read(diaryCreateProvider.notifier);
+
   @override
   void initState() {
     super.initState();
@@ -40,15 +42,16 @@ class _SummaryDiaryScreenState extends ConsumerState<SummaryDiaryScreen> {
       ref.read(usageProvider.notifier).refresh();
 
       // 前回選んだ書き方を戻す
-      await ref.read(diaryCreateProvider.notifier).loadSummaryStyle();
-      if (!mounted) return;
-
-      _customController.text = ref.read(diaryCreateProvider).summaryCustom;
+      await _viewModel.loadSummaryStyle();
     });
   }
 
   @override
   void dispose() {
+    // 「自分で指定」に書いた指示は、画面を離れたら消す
+    final viewModel = _viewModel;
+    Future.microtask(viewModel.clearSummaryCustom);
+
     _noteController.dispose();
     _customController.dispose();
     super.dispose();

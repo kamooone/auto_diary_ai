@@ -4,8 +4,10 @@ import 'package:auto_diary_ai/features/ai/domain/entities/ai_reply.dart';
 import 'package:auto_diary_ai/features/ai/domain/repositories/ai_repository.dart';
 import 'package:auto_diary_ai/features/diary/domain/entities/diary.dart';
 import 'package:auto_diary_ai/features/diary_create/data/repositories/file_summary_style_repository.dart';
+import 'package:auto_diary_ai/features/diary_create/application/providers/diary_usecase_providers.dart';
 import 'package:auto_diary_ai/features/diary_create/domain/entities/summary_style.dart';
 import 'package:auto_diary_ai/features/diary_create/domain/repositories/summary_style_repository.dart';
+import 'package:auto_diary_ai/features/diary_create/presentation/providers/diary_create_provider.dart';
 import 'package:auto_diary_ai/features/diary_create/domain/services/consult_reply_parser.dart';
 import 'package:auto_diary_ai/features/diary_create/domain/services/summary_prompt.dart';
 import 'package:auto_diary_ai/features/diary_create/domain/services/token_estimator.dart';
@@ -45,7 +47,57 @@ class ScriptedAi implements AiRepository {
   }
 }
 
+class MemoryStyleRepository implements SummaryStyleRepository {
+  SummaryStyle saved = SummaryStyle.reading;
+
+  @override
+  Future<SummaryStyle> load() async => saved;
+
+  @override
+  Future<void> save(SummaryStyle style) async => saved = style;
+}
+
 void main() {
+  group('自分で指定の書き方の指示', () {
+    test('画面を離れて消すと、指示は空になり、読み物に戻る', () {
+      final repository = MemoryStyleRepository();
+      final container = ProviderContainer(
+        overrides: [summaryStyleRepositoryProvider.overrideWithValue(repository)],
+      );
+      addTearDown(container.dispose);
+      container.listen(diaryCreateProvider, (_, __) {});
+
+      final viewModel = container.read(diaryCreateProvider.notifier);
+      viewModel.applySummaryProposal('短く書く');
+
+      var state = container.read(diaryCreateProvider);
+      expect(state.summaryStyle, SummaryStyle.custom);
+      expect(state.summaryCustom, '短く書く');
+
+      viewModel.clearSummaryCustom();
+
+      state = container.read(diaryCreateProvider);
+      expect(state.summaryStyle, SummaryStyle.reading);
+      expect(state.summaryCustom, '');
+    });
+
+    test('ほかの書き方を選んでいたときは、書き方はそのまま', () {
+      final container = ProviderContainer(
+        overrides: [
+          summaryStyleRepositoryProvider.overrideWithValue(MemoryStyleRepository()),
+        ],
+      );
+      addTearDown(container.dispose);
+      container.listen(diaryCreateProvider, (_, __) {});
+
+      final viewModel = container.read(diaryCreateProvider.notifier);
+      viewModel.setSummaryStyle(SummaryStyle.list);
+      viewModel.clearSummaryCustom();
+
+      expect(container.read(diaryCreateProvider).summaryStyle, SummaryStyle.list);
+    });
+  });
+
   group('SummaryPrompt', () {
     test('どの書き方でも、日記の内容と、日記にないことは書かない決まりを渡す', () {
       for (final style in SummaryStyle.values) {
@@ -189,23 +241,19 @@ void main() {
     tearDown(() => dir.deleteSync(recursive: true));
 
     test('保存していなければ読み物', () async {
-      final setting = await repository.load();
-
-      expect(setting.style, SummaryStyle.reading);
-      expect(setting.customInstruction, '');
+      expect(await repository.load(), SummaryStyle.reading);
     });
 
     test('前回の選択を覚えている', () async {
-      await repository.save(
-        const SummaryStyleSetting(
-          style: SummaryStyle.custom,
-          customInstruction: '短く',
-        ),
-      );
+      await repository.save(SummaryStyle.brief);
 
-      final setting = await repository.load();
-      expect(setting.style, SummaryStyle.custom);
-      expect(setting.customInstruction, '短く');
+      expect(await repository.load(), SummaryStyle.brief);
+    });
+
+    test('自分で指定は、書いた指示を残さないので、読み物に戻る', () async {
+      await repository.save(SummaryStyle.custom);
+
+      expect(await repository.load(), SummaryStyle.reading);
     });
   });
 }
