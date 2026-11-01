@@ -22,6 +22,9 @@ class DiaryListView extends StatelessWidget {
   Widget build(BuildContext context) {
     return PageView.builder(
       controller: pageController,
+      // 新しい月が先頭(0番目)のため、向きを逆にして、
+      // 右にスライドで翌月(新しい月)、左にスライドで先月(古い月)にする
+      reverse: true,
       itemCount: months.length,
       onPageChanged: onPageChanged,
       itemBuilder: (context, pageIndex) {
