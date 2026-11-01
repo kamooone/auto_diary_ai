@@ -20,9 +20,9 @@ void main() {
     expect(times.where(MonthFilter.none.matches).length, 4);
   });
 
-  test('選択肢は新しい順で、年に存在する月だけ', () {
-    expect(MonthFilter.yearsOf(times), [2026, 2025]);
-    expect(MonthFilter.monthsOf(times, 2026), [3, 1]);
+  test('選択肢は古い順(1月、2月、3月…)で、年に存在する月だけ', () {
+    expect(MonthFilter.yearsOf(times), [2025, 2026]);
+    expect(MonthFilter.monthsOf(times, 2026), [1, 3]);
   });
 
   test('年を変えると月の指定は解除される', () {

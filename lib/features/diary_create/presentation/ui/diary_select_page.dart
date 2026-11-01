@@ -4,6 +4,7 @@ import '../../domain/services/day_grouper.dart';
 import '../../domain/services/month_filter.dart';
 import '../../domain/services/summary_text.dart';
 import 'widgets/day_header.dart';
+import 'widgets/month_header.dart';
 import 'widgets/month_filter_bar.dart';
 
 /// まとめ日記の材料にする、作成済みの日記を選択する画面
@@ -54,6 +55,15 @@ class _DiarySelectPageState extends State<DiarySelectPage> {
     });
   }
 
+  // その月の日記が、すべて選択されていれば解除し、そうでなければすべて選択する
+  void _toggleMonth(MonthGroup month) {
+    setState(() {
+      month.diaries.every(_isSelected)
+          ? _unselect(month.diaries)
+          : _select(month.diaries);
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final visible = _visible;
@@ -62,11 +72,27 @@ class _DiarySelectPageState extends State<DiarySelectPage> {
     final chars = SummaryText.length(selected);
     final isTooLong = chars > SummaryText.maxChars;
 
-    // 日付ごとの見出しと日記を、1列に並べたもの
-    final rows = <Object>[
-      for (final day in groupByDay<Diary>(visible, (e) => e.date))
-        ...[day, ...day.items],
-    ];
+    // 月ごとの見出し、日付ごとの見出し、日記を、1列に並べたもの
+    final days = groupByDay<Diary>(visible, (e) => e.date);
+    final rows = <Object>[];
+    DateTime? currentMonth;
+    for (final day in days) {
+      final month = DateTime(day.date.year, day.date.month);
+      if (month != currentMonth) {
+        currentMonth = month;
+        rows.add(
+          MonthGroup(
+            month,
+            [
+              for (final d in days)
+                if (d.date.year == month.year && d.date.month == month.month)
+                  ...d.items,
+            ],
+          ),
+        );
+      }
+      rows.addAll([day, ...day.items]);
+    }
 
     return Scaffold(
       appBar: AppBar(
@@ -138,6 +164,16 @@ class _DiarySelectPageState extends State<DiarySelectPage> {
       itemBuilder: (context, index) {
         final row = rows[index];
 
+        // 月の見出し
+        if (row is MonthGroup) {
+          return MonthHeader(
+            month: row.month,
+            selectedCount: row.diaries.where(_isSelected).length,
+            totalCount: row.diaries.length,
+            onToggle: () => _toggleMonth(row),
+          );
+        }
+
         // 日付の見出し
         if (row is DayGroup<Diary>) {
           return DayHeader(
@@ -176,4 +212,12 @@ class _DiarySelectPageState extends State<DiarySelectPage> {
     RegExp(r'(\d)(?=(\d{3})+$)'),
     (m) => "${m[1]},",
   );
+}
+
+/// 1か月分の日記(月ごとの見出しの行に使う)
+class MonthGroup {
+  const MonthGroup(this.month, this.diaries);
+
+  final DateTime month;
+  final List<Diary> diaries;
 }
