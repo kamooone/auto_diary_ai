@@ -22,8 +22,8 @@ class InMemoryPlanRepository implements PlanRepository {
 
 void main() {
   group('DiaryPlan', () {
-    test('AIに渡す情報は、無料プランは選んだ1日分だけ、有料プランは期間で選べる', () {
-      expect(DiaryPlan.free.allowsMultipleDays, isFalse);
+    test('AIに渡す情報は、無料プランも有料プランも、期間で選べる', () {
+      expect(DiaryPlan.free.allowsMultipleDays, isTrue);
 
       expect(DiaryPlan.paid.allowsMultipleDays, isTrue);
     });
@@ -110,7 +110,7 @@ void main() {
       expect(container.read(planTypeProvider), PlanType.paid);
     });
 
-    test('無料プランでは、期間を選べず、日記の日付の1日分のまま', () {
+    test('無料プランでも、期間を選べる', () {
       container.listen(diaryCreateProvider, (_, __) {});
       final viewModel = container.read(diaryCreateProvider.notifier);
 
@@ -118,8 +118,8 @@ void main() {
       viewModel.setAiDateRange(DateTime(2026, 1, 1), DateTime(2026, 1, 5));
 
       final state = container.read(diaryCreateProvider);
-      expect(state.aiStartDate, DateTime(2026, 1, 3));
-      expect(state.aiEndDate, DateTime(2026, 1, 3));
+      expect(state.aiStartDate, DateTime(2026, 1, 1));
+      expect(state.aiEndDate, DateTime(2026, 1, 5));
     });
 
     test('有料プランでは、日数の上限なく期間を選べる', () async {

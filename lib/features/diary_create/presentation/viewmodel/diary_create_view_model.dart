@@ -34,7 +34,7 @@ class DiaryCreateState {
   final DateTime endDate;
 
   /// AIに渡す情報(写真・Xの投稿・行動履歴)の期間
-  /// 無料プランは日記の日付と同じ1日分。有料プランは、選んだ期間
+  /// 初期値は日記の日付と同じ1日分。期間を選ぶと、選んだ期間
   final DateTime aiStartDate;
   final DateTime aiEndDate;
 
@@ -175,11 +175,10 @@ class DiaryCreateViewModel extends AutoDisposeNotifier<DiaryCreateState> {
     _loadedEnd = null;
   }
 
-  /// AIに渡す情報の期間を変更する(有料プランのみ)
-  /// 無料プランでは、日記の日付と同じ1日分のまま変わらない
+  /// AIに渡す情報の期間を変更する(プランに関わらず選べる)
   /// 期間が変わるとAIに渡せる情報も変わるため、AI用の選択内容は空に戻す
   void setAiDateRange(DateTime start, DateTime end) {
-    // 無料プランでは、日記の日付の1日分だけ
+    // 複数日を選べないプランでは、日記の日付の1日分だけ
     if (!ref.read(diaryPlanProvider).allowsMultipleDays) return;
 
     final first = DateTime(start.year, start.month, start.day);
