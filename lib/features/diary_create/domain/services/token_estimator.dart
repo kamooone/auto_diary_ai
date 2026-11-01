@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import '../../../diary/domain/entities/diary.dart';
 import '../../../location/domain/entities/timeline_item.dart';
 import '../../../share/domain/entities/shared_post.dart';
+import '../entities/summary_style.dart';
 import 'summary_text.dart';
 import 'timeline_text.dart';
 
@@ -36,10 +37,36 @@ class TokenEstimator {
   // AIが考える分(0〜800でばらつく)は含めない
   static const outputTokens = 50;
 
-  // 日記を1つにするときの出力。日記の文字数の10〜15%の長さで書くので、日記1文字あたりは少なめにし、
-  // 長さの上限(8,000文字)に合わせて上限も付ける(要実測)
-  static const summaryOutputTokensPerChar = 0.05;
-  static const summaryOutputTokensMax = 3000;
+  // 日記を1つにするときの出力。書き方ごとに、書く長さが違うため、日記の量から少なめに見積もる(要実測)
+  //  読み物: 日記の10〜15%の長さ(上限8,000文字) / 時系列の記録: 日記とほぼ同じ量(実測は日記1文字あたり約0.6)
+  //  短い振り返り: 日記の3〜5%(上限1,500文字) / 出来事の一覧: 1件につき1〜2行
+  static int summaryOutputTokens(SummaryStyle style, List<Diary> diaries) {
+    final chars = SummaryText.length(diaries);
+
+    return switch (style) {
+      SummaryStyle.reading || SummaryStyle.custom => math.min(
+        (chars * 0.05).round(),
+        3000,
+      ),
+      SummaryStyle.chronicle => (chars * 0.4).round(),
+      SummaryStyle.brief => math.min((chars * 0.02).round(), 1000),
+      SummaryStyle.list => diaries.length * 15,
+    };
+  }
+
+  // 書き方の相談で、最初の送信(日記の全文を送る)に使うトークンの目安。
+  // 指示文と、AIの回答(材料メモを含む)の分を含む
+  static const consultFixedTokens = 500;
+  static const consultOutputTokens = 300;
+
+  static int estimateConsult(List<Diary> diaries, {double multiplier = 1}) {
+    final tokens =
+        consultFixedTokens +
+        SummaryText.length(diaries) * noteTokensPerChar +
+        consultOutputTokens;
+
+    return (tokens * multiplier).ceil();
+  }
 
   /// [diaries]は、まとめ日記の材料にする作成済みの日記(写真・投稿・履歴とは同時に選ばない)
   /// [multiplier]は、AIの種類による消費量の倍率(サーバーが決める。通常は1)
@@ -49,6 +76,7 @@ class TokenEstimator {
     required List<SharedPost> posts,
     required int photoCount,
     List<Diary> diaries = const [],
+    SummaryStyle summaryStyle = SummaryStyle.reading,
     double multiplier = 1,
   }) {
     final chars =
@@ -66,10 +94,7 @@ class TokenEstimator {
         SummaryText.length(diaries) * noteTokensPerChar +
         (diaries.isEmpty
             ? outputTokens
-            : math.min(
-                SummaryText.length(diaries) * summaryOutputTokensPerChar,
-                summaryOutputTokensMax.toDouble(),
-              ));
+            : summaryOutputTokens(summaryStyle, diaries));
 
     return (tokens * multiplier).ceil();
   }

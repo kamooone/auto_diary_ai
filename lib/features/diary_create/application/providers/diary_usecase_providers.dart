@@ -1,4 +1,9 @@
+import 'dart:io';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:path_provider/path_provider.dart';
+import '../../data/repositories/file_summary_style_repository.dart';
+import '../../domain/repositories/summary_style_repository.dart';
+import '../../domain/usecases/consult_summary_usecase.dart';
 import '../../data/repositories/photo_repository_impl.dart';
 import '../../domain/repositories/photo_repository.dart';
 import '../../domain/entities/diary_plan.dart';
@@ -19,7 +24,18 @@ final photoRepositoryProvider = Provider<PhotoRepository>((ref) {
   return PhotoRepositoryImpl();
 });
 
+final summaryStyleRepositoryProvider = Provider<SummaryStyleRepository>((ref) {
+  return FileSummaryStyleRepository(() async {
+    final dir = await getApplicationSupportDirectory();
+    return File('${dir.path}/summary_style.json');
+  });
+});
+
 // UseCase
+final consultSummaryUseCaseProvider = Provider<ConsultSummaryUseCase>((ref) {
+  return ConsultSummaryUseCase(aiRepository: ref.watch(aiRepositoryProvider));
+});
+
 final generateDiaryUseCaseProvider = Provider<GenerateDiaryUseCase>((ref) {
   return GenerateDiaryUseCase(
     aiRepository: ref.watch(aiRepositoryProvider),

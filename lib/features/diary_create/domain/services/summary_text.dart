@@ -29,9 +29,17 @@ class SummaryText {
 
   /// 書いてほしい文章の長さの目安。日記の文字数([chars])の10〜15%
   /// (少なすぎると細部が残らず、多すぎると時間とトークンがかかるため、下限と上限を設ける)
-  static String lengthGuide(int chars) {
-    final low = ((chars * 0.10).clamp(300, 6000) / 100).round() * 100;
-    final high = ((chars * 0.15).clamp(low + 200, 8000) / 100).round() * 100;
+  static String lengthGuide(
+    int chars, {
+    double lowRatio = 0.10,
+    double highRatio = 0.15,
+    int minLow = 300,
+    int maxLow = 6000,
+    int maxHigh = 8000,
+  }) {
+    final low = ((chars * lowRatio).clamp(minLow, maxLow) / 100).round() * 100;
+    final high =
+        ((chars * highRatio).clamp(low + 200, maxHigh) / 100).round() * 100;
 
     return "$low〜$high文字";
   }

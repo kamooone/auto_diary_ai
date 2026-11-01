@@ -4,15 +4,18 @@ import '../../../diary/application/providers/diary_providers.dart';
 import '../../../diary/domain/entities/diary.dart';
 import '../../../plan/application/providers/plan_provider.dart';
 import '../../../plan/presentation/widgets/usage_meter.dart';
+import '../../domain/entities/summary_style.dart';
 import '../../domain/services/summary_text.dart';
 import '../../domain/services/token_estimator.dart';
 import '../providers/diary_create_provider.dart';
+import '../viewmodel/diary_create_view_model.dart';
 import 'diary_result_screen.dart';
 import 'diary_select_page.dart';
 import 'generate_flow.dart';
+import 'summary_consult_screen.dart';
 import 'widgets/token_shortage_dialog.dart';
 
-/// 作成済みの日記を選んで、AIにまとめの日記(月のまとめ・1年の振り返りなど)を書いてもらう画面
+/// 作成済みの日記を選んで、AIに1つの日記(月の振り返り・1年の振り返りなど)にしてもらう画面
 class SummaryDiaryScreen extends ConsumerStatefulWidget {
   const SummaryDiaryScreen({super.key});
 
@@ -25,17 +28,29 @@ class _SummaryDiaryScreenState extends ConsumerState<SummaryDiaryScreen> {
     text: ref.read(diaryCreateProvider).aiNote,
   );
 
+  // 「自分で指定」の、書き方の指示
+  final _customController = TextEditingController();
+
   @override
   void initState() {
     super.initState();
 
-    // 今月の使用量を取得する
-    Future.microtask(() => ref.read(usageProvider.notifier).refresh());
+    Future.microtask(() async {
+      // 今月の使用量を取得する
+      ref.read(usageProvider.notifier).refresh();
+
+      // 前回選んだ書き方を戻す
+      await ref.read(diaryCreateProvider.notifier).loadSummaryStyle();
+      if (!mounted) return;
+
+      _customController.text = ref.read(diaryCreateProvider).summaryCustom;
+    });
   }
 
   @override
   void dispose() {
     _noteController.dispose();
+    _customController.dispose();
     super.dispose();
   }
 
@@ -50,14 +65,19 @@ class _SummaryDiaryScreenState extends ConsumerState<SummaryDiaryScreen> {
     final selected = state.summaryDiaries;
     final isTooLong = SummaryText.length(selected) > SummaryText.maxChars;
 
+    // 「自分で指定」は、書き方を書くまでは作れない
+    final needsCustom =
+        state.summaryStyle == SummaryStyle.custom &&
+        state.summaryCustom.trim().isEmpty;
+
     return Scaffold(
       appBar: AppBar(title: const Text("日記を1つにする")),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
           Text(
-            "作成済みの日記を選ぶと、AIが選んだ日記の内容をすべて使って、"
-            "1つの日記に書き直します。1か月分や1年分の日記を、1つにできます。",
+            "作成済みの日記を選ぶと、AIが選んだ日記の内容を使って、"
+            "1つの日記に書きます。1か月分や1年分の日記を、1つにできます。",
             style: Theme.of(context).textTheme.bodySmall,
           ),
           const SizedBox(height: 12),
@@ -83,6 +103,45 @@ class _SummaryDiaryScreenState extends ConsumerState<SummaryDiaryScreen> {
           ),
           const SizedBox(height: 12),
 
+          // ---------- 書き方
+          Text("書き方", style: Theme.of(context).textTheme.titleSmall),
+          const SizedBox(height: 4),
+          Card(
+            child: Column(
+              children: [
+                for (final style in SummaryStyle.values)
+                  _styleTile(context, style, state.summaryStyle),
+              ],
+            ),
+          ),
+          if (state.summaryStyle == SummaryStyle.custom) ...[
+            const SizedBox(height: 8),
+            TextField(
+              controller: _customController,
+              decoration: const InputDecoration(
+                labelText: "どんな書き方にしたいか",
+                hintText: "例: 仕事の話だけを中心に、です・ます調で、800文字くらいで書いてほしい",
+                border: OutlineInputBorder(),
+                alignLabelWithHint: true,
+              ),
+              keyboardType: TextInputType.multiline,
+              minLines: 3,
+              maxLines: 8,
+              onChanged: viewModel.setSummaryCustom,
+            ),
+          ],
+          const SizedBox(height: 8),
+
+          // 選んだ日記を見て、書き方をAIに相談する
+          OutlinedButton.icon(
+            onPressed: selected.isEmpty || isExceeded
+                ? null
+                : () => _consult(context, selected),
+            icon: const Icon(Icons.chat_outlined),
+            label: const Text("AIに構成を相談する"),
+          ),
+          const SizedBox(height: 16),
+
           TextField(
             controller: _noteController,
             decoration: const InputDecoration(
@@ -106,25 +165,56 @@ class _SummaryDiaryScreenState extends ConsumerState<SummaryDiaryScreen> {
                 style: Theme.of(context).textTheme.bodySmall,
               ),
             ),
+          if (needsCustom)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: Text(
+                "「自分で指定」を選んだときは、書き方を書いてください",
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+            ),
           if (usage != null && selected.isNotEmpty)
             Padding(
               padding: const EdgeInsets.only(bottom: 8),
               child: Text(
-                "消費トークンの目安: 約${formatTokens(_estimate(selected))}"
+                "消費トークンの目安: 約${formatTokens(_estimate(state))}"
                 "(残り ${formatTokens(usage.remainingTokens)})",
                 style: Theme.of(context).textTheme.bodySmall,
               ),
             ),
           ElevatedButton.icon(
             // 2件以上選ぶまでは押せない。使用量の上限に達している場合も、押せない
-            onPressed: selected.length < SummaryText.minCount || isTooLong || isExceeded
+            onPressed:
+                selected.length < SummaryText.minCount ||
+                    isTooLong ||
+                    isExceeded ||
+                    needsCustom
                 ? null
-                : () => _generate(context, selected),
+                : () => _generate(context),
             icon: const Icon(Icons.auto_awesome),
             label: const Text("AIに1つにしてもらう"),
           ),
         ],
       ),
+    );
+  }
+
+  // 書き方の選択肢1つ(選んでいるものには、印を付ける)
+  Widget _styleTile(
+    BuildContext context,
+    SummaryStyle style,
+    SummaryStyle current,
+  ) {
+    final isSelected = style == current;
+
+    return ListTile(
+      leading: Icon(
+        isSelected ? Icons.radio_button_checked : Icons.radio_button_unchecked,
+        color: isSelected ? Theme.of(context).colorScheme.primary : null,
+      ),
+      title: Text(style.label),
+      subtitle: Text(style.description),
+      onTap: () => ref.read(diaryCreateProvider.notifier).setSummaryStyle(style),
     );
   }
 
@@ -146,11 +236,32 @@ class _SummaryDiaryScreenState extends ConsumerState<SummaryDiaryScreen> {
     }
   }
 
-  Future<void> _generate(BuildContext context, List<Diary> selected) async {
+  // 日記の全文をAIに送って、書き方を相談する。AIの提案を受け取ったら、「自分で指定」に入れる
+  Future<void> _consult(BuildContext context, List<Diary> selected) async {
+    final ok = await confirmBeforeConsult(
+      context,
+      ref,
+      estimatedTokens: TokenEstimator.estimateConsult(selected),
+    );
+    if (!ok || !context.mounted) return;
+
+    final proposal = await Navigator.of(context).push<String>(
+      MaterialPageRoute(
+        builder: (context) => SummaryConsultScreen(diaries: selected),
+      ),
+    );
+
+    if (proposal == null || !mounted) return;
+
+    ref.read(diaryCreateProvider.notifier).applySummaryProposal(proposal);
+    _customController.text = proposal;
+  }
+
+  Future<void> _generate(BuildContext context) async {
     final ok = await confirmBeforeGenerate(
       context,
       ref,
-      estimatedTokens: _estimate(selected),
+      estimatedTokens: _estimate(ref.read(diaryCreateProvider)),
     );
 
     if (!ok || !context.mounted) return;
@@ -162,13 +273,14 @@ class _SummaryDiaryScreenState extends ConsumerState<SummaryDiaryScreen> {
     ).push(MaterialPageRoute(builder: (context) => const DiaryResultScreen()));
   }
 
-  int _estimate(List<Diary> selected) {
+  int _estimate(DiaryCreateState state) {
     return TokenEstimator.estimate(
-      note: ref.read(diaryCreateProvider).aiNote,
+      note: state.aiNote,
       timeline: const [],
       posts: const [],
       photoCount: 0,
-      diaries: selected,
+      diaries: state.summaryDiaries,
+      summaryStyle: state.summaryStyle,
     );
   }
 }
