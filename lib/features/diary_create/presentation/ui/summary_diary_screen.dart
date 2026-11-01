@@ -51,13 +51,13 @@ class _SummaryDiaryScreenState extends ConsumerState<SummaryDiaryScreen> {
     final isTooLong = SummaryText.length(selected) > SummaryText.maxChars;
 
     return Scaffold(
-      appBar: AppBar(title: const Text("まとめ日記")),
+      appBar: AppBar(title: const Text("日記を1つにする")),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
           Text(
-            "作成済みの日記を選ぶと、AIが1つの日記にまとめます。"
-            "月のまとめや、1年の振り返りに使えます。",
+            "作成済みの日記を選ぶと、AIが選んだ日記の内容をすべて使って、"
+            "1つの日記に書き直します。1か月分や1年分の日記を、1つにできます。",
             style: Theme.of(context).textTheme.bodySmall,
           ),
           const SizedBox(height: 12),
@@ -70,7 +70,7 @@ class _SummaryDiaryScreenState extends ConsumerState<SummaryDiaryScreen> {
           Card(
             child: ListTile(
               leading: const Icon(Icons.menu_book),
-              title: const Text("まとめる日記"),
+              title: const Text("1つにする日記"),
               subtitle: Text(
                 diaries.isEmpty
                     ? "まだ日記がありません"
@@ -121,7 +121,7 @@ class _SummaryDiaryScreenState extends ConsumerState<SummaryDiaryScreen> {
                 ? null
                 : () => _generate(context, selected),
             icon: const Icon(Icons.auto_awesome),
-            label: const Text("AIにまとめてもらう"),
+            label: const Text("AIに1つにしてもらう"),
           ),
         ],
       ),

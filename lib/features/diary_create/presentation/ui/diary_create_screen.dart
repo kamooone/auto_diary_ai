@@ -136,7 +136,7 @@ class DiaryCreateScreen extends ConsumerWidget {
           OutlinedButton.icon(
             onPressed: () => context.push(AppRoutes.summaryDiary),
             icon: const Icon(Icons.auto_stories),
-            label: const Text("作成済みの日記をまとめる"),
+            label: const Text("作成済みの日記を1つにする"),
           ),
         ],
       ),

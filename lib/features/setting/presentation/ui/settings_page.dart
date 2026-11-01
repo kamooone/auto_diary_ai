@@ -137,7 +137,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
           ListTile(
             leading: const Icon(Icons.bug_report),
             title: const Text("テスト用の日記"),
-            subtitle: const Text("まとめ日記を試すための日記を、まとめて追加・削除します"),
+            subtitle: const Text("日記を1つにする機能を試すための日記を、まとめて追加・削除します"),
             onTap: () {
               Navigator.of(context).push(
                 MaterialPageRoute(builder: (context) => const TestDiaryPage()),

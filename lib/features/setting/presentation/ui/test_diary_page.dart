@@ -31,7 +31,7 @@ class _TestDiaryPageState extends ConsumerState<TestDiaryPage> {
         padding: const EdgeInsets.all(16),
         children: [
           const Text(
-            "まとめ日記を試すための日記を、2026年1月1日から10月27日まで、"
+            "日記を1つにする機能を試すための日記を、2026年1月1日から10月27日まで、"
             "1日1件(各500文字前後)追加します。\n"
             "タイトルが「${TestDiaryGenerator.titlePrefix}」で始まる日記が、テスト用です。",
           ),
