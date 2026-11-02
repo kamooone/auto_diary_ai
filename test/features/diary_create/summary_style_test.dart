@@ -223,7 +223,9 @@ void main() {
       expect(prompt(SummaryStyle.reading), contains('形(読み物)'));
       expect(prompt(SummaryStyle.reading), contains('章立て'));
 
-      expect(prompt(SummaryStyle.brief), contains('短い1本の文章'));
+      expect(prompt(SummaryStyle.brief), contains('読み物を、もっと簡潔にした形'));
+      expect(prompt(SummaryStyle.brief), contains('「○月○日」と日付を添えて'));
+      expect(prompt(SummaryStyle.brief), contains('段落と段落の間は、1行空けてください'));
       expect(prompt(SummaryStyle.list), contains('「・○月○日 出来事」'));
     });
 
