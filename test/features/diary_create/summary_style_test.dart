@@ -236,6 +236,8 @@ void main() {
       expect(prompt(SummaryStyle.brief), contains('読み物を、もっと簡潔にした形'));
       expect(prompt(SummaryStyle.brief), contains('「○月○日」と日付を添えて'));
       expect(prompt(SummaryStyle.brief), contains('段落と段落の間は、1行空けてください'));
+      expect(prompt(SummaryStyle.brief), contains('時期の順に段落を分けてください'));
+      expect(prompt(SummaryStyle.brief), contains('どの段落にも、「○月○日」と日付を添えた出来事を'));
       expect(prompt(SummaryStyle.list), contains('「・○月○日 出来事」'));
       expect(prompt(SummaryStyle.list), contains('取り違えないでください'));
     });
