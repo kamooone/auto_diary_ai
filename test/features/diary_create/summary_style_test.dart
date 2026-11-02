@@ -234,8 +234,15 @@ void main() {
       expect(prompt(SummaryStyle.reading), contains('章立て'));
       expect(prompt(SummaryStyle.reading), contains('2〜4文ごとの段落'));
       expect(prompt(SummaryStyle.reading), contains('羅列にしないでください'));
-      expect(prompt(SummaryStyle.reading), contains('頻度の言葉は'));
-      expect(prompt(SummaryStyle.reading), contains('8割以上'));
+      expect(prompt(SummaryStyle.reading), contains('頻度の言葉を使わないでください'));
+      expect(
+        prompt(SummaryStyle.reading),
+        contains('「ほぼ毎日」「毎日」「毎日のように」「日課」「習慣」「いつも」という言葉は、使わないでください'),
+      );
+      expect(
+        prompt(SummaryStyle.reading),
+        contains('日記そのものに触れる言い方は、しないでください'),
+      );
       expect(prompt(SummaryStyle.reading), contains('日付や時期が前に戻らないように'));
       expect(prompt(SummaryStyle.reading), contains('目安の下限より短くならないように'));
       expect(prompt(SummaryStyle.reading), contains('各章に、日付か時期を、少なくとも1つは入れてください'));
