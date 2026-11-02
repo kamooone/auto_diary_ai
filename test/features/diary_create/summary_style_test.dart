@@ -236,6 +236,8 @@ void main() {
       expect(prompt(SummaryStyle.reading), contains('羅列にしないでください'));
       expect(prompt(SummaryStyle.reading), contains('頻度の言葉は'));
       expect(prompt(SummaryStyle.reading), contains('8割以上'));
+      expect(prompt(SummaryStyle.reading), contains('日付や時期が前に戻らないように'));
+      expect(prompt(SummaryStyle.reading), contains('目安の下限より短くならないように'));
       expect(prompt(SummaryStyle.reading), contains('各章に、日付か時期を、少なくとも1つは入れてください'));
       expect(prompt(SummaryStyle.reading), contains('省略せずに、できるだけ詳しく、ブログのような文章'));
       expect(prompt(SummaryStyle.reading), contains('日付を先頭に付けた文を並べる書き方は避けてください'));
