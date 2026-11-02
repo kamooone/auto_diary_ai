@@ -243,6 +243,10 @@ void main() {
         prompt(SummaryStyle.reading),
         contains('日記そのものに触れる言い方は、しないでください'),
       );
+      expect(
+        prompt(SummaryStyle.reading),
+        contains('どの段落も、最初の文で、その段落の出来事の月を示してください'),
+      );
       expect(prompt(SummaryStyle.reading), contains('日付や時期が前に戻らないように'));
       expect(prompt(SummaryStyle.reading), contains('目安の下限より短くならないように'));
       expect(prompt(SummaryStyle.reading), contains('各章に、日付か時期を、少なくとも1つは入れてください'));
