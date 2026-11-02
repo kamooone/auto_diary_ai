@@ -230,11 +230,13 @@ void main() {
     });
 
     test('書き方ごとに、指示が違う', () {
-      expect(prompt(SummaryStyle.reading), contains('形(読み物)'));
+      expect(prompt(SummaryStyle.reading), contains('形(読み物・ブログ風)'));
       expect(prompt(SummaryStyle.reading), contains('章立て'));
       expect(prompt(SummaryStyle.reading), contains('2〜4文ごとの段落'));
       expect(prompt(SummaryStyle.reading), contains('羅列にしないでください'));
       expect(prompt(SummaryStyle.reading), contains('頻度の言葉は'));
+      expect(prompt(SummaryStyle.reading), contains('省略せずに、できるだけ詳しく、ブログのような文章'));
+      expect(prompt(SummaryStyle.reading), contains('日付を先頭に付けた文を並べる書き方は避けてください'));
 
       expect(prompt(SummaryStyle.brief), contains('読み物(ブログ風)を、もっと簡潔にした形'));
       expect(prompt(SummaryStyle.brief), contains('「○月○日」と日付を添えて'));
@@ -251,7 +253,7 @@ void main() {
 
       expect(text, contains('ですます調で仕事だけ'));
       expect(text, contains('意味不明なとき'));
-      expect(text, contains('形(読み物)'));
+      expect(text, contains('形(読み物・ブログ風)'));
     });
   });
 
