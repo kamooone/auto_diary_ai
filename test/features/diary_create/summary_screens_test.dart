@@ -106,6 +106,23 @@ void main() {
       expect(isEnabled(tester, 'AIに1つにしてもらう'), isFalse);
     });
 
+    testWidgets('時系列の記録(AIを使わない)を選ぶと、AIに伝えたいことの欄が消える', (tester) async {
+      await open(tester);
+
+      expect(find.text('AIに追加で伝えたいこと'), findsOneWidget);
+
+      await tester.tap(find.text('時系列の記録'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('AIに追加で伝えたいこと'), findsNothing);
+      expect(find.text('日記を1つにする'), findsWidgets);
+
+      await tester.tap(find.text('読み物(ブログ風)'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('AIに追加で伝えたいこと'), findsOneWidget);
+    });
+
     testWidgets('自分で指定を選ぶと記入欄が出て、書くまでは作成できない', (tester) async {
       await open(tester);
 

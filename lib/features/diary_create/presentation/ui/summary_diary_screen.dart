@@ -149,20 +149,23 @@ class _SummaryDiaryScreenState extends ConsumerState<SummaryDiaryScreen> {
           ),
           const SizedBox(height: 16),
 
-          TextField(
-            controller: _noteController,
-            decoration: const InputDecoration(
-              labelText: "AIに追加で伝えたいこと",
-              hintText: "例: 今年1年の振り返りとして、前向きな言葉で締めてほしい",
-              border: OutlineInputBorder(),
-              alignLabelWithHint: true,
+          // AIを使わない「時系列の記録」では、伝える相手がいないので出さない
+          if (!isJoin) ...[
+            TextField(
+              controller: _noteController,
+              decoration: const InputDecoration(
+                labelText: "AIに追加で伝えたいこと",
+                hintText: "例: 今年1年の振り返りとして、前向きな言葉で締めてほしい",
+                border: OutlineInputBorder(),
+                alignLabelWithHint: true,
+              ),
+              keyboardType: TextInputType.multiline,
+              minLines: 3,
+              maxLines: 8,
+              onChanged: viewModel.setAiNote,
             ),
-            keyboardType: TextInputType.multiline,
-            minLines: 3,
-            maxLines: 8,
-            onChanged: viewModel.setAiNote,
-          ),
-          const SizedBox(height: 16),
+            const SizedBox(height: 16),
+          ],
 
           if (selected.length < SummaryText.minCount)
             Padding(
