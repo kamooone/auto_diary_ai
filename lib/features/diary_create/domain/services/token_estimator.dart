@@ -39,7 +39,7 @@ class TokenEstimator {
 
   // 日記を1つにするときの出力。書き方ごとに、書く長さが違うため、日記の量から少なめに見積もる(要実測)
   //  読み物: 日記の10〜15%の長さ(上限8,000文字) / 日記を連結させる: AIを使わない(0)(実測は日記1文字あたり約0.6)
-  //  読み物(簡単なログ風): 日記の3〜5%(上限1,500文字) / 出来事の一覧: 1件につき1〜2行
+  //  読み物(簡単なブログ風): 日記の3〜5%(上限1,500文字) / 出来事の一覧: 1件につき1〜2行
   static int summaryOutputTokens(SummaryStyle style, List<Diary> diaries) {
     final chars = SummaryText.length(diaries);
 

@@ -75,7 +75,7 @@ void main() {
     expect(SummaryStyle.values.map((e) => e.label), [
       '日記を連結させる',
       '出来事の一覧',
-      '読み物(簡単なログ風)',
+      '読み物(簡単なブログ風)',
       '読み物(ブログ風)',
       '自分で指定',
     ]);
@@ -233,10 +233,9 @@ void main() {
       expect(prompt(SummaryStyle.reading), contains('形(読み物)'));
       expect(prompt(SummaryStyle.reading), contains('章立て'));
 
-      expect(prompt(SummaryStyle.brief), contains('読み物を、もっと簡潔にした形'));
+      expect(prompt(SummaryStyle.brief), contains('読み物(ブログ風)を、もっと簡潔にした形'));
       expect(prompt(SummaryStyle.brief), contains('「○月○日」と日付を添えて'));
       expect(prompt(SummaryStyle.brief), contains('段落と段落の間は、1行空けてください'));
-      expect(prompt(SummaryStyle.brief), contains('時期の順に段落を分けてください'));
       expect(prompt(SummaryStyle.brief), contains('どの段落にも、「○月○日」と日付を添えた出来事を'));
       expect(prompt(SummaryStyle.list), contains('「・○月○日 出来事」'));
       expect(prompt(SummaryStyle.list), contains('取り違えないでください'));
@@ -265,7 +264,7 @@ void main() {
       expect(estimate(SummaryStyle.chronicle), 0);
     });
 
-    test('読み物(ブログ風)は読み物(簡単なログ風)より出力が多い見込みになる', () {
+    test('読み物(ブログ風)は読み物(簡単なブログ風)より出力が多い見込みになる', () {
       expect(
         estimate(SummaryStyle.reading),
         greaterThan(estimate(SummaryStyle.brief)),
