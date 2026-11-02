@@ -48,7 +48,8 @@ class TokenEstimator {
         (chars * 0.05).round(),
         3000,
       ),
-      SummaryStyle.chronicle => (chars * 0.4).round(),
+      // 時系列の記録は、AIを使わない
+      SummaryStyle.chronicle => 0,
       SummaryStyle.brief => math.min((chars * 0.02).round(), 1000),
       SummaryStyle.list => diaries.length * 15,
     };
@@ -79,6 +80,9 @@ class TokenEstimator {
     SummaryStyle summaryStyle = SummaryStyle.reading,
     double multiplier = 1,
   }) {
+    // 時系列の記録は、AIを使わずにつなげるので、トークンを使わない
+    if (diaries.isNotEmpty && summaryStyle == SummaryStyle.chronicle) return 0;
+
     final chars =
         TimelineText.format(timeline).length +
         posts.fold<int>(

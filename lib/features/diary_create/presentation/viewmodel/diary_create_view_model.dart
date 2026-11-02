@@ -14,6 +14,7 @@ import '../../application/providers/diary_usecase_providers.dart';
 import '../../domain/entities/diary_style.dart';
 import '../../domain/entities/generated_diary.dart';
 import '../../domain/entities/summary_style.dart';
+import '../../domain/services/summary_join.dart';
 import '../../domain/entities/photo.dart';
 
 class DiaryCreateState {
@@ -27,6 +28,9 @@ class DiaryCreateState {
   /// AIが書いた日記のタイトルと本文
   final String generatedTitle;
   final String generatedDiary;
+
+  /// 生成した日記が、AIが書いたものか(時系列の記録は、AIを使わずにつなげたもの)
+  final bool generatedByAi;
 
   final String? errorMessage;
   final bool isLoading;
@@ -74,6 +78,7 @@ class DiaryCreateState {
     this.aiNote = '',
     this.generatedTitle = '',
     this.generatedDiary = '',
+    this.generatedByAi = true,
     this.errorMessage,
     this.isLoading = false,
     required this.startDate,
@@ -100,6 +105,7 @@ class DiaryCreateState {
     String? aiNote,
     String? generatedTitle,
     String? generatedDiary,
+    bool? generatedByAi,
     String? errorMessage,
     bool clearError = false,
     bool? isLoading,
@@ -126,6 +132,7 @@ class DiaryCreateState {
       aiNote: aiNote ?? this.aiNote,
       generatedTitle: generatedTitle ?? this.generatedTitle,
       generatedDiary: generatedDiary ?? this.generatedDiary,
+      generatedByAi: generatedByAi ?? this.generatedByAi,
       errorMessage: clearError ? null : (errorMessage ?? this.errorMessage),
       isLoading: isLoading ?? this.isLoading,
       startDate: startDate ?? this.startDate,
@@ -425,7 +432,7 @@ class DiaryCreateViewModel extends AutoDisposeNotifier<DiaryCreateState> {
       content: content,
       photos: state.aiPhotos,
       date: state.startDate,
-      isAiGenerated: true,
+      isAiGenerated: state.generatedByAi,
     );
   }
 
@@ -474,6 +481,20 @@ class DiaryCreateViewModel extends AutoDisposeNotifier<DiaryCreateState> {
 
   /// 選んだ作成済みの日記を、AIにまとめてもらう
   Future<void> generateSummaryDiary() {
+    // 時系列の記録は、AIを使わずに、日記を日付順につなげる
+    if (state.summaryStyle == SummaryStyle.chronicle) {
+      final diaries = state.summaryDiaries;
+
+      state = state.copyWith(
+        generatedTitle: SummaryJoin.title(diaries),
+        generatedDiary: SummaryJoin.content(diaries),
+        generatedByAi: false,
+        isLoading: false,
+        clearError: true,
+      );
+      return Future.value();
+    }
+
     return _generate(
       () => ref.read(generateSummaryDiaryUseCaseProvider).execute(
         plan: ref.read(planTypeProvider),
@@ -503,6 +524,7 @@ class DiaryCreateViewModel extends AutoDisposeNotifier<DiaryCreateState> {
       state = state.copyWith(
         generatedTitle: result.title,
         generatedDiary: result.content,
+        generatedByAi: true,
         isLoading: false,
       );
     } on UsageLimitExceededException catch (e) {

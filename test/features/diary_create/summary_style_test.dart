@@ -12,6 +12,7 @@ import 'package:auto_diary_ai/features/diary_create/domain/repositories/diary_st
 import 'package:auto_diary_ai/features/diary_create/domain/repositories/summary_style_repository.dart';
 import 'package:auto_diary_ai/features/diary_create/presentation/providers/diary_create_provider.dart';
 import 'package:auto_diary_ai/features/diary_create/domain/services/consult_reply_parser.dart';
+import 'package:auto_diary_ai/features/diary_create/domain/services/summary_join.dart';
 import 'package:auto_diary_ai/features/diary_create/domain/services/summary_prompt.dart';
 import 'package:auto_diary_ai/features/diary_create/domain/services/token_estimator.dart';
 import 'package:auto_diary_ai/features/diary_create/presentation/viewmodel/summary_consult_view_model.dart';
@@ -29,13 +30,12 @@ Diary diary(int day, String title, String content) => Diary(
 
 final diaries = [diary(1, '初詣', '神社に行った'), diary(2, 'ラーメン', '同僚と食べた')];
 
-String prompt(SummaryStyle style, {String custom = ''}) =>
-    SummaryPrompt.build(
-      style: style,
-      diaries: diaries,
-      note: '',
-      customInstruction: custom,
-    );
+String prompt(SummaryStyle style, {String custom = ''}) => SummaryPrompt.build(
+  style: style,
+  diaries: diaries,
+  note: '',
+  customInstruction: custom,
+);
 
 class ScriptedAi implements AiRepository {
   ScriptedAi(this.answers);
@@ -71,6 +71,57 @@ class MemoryDiaryStyleRepository implements DiaryStyleRepository {
 }
 
 void main() {
+  group('時系列の記録(AIを使わない)', () {
+    test('タイトルは、日記の期間から付ける', () {
+      Diary on(int y, int m) => Diary(
+        date: DateTime(y, m, 5),
+        title: 't',
+        content: 'c',
+        isAiGenerated: false,
+        createdAt: DateTime(y, m, 5),
+      );
+
+      expect(SummaryJoin.title([on(2026, 1), on(2026, 1)]), '2026年1月の日記');
+      expect(SummaryJoin.title([on(2026, 3), on(2026, 1)]), '2026年1月〜3月の日記');
+      expect(
+        SummaryJoin.title([on(2026, 1), on(2025, 12)]),
+        '2025年12月〜2026年1月の日記',
+      );
+    });
+
+    test('AIを呼ばずに、日記を日付順につなぐ。保存するときは、AIの日記にしない', () async {
+      final ai = ScriptedAi([]);
+      final container = ProviderContainer(
+        overrides: [
+          aiRepositoryProvider.overrideWithValue(ai),
+          summaryStyleRepositoryProvider.overrideWithValue(
+            MemoryStyleRepository(),
+          ),
+        ],
+      );
+      addTearDown(container.dispose);
+      container.listen(diaryCreateProvider, (_, __) {});
+
+      final viewModel = container.read(diaryCreateProvider.notifier);
+      viewModel.setSummaryDiaries([
+        diary(2, 'ラーメン', '同僚と食べた'),
+        diary(1, '初詣', '神社に行った'),
+      ]);
+      viewModel.setSummaryStyle(SummaryStyle.chronicle);
+      await viewModel.generateSummaryDiary();
+
+      final state = container.read(diaryCreateProvider);
+      expect(ai.messages, isEmpty);
+      expect(state.generatedTitle, '2026年1月の日記');
+      expect(
+        state.generatedDiary,
+        '2026年1月1日 初詣\n神社に行った\n\n2026年1月2日 ラーメン\n同僚と食べた',
+      );
+      expect(state.generatedByAi, isFalse);
+      expect(state.isLoading, isFalse);
+    });
+  });
+
   group('ふつうの日記の、自分で指定', () {
     test('画面を離れて消すと、指示は空になり、日記に戻る', () {
       final container = ProviderContainer(
@@ -114,7 +165,9 @@ void main() {
     test('画面を離れて消すと、指示は空になり、読み物に戻る', () {
       final repository = MemoryStyleRepository();
       final container = ProviderContainer(
-        overrides: [summaryStyleRepositoryProvider.overrideWithValue(repository)],
+        overrides: [
+          summaryStyleRepositoryProvider.overrideWithValue(repository),
+        ],
       );
       addTearDown(container.dispose);
       container.listen(diaryCreateProvider, (_, __) {});
@@ -136,7 +189,9 @@ void main() {
     test('ほかの書き方を選んでいたときは、書き方はそのまま', () {
       final container = ProviderContainer(
         overrides: [
-          summaryStyleRepositoryProvider.overrideWithValue(MemoryStyleRepository()),
+          summaryStyleRepositoryProvider.overrideWithValue(
+            MemoryStyleRepository(),
+          ),
         ],
       );
       addTearDown(container.dispose);
@@ -146,7 +201,10 @@ void main() {
       viewModel.setSummaryStyle(SummaryStyle.list);
       viewModel.clearSummaryCustom();
 
-      expect(container.read(diaryCreateProvider).summaryStyle, SummaryStyle.list);
+      expect(
+        container.read(diaryCreateProvider).summaryStyle,
+        SummaryStyle.list,
+      );
     });
   });
 
@@ -164,7 +222,7 @@ void main() {
     test('書き方ごとに、指示が違う', () {
       expect(prompt(SummaryStyle.reading), contains('形(読み物)'));
       expect(prompt(SummaryStyle.reading), contains('章立て'));
-      expect(prompt(SummaryStyle.chronicle), contains('省略せずに'));
+
       expect(prompt(SummaryStyle.brief), contains('短い1本の文章'));
       expect(prompt(SummaryStyle.list), contains('「・○月○日 出来事」'));
     });
@@ -188,11 +246,11 @@ void main() {
       summaryStyle: style,
     );
 
-    test('時系列の記録は、ほかより出力が多い見込みになる', () {
-      expect(
-        estimate(SummaryStyle.chronicle),
-        greaterThan(estimate(SummaryStyle.reading)),
-      );
+    test('時系列の記録は、AIを使わないので、トークンは0', () {
+      expect(estimate(SummaryStyle.chronicle), 0);
+    });
+
+    test('読み物は短い振り返りより出力が多い見込みになる', () {
       expect(
         estimate(SummaryStyle.reading),
         greaterThan(estimate(SummaryStyle.brief)),

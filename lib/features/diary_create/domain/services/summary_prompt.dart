@@ -44,7 +44,8 @@ ${SummaryText.format(diaries)}
   static String _style(SummaryStyle style, int chars, String custom) {
     return switch (style) {
       SummaryStyle.reading => _reading(chars),
-      SummaryStyle.chronicle => _chronicle,
+      // 時系列の記録は、AIを使わずにつなげる(SummaryJoin)ので、ここには来ない。念のため読み物にする
+      SummaryStyle.chronicle => _reading(chars),
       SummaryStyle.brief => _brief(chars),
       SummaryStyle.list => _list,
       SummaryStyle.custom => """
@@ -69,13 +70,6 @@ ${_reading(chars)}""",
 ・要約しすぎないでください。場所、人、食べたもの、したこと、気持ちなどの具体的な細部を、できるだけ残してください。大きな出来事には、「○月○日」と日付を添えてください。
 ・同じことの繰り返しだけは、まとめてかまいません。
 ・長さの目安は${SummaryText.lengthGuide(chars)}です。""";
-
-  static const _chronicle = """
-形(時系列の記録)
-・要約はしないでください。すべての日記の内容を、省略せずに含めてください。どの日の出来事も、場所、人、食べたもの、したこと、気持ちなどの具体的な内容を、そのまま残してください。
-・日付の順に、「○月○日」と日付を示しながら、時間の流れに沿って書いてください。日ごとに段落を分けてください。
-・本人が書いた日記として、「私は〜」「〜した」のように、素直な言葉で書いてください。
-・長さは決めません。日記の量に合わせて、必要なだけ書いてください。""";
 
   static String _brief(int chars) => """
 形(短い振り返り)

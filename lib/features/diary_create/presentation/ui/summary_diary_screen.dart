@@ -70,6 +70,9 @@ class _SummaryDiaryScreenState extends ConsumerState<SummaryDiaryScreen> {
     final isTooLong = SummaryText.length(selected) > SummaryText.maxChars;
 
     // 「自分で指定」は、書き方を書くまでは作れない
+    // 時系列の記録は、AIを使わずにつなげるので、トークンも広告もいらない
+    final isJoin = state.summaryStyle == SummaryStyle.chronicle;
+
     final needsCustom =
         state.summaryStyle == SummaryStyle.custom &&
         state.summaryCustom.trim().isEmpty;
@@ -177,7 +180,15 @@ class _SummaryDiaryScreenState extends ConsumerState<SummaryDiaryScreen> {
                 style: Theme.of(context).textTheme.bodySmall,
               ),
             ),
-          if (usage != null && selected.isNotEmpty)
+          if (isJoin && selected.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: Text(
+                "AIを使わないので、トークンは消費しません",
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+            )
+          else if (usage != null && selected.isNotEmpty)
             Padding(
               padding: const EdgeInsets.only(bottom: 8),
               child: Text(
@@ -191,12 +202,12 @@ class _SummaryDiaryScreenState extends ConsumerState<SummaryDiaryScreen> {
             onPressed:
                 selected.length < SummaryText.minCount ||
                     isTooLong ||
-                    isExceeded ||
+                    (isExceeded && !isJoin) ||
                     needsCustom
                 ? null
                 : () => _generate(context),
             icon: const Icon(Icons.auto_awesome),
-            label: const Text("AIに1つにしてもらう"),
+            label: Text(isJoin ? "日記を1つにする" : "AIに1つにしてもらう"),
           ),
         ],
       ),
@@ -243,6 +254,16 @@ class _SummaryDiaryScreenState extends ConsumerState<SummaryDiaryScreen> {
   }
 
   Future<void> _generate(BuildContext context) async {
+    // AIを使わないときは、確認も広告もなしで、すぐにつなげる
+    if (ref.read(diaryCreateProvider).summaryStyle == SummaryStyle.chronicle) {
+      ref.read(diaryCreateProvider.notifier).generateSummaryDiary();
+
+      Navigator.of(context).push(
+        MaterialPageRoute(builder: (context) => const DiaryResultScreen()),
+      );
+      return;
+    }
+
     final ok = await confirmBeforeGenerate(
       context,
       ref,

@@ -60,7 +60,9 @@ class _DiaryResultScreenState extends ConsumerState<DiaryResultScreen> {
     final isCompleted = _isCompleted(state);
 
     return Scaffold(
-      appBar: AppBar(title: const Text("AI日記の確認")),
+      appBar: AppBar(
+        title: Text(state.generatedByAi ? "AI日記の確認" : "日記の確認"),
+      ),
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: _buildBody(context, state),
@@ -178,7 +180,9 @@ class _DiaryResultScreenState extends ConsumerState<DiaryResultScreen> {
     return ListView(
       children: [
         Text(
-          "AIが書いた内容です。必要なら修正してから保存してください。",
+          state.generatedByAi
+              ? "AIが書いた内容です。必要なら修正してから保存してください。"
+              : "選んだ日記を日付順につなげた内容です。必要なら修正してから保存してください。",
           style: Theme.of(context).textTheme.bodySmall,
         ),
         const SizedBox(height: 12),
