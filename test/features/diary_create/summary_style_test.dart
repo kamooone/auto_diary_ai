@@ -232,6 +232,9 @@ void main() {
     test('書き方ごとに、指示が違う', () {
       expect(prompt(SummaryStyle.reading), contains('形(読み物)'));
       expect(prompt(SummaryStyle.reading), contains('章立て'));
+      expect(prompt(SummaryStyle.reading), contains('2〜4文ごとの段落'));
+      expect(prompt(SummaryStyle.reading), contains('羅列にしないでください'));
+      expect(prompt(SummaryStyle.reading), contains('頻度の言葉は'));
 
       expect(prompt(SummaryStyle.brief), contains('読み物(ブログ風)を、もっと簡潔にした形'));
       expect(prompt(SummaryStyle.brief), contains('「○月○日」と日付を添えて'));
