@@ -145,7 +145,7 @@ void main() {
 
     expect(ai.message, contains('一番読みやすい形を判断'));
     expect(ai.message, contains('章立て'));
-    expect(ai.message, contains('2026年1月1日 t1\nc1'));
+    expect(ai.message, contains('■2026年1月1日 t1\nc1'));
     expect(ai.message, contains('長さの目安は300〜500文字'));
   });
 }

@@ -17,6 +17,12 @@ class SummaryText {
     return sorted(diaries).map(_one).join("\n\n");
   }
 
+  /// AIに渡すときの形。日記の区切りをはっきりさせるため、日付の前に「■」を付ける
+  /// (長い入力で、日記の日付と内容を取り違えないようにするため)
+  static String formatForAi(List<Diary> diaries) {
+    return sorted(diaries).map((e) => "■${_one(e)}").join("\n\n");
+  }
+
   static List<Diary> sorted(List<Diary> diaries) {
     return [...diaries]..sort((a, b) {
       final byDate = a.date.compareTo(b.date);

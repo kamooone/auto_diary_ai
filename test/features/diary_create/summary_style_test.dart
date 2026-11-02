@@ -223,7 +223,7 @@ void main() {
       for (final style in SummaryStyle.values) {
         final text = prompt(style, custom: '短く');
 
-        expect(text, contains('2026年1月1日 初詣\n神社に行った'));
+        expect(text, contains('■2026年1月1日 初詣\n神社に行った'));
         expect(text, contains('付け足さないでください'));
         expect(text, contains('タイトル: (日記のタイトルを1行で)'));
       }
@@ -237,6 +237,7 @@ void main() {
       expect(prompt(SummaryStyle.brief), contains('「○月○日」と日付を添えて'));
       expect(prompt(SummaryStyle.brief), contains('段落と段落の間は、1行空けてください'));
       expect(prompt(SummaryStyle.list), contains('「・○月○日 出来事」'));
+      expect(prompt(SummaryStyle.list), contains('取り違えないでください'));
     });
 
     test('自分で指定は、書いた指示を渡し、意味不明なときは読み物で書かせる', () {

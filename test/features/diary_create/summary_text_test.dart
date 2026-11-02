@@ -13,6 +13,15 @@ Diary diary(int month, int day, String title, String content) => Diary(
 
 void main() {
   group('SummaryText', () {
+    test('AIに渡す形は、日記ごとに「■」で区切る', () {
+      final text = SummaryText.formatForAi([
+        diary(2, 3, '二つ目', '本文2'),
+        diary(1, 5, '一つ目', '本文1'),
+      ]);
+
+      expect(text, '■2026年1月5日 一つ目\n本文1\n\n■2026年2月3日 二つ目\n本文2');
+    });
+
     test('日付の古い順に、日付・タイトル・本文を並べる', () {
       final text = SummaryText.format([
         diary(2, 3, '二つ目', '本文2'),
