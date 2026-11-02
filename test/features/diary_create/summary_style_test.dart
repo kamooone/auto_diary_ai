@@ -71,7 +71,17 @@ class MemoryDiaryStyleRepository implements DiaryStyleRepository {
 }
 
 void main() {
-  group('時系列の記録(AIを使わない)', () {
+  test('書き方は、決めた順番で並ぶ', () {
+    expect(SummaryStyle.values.map((e) => e.label), [
+      '日記を連結させる',
+      '出来事の一覧',
+      '読み物(簡単なログ風)',
+      '読み物(ブログ風)',
+      '自分で指定',
+    ]);
+  });
+
+  group('日記を連結させる(AIを使わない)', () {
     test('タイトルは、日記の期間から付ける', () {
       Diary on(int y, int m) => Diary(
         date: DateTime(y, m, 5),
@@ -248,11 +258,11 @@ void main() {
       summaryStyle: style,
     );
 
-    test('時系列の記録は、AIを使わないので、トークンは0', () {
+    test('日記を連結させるは、AIを使わないので、トークンは0', () {
       expect(estimate(SummaryStyle.chronicle), 0);
     });
 
-    test('読み物は短い振り返りより出力が多い見込みになる', () {
+    test('読み物(ブログ風)は読み物(簡単なログ風)より出力が多い見込みになる', () {
       expect(
         estimate(SummaryStyle.reading),
         greaterThan(estimate(SummaryStyle.brief)),

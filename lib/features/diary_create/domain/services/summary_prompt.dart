@@ -44,7 +44,7 @@ ${SummaryText.format(diaries)}
   static String _style(SummaryStyle style, int chars, String custom) {
     return switch (style) {
       SummaryStyle.reading => _reading(chars),
-      // 時系列の記録は、AIを使わずにつなげる(SummaryJoin)ので、ここには来ない。念のため読み物にする
+      // 日記を連結させるは、AIを使わずにつなげる(SummaryJoin)ので、ここには来ない。念のため読み物にする
       SummaryStyle.chronicle => _reading(chars),
       SummaryStyle.brief => _brief(chars),
       SummaryStyle.list => _list,
@@ -72,7 +72,7 @@ ${_reading(chars)}""",
 ・長さの目安は${SummaryText.lengthGuide(chars)}です。""";
 
   static String _brief(int chars) => """
-形(短い振り返り)
+形(読み物・簡単なログ風)
 読み物を、もっと簡潔にした形です。
 ・印象に残った出来事を選んで、いつの出来事か分かるように、「○月○日」と日付を添えて書いてください。日付が一日に決められない出来事(何度もあったこと)は、「1月上旬」「毎週のように」のように、時期や頻度で示してください。
 ・時間の流れに沿って、いくつかの段落に分けてください。1つの段落は、2〜4文にして、段落と段落の間は、1行空けてください。見出しは付けないでください。

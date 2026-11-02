@@ -106,12 +106,12 @@ void main() {
       expect(isEnabled(tester, 'AIに1つにしてもらう'), isFalse);
     });
 
-    testWidgets('時系列の記録(AIを使わない)を選ぶと、AIに伝えたいことの欄が消える', (tester) async {
+    testWidgets('日記を連結させる(AIを使わない)を選ぶと、AIに伝えたいことの欄が消える', (tester) async {
       await open(tester);
 
       expect(find.text('AIに追加で伝えたいこと'), findsOneWidget);
 
-      await tester.tap(find.text('時系列の記録'));
+      await tester.tap(find.text('日記を連結させる'));
       await tester.pumpAndSettle();
 
       expect(find.text('AIに追加で伝えたいこと'), findsNothing);

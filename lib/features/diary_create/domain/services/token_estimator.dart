@@ -38,8 +38,8 @@ class TokenEstimator {
   static const outputTokens = 50;
 
   // 日記を1つにするときの出力。書き方ごとに、書く長さが違うため、日記の量から少なめに見積もる(要実測)
-  //  読み物: 日記の10〜15%の長さ(上限8,000文字) / 時系列の記録: 日記とほぼ同じ量(実測は日記1文字あたり約0.6)
-  //  短い振り返り: 日記の3〜5%(上限1,500文字) / 出来事の一覧: 1件につき1〜2行
+  //  読み物: 日記の10〜15%の長さ(上限8,000文字) / 日記を連結させる: AIを使わない(0)(実測は日記1文字あたり約0.6)
+  //  読み物(簡単なログ風): 日記の3〜5%(上限1,500文字) / 出来事の一覧: 1件につき1〜2行
   static int summaryOutputTokens(SummaryStyle style, List<Diary> diaries) {
     final chars = SummaryText.length(diaries);
 
@@ -48,7 +48,7 @@ class TokenEstimator {
         (chars * 0.05).round(),
         3000,
       ),
-      // 時系列の記録は、AIを使わない
+      // 日記を連結させるは、AIを使わない
       SummaryStyle.chronicle => 0,
       SummaryStyle.brief => math.min((chars * 0.02).round(), 1000),
       SummaryStyle.list => diaries.length * 15,
@@ -80,7 +80,7 @@ class TokenEstimator {
     SummaryStyle summaryStyle = SummaryStyle.reading,
     double multiplier = 1,
   }) {
-    // 時系列の記録は、AIを使わずにつなげるので、トークンを使わない
+    // 日記を連結させるは、AIを使わずにつなげるので、トークンを使わない
     if (diaries.isNotEmpty && summaryStyle == SummaryStyle.chronicle) return 0;
 
     final chars =

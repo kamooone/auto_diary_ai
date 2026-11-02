@@ -1,7 +1,7 @@
 import '../../../diary/domain/entities/diary.dart';
 import 'summary_text.dart';
 
-/// 「時系列の記録」。AIを使わずに、選んだ日記を日付順にそのままつなげる
+/// 「日記を連結させる」。AIを使わずに、選んだ日記を日付順にそのままつなげる
 class SummaryJoin {
   const SummaryJoin._();
 

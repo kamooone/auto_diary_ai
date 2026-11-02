@@ -29,7 +29,7 @@ class DiaryCreateState {
   final String generatedTitle;
   final String generatedDiary;
 
-  /// 生成した日記が、AIが書いたものか(時系列の記録は、AIを使わずにつなげたもの)
+  /// 生成した日記が、AIが書いたものか(日記を連結させるは、AIを使わずにつなげたもの)
   final bool generatedByAi;
 
   final String? errorMessage;
@@ -481,7 +481,7 @@ class DiaryCreateViewModel extends AutoDisposeNotifier<DiaryCreateState> {
 
   /// 選んだ作成済みの日記を、AIにまとめてもらう
   Future<void> generateSummaryDiary() {
-    // 時系列の記録は、AIを使わずに、日記を日付順につなげる
+    // 日記を連結させるは、AIを使わずに、日記を日付順につなげる
     if (state.summaryStyle == SummaryStyle.chronicle) {
       final diaries = state.summaryDiaries;
 

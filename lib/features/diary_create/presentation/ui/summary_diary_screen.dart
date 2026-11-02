@@ -70,7 +70,7 @@ class _SummaryDiaryScreenState extends ConsumerState<SummaryDiaryScreen> {
     final isTooLong = SummaryText.length(selected) > SummaryText.maxChars;
 
     // 「自分で指定」は、書き方を書くまでは作れない
-    // 時系列の記録は、AIを使わずにつなげるので、トークンも広告もいらない
+    // 日記を連結させるは、AIを使わずにつなげるので、トークンも広告もいらない
     final isJoin = state.summaryStyle == SummaryStyle.chronicle;
 
     final needsCustom =
@@ -149,7 +149,7 @@ class _SummaryDiaryScreenState extends ConsumerState<SummaryDiaryScreen> {
           ),
           const SizedBox(height: 16),
 
-          // AIを使わない「時系列の記録」では、伝える相手がいないので出さない
+          // AIを使わない「日記を連結させる」では、伝える相手がいないので出さない
           if (!isJoin) ...[
             TextField(
               controller: _noteController,
