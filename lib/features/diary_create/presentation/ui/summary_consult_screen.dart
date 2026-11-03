@@ -3,8 +3,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../ads/presentation/banner_ad_view.dart';
 import '../../../diary/domain/entities/diary.dart';
 import '../../../plan/application/providers/plan_provider.dart';
+import '../../../plan/domain/entities/usage_info.dart';
 import '../../domain/services/consult_prompt.dart';
 import '../viewmodel/summary_consult_view_model.dart';
+import 'widgets/token_shortage_dialog.dart';
 
 /// 「日記を1つにする」の書き方を、AIとチャットで相談する画面
 ///
@@ -44,7 +46,8 @@ class _SummaryConsultScreenState extends ConsumerState<SummaryConsultScreen> {
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(summaryConsultProvider);
-    final isExceeded = ref.watch(usageProvider)?.isExceeded ?? false;
+    final usage = ref.watch(usageProvider);
+    final isExceeded = usage?.isExceeded ?? false;
 
     // 新しい発言が増えたら、いちばん下まで送る
     ref.listen(summaryConsultProvider, (previous, next) {
@@ -67,6 +70,7 @@ class _SummaryConsultScreenState extends ConsumerState<SummaryConsultScreen> {
         children: [
           // 入力欄や送信ボタンから離して、いちばん上に置く
           const BannerAdView(),
+          _usageBar(context, state, usage),
           Expanded(
             child: ListView(
               controller: _scroll,
@@ -80,6 +84,38 @@ class _SummaryConsultScreenState extends ConsumerState<SummaryConsultScreen> {
           ),
           _inputBar(context, state, isExceeded),
         ],
+      ),
+    );
+  }
+
+  // 今月の使用量(累計)と、この相談で使ったトークンの合計
+  Widget _usageBar(
+    BuildContext context,
+    SummaryConsultState state,
+    UsageInfo? usage,
+  ) {
+    final theme = Theme.of(context);
+    final consultTokens = state.messages.fold<int>(
+      0,
+      (sum, e) => sum + (e.tokens ?? 0),
+    );
+
+    final parts = [
+      if (usage != null)
+        "今月の使用量 ${formatTokens(usage.usedTokens)} / ${formatTokens(usage.limitTokens)} トークン"
+            "(残り ${formatTokens(usage.remainingTokens)})"
+      else
+        "今月の使用量を取得できていません",
+      if (consultTokens > 0) "この相談で 約${formatTokens(consultTokens)} トークン",
+    ];
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+      color: theme.colorScheme.surfaceContainerHighest,
+      child: Text(
+        parts.join("\n"),
+        style: theme.textTheme.bodySmall,
       ),
     );
   }
@@ -108,6 +144,14 @@ class _SummaryConsultScreenState extends ConsumerState<SummaryConsultScreen> {
             ),
             child: SelectableText(message.text),
           ),
+          if (message.tokens != null)
+            Padding(
+              padding: const EdgeInsets.only(top: 2, left: 4),
+              child: Text(
+                "このやり取りで 約${formatTokens(message.tokens!)} トークン",
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+            ),
           if (message.proposal != null) ...[
             const SizedBox(height: 8),
             _proposal(context, message.proposal!),

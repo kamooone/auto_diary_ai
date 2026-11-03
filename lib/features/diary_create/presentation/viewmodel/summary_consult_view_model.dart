@@ -109,11 +109,18 @@ class SummaryConsultViewModel
   }
 
   void _receive(ConsultResult result) {
+    // この返答で使ったトークン = 返答のあとの今月の累計 − 返答の前の累計
+    final before = ref.read(usageProvider)?.usedTokens;
+
     // 今月の使用量を、画面に反映する
     final usage = result.usage;
     if (usage != null) ref.read(usageProvider.notifier).update(usage);
 
     if (_isDisposed) return;
+
+    final used = usage != null && before != null && usage.usedTokens >= before
+        ? usage.usedTokens - before
+        : null;
 
     state = state.copyWith(
       messages: [
@@ -122,6 +129,7 @@ class SummaryConsultViewModel
           fromUser: false,
           text: result.reply.text,
           proposal: result.reply.proposal,
+          tokens: used,
         ),
       ],
       isSending: false,
