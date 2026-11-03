@@ -62,6 +62,11 @@ class ConsultSummaryUseCase {
       AiMessageRequest(plan: plan, message: message),
     );
 
+    // 返答が空のときは、空の吹き出しを出さずに、失敗として扱う(画面から再送できる)
+    if (reply.answer.trim().isEmpty) {
+      throw StateError('AIの返答が空でした');
+    }
+
     return ConsultResult(
       reply: _parser.parse(reply.answer),
       usage: reply.usage,
