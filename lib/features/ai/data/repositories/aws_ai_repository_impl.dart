@@ -4,6 +4,7 @@ import 'package:http/http.dart' as http;
 import '../../../plan/domain/entities/usage_info.dart';
 import '../../../plan/domain/exceptions/usage_limit_exception.dart';
 import '../../domain/entities/ai_message_request.dart';
+import '../../domain/entities/ai_model.dart';
 import '../../domain/entities/ai_reply.dart';
 import '../../domain/exceptions/ai_exception.dart';
 import '../../domain/repositories/ai_repository.dart';
@@ -21,16 +22,21 @@ class AwsAiRepositoryImpl implements AiRepository {
   // サーバーに端末用のトークンを断られた(解除された)ときに呼ぶ
   final Future<void> Function()? _onInvalidDeviceToken;
 
+  // ユーザーが選んだAIの種類(指定がなければ Gemini)
+  final AiModel Function()? _model;
+
   AwsAiRepositoryImpl(
     this.baseUrl, {
     http.Client? client,
     Future<String> Function()? clientId,
     Future<String?> Function()? deviceToken,
     Future<void> Function()? onInvalidDeviceToken,
+    AiModel Function()? model,
   })  : _client = client ?? http.Client(),
         _clientId = clientId,
         _deviceToken = deviceToken,
-        _onInvalidDeviceToken = onInvalidDeviceToken;
+        _onInvalidDeviceToken = onInvalidDeviceToken,
+        _model = model;
 
   static const _uploadPath = '/ai/upload-url';
   static const _chatPath = '/ai/chat';
@@ -55,6 +61,7 @@ class AwsAiRepositoryImpl implements AiRepository {
         'message': request.message,
         'images': uploadedImages,
         'plan': request.plan.name,
+        'model': (_model?.call() ?? AiModel.gemini).name,
       }),
       onError: AiChatException.new,
     );

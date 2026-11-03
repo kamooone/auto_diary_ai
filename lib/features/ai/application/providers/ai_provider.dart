@@ -4,6 +4,7 @@ import '../../../../core/app_info/client_id.dart';
 import '../../../points/application/providers/device_link_provider.dart';
 import '../../data/repositories/aws_ai_repository_impl.dart';
 import '../../domain/repositories/ai_repository.dart';
+import 'ai_model_provider.dart';
 
 // APIのベースURL(.envのAPI_BASE_URL)
 final apiBaseUrlProvider = Provider<String>((ref) {
@@ -22,5 +23,7 @@ final aiRepositoryProvider = Provider<AiRepository>((ref) {
     clientId: ClientId.get,
     deviceToken: ref.read(deviceLinkProvider.notifier).token,
     onInvalidDeviceToken: ref.read(deviceLinkProvider.notifier).unlink,
+    // 送るたびに、そのときに選んでいるAIの種類を読む
+    model: () => ref.read(aiModelProvider),
   );
 });

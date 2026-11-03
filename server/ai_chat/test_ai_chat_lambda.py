@@ -102,16 +102,19 @@ def sha(value):
     return hashlib.sha256(value.encode()).hexdigest()
 
 
-def chat_event(plan="free", device_token=None, client_id=CLIENT_ID):
+def chat_event(plan="free", device_token=None, client_id=CLIENT_ID, model=None):
     headers = {}
     if client_id:
         headers["X-Client-Id"] = client_id
     if device_token:
         headers["X-Device-Token"] = device_token
+    body = {"message": "こんにちは", "plan": plan}
+    if model is not None:
+        body["model"] = model
     return {
         "routeKey": "POST /ai/chat",
         "headers": headers,
-        "body": json.dumps({"message": "こんにちは", "plan": plan}),
+        "body": json.dumps(body),
     }
 
 
@@ -215,6 +218,34 @@ class AiChatUsageTest(unittest.TestCase):
         self.assertEqual(
             body["usage"]["limitTokens"], m.MONTHLY_LIMIT_TOKENS[m.PAID]
         )
+
+    @mock.patch.object(m, "GPT_ENABLED", True)
+    def test_gpt_model_uses_gpt_with_the_free_limit(self):
+        status, body = call(chat_event(model="gpt"))
+
+        self.assertEqual(status, 200)
+        self.openai.assert_called_once()
+        self.gemini.assert_not_called()
+        self.assertEqual(body["usage"]["limitTokens"], FREE_LIMIT)
+
+    @mock.patch.object(m, "GPT_ENABLED", True)
+    def test_gemini_or_unknown_model_uses_gemini(self):
+        for model in (None, "gemini", "unknown"):
+            self.gemini.reset_mock()
+            status, _ = call(chat_event(model=model))
+
+            self.assertEqual(status, 200)
+            self.gemini.assert_called_once()
+            self.openai.assert_not_called()
+
+    def test_gpt_model_is_refused_while_disabled(self):
+        status, body = call(chat_event(model="gpt"))
+
+        self.assertEqual(status, 400)
+        self.assertEqual(body["error"], "gpt_not_enabled")
+        self.openai.assert_not_called()
+        self.gemini.assert_not_called()
+        self.assertEqual(self.used(), 0)
 
     def test_missing_client_id_is_rejected(self):
         status, body = call(chat_event(client_id=None))

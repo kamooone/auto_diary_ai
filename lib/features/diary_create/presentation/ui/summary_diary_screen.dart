@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../diary/application/providers/diary_providers.dart';
 import '../../../diary/domain/entities/diary.dart';
 import '../../../plan/application/providers/plan_provider.dart';
+import '../../../ai/presentation/widgets/ai_model_selector.dart';
 import '../../../plan/presentation/widgets/usage_meter.dart';
 import '../../domain/entities/summary_style.dart';
 import '../../domain/services/summary_text.dart';
@@ -93,6 +94,17 @@ class _SummaryDiaryScreenState extends ConsumerState<SummaryDiaryScreen> {
             child: UsageMeter(usage: usage),
           ),
           const SizedBox(height: 12),
+
+          // AIを使わない「日記を連結させる」では、選ぶ必要がない
+          if (!isJoin) ...[
+            const Card(
+              child: Padding(
+                padding: EdgeInsets.all(12),
+                child: AiModelSelector(),
+              ),
+            ),
+            const SizedBox(height: 12),
+          ],
 
           Card(
             child: ListTile(

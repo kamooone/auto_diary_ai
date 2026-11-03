@@ -74,6 +74,14 @@ FREE = "free"
 # アプリ内課金を始めるまでは、アプリが「有料」と申告しても、無料として扱う
 PAID_ENABLED = os.environ.get("PAID_ENABLED", "false").lower() == "true"
 
+# アプリで、ユーザーが選んだAIの種類(プランとは別)
+MODEL_GPT = "gpt"
+MODEL_GEMINI = "gemini"
+
+# GPTを使えるようにするか(環境変数 GPT_ENABLED が "true" のときだけ)
+# false のときに、アプリが GPT を選んで送ってきた場合は、Gemini で代わりに処理せず、断る
+GPT_ENABLED = os.environ.get("GPT_ENABLED", "false").lower() == "true"
+
 # 使用量と、アカウントのトークン残高を保存するテーブル
 #   USAGE_TABLE_NAME    : 月ごとの使用量(キー usageKey = "<端末のID>#<年-月>")
 #   ACCOUNTS_TABLE_NAME : ポイントAPIのアカウント(残高 tokens)
@@ -572,6 +580,13 @@ def lambda_handler(event, context):
         if not message:
             return response(400, {"error": "message is required"})
 
+        # アプリでユーザーが選んだAIの種類(未指定・不明な値は Gemini)
+        model = MODEL_GPT if body.get("model") == MODEL_GPT else MODEL_GEMINI
+
+        if model == MODEL_GPT and not GPT_ENABLED:
+            delete_uploaded_images(body.get("images"))
+            return response(400, {"error": "gpt_not_enabled"})
+
         # アプリから受け取ったプラン
         # (注意: アプリが申告した値のため、課金の確認をするまでは信用できない。
         #  課金を実装したら、購入の確認結果から決める)
@@ -629,8 +644,9 @@ def lambda_handler(event, context):
                 s3_object["Body"].read()
             ).decode("utf-8")
 
-        # プランに応じて、使うAIを切り替える
-        if plan == PAID:
+        # 有料プラン、またはユーザーが GPT を選んだときは GPT。それ以外は Gemini
+        # (GPT を選んだときの、トークンの消費の倍率は、まだ設定していない)
+        if plan == PAID or model == MODEL_GPT:
             answer, tokens = ask_openai(
                 get_api_key(OPENAI_SECRET_NAME, "OPENAI_API_KEY"),
                 message,
@@ -659,7 +675,7 @@ def lambda_handler(event, context):
         )
 
         print(json.dumps({
-            "plan": plan, "tokens": tokens,
+            "plan": plan, "model": model, "tokens": tokens,
             "fromAllowance": from_allowance, "fromBalance": from_balance,
             "linked": state["account_id"] is not None,
         }))

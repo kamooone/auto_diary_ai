@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../app/router/app_routes.dart';
 import '../../../ads/application/ads_provider.dart';
+import '../../../ai/presentation/widgets/ai_model_selector.dart';
 import '../../../plan/application/providers/plan_provider.dart';
 import '../../../plan/domain/entities/plan_availability.dart';
 import '../../../plan/presentation/widgets/usage_meter.dart';
@@ -80,6 +81,12 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
             ),
             trailing: paidPlanEnabled ? Text(plan.label) : null,
             onTap: () => context.push(AppRoutes.plan),
+          ),
+
+          // 日記を書くAIの種類(Gemini / GPT)
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: AiModelSelector(),
           ),
 
           ListTile(

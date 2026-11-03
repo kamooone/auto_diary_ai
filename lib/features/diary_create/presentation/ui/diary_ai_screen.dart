@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../app/router/app_routes.dart';
 import '../../../../core/app_info/install_date_provider.dart';
+import '../../../ai/presentation/widgets/ai_model_selector.dart';
 import '../../../plan/application/providers/plan_provider.dart';
 import '../viewmodel/diary_create_view_model.dart';
 import '../../../plan/domain/entities/plan_availability.dart';
@@ -150,6 +151,15 @@ class _DiaryAiScreenState extends ConsumerState<DiaryAiScreen> {
                   ],
                 ],
               ),
+            ),
+          ),
+          const SizedBox(height: 12),
+
+          // 日記を書くAIの種類(Gemini / GPT)
+          const Card(
+            child: Padding(
+              padding: EdgeInsets.all(12),
+              child: AiModelSelector(),
             ),
           ),
           const SizedBox(height: 12),
