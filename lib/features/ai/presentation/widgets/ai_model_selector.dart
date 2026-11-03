@@ -64,6 +64,11 @@ class AiModelSelector extends ConsumerWidget {
                   style: theme.textTheme.bodyMedium,
                 ),
                 Text(model.feature, style: theme.textTheme.bodyMedium),
+                const SizedBox(height: 4),
+                Text(
+                  "送った日記の扱い: ${model.dataNote}",
+                  style: theme.textTheme.bodyMedium,
+                ),
               ],
             ),
           );
@@ -78,7 +83,6 @@ class AiModelSelector extends ConsumerWidget {
               children: [
                 for (final model in AiModel.values) item(model),
                 Text(
-                  "送信した日記の扱いは、提供元ごとに規約が異なります。"
                   "詳しくは、プライバシーポリシーをご確認ください。",
                   style: theme.textTheme.bodySmall,
                 ),
