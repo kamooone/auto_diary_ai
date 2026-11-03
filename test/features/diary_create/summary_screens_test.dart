@@ -102,25 +102,25 @@ void main() {
     testWidgets('日記を選ぶまでは、相談も作成もできない', (tester) async {
       await open(tester);
 
-      expect(isEnabled(tester, 'AIに構成を相談する'), isFalse);
-      expect(isEnabled(tester, 'AIに1つにしてもらう'), isFalse);
+      expect(isEnabled(tester, 'Geminiに構成を相談する'), isFalse);
+      expect(isEnabled(tester, 'Geminiに1つにしてもらう'), isFalse);
     });
 
     testWidgets('日記を連結させる(AIを使わない)を選ぶと、AIに伝えたいことの欄が消える', (tester) async {
       await open(tester);
 
-      expect(find.text('AIに追加で伝えたいこと'), findsOneWidget);
+      expect(find.text('Geminiに追加で伝えたいこと'), findsOneWidget);
 
       await tester.tap(find.text('日記を連結させる'));
       await tester.pumpAndSettle();
 
-      expect(find.text('AIに追加で伝えたいこと'), findsNothing);
+      expect(find.text('Geminiに追加で伝えたいこと'), findsNothing);
       expect(find.text('日記を1つにする'), findsWidgets);
 
       await tester.tap(find.text('読み物(ブログ風)'));
       await tester.pumpAndSettle();
 
-      expect(find.text('AIに追加で伝えたいこと'), findsOneWidget);
+      expect(find.text('Geminiに追加で伝えたいこと'), findsOneWidget);
     });
 
     testWidgets('自分で指定を選ぶと記入欄が出て、書くまでは作成できない', (tester) async {
@@ -130,7 +130,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('どんな書き方にしたいか'), findsOneWidget);
-      expect(isEnabled(tester, 'AIに1つにしてもらう'), isFalse);
+      expect(isEnabled(tester, 'Geminiに1つにしてもらう'), isFalse);
     });
   });
 
@@ -185,13 +185,13 @@ void main() {
       );
       await tester.pump();
 
-      expect(find.text('AIが考えています…'), findsOneWidget);
+      expect(find.text('Geminiが考えています…'), findsOneWidget);
       expect(tester.widget<TextField>(find.byType(TextField)).enabled, isFalse);
 
       hold.complete();
       await tester.pumpAndSettle();
 
-      expect(find.text('AIが考えています…'), findsNothing);
+      expect(find.text('Geminiが考えています…'), findsNothing);
       expect(tester.widget<TextField>(find.byType(TextField)).enabled, isTrue);
     });
   });

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../app/router/app_routes.dart';
 import '../../../../core/app_info/install_date_provider.dart';
+import '../../../ai/application/providers/ai_model_provider.dart';
 import '../../../ai/presentation/widgets/ai_model_selector.dart';
 import '../../../plan/application/providers/plan_provider.dart';
 import '../viewmodel/diary_create_view_model.dart';
@@ -76,10 +77,11 @@ class _DiaryAiScreenState extends ConsumerState<DiaryAiScreen> {
     final viewModel = ref.read(diaryCreateProvider.notifier);
     final plan = ref.watch(diaryPlanProvider);
     final usage = ref.watch(usageProvider);
+    final model = ref.watch(aiModelProvider);
     final isExceeded = usage?.isExceeded ?? false;
 
     return Scaffold(
-      appBar: AppBar(title: const Text("AIに書いてもらう")),
+      appBar: AppBar(title: Text("${model.label}に書いてもらう")),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
@@ -278,8 +280,8 @@ class _DiaryAiScreenState extends ConsumerState<DiaryAiScreen> {
           // ---------- AIに追加で伝えたいこと
           TextField(
             controller: _noteController,
-            decoration: const InputDecoration(
-              labelText: "AIに追加で伝えたいこと",
+            decoration: InputDecoration(
+              labelText: "${model.label}に追加で伝えたいこと",
               hintText: "例: 友人の誕生日だった。楽しかった気持ちを中心に書いてほしい",
               border: OutlineInputBorder(),
               alignLabelWithHint: true,
@@ -313,7 +315,7 @@ class _DiaryAiScreenState extends ConsumerState<DiaryAiScreen> {
                 ? null
                 : () => _generate(context),
             icon: const Icon(Icons.auto_awesome),
-            label: const Text("AIに日記を書いてもらう"),
+            label: Text("${model.label}に日記を書いてもらう"),
           ),
         ],
       ),

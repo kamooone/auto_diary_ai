@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../ads/presentation/banner_ad_view.dart';
+import '../../../ai/application/providers/ai_model_provider.dart';
 import '../../../diary/domain/entities/diary.dart';
 import '../../../plan/application/providers/plan_provider.dart';
 import '../../../plan/domain/entities/usage_info.dart';
@@ -47,6 +48,7 @@ class _SummaryConsultScreenState extends ConsumerState<SummaryConsultScreen> {
   Widget build(BuildContext context) {
     final state = ref.watch(summaryConsultProvider);
     final usage = ref.watch(usageProvider);
+    final model = ref.watch(aiModelProvider);
     final isExceeded = usage?.isExceeded ?? false;
 
     // 新しい発言が増えたら、いちばん下まで送る
@@ -65,7 +67,7 @@ class _SummaryConsultScreenState extends ConsumerState<SummaryConsultScreen> {
     });
 
     return Scaffold(
-      appBar: AppBar(title: const Text("AIに構成を相談")),
+      appBar: AppBar(title: Text("${model.label}に構成を相談")),
       body: Column(
         children: [
           // 入力欄や送信ボタンから離して、いちばん上に置く
@@ -195,17 +197,17 @@ class _SummaryConsultScreenState extends ConsumerState<SummaryConsultScreen> {
   }
 
   Widget _typing(BuildContext context) {
-    return const Padding(
-      padding: EdgeInsets.only(bottom: 12),
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
       child: Row(
         children: [
-          SizedBox(
+          const SizedBox(
             width: 16,
             height: 16,
             child: CircularProgressIndicator(strokeWidth: 2),
           ),
-          SizedBox(width: 8),
-          Text("AIが考えています…"),
+          const SizedBox(width: 8),
+          Text("${ref.watch(aiModelProvider).label}が考えています…"),
         ],
       ),
     );
@@ -260,8 +262,8 @@ class _SummaryConsultScreenState extends ConsumerState<SummaryConsultScreen> {
                   child: TextField(
                     controller: _controller,
                     enabled: enabled,
-                    decoration: const InputDecoration(
-                      hintText: "AIに伝えたいこと(例: もっと短くしたい)",
+                    decoration: InputDecoration(
+                      hintText: "${ref.watch(aiModelProvider).label}に伝えたいこと(例: もっと短くしたい)",
                       border: OutlineInputBorder(),
                       isDense: true,
                     ),

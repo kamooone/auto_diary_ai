@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../diary/application/providers/diary_providers.dart';
 import '../../../diary/domain/entities/diary.dart';
 import '../../../plan/application/providers/plan_provider.dart';
+import '../../../ai/application/providers/ai_model_provider.dart';
 import '../../../ai/presentation/widgets/ai_model_selector.dart';
 import '../../../plan/presentation/widgets/usage_meter.dart';
 import '../../domain/entities/summary_style.dart';
@@ -65,6 +66,7 @@ class _SummaryDiaryScreenState extends ConsumerState<SummaryDiaryScreen> {
     final viewModel = ref.read(diaryCreateProvider.notifier);
     final diaries = ref.watch(diariesProvider).valueOrNull ?? const <Diary>[];
     final usage = ref.watch(usageProvider);
+    final model = ref.watch(aiModelProvider);
     final isExceeded = usage?.isExceeded ?? false;
 
     final selected = state.summaryDiaries;
@@ -157,7 +159,7 @@ class _SummaryDiaryScreenState extends ConsumerState<SummaryDiaryScreen> {
                 ? null
                 : () => _consult(context, selected),
             icon: const Icon(Icons.chat_outlined),
-            label: const Text("AIに構成を相談する"),
+            label: Text("${model.label}に構成を相談する"),
           ),
           const SizedBox(height: 16),
 
@@ -165,8 +167,8 @@ class _SummaryDiaryScreenState extends ConsumerState<SummaryDiaryScreen> {
           if (!isJoin) ...[
             TextField(
               controller: _noteController,
-              decoration: const InputDecoration(
-                labelText: "AIに追加で伝えたいこと",
+              decoration: InputDecoration(
+                labelText: "${model.label}に追加で伝えたいこと",
                 hintText: "例: 今年1年の振り返りとして、前向きな言葉で締めてほしい",
                 border: OutlineInputBorder(),
                 alignLabelWithHint: true,
@@ -222,7 +224,7 @@ class _SummaryDiaryScreenState extends ConsumerState<SummaryDiaryScreen> {
                 ? null
                 : () => _generate(context),
             icon: const Icon(Icons.auto_awesome),
-            label: Text(isJoin ? "日記を1つにする" : "AIに1つにしてもらう"),
+            label: Text(isJoin ? "日記を1つにする" : "${model.label}に1つにしてもらう"),
           ),
         ],
       ),
