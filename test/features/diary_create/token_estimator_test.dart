@@ -1,3 +1,7 @@
+import 'package:auto_diary_ai/features/ai/domain/entities/ai_model.dart';
+import 'package:auto_diary_ai/features/diary/domain/entities/diary.dart';
+import 'package:auto_diary_ai/features/diary_create/domain/entities/summary_style.dart';
+import 'package:auto_diary_ai/features/diary_create/domain/services/summary_text.dart';
 import 'package:auto_diary_ai/features/diary_create/domain/services/timeline_text.dart';
 import 'package:auto_diary_ai/features/diary_create/domain/services/token_estimator.dart';
 import 'package:auto_diary_ai/features/diary_create/presentation/ui/widgets/token_shortage_dialog.dart';
@@ -76,6 +80,90 @@ void main() {
 
     test('AIの種類による倍率を掛ける', () {
       expect(estimate(multiplier: 2), estimate() * 2);
+    });
+  });
+
+  // GPT(gpt-5-mini)の実測(2026-11-04)。見積もりは、実際より少なく、実測の8割以上にする
+  group('TokenEstimator(GPT)', () {
+    // 日記の文字数(SummaryText.length)が[chars]になる、[count]件の日記
+    List<Diary> diaries(int count, int chars) {
+      List<Diary> build(int lastLength) => [
+        for (var i = 0; i < count; i++)
+          Diary(
+            date: DateTime(2026, 1, 1 + i),
+            title: 't',
+            content: 'あ' * (i == count - 1 ? lastLength : 100),
+            isAiGenerated: false,
+            createdAt: DateTime(2026, 1, 1 + i, 21),
+          ),
+      ];
+
+      var last = 100;
+      while (SummaryText.length(build(last)) < chars) {
+        last++;
+      }
+      return build(last);
+    }
+
+    int estimate(List<Diary> d, SummaryStyle style, AiModel model) =>
+        TokenEstimator.estimate(
+          note: '',
+          timeline: const [],
+          posts: const [],
+          photoCount: 0,
+          diaries: d,
+          summaryStyle: style,
+          model: model,
+        );
+
+    void expectBetween(int actual, int estimated) {
+      expect(estimated, lessThanOrEqualTo(actual));
+      expect(estimated, greaterThanOrEqualTo((actual * 0.8).floor()));
+    }
+
+    test('3件・出来事の一覧(実測1,879)', () {
+      expectBetween(
+        1879,
+        estimate(diaries(3, 1256), SummaryStyle.list, AiModel.gpt),
+      );
+    });
+
+    test('31件・出来事の一覧(実測13,111)', () {
+      expectBetween(
+        13111,
+        estimate(diaries(31, 13212), SummaryStyle.list, AiModel.gpt),
+      );
+    });
+
+    test('31件・簡単なブログ風(実測12,660)', () {
+      expectBetween(
+        12660,
+        estimate(diaries(31, 13212), SummaryStyle.brief, AiModel.gpt),
+      );
+    });
+
+    test('31件・ブログ風(実測14,617)', () {
+      expectBetween(
+        14617,
+        estimate(diaries(31, 13212), SummaryStyle.reading, AiModel.gpt),
+      );
+    });
+
+    test('31件・相談(実測12,932)', () {
+      expectBetween(
+        12932,
+        TokenEstimator.estimateConsult(
+          diaries(31, 13212),
+          model: AiModel.gpt,
+        ),
+      );
+    });
+
+    test('Geminiの見積もりは、これまでと同じ', () {
+      final d = diaries(31, 13212);
+
+      expect(estimate(d, SummaryStyle.list, AiModel.gemini), 7271);
+      expect(estimate(d, SummaryStyle.reading, AiModel.gemini), 7863);
     });
   });
 

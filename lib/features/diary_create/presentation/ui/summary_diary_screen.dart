@@ -254,7 +254,10 @@ class _SummaryDiaryScreenState extends ConsumerState<SummaryDiaryScreen> {
     final ok = await confirmBeforeConsult(
       context,
       ref,
-      estimatedTokens: TokenEstimator.estimateConsult(selected),
+      estimatedTokens: TokenEstimator.estimateConsult(
+        selected,
+        model: ref.read(aiModelProvider),
+      ),
     );
     if (!ok || !context.mounted) return;
 
@@ -304,6 +307,7 @@ class _SummaryDiaryScreenState extends ConsumerState<SummaryDiaryScreen> {
       photoCount: 0,
       diaries: state.summaryDiaries,
       summaryStyle: state.summaryStyle,
+      model: ref.read(aiModelProvider),
     );
   }
 }

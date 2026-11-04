@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 
+import '../../../ai/domain/entities/ai_model.dart';
 import '../../../diary/domain/entities/diary.dart';
 import '../../../location/domain/entities/timeline_item.dart';
 import '../../../share/domain/entities/shared_post.dart';
@@ -17,8 +18,50 @@ import 'timeline_text.dart';
 ///
 /// 係数は、実機で測った値(2026-10-29、gemini-flash-lite)から決めた。
 /// docs/token_estimation_test_cases.md に、測った結果を残してある。定期的に見直す。
+///
+/// 係数は、AIの種類ごとに違う(GPTは、同じ日本語でも、Geminiより多くのトークンになる)。
+/// Gemini: 実機で測った値から決めた。 GPT(gpt-5-mini): 2026-11-04〜05 の実測から決めた
+/// (1月3件・31件、2・3・10月86件。出来事の一覧・簡単なブログ風・ブログ風・相談)。
+/// GPTの、写真・行動履歴・Xの投稿・メモは、まだ測っていない(要実測)
 class TokenEstimator {
   const TokenEstimator._();
+
+  static const _gemini = _Coefficients(
+    instruction: instructionTokens,
+    noteTokensPerChar: noteTokensPerChar,
+    tokensPerChar: tokensPerChar,
+    tokensPerPhoto: tokensPerPhoto,
+    diaryTokensPerChar: noteTokensPerChar,
+    readingRatio: 0.08,
+    briefRatio: 0.02,
+    listBase: 0,
+    listPerDiary: 15,
+    consultFixed: consultFixedTokens,
+    consultOutput: consultOutputTokens,
+  );
+
+  // GPT(gpt-5-mini)。日記の入力は、固定が約500、1文字あたり約0.85(測った5点で、
+  // 見積もり÷実測が84〜95%に収まる値にした。少なめにする方針は、Geminiと同じ)。
+  // 出力は、出来事の一覧が1件約45〜100、簡単なブログ風が日記の約5.7%、
+  // ブログ風が日記の8.7〜15%(読み物の長さの指示が、日記の量で変わる)
+  static const _gpt = _Coefficients(
+    instruction: 450,
+    noteTokensPerChar: 0.82,
+    tokensPerChar: 0.9,
+    tokensPerPhoto: tokensPerPhoto, // 未測定(Geminiと同じにしてある)
+    diaryTokensPerChar: 0.82,
+    readingRatio: 0.08,
+    briefRatio: 0.045,
+    listBase: 100,
+    listPerDiary: 35,
+    consultFixed: 900,
+    consultOutput: 500,
+  );
+
+  static _Coefficients _of(AiModel model) => switch (model) {
+    AiModel.gemini => _gemini,
+    AiModel.gpt => _gpt,
+  };
 
   // 指示文(日付・形式の指定など、毎回同じ部分)。実測は約210〜265
   static const instructionTokens = 200;
@@ -40,18 +83,23 @@ class TokenEstimator {
   // 日記を1つにするときの出力。書き方ごとに、書く長さが違うため、日記の量から少なめに見積もる(要実測)
   //  読み物(ブログ風): 日記の15〜25%の長さ(上限12,000文字) / 日記を連結させる: AIを使わない(0)(実測は日記1文字あたり約0.6)
   //  読み物(簡単なブログ風): 日記の3〜5%(上限1,500文字) / 出来事の一覧: 1件につき1〜2行
-  static int summaryOutputTokens(SummaryStyle style, List<Diary> diaries) {
+  static int summaryOutputTokens(
+    SummaryStyle style,
+    List<Diary> diaries, {
+    AiModel model = AiModel.gemini,
+  }) {
+    final c = _of(model);
     final chars = SummaryText.length(diaries);
 
     return switch (style) {
       SummaryStyle.reading || SummaryStyle.custom => math.min(
-        (chars * 0.08).round(),
+        (chars * c.readingRatio).round(),
         5000,
       ),
       // 日記を連結させるは、AIを使わない
       SummaryStyle.chronicle => 0,
-      SummaryStyle.brief => math.min((chars * 0.02).round(), 1000),
-      SummaryStyle.list => diaries.length * 15,
+      SummaryStyle.brief => math.min((chars * c.briefRatio).round(), 1000),
+      SummaryStyle.list => c.listBase + diaries.length * c.listPerDiary,
     };
   }
 
@@ -60,11 +108,16 @@ class TokenEstimator {
   static const consultFixedTokens = 500;
   static const consultOutputTokens = 300;
 
-  static int estimateConsult(List<Diary> diaries, {double multiplier = 1}) {
+  static int estimateConsult(
+    List<Diary> diaries, {
+    double multiplier = 1,
+    AiModel model = AiModel.gemini,
+  }) {
+    final c = _of(model);
     final tokens =
-        consultFixedTokens +
-        SummaryText.length(diaries) * noteTokensPerChar +
-        consultOutputTokens;
+        c.consultFixed +
+        SummaryText.length(diaries) * c.diaryTokensPerChar +
+        c.consultOutput;
 
     return (tokens * multiplier).ceil();
   }
@@ -79,7 +132,10 @@ class TokenEstimator {
     List<Diary> diaries = const [],
     SummaryStyle summaryStyle = SummaryStyle.reading,
     double multiplier = 1,
+    AiModel model = AiModel.gemini,
   }) {
+    final c = _of(model);
+
     // 日記を連結させるは、AIを使わずにつなげるので、トークンを使わない
     if (diaries.isNotEmpty && summaryStyle == SummaryStyle.chronicle) return 0;
 
@@ -91,18 +147,54 @@ class TokenEstimator {
         );
 
     final tokens =
-        instructionTokens +
-        note.length * noteTokensPerChar +
-        chars * tokensPerChar +
-        photoCount * tokensPerPhoto +
-        SummaryText.length(diaries) * noteTokensPerChar +
+        c.instruction +
+        note.length * c.noteTokensPerChar +
+        chars * c.tokensPerChar +
+        photoCount * c.tokensPerPhoto +
+        SummaryText.length(diaries) * c.diaryTokensPerChar +
         (diaries.isEmpty
             ? outputTokens
-            : summaryOutputTokens(summaryStyle, diaries));
+            : summaryOutputTokens(summaryStyle, diaries, model: model));
 
     return (tokens * multiplier).ceil();
   }
 
   // 投稿の日時の長さ(「2026-01-01 09:00:00.000」)
   static const _dateLength = 23;
+}
+
+/// AIの種類ごとの、見積もりの係数
+class _Coefficients {
+  const _Coefficients({
+    required this.instruction,
+    required this.noteTokensPerChar,
+    required this.tokensPerChar,
+    required this.tokensPerPhoto,
+    required this.diaryTokensPerChar,
+    required this.readingRatio,
+    required this.briefRatio,
+    required this.listBase,
+    required this.listPerDiary,
+    required this.consultFixed,
+    required this.consultOutput,
+  });
+
+  final int instruction;
+  final double noteTokensPerChar;
+  final double tokensPerChar;
+  final int tokensPerPhoto;
+  final double diaryTokensPerChar;
+
+  /// 読み物・自分で指定の出力 = 日記の文字数 × この値
+  final double readingRatio;
+
+  /// 簡単なブログ風の出力 = 日記の文字数 × この値
+  final double briefRatio;
+
+  /// 出来事の一覧の出力 = [listBase] + 日記の件数 × [listPerDiary]
+  final int listBase;
+  final int listPerDiary;
+
+  final int consultFixed;
+  final int consultOutput;
 }

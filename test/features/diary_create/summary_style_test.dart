@@ -267,8 +267,11 @@ void main() {
       final text = prompt(SummaryStyle.custom, custom: 'ですます調で仕事だけ');
 
       expect(text, contains('ですます調で仕事だけ'));
+      expect(text, contains('最優先'));
       expect(text, contains('意味不明なとき'));
-      expect(text, contains('形(読み物・ブログ風)'));
+      expect(text, contains('日付の流れに沿った読みやすいブログ風の文章'));
+      // 読み物の形の全文は、指示に勝ってしまうため、入れない
+      expect(text, isNot(contains('形(読み物・ブログ風)')));
     });
   });
 
