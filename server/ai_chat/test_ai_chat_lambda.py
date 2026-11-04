@@ -484,6 +484,76 @@ class AskGeminiTimeoutTest(unittest.TestCase):
         self.assertLessEqual(timeouts[1], m.GEMINI_TOTAL_BUDGET - 1)
 
 
+class AskOpenAiTest(unittest.TestCase):
+    """GPTの、回答の取り出しと、考える量の指定"""
+
+    PLAIN = {
+        "output": [
+            {
+                "type": "message",
+                "content": [{"type": "output_text", "text": "回答です"}],
+            }
+        ],
+        "usage": {"input_tokens": 100, "output_tokens": 20, "total_tokens": 120},
+    }
+
+    # 考えるモデルは、先頭に思考の項目(reasoning)が入る
+    WITH_REASONING = {
+        "output": [
+            {"type": "reasoning", "summary": []},
+            {
+                "type": "message",
+                "content": [
+                    {"type": "output_text", "text": "回答"},
+                    {"type": "output_text", "text": "です"},
+                ],
+            },
+        ],
+        "usage": {
+            "input_tokens": 100,
+            "output_tokens": 220,
+            "total_tokens": 320,
+            "output_tokens_details": {"reasoning_tokens": 200},
+        },
+    }
+
+    def ask(self, data, effort=""):
+        with mock.patch.object(m, "post_json", return_value=data) as post, \
+                mock.patch.object(m, "OPENAI_REASONING_EFFORT", effort):
+            result = m.ask_openai("key", "こんにちは", [])
+
+        return result, post.call_args.args[3]
+
+    def test_plain_response(self):
+        (answer, tokens), _ = self.ask(self.PLAIN)
+
+        self.assertEqual(answer, "回答です")
+        self.assertEqual(tokens, 120)
+
+    def test_reasoning_item_before_the_message_is_skipped(self):
+        (answer, tokens), _ = self.ask(self.WITH_REASONING)
+
+        self.assertEqual(answer, "回答です")
+        self.assertEqual(tokens, 320)
+
+    def test_effort_is_not_sent_unless_set(self):
+        _, payload = self.ask(self.PLAIN)
+
+        self.assertNotIn("reasoning", payload)
+
+    def test_effort_is_sent_when_set(self):
+        _, payload = self.ask(self.PLAIN, effort="minimal")
+
+        self.assertEqual(payload["reasoning"], {"effort": "minimal"})
+
+    def test_response_without_answer_text_is_an_error(self):
+        with self.assertRaises(m.UpstreamError):
+            self.ask({"output": [{"type": "reasoning"}], "usage": {}})
+
+    def test_model_comes_from_the_environment_with_a_default(self):
+        self.assertEqual(m.OPENAI_MODEL, "gpt-4o-mini")
+
+
 class UnfilledLimitTest(unittest.TestCase):
     def test_上限を入力せずに貼ると_構文エラーになる(self):
         with open(LAMBDA_PATH, encoding="utf-8") as f:

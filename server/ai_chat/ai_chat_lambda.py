@@ -27,7 +27,14 @@ BUCKET_NAME = "auto-diary-ai-images"
 #   OPENAI_SECRET_NAME : 有料プランで使う(キー名 OPENAI_API_KEY)
 #   GEMINI_SECRET_NAME : 無料プランで使う(キー名 GEMINI_API_KEY)
 # シークレットの値は、JSON({"GEMINI_API_KEY": "..."})でも、キーだけの文字列でもよい
-OPENAI_MODEL = "gpt-4o-mini"
+# GPTのモデル。環境変数 OPENAI_MODEL で切り替えられる(なければ gpt-4o-mini)
+# 使えるモデルは、OpenAI側の設定と、提供状況による(古いモデルは、提供が終わると使えなくなる)
+OPENAI_MODEL = os.environ.get("OPENAI_MODEL", "gpt-4o-mini")
+
+# 考える量(reasoning.effort)。環境変数 OPENAI_REASONING_EFFORT で指定する(なければ指定しない)
+# gpt-5系などの「考えるモデル」で、速さと使うトークンを減らすために使う(例: minimal, low)
+# モデルによって指定できる値が違い、合わない値は400で断られる。gpt-4o-miniには指定しない
+OPENAI_REASONING_EFFORT = os.environ.get("OPENAI_REASONING_EFFORT", "").strip()
 
 # 無料プランのモデル。混んでいて使えないときは、後ろのモデルに順に切り替える
 # (モデル名は、提供が終わると使えなくなる。使えるモデルは、AI Studioで確認する)
@@ -180,20 +187,61 @@ def ask_openai(api_key, message, images):
             ),
         })
 
+    payload = {
+        "model": OPENAI_MODEL,
+        "input": [{"role": "user", "content": content}],
+    }
+
+    if OPENAI_REASONING_EFFORT:
+        payload["reasoning"] = {"effort": OPENAI_REASONING_EFFORT}
+
     data = post_json(
         "OpenAI",
         "https://api.openai.com/v1/responses",
         {"Authorization": f"Bearer {api_key}"},
-        {
-            "model": OPENAI_MODEL,
-            "input": [{"role": "user", "content": content}],
-        },
+        payload,
     )
 
-    answer = data["output"][0]["content"][0]["text"]
-    tokens = data.get("usage", {}).get("total_tokens", 0)
+    answer = read_openai_answer(data)
+    usage = data.get("usage", {})
+    tokens = usage.get("total_tokens", 0)
+
+    # 入力・出力・思考の内訳(見積もりの係数を決めるために残す)
+    print(json.dumps({
+        "provider": "OpenAI", "model": OPENAI_MODEL,
+        "reasoningEffort": OPENAI_REASONING_EFFORT or None,
+        "input": usage.get("input_tokens", 0),
+        "cachedInput": (usage.get("input_tokens_details") or {}).get(
+            "cached_tokens", 0
+        ),
+        "output": usage.get("output_tokens", 0),
+        "reasoning": (usage.get("output_tokens_details") or {}).get(
+            "reasoning_tokens", 0
+        ),
+        "total": tokens,
+    }))
 
     return answer, tokens
+
+
+def read_openai_answer(data):
+    """OpenAIの返事から、回答の文章を取り出す
+
+    考えるモデルは、先頭に思考の項目(type: reasoning)が入るため、
+    先頭の項目ではなく、回答の項目(type: message)の本文をつなげる
+    """
+    answer = "".join(
+        part.get("text", "")
+        for item in data.get("output", [])
+        if item.get("type") == "message"
+        for part in item.get("content", [])
+        if part.get("type") == "output_text"
+    )
+
+    if not answer:
+        raise UpstreamError("OpenAI", 200, "no answer text in response")
+
+    return answer
 
 
 def ask_gemini(api_key, message, images, context=None):
