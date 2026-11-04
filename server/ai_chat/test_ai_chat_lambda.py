@@ -551,7 +551,8 @@ class AskOpenAiTest(unittest.TestCase):
             self.ask({"output": [{"type": "reasoning"}], "usage": {}})
 
     def test_model_comes_from_the_environment_with_a_default(self):
-        self.assertEqual(m.OPENAI_MODEL, "gpt-4o-mini")
+        self.assertEqual(m.OPENAI_MODEL, "gpt-5-mini")
+        self.assertEqual(m.OPENAI_REASONING_EFFORT, "minimal")
 
 
 class UnfilledLimitTest(unittest.TestCase):

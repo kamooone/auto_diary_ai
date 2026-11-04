@@ -27,14 +27,20 @@ BUCKET_NAME = "auto-diary-ai-images"
 #   OPENAI_SECRET_NAME : 有料プランで使う(キー名 OPENAI_API_KEY)
 #   GEMINI_SECRET_NAME : 無料プランで使う(キー名 GEMINI_API_KEY)
 # シークレットの値は、JSON({"GEMINI_API_KEY": "..."})でも、キーだけの文字列でもよい
-# GPTのモデル。環境変数 OPENAI_MODEL で切り替えられる(なければ gpt-4o-mini)
+# GPTのモデル。環境変数 OPENAI_MODEL で切り替えられる(なければ gpt-5-mini)
+# gpt-5-miniは、gpt-4o-miniより日付の取り違えや付け足しが少なく、gpt-5.4-miniより費用が低い
+# (1月の日記31件を出来事の一覧にして、約0.9円。2・3・10月のブログ風で、約2.1円)
 # 使えるモデルは、OpenAI側の設定と、提供状況による(古いモデルは、提供が終わると使えなくなる)
-OPENAI_MODEL = os.environ.get("OPENAI_MODEL", "gpt-4o-mini")
+# モデルを変えたら、アプリの AiModel(ai_model.dart)の表示も直すこと
+OPENAI_MODEL = os.environ.get("OPENAI_MODEL", "gpt-5-mini")
 
-# 考える量(reasoning.effort)。環境変数 OPENAI_REASONING_EFFORT で指定する(なければ指定しない)
-# gpt-5系などの「考えるモデル」で、速さと使うトークンを減らすために使う(例: minimal, low)
-# モデルによって指定できる値が違い、合わない値は400で断られる。gpt-4o-miniには指定しない
-OPENAI_REASONING_EFFORT = os.environ.get("OPENAI_REASONING_EFFORT", "").strip()
+# 考える量(reasoning.effort)。環境変数 OPENAI_REASONING_EFFORT で指定する
+# なければ minimal(ほとんど考えず、速く、考える分のトークンを使わない)。空文字にすると、指定しない
+# モデルによって指定できる値が違い、合わない値は400で断られる
+# (gpt-4o-miniやgpt-5.4-miniに変えるときは、空文字にする)
+OPENAI_REASONING_EFFORT = os.environ.get(
+    "OPENAI_REASONING_EFFORT", "minimal"
+).strip()
 
 # 無料プランのモデル。混んでいて使えないときは、後ろのモデルに順に切り替える
 # (モデル名は、提供が終わると使えなくなる。使えるモデルは、AI Studioで確認する)
