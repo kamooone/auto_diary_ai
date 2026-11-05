@@ -16,16 +16,22 @@ from botocore.exceptions import ClientError
 
 
 secrets_manager = boto3.client("secretsmanager")
+ssm = boto3.client("ssm")
 s3 = boto3.client("s3")
 dynamodb = boto3.client("dynamodb")
 
 OPENAI_SECRET_NAME = "auto-diary-ai/openai-api-key"
 GEMINI_SECRET_NAME = "auto-diary/gemini-api-key"
+# GeminiのAPIキーは、Parameter Store(SecureString)に置く。費用がかからないため
+# (Secrets Managerは、1シークレットにつき月に約0.4ドルかかる)
+GEMINI_PARAMETER_NAME = "/auto-diary/gemini-api-key"
 BUCKET_NAME = "auto-diary-ai-images"
 
-# APIキーは、Secrets Managerのシークレットごとに分けて保存している
-#   OPENAI_SECRET_NAME : 有料プランで使う(キー名 OPENAI_API_KEY)
-#   GEMINI_SECRET_NAME : 無料プランで使う(キー名 GEMINI_API_KEY)
+# APIキーの保存先
+#   OPENAI_SECRET_NAME   : Secrets Manager。有料プランで使う(キー名 OPENAI_API_KEY)
+#   GEMINI_PARAMETER_NAME: Parameter Store(SecureString)。無料プランで使う
+#   GEMINI_SECRET_NAME   : 古い保存先のSecrets Manager。Parameter Storeから読めないときだけ使う
+#                          (移行が済んで動作を確認したら、この分岐ごと消してよい)
 # シークレットの値は、JSON({"GEMINI_API_KEY": "..."})でも、キーだけの文字列でもよい
 # GPTのモデル。環境変数 OPENAI_MODEL で切り替えられる(なければ gpt-5-mini)
 # gpt-5-miniは、gpt-4o-miniより日付の取り違えや付け足しが少なく、gpt-5.4-miniより費用が低い
@@ -143,10 +149,29 @@ class UpstreamError(Exception):
         self.details = details
 
 
+def get_parameter_value(name):
+    response = ssm.get_parameter(Name=name, WithDecryption=True)
+    return response["Parameter"]["Value"].strip()
+
+
+def get_gemini_api_key():
+    """GeminiのAPIキーを、Parameter Storeから読む。
+    パラメータがない・権限がないなどで読めないときは、古い保存先(Secrets Manager)から読む"""
+    try:
+        value = get_parameter_value(GEMINI_PARAMETER_NAME)
+    except ClientError as e:
+        code = e.response.get("Error", {}).get("Code", "")
+        print(f"Parameter Storeから読めませんでした({code})。Secrets Managerから読みます")
+        return get_api_key(GEMINI_SECRET_NAME, "GEMINI_API_KEY")
+    return parse_api_key(value, "GEMINI_API_KEY", GEMINI_PARAMETER_NAME)
+
+
 def get_api_key(secret_name, key_name):
     response = secrets_manager.get_secret_value(SecretId=secret_name)
-    value = response["SecretString"].strip()
+    return parse_api_key(response["SecretString"].strip(), key_name, secret_name)
 
+
+def parse_api_key(value, key_name, secret_name):
     try:
         secret = json.loads(value)
     except ValueError:
@@ -726,7 +751,7 @@ def lambda_handler(event, context):
             )
         else:
             answer, tokens = ask_gemini(
-                get_api_key(GEMINI_SECRET_NAME, "GEMINI_API_KEY"),
+                get_gemini_api_key(),
                 message,
                 image_keys,
                 context,

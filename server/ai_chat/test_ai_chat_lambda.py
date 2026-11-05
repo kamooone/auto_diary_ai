@@ -151,6 +151,10 @@ class AiChatUsageTest(unittest.TestCase):
         patcher.start()
         self.addCleanup(patcher.stop)
 
+        patcher = mock.patch.object(m, "get_gemini_api_key", return_value="key")
+        patcher.start()
+        self.addCleanup(patcher.stop)
+
     def set_used(self, tokens):
         fake_dynamo.tables["usage"][self.usage_key] = {
             "usedTokens": {"N": str(tokens)}
@@ -586,6 +590,52 @@ class AskOpenAiTest(unittest.TestCase):
     def test_budgets_fit_in_the_120_second_gateway(self):
         self.assertLess(m.GEMINI_TOTAL_BUDGET, 120)
         self.assertLess(m.OPENAI_TOTAL_BUDGET, 120)
+
+
+class GeminiApiKeyTest(unittest.TestCase):
+    def setUp(self):
+        patcher = mock.patch.object(m, "ssm")
+        self.ssm = patcher.start()
+        self.addCleanup(patcher.stop)
+
+        patcher = mock.patch.object(m, "secrets_manager")
+        self.secrets = patcher.start()
+        self.addCleanup(patcher.stop)
+
+    def test_Parameter_Storeから暗号を解いて読む(self):
+        self.ssm.get_parameter.return_value = {"Parameter": {"Value": " gem-key \n"}}
+
+        self.assertEqual("gem-key", m.get_gemini_api_key())
+
+        self.ssm.get_parameter.assert_called_once_with(
+            Name=m.GEMINI_PARAMETER_NAME, WithDecryption=True
+        )
+        self.secrets.get_secret_value.assert_not_called()
+
+    def test_JSONで保存されていても_キーを取り出せる(self):
+        self.ssm.get_parameter.return_value = {
+            "Parameter": {"Value": '{"GEMINI_API_KEY": "gem-key"}'}
+        }
+
+        self.assertEqual("gem-key", m.get_gemini_api_key())
+
+    def test_パラメータがないときは_Secrets_Managerから読む(self):
+        self.ssm.get_parameter.side_effect = ClientError(
+            {"Error": {"Code": "ParameterNotFound"}}, "GetParameter"
+        )
+        self.secrets.get_secret_value.return_value = {"SecretString": "old-key"}
+
+        self.assertEqual("old-key", m.get_gemini_api_key())
+
+    def test_OpenAIのキーは_これまでどおりSecrets_Managerから読む(self):
+        self.secrets.get_secret_value.return_value = {
+            "SecretString": '{"OPENAI_API_KEY": "oa-key"}'
+        }
+
+        self.assertEqual(
+            "oa-key", m.get_api_key(m.OPENAI_SECRET_NAME, "OPENAI_API_KEY")
+        )
+        self.ssm.get_parameter.assert_not_called()
 
 
 class UnfilledLimitTest(unittest.TestCase):
