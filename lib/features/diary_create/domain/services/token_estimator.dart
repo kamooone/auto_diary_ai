@@ -22,7 +22,7 @@ import 'timeline_text.dart';
 /// 係数は、AIの種類ごとに違う(GPTは、同じ日本語でも、Geminiより多くのトークンになる)。
 /// Gemini: 実機で測った値から決めた。 GPT(gpt-5-mini): 2026-11-04〜05 の実測から決めた
 /// (1月3件・31件、2・3・10月86件。出来事の一覧・簡単なブログ風・ブログ風・相談)。
-/// GPTの、写真・行動履歴・Xの投稿・メモは、まだ測っていない(要実測)
+/// GPTの、写真は実測済み(2026-11-05)。行動履歴・Xの投稿・メモは、まだ測っていない(要実測)
 class TokenEstimator {
   const TokenEstimator._();
 
@@ -31,6 +31,7 @@ class TokenEstimator {
     noteTokensPerChar: noteTokensPerChar,
     tokensPerChar: tokensPerChar,
     tokensPerPhoto: tokensPerPhoto,
+    plainOutput: outputTokens,
     diaryTokensPerChar: noteTokensPerChar,
     readingRatio: 0.08,
     briefRatio: 0.02,
@@ -40,7 +41,10 @@ class TokenEstimator {
     consultOutput: consultOutputTokens,
   );
 
-  // GPT(gpt-5-mini)。日記の入力は、固定が約500、1文字あたり約0.85(測った5点で、
+  // GPT(gpt-5-mini)。写真は1枚約460(1枚と3枚の差から。写真は2〜8MBでも、
+  // アプリが縮小して送るので、大きさによらず同じ)。指示文は固定で約480(3件の測定から)、
+  // ふつうのAI日記の出力は、写真1枚で約130、3枚で約240。
+  // 日記の入力は、固定が約500、1文字あたり約0.85(測った5点で、
   // 見積もり÷実測が84〜95%に収まる値にした。少なめにする方針は、Geminiと同じ)。
   // 出力は、出来事の一覧が1件約45〜100、簡単なブログ風が日記の約5.7%、
   // ブログ風が日記の8.7〜15%(読み物の長さの指示が、日記の量で変わる)
@@ -48,7 +52,8 @@ class TokenEstimator {
     instruction: 450,
     noteTokensPerChar: 0.82,
     tokensPerChar: 0.9,
-    tokensPerPhoto: tokensPerPhoto, // 未測定(Geminiと同じにしてある)
+    tokensPerPhoto: 450,
+    plainOutput: 100,
     diaryTokensPerChar: 0.82,
     readingRatio: 0.08,
     briefRatio: 0.045,
@@ -62,6 +67,9 @@ class TokenEstimator {
     AiModel.gemini => _gemini,
     AiModel.gpt => _gpt,
   };
+
+  /// AIの種類ごとの、写真1枚あたりのトークン
+  static int photoTokens(AiModel model) => _of(model).tokensPerPhoto;
 
   // 指示文(日付・形式の指定など、毎回同じ部分)。実測は約210〜265
   static const instructionTokens = 200;
@@ -153,7 +161,7 @@ class TokenEstimator {
         photoCount * c.tokensPerPhoto +
         SummaryText.length(diaries) * c.diaryTokensPerChar +
         (diaries.isEmpty
-            ? outputTokens
+            ? c.plainOutput
             : summaryOutputTokens(summaryStyle, diaries, model: model));
 
     return (tokens * multiplier).ceil();
@@ -170,6 +178,7 @@ class _Coefficients {
     required this.noteTokensPerChar,
     required this.tokensPerChar,
     required this.tokensPerPhoto,
+    required this.plainOutput,
     required this.diaryTokensPerChar,
     required this.readingRatio,
     required this.briefRatio,
@@ -183,6 +192,9 @@ class _Coefficients {
   final double noteTokensPerChar;
   final double tokensPerChar;
   final int tokensPerPhoto;
+
+  /// 日記を1つにする以外(ふつうのAI日記)の出力
+  final int plainOutput;
   final double diaryTokensPerChar;
 
   /// 読み物・自分で指定の出力 = 日記の文字数 × この値

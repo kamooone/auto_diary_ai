@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../app/router/app_routes.dart';
 import '../../../ads/application/ads_provider.dart';
+import '../../../ai/application/providers/ai_model_provider.dart';
+import '../../domain/services/token_estimator.dart';
 import '../../../plan/application/providers/plan_provider.dart';
 import 'widgets/token_shortage_dialog.dart';
 
@@ -67,6 +69,7 @@ Future<bool> _passShortage(
     context,
     estimated: estimatedTokens,
     remaining: usage.remainingTokens,
+    photoTokens: TokenEstimator.photoTokens(ref.read(aiModelProvider)),
   );
   if (!context.mounted) return false;
 

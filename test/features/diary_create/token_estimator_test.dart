@@ -84,6 +84,32 @@ void main() {
   });
 
   // GPT(gpt-5-mini)の実測(2026-11-04)。見積もりは、実際より少なく、実測の8割以上にする
+  group('TokenEstimator(GPT・ふつうの日記)', () {
+    int plain(int photos) => TokenEstimator.estimate(
+      note: '',
+      timeline: const [],
+      posts: const [],
+      photoCount: photos,
+      model: AiModel.gpt,
+    );
+
+    // 実測(2026-11-05): 写真1枚 1,077、3枚 2,103。見積もりは実測の80%以上100%未満
+    test('写真1枚は、実測1,077の80〜100%', () {
+      expect(plain(1), inInclusiveRange(862, 1076));
+    });
+
+    test('写真3枚は、実測2,103の80〜100%', () {
+      expect(plain(3), inInclusiveRange(1683, 2102));
+    });
+
+    test('写真1枚あたりは、Geminiより少ない', () {
+      expect(
+        TokenEstimator.photoTokens(AiModel.gpt),
+        lessThan(TokenEstimator.photoTokens(AiModel.gemini)),
+      );
+    });
+  });
+
   group('TokenEstimator(GPT)', () {
     // 日記の文字数(SummaryText.length)が[chars]になる、[count]件の日記
     List<Diary> diaries(int count, int chars) {
@@ -183,6 +209,7 @@ void main() {
                   context,
                   estimated: 9000,
                   remaining: 1200,
+                  photoTokens: 1050,
                 );
               },
               child: const Text('開く'),

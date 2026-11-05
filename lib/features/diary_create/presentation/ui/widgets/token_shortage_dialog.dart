@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../../../domain/services/token_estimator.dart';
 
 /// トークンが足りない見込みのときの、ユーザーの選択
 enum TokenShortageChoice { cancel, openPoints, sendAnyway }
@@ -9,6 +8,7 @@ Future<TokenShortageChoice> showTokenShortageDialog(
   BuildContext context, {
   required int estimated,
   required int remaining,
+  required int photoTokens,
 }) async {
   final choice = await showDialog<TokenShortageChoice>(
     context: context,
@@ -18,7 +18,7 @@ Future<TokenShortageChoice> showTokenShortageDialog(
         "この日記に必要なトークンは、約${formatTokens(estimated)}の見込みです"
         "(目安です)。今月の残りは、${formatTokens(remaining)}です。\n\n"
         "写真を減らしたり、期間を短くしたりすると、必要な量が減ります。"
-        "写真は1枚で約${formatTokens(TokenEstimator.tokensPerPhoto)}トークンです。\n\n"
+        "写真は1枚で約${formatTokens(photoTokens)}トークンです。\n\n"
         "足りない場合は、AIが日記を書いたあとに、残りが足りなくなることがあります。",
       ),
       actions: [
