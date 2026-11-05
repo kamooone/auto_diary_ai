@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../app/router/app_routes.dart';
 import '../../../ads/application/ads_provider.dart';
+import '../../../ai/application/providers/gemini_fallback_provider.dart';
 import '../../../ai/presentation/widgets/ai_model_selector.dart';
 import '../../../plan/application/providers/plan_provider.dart';
 import '../../../plan/domain/entities/plan_availability.dart';
@@ -87,6 +88,19 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
           const Padding(
             padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             child: AiModelSelector(),
+          ),
+
+          // Geminiが混んでいるときの、1つ性能が低いモデルの使用
+          SwitchListTile(
+            secondary: const Icon(Icons.shield_outlined),
+            title: const Text("混んでいるときは、別のモデルを使う"),
+            subtitle: const Text(
+              "Geminiが混んでいて失敗したとき、1つ性能が低いモデルで書きます。"
+              "文章の質が下がることがあります",
+            ),
+            value: ref.watch(geminiFallbackProvider),
+            onChanged: (value) =>
+                ref.read(geminiFallbackProvider.notifier).set(value),
           ),
 
           ListTile(

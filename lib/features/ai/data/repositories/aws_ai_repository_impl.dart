@@ -25,6 +25,9 @@ class AwsAiRepositoryImpl implements AiRepository {
   // ユーザーが選んだAIの種類(指定がなければ Gemini)
   final AiModel Function()? _model;
 
+  // Geminiが混んでいるとき、1つ性能が低いモデルを使うか(ユーザーが設定でオンにしたとき)
+  final bool Function()? _geminiFallback;
+
   AwsAiRepositoryImpl(
     this.baseUrl, {
     http.Client? client,
@@ -32,11 +35,13 @@ class AwsAiRepositoryImpl implements AiRepository {
     Future<String?> Function()? deviceToken,
     Future<void> Function()? onInvalidDeviceToken,
     AiModel Function()? model,
+    bool Function()? geminiFallback,
   })  : _client = client ?? http.Client(),
         _clientId = clientId,
         _deviceToken = deviceToken,
         _onInvalidDeviceToken = onInvalidDeviceToken,
-        _model = model;
+        _model = model,
+        _geminiFallback = geminiFallback;
 
   static const _uploadPath = '/ai/upload-url';
   static const _chatPath = '/ai/chat';
@@ -62,6 +67,8 @@ class AwsAiRepositoryImpl implements AiRepository {
         'images': uploadedImages,
         'plan': request.plan.name,
         'model': (_model?.call() ?? AiModel.gemini).name,
+        // オンにしているときだけ送る(送らなければ、サーバーは使わない)
+        if (_geminiFallback?.call() == true) 'geminiFallback': true,
       }),
       onError: AiChatException.new,
     );

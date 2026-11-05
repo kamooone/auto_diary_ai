@@ -102,7 +102,8 @@ def sha(value):
     return hashlib.sha256(value.encode()).hexdigest()
 
 
-def chat_event(plan="free", device_token=None, client_id=CLIENT_ID, model=None):
+def chat_event(plan="free", device_token=None, client_id=CLIENT_ID, model=None,
+               gemini_fallback=None):
     headers = {}
     if client_id:
         headers["X-Client-Id"] = client_id
@@ -111,6 +112,8 @@ def chat_event(plan="free", device_token=None, client_id=CLIENT_ID, model=None):
     body = {"message": "こんにちは", "plan": plan}
     if model is not None:
         body["model"] = model
+    if gemini_fallback is not None:
+        body["geminiFallback"] = gemini_fallback
     return {
         "routeKey": "POST /ai/chat",
         "headers": headers,
@@ -399,6 +402,23 @@ class AiChatUsageTest(unittest.TestCase):
         self.assertEqual(status, 400)
 
 
+    # --- アプリの設定(予備のモデルを使う)が、Geminiの呼び出しに渡る ---
+
+    def fallback_flag(self, **kwargs):
+        self.gemini.reset_mock()
+        status, _ = call(chat_event(**kwargs))
+        self.assertEqual(200, status)
+        return self.gemini.call_args.kwargs["allow_fallback"]
+
+    def test_gemini_fallback_is_off_by_default(self):
+        self.assertFalse(self.fallback_flag())
+
+    def test_gemini_fallback_is_on_only_when_the_app_says_true(self):
+        self.assertTrue(self.fallback_flag(gemini_fallback=True))
+        self.assertFalse(self.fallback_flag(gemini_fallback=False))
+        self.assertFalse(self.fallback_flag(gemini_fallback="true"))
+
+
 class AskGeminiTimeoutTest(unittest.TestCase):
     """Geminiの待ち時間(写真が多いと時間がかかるため、10秒では足りなかった)"""
 
@@ -407,7 +427,7 @@ class AskGeminiTimeoutTest(unittest.TestCase):
         "usageMetadata": {"totalTokenCount": 10},
     }
 
-    def run_gemini(self, outcomes):
+    def run_gemini(self, outcomes, allow_fallback=False):
         """outcomes: 呼ばれるたびの結果(例外か応答)と、その間に進む秒数のリスト"""
         clock = [0.0]
         timeouts = []
@@ -431,7 +451,9 @@ class AskGeminiTimeoutTest(unittest.TestCase):
                 mock.patch.object(m.time, "sleep", fake_sleep), \
                 mock.patch.object(m.time, "monotonic", lambda: clock[0]):
             try:
-                answer = m.ask_gemini("key", "message", [])
+                answer = m.ask_gemini(
+                    "key", "message", [], allow_fallback=allow_fallback
+                )
             except m.UpstreamError as e:
                 answer = e
 
@@ -514,6 +536,96 @@ class AskGeminiTimeoutTest(unittest.TestCase):
 
         self.assertIsInstance(answer, m.UpstreamError)
         self.assertIn("no answer text", str(answer.details))
+
+    # --- 予備のモデル(アプリの設定でオンにしたユーザーだけ) ---
+
+    def run_with_urls(self, outcomes, allow_fallback):
+        urls = []
+        queue = list(outcomes)
+        clock = [0.0]
+
+        def fake_post(provider, url, headers, body, timeout=None):
+            urls.append(url)
+            result, seconds = queue.pop(0)
+            clock[0] += seconds
+            if isinstance(result, Exception):
+                raise result
+            return result
+
+        def fake_sleep(seconds):
+            clock[0] += seconds
+
+        with mock.patch.object(m, "post_json", fake_post), \
+                mock.patch.object(m.time, "sleep", fake_sleep), \
+                mock.patch.object(m.time, "monotonic", lambda: clock[0]), \
+                mock.patch.object(m, "GEMINI_FALLBACK_MODEL", "fallback-lite"):
+            try:
+                answer = m.ask_gemini(
+                    "key", "message", [], allow_fallback=allow_fallback
+                )
+            except m.UpstreamError as e:
+                answer = e
+
+        return answer, [u.split("/models/")[1].split(":")[0] for u in urls]
+
+    def test_fallback_is_used_after_a_quick_failure_when_allowed(self):
+        busy = m.UpstreamError("Gemini", 503, "busy")
+        answer, models = self.run_with_urls([(busy, 5), (self.OK, 3)], True)
+
+        self.assertEqual(answer, ("回答", 10))
+        self.assertEqual(["gemini-flash-lite-latest", "fallback-lite"], models)
+
+    def test_fallback_is_not_used_when_not_allowed(self):
+        busy = m.UpstreamError("Gemini", 503, "busy")
+        answer, models = self.run_with_urls([(busy, 5)] * 10, False)
+
+        self.assertIsInstance(answer, m.UpstreamError)
+        self.assertEqual({"gemini-flash-lite-latest"}, set(models))
+
+    def test_fallback_is_not_used_after_a_slow_failure(self):
+        busy = m.UpstreamError("Gemini", 503, "busy")
+        # 8秒を過ぎて失敗 → 予備には移らず、同じモデルを試し直す
+        answer, models = self.run_with_urls([(busy, 20), (self.OK, 3)], True)
+
+        self.assertEqual(answer, ("回答", 10))
+        self.assertEqual(["gemini-flash-lite-latest"] * 2, models)
+
+    def test_the_fallback_is_retried_on_its_own_busy_response(self):
+        busy = m.UpstreamError("Gemini", 503, "busy")
+        answer, models = self.run_with_urls(
+            [(busy, 4), (busy, 1), (self.OK, 1)], True
+        )
+
+        self.assertEqual(answer, ("回答", 10))
+        self.assertEqual(
+            ["gemini-flash-lite-latest", "fallback-lite", "fallback-lite"],
+            models,
+        )
+
+    def test_the_main_models_failure_is_returned_when_the_fallback_fails(self):
+        busy = m.UpstreamError("Gemini", 503, "busy-main")
+        gone = m.UpstreamError("Gemini", 404, "model not found")
+        answer, models = self.run_with_urls([(busy, 4), (gone, 1)], True)
+
+        self.assertIsInstance(answer, m.UpstreamError)
+        self.assertEqual(503, answer.status)
+        self.assertEqual(2, len(models))
+
+    def test_the_fallback_model_can_be_turned_off_by_an_empty_name(self):
+        busy = m.UpstreamError("Gemini", 503, "busy")
+        urls = []
+
+        def fake_post(provider, url, headers, body, timeout=None):
+            urls.append(url)
+            raise busy
+
+        with mock.patch.object(m, "post_json", fake_post), \
+                mock.patch.object(m.time, "sleep", lambda s: None), \
+                mock.patch.object(m, "GEMINI_FALLBACK_MODEL", ""):
+            with self.assertRaises(m.UpstreamError):
+                m.ask_gemini("key", "message", [], allow_fallback=True)
+
+        self.assertTrue(all("gemini-flash-lite-latest" in u for u in urls))
 
     def test_a_timeout_is_raised_as_upstream_error(self):
         answer, timeouts = self.run_gemini(

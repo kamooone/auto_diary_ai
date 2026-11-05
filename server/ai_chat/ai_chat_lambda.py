@@ -60,6 +60,16 @@ GEMINI_MODELS = [
     "gemini-flash-lite-latest",
 ]
 
+# 予備のモデル(1つ性能が低いモデル)。アプリの設定で、オンにしたユーザーだけが使う。
+# 環境変数 GEMINI_FALLBACK_MODEL で変えられる(空にすると、予備は使わない)。
+# GEMINI_MODELSのモデルが混んでいて、すぐに(下の秒数以内に)失敗したときだけ使う。
+# 長く待ったあとに失敗したときは、時間が足りないので使わない。
+# モデル名は、提供が終わると使えなくなる。使えないときは、GEMINI_MODELSの失敗を返す
+GEMINI_FALLBACK_MODEL = os.environ.get(
+    "GEMINI_FALLBACK_MODEL", "gemini-2.5-flash-lite"
+).strip()
+GEMINI_FALLBACK_WITHIN_SECONDS = 8
+
 # 次のモデルを試す、Geminiのステータス
 #   404: そのモデルは使えない / 429: 混んでいる・無料枠の制限
 #   500・503・504: Google側の一時的な障害
@@ -300,11 +310,13 @@ def read_openai_answer(data):
     return answer
 
 
-def ask_gemini(api_key, message, images, context=None):
+def ask_gemini(api_key, message, images, context=None, allow_fallback=False):
     """無料プラン: Gemini。(回答, 消費したトークン数)を返す
 
     モデルが使えないとき(混んでいる、提供が終わったなど)は、
-    GEMINI_MODELSの順に別のモデルへ切り替える
+    GEMINI_MODELSの順に別のモデルへ切り替える。
+    allow_fallbackがTrueのときは、最後に、予備のモデル(GEMINI_FALLBACK_MODEL)も試す
+    (GEMINI_FALLBACK_WITHIN_SECONDS秒以内に失敗したときだけ)
     """
     parts = [{"text": message}]
 
@@ -328,10 +340,29 @@ def ask_gemini(api_key, message, images, context=None):
 
         return left
 
-    for model in GEMINI_MODELS:
+    models = list(GEMINI_MODELS)
+    fallback_model = GEMINI_FALLBACK_MODEL if allow_fallback else ""
+
+    if fallback_model and fallback_model not in models:
+        models.append(fallback_model)
+
+    for index, model in enumerate(models):
+        is_fallback = bool(fallback_model) and model == fallback_model
+        is_last = index == len(models) - 1
+        next_is_fallback = (
+            bool(fallback_model)
+            and index + 1 < len(models)
+            and models[index + 1] == fallback_model
+        )
 
         # 時間が足りなければ、次のモデルは試さない
         if last_error is not None and seconds_left() < MIN_REMAINING_SECONDS:
+            break
+
+        # 予備のモデルは、すぐに失敗したときだけ試す
+        if is_fallback and (
+            time.monotonic() - started > GEMINI_FALLBACK_WITHIN_SECONDS
+        ):
             break
 
         attempt_started = time.monotonic()
@@ -382,8 +413,18 @@ def ask_gemini(api_key, message, images, context=None):
                     wait = GEMINI_RETRY_WAIT_SECONDS * (retries + 1)
 
                     # 混雑のときは、少し待って、同じモデルをもう一度試す
+                    # (次のモデルに移れるときは、試し直さずに、次のモデルに移る。
+                    #  予備のモデルに移れない(時間がたった)ときは、試し直す)
                     can_retry = (
-                        e.status in GEMINI_SAME_MODEL_RETRY_STATUSES
+                        (
+                            is_last
+                            or (
+                                next_is_fallback
+                                and time.monotonic() - started
+                                > GEMINI_FALLBACK_WITHIN_SECONDS
+                            )
+                        )
+                        and e.status in GEMINI_SAME_MODEL_RETRY_STATUSES
                         and retries < GEMINI_SAME_MODEL_RETRIES
                         and seconds_left() - wait >= MIN_REMAINING_SECONDS
                     )
@@ -409,7 +450,9 @@ def ask_gemini(api_key, message, images, context=None):
                 "seconds": round(time.monotonic() - attempt_started, 1),
                 "action": "switch_model",
             }, ensure_ascii=False))
-            last_error = e
+            # 予備のモデルの失敗は、本来のモデルの失敗を隠さないよう、記録しない
+            if not is_fallback:
+                last_error = e
             continue
         except (socket.timeout, TimeoutError, urllib.error.URLError) as e:
             # 応答が遅い、または接続できないときも、次のモデルを試す
@@ -418,7 +461,8 @@ def ask_gemini(api_key, message, images, context=None):
                 "seconds": round(time.monotonic() - attempt_started, 1),
                 "action": "switch_model",
             }, ensure_ascii=False))
-            last_error = UpstreamError("Gemini", 0, str(e))
+            if not is_fallback:
+                last_error = UpstreamError("Gemini", 0, str(e))
             continue
 
         candidates = data.get("candidates") or []
@@ -802,6 +846,8 @@ def lambda_handler(event, context):
                 message,
                 image_keys,
                 context,
+                # アプリの設定で、オンにしたユーザーだけ
+                allow_fallback=body.get("geminiFallback") is True,
             )
 
         # S3の画像を削除

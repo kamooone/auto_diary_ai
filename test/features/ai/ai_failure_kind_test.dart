@@ -79,4 +79,32 @@ void main() {
       );
     });
   });
+
+  group('予備のモデルの設定をサーバーに送る', () {
+    Future<Map<String, dynamic>> sentBody({bool? fallback}) async {
+      late Map<String, dynamic> body;
+
+      final repository = AwsAiRepositoryImpl(
+        'https://example.com',
+        client: MockClient((req) async {
+          body = jsonDecode(req.body) as Map<String, dynamic>;
+          return json(200, {'answer': '回答'});
+        }),
+        geminiFallback: fallback == null ? null : () => fallback,
+      );
+
+      await repository.sendMessage(request);
+      return body;
+    }
+
+    test('オンのときだけ、geminiFallbackを送る', () async {
+      expect((await sentBody(fallback: true))['geminiFallback'], isTrue);
+    });
+
+    test('オフのときや、設定がないときは、送らない', () async {
+      expect((await sentBody(fallback: false)).containsKey('geminiFallback'),
+          isFalse);
+      expect((await sentBody()).containsKey('geminiFallback'), isFalse);
+    });
+  });
 }
