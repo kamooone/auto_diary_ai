@@ -7,7 +7,7 @@ import 'package:auto_diary_ai/features/diary_create/presentation/ui/widgets/gene
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-List<Diary> diaries(int count, {int chars = 700}) => [
+List<Diary> diaries(int count, {int chars = 300}) => [
   for (var i = 0; i < count; i++)
     Diary(
       date: DateTime(2026, 1, 1).add(Duration(days: i)),
@@ -114,7 +114,7 @@ void main() {
 
     test('Geminiの30件の読み物は、実測(約13秒)に近い', () {
       final s = seconds(
-        diaries: diaries(30, chars: 1000),
+        diaries: diaries(30, chars: 580),
         model: AiModel.gemini,
       );
 

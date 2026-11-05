@@ -1,5 +1,5 @@
-import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
 import '../../../domain/services/generation_gauge.dart';
 
 /// 日記を作っている間の表示(ダウンロードのようなゲージと、経過時間)
@@ -15,28 +15,28 @@ class GenerationProgress extends StatefulWidget {
   State<GenerationProgress> createState() => _GenerationProgressState();
 }
 
-class _GenerationProgressState extends State<GenerationProgress> {
-  final _stopwatch = Stopwatch()..start();
-  Timer? _timer;
+class _GenerationProgressState extends State<GenerationProgress>
+    with SingleTickerProviderStateMixin {
+  // 経過時間は、描画の時計(Ticker)で測る
+  late final Ticker _ticker;
+  Duration _elapsed = Duration.zero;
 
   @override
   void initState() {
     super.initState();
-    _timer = Timer.periodic(
-      const Duration(milliseconds: 200),
-      (_) => setState(() {}),
-    );
+    _ticker = createTicker((elapsed) => setState(() => _elapsed = elapsed))
+      ..start();
   }
 
   @override
   void dispose() {
-    _timer?.cancel();
+    _ticker.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    final elapsed = _stopwatch.elapsedMilliseconds / 1000;
+    final elapsed = _elapsed.inMilliseconds / 1000;
     final fraction = GenerationGauge.fraction(elapsed, widget.expectedSeconds);
     final isOver = GenerationGauge.isOverExpected(elapsed, widget.expectedSeconds);
 
