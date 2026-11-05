@@ -150,8 +150,8 @@ class SummaryConsultViewModel
       if (usage != null) ref.read(usageProvider.notifier).update(usage);
 
       _fail("今月のAIの使用量の上限に達しました");
-    } on AiBusyException {
-      AppLog.add('日記', '相談に失敗: AIが混み合っている');
+    } on AiBusyException catch (e) {
+      AppLog.add('日記', '相談に失敗: AIが混み合っている: $e');
 
       _fail("AIが混み合っているようです。トークンは減っていません。少し時間をおいて、もう一度お試しください");
     } catch (e, stackTrace) {

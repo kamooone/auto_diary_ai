@@ -132,9 +132,13 @@ class AwsAiRepositoryImpl implements AiRepository {
       throw UsageLimitExceededException(_usageOf(response));
     }
 
-    // AI側が混雑などで応答できなかった
-    if (response.statusCode == 502) {
-      throw AiBusyException();
+    // AI側が混雑などで応答できなかった(日記の生成のときだけ。写真のアップロードの502は、
+    // 混雑ではないので、アップロードの失敗として扱う)
+    if (response.statusCode == 502 && path == _chatPath) {
+      final body = utf8.decode(response.bodyBytes, allowMalformed: true);
+      throw AiBusyException(
+        body.length > 200 ? body.substring(0, 200) : body,
+      );
     }
 
     if (response.statusCode != 200) {
