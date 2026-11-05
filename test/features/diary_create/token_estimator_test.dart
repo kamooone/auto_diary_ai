@@ -143,11 +143,9 @@ void main() {
       expect(DiaryLength.parse(' 1500 '), 1500);
     });
 
-    test('上限を超えたら、上限の文字数として扱う', () {
-      expect(DiaryLength.parse('3001'), DiaryLength.max);
-      expect(DiaryLength.parse('10000'), DiaryLength.max);
-      expect(DiaryLength.isOver('10000'), isTrue);
-      expect(DiaryLength.isOver('3000'), isFalse);
+    test('文字数に上限はなく、大きな数もそのまま文字数になる', () {
+      expect(DiaryLength.parse('3001'), 3001);
+      expect(DiaryLength.parse('100000'), 100000);
     });
   });
 
