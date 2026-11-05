@@ -33,6 +33,9 @@ class _DiarySelectPageState extends State<DiarySelectPage> {
 
   late final _times = widget.diaries.map((e) => e.date).toList();
 
+  // 開いている月。初めは、すべて閉じている(件数が多くても、月の一覧から選べる)
+  final _expandedMonths = <DateTime>{};
+
   List<Diary> get _selected =>
       widget.diaries.where((e) => _selectedIds.contains(e.id)).toList();
 
@@ -54,6 +57,14 @@ class _DiarySelectPageState extends State<DiarySelectPage> {
       month.diaries.every(_isSelected)
           ? _unselect(month.diaries)
           : _select(month.diaries);
+    });
+  }
+
+  void _toggleExpanded(DateTime month) {
+    setState(() {
+      _expandedMonths.contains(month)
+          ? _expandedMonths.remove(month)
+          : _expandedMonths.add(month);
     });
   }
 
@@ -87,7 +98,8 @@ class _DiarySelectPageState extends State<DiarySelectPage> {
           ),
         );
       }
-      rows.addAll([day, ...day.items]);
+      // 閉じている月は、見出しだけを出す
+      if (_expandedMonths.contains(month)) rows.addAll([day, ...day.items]);
     }
 
     return Scaffold(
@@ -177,6 +189,8 @@ class _DiarySelectPageState extends State<DiarySelectPage> {
             selectedCount: row.diaries.where(_isSelected).length,
             totalCount: row.diaries.length,
             onToggle: () => _toggleMonth(row),
+            isExpanded: _expandedMonths.contains(row.month),
+            onTap: () => _toggleExpanded(row.month),
           );
         }
 
