@@ -554,6 +554,39 @@ class AskOpenAiTest(unittest.TestCase):
         self.assertEqual(m.OPENAI_MODEL, "gpt-5-mini")
         self.assertEqual(m.OPENAI_REASONING_EFFORT, "minimal")
 
+    def test_wait_time_is_limited_by_the_budget(self):
+        _, _ = self.ask(self.PLAIN)
+
+        with mock.patch.object(m, "post_json", return_value=self.PLAIN) as post:
+            m.ask_openai("key", "こんにちは", [])
+
+        self.assertEqual(post.call_args.kwargs["timeout"], m.OPENAI_TOTAL_BUDGET)
+
+    def test_wait_time_is_limited_by_the_lambda_remaining_time(self):
+        context = mock.Mock()
+        context.get_remaining_time_in_millis.return_value = 30_000
+
+        with mock.patch.object(m, "post_json", return_value=self.PLAIN) as post:
+            m.ask_openai("key", "こんにちは", [], context)
+
+        self.assertEqual(
+            post.call_args.kwargs["timeout"], 30 - m.RESERVED_SECONDS
+        )
+
+    def test_timeout_becomes_an_upstream_error_the_app_can_recognize(self):
+        with mock.patch.object(
+            m, "post_json", side_effect=TimeoutError("The read operation timed out")
+        ):
+            with self.assertRaises(m.UpstreamError) as raised:
+                m.ask_openai("key", "こんにちは", [])
+
+        self.assertEqual(raised.exception.provider, "OpenAI")
+        self.assertIn("timed out", raised.exception.details)
+
+    def test_budgets_fit_in_the_120_second_gateway(self):
+        self.assertLess(m.GEMINI_TOTAL_BUDGET, 120)
+        self.assertLess(m.OPENAI_TOTAL_BUDGET, 120)
+
 
 class UnfilledLimitTest(unittest.TestCase):
     def test_上限を入力せずに貼ると_構文エラーになる(self):

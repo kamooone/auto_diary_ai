@@ -66,12 +66,15 @@ GEMINI_THINKING_CONFIG = {"thinkingLevel": "low"}
 # 1つのモデルを待つ最長の時間(秒)
 # 写真が多い日記は、10秒では足りず、時間切れになった。
 # 遅いモデルで時間を使い切らないよう、全体の予算より短くしてある
-GEMINI_ATTEMPT_TIMEOUT = 40
+GEMINI_ATTEMPT_TIMEOUT = 60
 
-# API Gatewayの統合タイムアウト(60秒に引き上げ済み)に間に合わせるため、Geminiに使える時間(秒)
+# API Gatewayの統合タイムアウト(120秒に引き上げ済み)に間に合わせるため、Geminiに使える時間(秒)
 # (Geminiを呼ぶ前の処理と、回答を返す処理の分を引いてある)
-# API Gatewayと、このLambdaのタイムアウトは、どちらも60秒にしておくこと
-GEMINI_TOTAL_BUDGET = 54
+# API Gatewayと、このLambdaのタイムアウトは、どちらも120秒にしておくこと
+GEMINI_TOTAL_BUDGET = 114
+
+# GPTの返事を待つ最長の時間(秒)。API Gatewayの120秒に間に合わせる(Geminiと同じ考え方)
+OPENAI_TOTAL_BUDGET = 110
 
 # 次のモデルを試すには、残りの時間がこれ以上必要(秒)
 MIN_REMAINING_SECONDS = 12
@@ -181,8 +184,11 @@ def post_json(provider, url, headers, body, timeout=None):
         ) from e
 
 
-def ask_openai(api_key, message, images):
-    """有料プラン: GPT。(回答, 消費したトークン数)を返す"""
+def ask_openai(api_key, message, images, context=None):
+    """有料プラン: GPT。(回答, 消費したトークン数)を返す
+
+    返事を待つ時間は、OPENAI_TOTAL_BUDGETまで(Lambdaの残り時間が短ければ、それまで)
+    """
     content = [{"type": "input_text", "text": message}]
 
     for image in images:
@@ -201,12 +207,23 @@ def ask_openai(api_key, message, images):
     if OPENAI_REASONING_EFFORT:
         payload["reasoning"] = {"effort": OPENAI_REASONING_EFFORT}
 
-    data = post_json(
-        "OpenAI",
-        "https://api.openai.com/v1/responses",
-        {"Authorization": f"Bearer {api_key}"},
-        payload,
-    )
+    wait = OPENAI_TOTAL_BUDGET
+
+    if context is not None:
+        lambda_left = context.get_remaining_time_in_millis() / 1000
+        wait = min(wait, lambda_left - RESERVED_SECONDS)
+
+    try:
+        data = post_json(
+            "OpenAI",
+            "https://api.openai.com/v1/responses",
+            {"Authorization": f"Bearer {api_key}"},
+            payload,
+            timeout=max(1, wait),
+        )
+    except (socket.timeout, TimeoutError, urllib.error.URLError) as e:
+        # 返事が間に合わないときは、アプリが時間切れと分かるよう、AI側の失敗(502)にする
+        raise UpstreamError("OpenAI", 0, str(e)) from e
 
     answer = read_openai_answer(data)
     usage = data.get("usage", {})
@@ -705,6 +722,7 @@ def lambda_handler(event, context):
                 get_api_key(OPENAI_SECRET_NAME, "OPENAI_API_KEY"),
                 message,
                 image_keys,
+                context,
             )
         else:
             answer, tokens = ask_gemini(
