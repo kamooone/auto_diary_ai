@@ -48,15 +48,16 @@ OPENAI_REASONING_EFFORT = os.environ.get(
     "OPENAI_REASONING_EFFORT", "minimal"
 ).strip()
 
-# 無料プランのモデル。混んでいて使えないときは、後ろのモデルに順に切り替える
+# 無料プランのモデル。リストの順に試し、使えないときは後ろのモデルに切り替える
 # (モデル名は、提供が終わると使えなくなる。使えるモデルは、AI Studioで確認する)
-# gemini-flash-liteは、速くて思考も使わず、消費するトークンが少ないため、先頭にしてある
-# gemini-flash-latestは、混雑・時間切れが多く、先頭だと40秒待ってしまう
-# gemini-3.8-flashは、混雑や応答なしで成功することがほとんどなく、待つ時間を使い切るため、最後にしてある
+# いまは、gemini-flash-liteだけを使う。速くて思考も使わず、消費するトークンが少ないため。
+# 予備にしていた2つは、役に立たなかったので外した
+#   gemini-flash-latest: 混雑・時間切れが多く、60秒待っても返らないことがあった
+#   gemini-3.8-flash   : 無料枠が1日20回で、使い切ると、成功することがなかった
+# 件数の多い「日記を1つにする」で、待ち時間(下のGEMINI_TOTAL_BUDGET)をまるごと使うため、
+# 予備のモデルは置かない。予備を足すときは、GEMINI_ATTEMPT_TIMEOUTも短くすること
 GEMINI_MODELS = [
     "gemini-flash-lite-latest",
-    "gemini-flash-latest",
-    "gemini-3.8-flash",
 ]
 
 # 次のモデルを試す、Geminiのステータス
@@ -69,15 +70,15 @@ GEMINI_RETRY_STATUSES = {404, 429, 500, 503, 504}
 # 3系のモデルの指定。合わないモデルが400を返したときは、指定なしでやり直す
 GEMINI_THINKING_CONFIG = {"thinkingLevel": "low"}
 
-# 1つのモデルを待つ最長の時間(秒)
-# 写真が多い日記は、10秒では足りず、時間切れになった。
-# 遅いモデルで時間を使い切らないよう、全体の予算より短くしてある
-GEMINI_ATTEMPT_TIMEOUT = 60
-
 # API Gatewayの統合タイムアウト(120秒に引き上げ済み)に間に合わせるため、Geminiに使える時間(秒)
 # (Geminiを呼ぶ前の処理と、回答を返す処理の分を引いてある)
 # API Gatewayと、このLambdaのタイムアウトは、どちらも120秒にしておくこと
 GEMINI_TOTAL_BUDGET = 114
+
+# 1つのモデルを待つ最長の時間(秒)
+# モデルが1つだけなので、全体の予算をまるごと使う。
+# 予備のモデルを足すときは、遅いモデルで時間を使い切らないよう、これを全体より短くする
+GEMINI_ATTEMPT_TIMEOUT = GEMINI_TOTAL_BUDGET
 
 # GPTの返事を待つ最長の時間(秒)。API Gatewayの120秒に間に合わせる(Geminiと同じ考え方)
 OPENAI_TOTAL_BUDGET = 110

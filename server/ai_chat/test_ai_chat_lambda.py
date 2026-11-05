@@ -449,43 +449,55 @@ class AskGeminiTimeoutTest(unittest.TestCase):
         )
         self.assertNotIn("generationConfig", bodies[1])
 
-    def test_first_model_may_take_longer_than_ten_seconds(self):
-        answer, timeouts = self.run_gemini([(self.OK, 15)])
+    def test_only_flash_lite_is_used(self):
+        self.assertEqual(["gemini-flash-lite-latest"], m.GEMINI_MODELS)
+
+    def test_the_single_model_may_use_the_whole_budget(self):
+        answer, timeouts = self.run_gemini([(self.OK, 100)])
 
         self.assertEqual(answer, ("回答", 10))
-        self.assertEqual(timeouts, [m.GEMINI_ATTEMPT_TIMEOUT])
-        self.assertGreater(m.GEMINI_ATTEMPT_TIMEOUT, 10)
+        self.assertEqual(timeouts, [m.GEMINI_TOTAL_BUDGET])
+        self.assertLess(m.GEMINI_TOTAL_BUDGET, 120)
 
-    def test_next_model_gets_the_remaining_time_after_a_timeout(self):
-        left = m.GEMINI_TOTAL_BUDGET - m.GEMINI_ATTEMPT_TIMEOUT
-        self.assertGreaterEqual(left, m.MIN_REMAINING_SECONDS)
+    def test_a_busy_response_is_raised_without_another_model(self):
+        quick = m.UpstreamError("Gemini", 503, "busy")
+        answer, timeouts = self.run_gemini([(quick, 1)])
 
-        answer, timeouts = self.run_gemini([
-            (TimeoutError("timed out"), m.GEMINI_ATTEMPT_TIMEOUT),
-            (self.OK, 5),
-        ])
+        self.assertIsInstance(answer, m.UpstreamError)
+        self.assertEqual(503, answer.status)
+        self.assertEqual(1, len(timeouts))
+
+    def test_a_timeout_is_raised_as_upstream_error(self):
+        answer, timeouts = self.run_gemini(
+            [(TimeoutError("timed out"), m.GEMINI_TOTAL_BUDGET)]
+        )
+
+        self.assertIsInstance(answer, m.UpstreamError)
+        self.assertIn("timed out", str(answer.details))
+        self.assertEqual(1, len(timeouts))
+
+    def test_next_model_gets_the_remaining_time_when_models_are_added(self):
+        # 予備のモデルを足したとき(1モデル60秒)の動き
+        with mock.patch.object(m, "GEMINI_MODELS", ["a", "b", "c"]), \
+                mock.patch.object(m, "GEMINI_ATTEMPT_TIMEOUT", 60):
+            answer, timeouts = self.run_gemini([
+                (TimeoutError("timed out"), 60),
+                (self.OK, 5),
+            ])
 
         self.assertEqual(answer, ("回答", 10))
-        self.assertEqual(timeouts, [m.GEMINI_ATTEMPT_TIMEOUT, left])
+        self.assertEqual(timeouts, [60, m.GEMINI_TOTAL_BUDGET - 60])
 
-    def test_no_third_model_when_the_time_is_used_up(self):
-        left = m.GEMINI_TOTAL_BUDGET - m.GEMINI_ATTEMPT_TIMEOUT
-        answer, timeouts = self.run_gemini([
-            (TimeoutError("timed out"), m.GEMINI_ATTEMPT_TIMEOUT),
-            (TimeoutError("timed out"), left),
-        ])
+    def test_no_next_model_when_the_time_is_used_up(self):
+        with mock.patch.object(m, "GEMINI_MODELS", ["a", "b", "c"]), \
+                mock.patch.object(m, "GEMINI_ATTEMPT_TIMEOUT", 60):
+            answer, timeouts = self.run_gemini([
+                (TimeoutError("timed out"), 60),
+                (TimeoutError("timed out"), m.GEMINI_TOTAL_BUDGET - 60),
+            ])
 
         self.assertIsInstance(answer, m.UpstreamError)
         self.assertEqual(len(timeouts), 2)
-
-    def test_second_model_is_tried_after_a_quick_failure(self):
-        quick = m.UpstreamError("Gemini", 503, "busy")
-        answer, timeouts = self.run_gemini([(quick, 1), (self.OK, 5)])
-
-        self.assertEqual(answer, ("回答", 10))
-        self.assertEqual(len(timeouts), 2)
-        # 残りの時間を超えて待たない
-        self.assertLessEqual(timeouts[1], m.GEMINI_TOTAL_BUDGET - 1)
 
 
 class AskOpenAiTest(unittest.TestCase):
