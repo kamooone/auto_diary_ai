@@ -15,6 +15,7 @@ import 'diary_result_screen.dart';
 import 'diary_select_page.dart';
 import 'generate_flow.dart';
 import 'summary_consult_screen.dart';
+import 'widgets/length_field.dart';
 import 'widgets/style_choice_card.dart';
 import 'widgets/token_shortage_dialog.dart';
 
@@ -164,6 +165,15 @@ class _SummaryDiaryScreenState extends ConsumerState<SummaryDiaryScreen> {
           const SizedBox(height: 16),
 
           // AIを使わない「日記を連結させる」では、伝える相手がいないので出さない
+          // 一覧は、1件ずつ短く書く形なので、文字数は指定しない
+          if (!isJoin && state.summaryStyle != SummaryStyle.list) ...[
+            LengthField(
+              initialChars: state.summaryLengthChars,
+              onChanged: viewModel.setSummaryLength,
+            ),
+            const SizedBox(height: 12),
+          ],
+
           if (!isJoin) ...[
             TextField(
               controller: _noteController,
@@ -308,6 +318,9 @@ class _SummaryDiaryScreenState extends ConsumerState<SummaryDiaryScreen> {
       diaries: state.summaryDiaries,
       summaryStyle: state.summaryStyle,
       model: ref.read(aiModelProvider),
+      lengthChars: state.summaryStyle == SummaryStyle.list
+          ? 0
+          : state.summaryLengthChars,
     );
   }
 }

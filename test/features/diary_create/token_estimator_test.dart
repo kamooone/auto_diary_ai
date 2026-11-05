@@ -1,5 +1,6 @@
 import 'package:auto_diary_ai/features/ai/domain/entities/ai_model.dart';
 import 'package:auto_diary_ai/features/diary/domain/entities/diary.dart';
+import 'package:auto_diary_ai/features/diary_create/domain/entities/diary_length.dart';
 import 'package:auto_diary_ai/features/diary_create/domain/entities/summary_style.dart';
 import 'package:auto_diary_ai/features/diary_create/domain/services/summary_text.dart';
 import 'package:auto_diary_ai/features/diary_create/domain/services/timeline_text.dart';
@@ -127,6 +128,82 @@ void main() {
         withLength(AiModel.gemini, 200),
         greaterThanOrEqualTo(withLength(AiModel.gemini, 0)),
       );
+    });
+  });
+
+  group('文字数の目安の入力', () {
+    test('空・数字でない・0は、指定しない(0)', () {
+      expect(DiaryLength.parse(''), 0);
+      expect(DiaryLength.parse('abc'), 0);
+      expect(DiaryLength.parse('0'), 0);
+    });
+
+    test('数字は、そのまま文字数になる', () {
+      expect(DiaryLength.parse('800'), 800);
+      expect(DiaryLength.parse(' 1500 '), 1500);
+    });
+
+    test('上限を超えたら、上限の文字数として扱う', () {
+      expect(DiaryLength.parse('3001'), DiaryLength.max);
+      expect(DiaryLength.parse('10000'), DiaryLength.max);
+      expect(DiaryLength.isOver('10000'), isTrue);
+      expect(DiaryLength.isOver('3000'), isFalse);
+    });
+  });
+
+  group('TokenEstimator(まとめ日記の文字数の目安)', () {
+    final diaries = [
+      Diary(
+        date: DateTime(2026, 1, 1),
+        title: 'あ',
+        content: 'あ' * 5000,
+        isAiGenerated: false,
+        createdAt: DateTime(2026, 1, 1),
+      ),
+      Diary(
+        date: DateTime(2026, 1, 2),
+        title: 'い',
+        content: 'い' * 5000,
+        isAiGenerated: false,
+        createdAt: DateTime(2026, 1, 2),
+      ),
+    ];
+
+    int output(SummaryStyle style, int chars) =>
+        TokenEstimator.summaryOutputTokens(
+          style,
+          diaries,
+          model: AiModel.gpt,
+          lengthChars: chars,
+        );
+
+    test('目安を指定すると、日記の量ではなく、その長さで出力を見積もる', () {
+      expect(output(SummaryStyle.reading, 800), 400);
+      expect(output(SummaryStyle.brief, 800), 400);
+      expect(output(SummaryStyle.custom, 800), 400);
+    });
+
+    test('指定しないときは、これまでと同じ', () {
+      expect(
+        output(SummaryStyle.reading, 0),
+        TokenEstimator.summaryOutputTokens(
+          SummaryStyle.reading,
+          diaries,
+          model: AiModel.gpt,
+        ),
+      );
+    });
+
+    test('出来事の一覧と、日記を連結させるは、目安の影響を受けない', () {
+      expect(
+        output(SummaryStyle.list, 800),
+        TokenEstimator.summaryOutputTokens(
+          SummaryStyle.list,
+          diaries,
+          model: AiModel.gpt,
+        ),
+      );
+      expect(output(SummaryStyle.chronicle, 800), 0);
     });
   });
 

@@ -11,6 +11,7 @@ class SummaryPrompt {
     required List<Diary> diaries,
     required String note,
     String customInstruction = '',
+    int lengthChars = 0,
   }) {
     final chars = SummaryText.length(diaries);
 
@@ -21,6 +22,7 @@ class SummaryPrompt {
 これらを材料に、この期間を1つの日記にした文章を書いてください。あわせて、その内容に合ったタイトルも書いてください。
 
 ${_style(style, chars, customInstruction)}
+${lengthChars > 0 && style != SummaryStyle.list ? "\n文字数の目安\n本文は$lengthChars文字くらいを目安に書いてください(この指定は、上の形の長さの指示より優先してください)。材料が少ないときは、無理に伸ばさず、短くてかまいません。\n" : ""}
 
 共通のルール
 ・元の日記にない出来事、気持ち、感想は、付け足さないでください。

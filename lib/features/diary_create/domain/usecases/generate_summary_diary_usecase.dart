@@ -25,6 +25,7 @@ class GenerateSummaryDiaryUseCase {
     SummaryStyle style = SummaryStyle.reading,
     String customInstruction = '',
     PlanType plan = PlanType.free,
+    int lengthChars = 0,
   }) async {
     final request = AiMessageRequest(
       plan: plan,
@@ -33,6 +34,7 @@ class GenerateSummaryDiaryUseCase {
         diaries: diaries,
         note: note,
         customInstruction: customInstruction,
+        lengthChars: lengthChars,
       ),
       images: const [],
     );

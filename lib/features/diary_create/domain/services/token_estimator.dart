@@ -97,9 +97,17 @@ class TokenEstimator {
     SummaryStyle style,
     List<Diary> diaries, {
     AiModel model = AiModel.gemini,
+    int lengthChars = 0,
   }) {
     final c = _of(model);
     final chars = SummaryText.length(diaries);
+
+    // 文字数の目安を指定したときは、その長さで書くので、日記の量からの見積もりに代える
+    if (lengthChars > 0 &&
+        style != SummaryStyle.list &&
+        style != SummaryStyle.chronicle) {
+      return (lengthChars * c.outputTokensPerChar).round();
+    }
 
     return switch (style) {
       SummaryStyle.reading || SummaryStyle.custom => math.min(
@@ -165,7 +173,12 @@ class TokenEstimator {
         SummaryText.length(diaries) * c.diaryTokensPerChar +
         (diaries.isEmpty
             ? math.max(c.plainOutput, (lengthChars * c.outputTokensPerChar).round())
-            : summaryOutputTokens(summaryStyle, diaries, model: model));
+            : summaryOutputTokens(
+                summaryStyle,
+                diaries,
+                model: model,
+                lengthChars: lengthChars,
+              ));
 
     return (tokens * multiplier).ceil();
   }

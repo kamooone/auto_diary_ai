@@ -1,18 +1,20 @@
-/// ふつうのAI日記の、文字数の目安(任意)
+/// 日記の文字数の目安(任意)
 ///
 /// AIへの目安のお願いで、この通りの文字数になるとは限らない
-enum DiaryLength {
-  none("指定しない", 0),
-  about200("200文字", 200),
-  about500("500文字", 500),
-  about1000("1,000文字", 1000),
-  about2000("2,000文字", 2000),
-  about3000("3,000文字", 3000);
+class DiaryLength {
+  const DiaryLength._();
 
-  const DiaryLength(this.label, this.chars);
+  /// 指定できる文字数の上限。
+  /// 長すぎると、60秒の制限で時間切れになったり、トークンを使いすぎたりするため
+  static const max = 3000;
 
-  final String label;
+  /// 入力された文字列を、文字数にする(空・数字でないときは0=指定しない。上限を超えたら上限)
+  static int parse(String text) {
+    final value = int.tryParse(text.trim()) ?? 0;
+    if (value <= 0) return 0;
+    return value > max ? max : value;
+  }
 
-  /// 目安の文字数(指定しない場合は0)
-  final int chars;
+  /// 入力された文字列が、上限を超えているか
+  static bool isOver(String text) => (int.tryParse(text.trim()) ?? 0) > max;
 }

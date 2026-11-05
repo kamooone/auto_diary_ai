@@ -30,12 +30,14 @@ Diary diary(int day, String title, String content) => Diary(
 
 final diaries = [diary(1, '初詣', '神社に行った'), diary(2, 'ラーメン', '同僚と食べた')];
 
-String prompt(SummaryStyle style, {String custom = ''}) => SummaryPrompt.build(
-  style: style,
-  diaries: diaries,
-  note: '',
-  customInstruction: custom,
-);
+String prompt(SummaryStyle style, {String custom = '', int lengthChars = 0}) =>
+    SummaryPrompt.build(
+      style: style,
+      diaries: diaries,
+      note: '',
+      customInstruction: custom,
+      lengthChars: lengthChars,
+    );
 
 class ScriptedAi implements AiRepository {
   ScriptedAi(this.answers);
@@ -71,6 +73,16 @@ class MemoryDiaryStyleRepository implements DiaryStyleRepository {
 }
 
 void main() {
+  test('文字数の目安を指定したときだけ、目安をプロンプトに入れる(一覧は入れない)', () {
+    expect(prompt(SummaryStyle.reading), isNot(contains('文字数の目安')));
+
+    final reading = prompt(SummaryStyle.reading, lengthChars: 800);
+    expect(reading, contains('文字数の目安'));
+    expect(reading, contains('800文字くらいを目安'));
+
+    expect(prompt(SummaryStyle.list, lengthChars: 800), isNot(contains('文字数の目安')));
+  });
+
   test('書き方は、決めた順番で並ぶ', () {
     expect(SummaryStyle.values.map((e) => e.label), [
       '日記を連結させる',
