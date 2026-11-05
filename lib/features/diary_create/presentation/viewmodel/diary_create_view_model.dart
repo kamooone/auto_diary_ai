@@ -163,6 +163,9 @@ class DiaryCreateViewModel extends AutoDisposeNotifier<DiaryCreateState> {
 
   @override
   DiaryCreateState build() {
+    // resetAfterSave(invalidateSelf)で作り直されるときも、同じインスタンスが使われる。
+    // 破棄済みのままだと、あとの生成結果が捨てられて、書いている表示が終わらなくなる
+    _isDisposed = false;
     ref.onDispose(() => _isDisposed = true);
 
     final now = DateTime.now();
