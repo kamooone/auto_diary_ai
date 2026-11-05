@@ -22,6 +22,7 @@ import 'widgets/diary_period_text.dart';
 import 'widgets/photo_selection_card.dart';
 import 'widgets/style_choice_card.dart';
 import 'widgets/token_shortage_dialog.dart';
+import '../../domain/entities/diary_length.dart';
 import '../../domain/entities/diary_style.dart';
 import '../../domain/services/token_estimator.dart';
 
@@ -277,6 +278,28 @@ class _DiaryAiScreenState extends ConsumerState<DiaryAiScreen> {
           ],
           const SizedBox(height: 12),
 
+          // ---------- 文字数の目安(任意)
+          Text("文字数の目安(任意)", style: Theme.of(context).textTheme.titleSmall),
+          const SizedBox(height: 4),
+          Wrap(
+            spacing: 8,
+            children: [
+              for (final length in DiaryLength.values)
+                ChoiceChip(
+                  label: Text(length.label),
+                  selected: state.diaryLength == length,
+                  onSelected: (_) => viewModel.setDiaryLength(length),
+                ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Text(
+            "あくまで目安です。この通りの文字数になるとは限りません。"
+            "渡した情報が少ないときは、短くなることがあります。",
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
+          const SizedBox(height: 12),
+
           // ---------- AIに追加で伝えたいこと
           TextField(
             controller: _noteController,
@@ -347,6 +370,7 @@ class _DiaryAiScreenState extends ConsumerState<DiaryAiScreen> {
       posts: state.selectedPosts,
       photoCount: state.aiPhotos.length,
       model: ref.read(aiModelProvider),
+      lengthChars: state.diaryLength.chars,
     );
   }
 

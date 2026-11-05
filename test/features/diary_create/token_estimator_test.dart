@@ -84,6 +84,52 @@ void main() {
   });
 
   // GPT(gpt-5-mini)の実測(2026-11-04)。見積もりは、実際より少なく、実測の8割以上にする
+  group('TokenEstimator(文字数の目安)', () {
+    int withLength(AiModel model, int chars) => TokenEstimator.estimate(
+      note: '',
+      timeline: const [],
+      posts: const [],
+      photoCount: 0,
+      model: model,
+      lengthChars: chars,
+    );
+
+    test('指定しないときは、これまでと同じ', () {
+      expect(
+        withLength(AiModel.gpt, 0),
+        TokenEstimator.estimate(
+          note: '',
+          timeline: const [],
+          posts: const [],
+          photoCount: 0,
+          model: AiModel.gpt,
+        ),
+      );
+    });
+
+    test('文字数が多いほど、出力の見積もりが増える', () {
+      expect(
+        withLength(AiModel.gpt, 3000),
+        greaterThan(withLength(AiModel.gpt, 1000)),
+      );
+      expect(
+        withLength(AiModel.gemini, 3000),
+        greaterThan(withLength(AiModel.gemini, 1000)),
+      );
+    });
+
+    test('短い目安(200文字)では、これまでの出力の見積もりを下回らない', () {
+      expect(
+        withLength(AiModel.gpt, 200),
+        greaterThanOrEqualTo(withLength(AiModel.gpt, 0)),
+      );
+      expect(
+        withLength(AiModel.gemini, 200),
+        greaterThanOrEqualTo(withLength(AiModel.gemini, 0)),
+      );
+    });
+  });
+
   group('TokenEstimator(GPT・ふつうの日記)', () {
     int plain(int photos) => TokenEstimator.estimate(
       note: '',

@@ -11,6 +11,7 @@ import '../../../location/domain/entities/timeline_item.dart';
 import '../../../share/application/providers/share_providers.dart';
 import '../../../share/domain/entities/shared_post.dart';
 import '../../application/providers/diary_usecase_providers.dart';
+import '../../domain/entities/diary_length.dart';
 import '../../domain/entities/diary_style.dart';
 import '../../domain/entities/generated_diary.dart';
 import '../../domain/entities/summary_style.dart';
@@ -65,6 +66,9 @@ class DiaryCreateState {
   final DiaryStyle diaryStyle;
   final String diaryCustom;
 
+  /// ふつうのAI日記の、文字数の目安(任意)
+  final DiaryLength diaryLength;
+
   /// 日記を1つにするときの、材料にする作成済みの日記と、書き方
   final List<Diary> summaryDiaries;
   final SummaryStyle summaryStyle;
@@ -94,6 +98,7 @@ class DiaryCreateState {
     this.isLoadingSources = false,
     this.diaryStyle = DiaryStyle.diary,
     this.diaryCustom = '',
+    this.diaryLength = DiaryLength.none,
     this.summaryDiaries = const [],
     this.summaryStyle = SummaryStyle.reading,
     this.summaryCustom = '',
@@ -122,6 +127,7 @@ class DiaryCreateState {
     bool? isLoadingSources,
     DiaryStyle? diaryStyle,
     String? diaryCustom,
+    DiaryLength? diaryLength,
     List<Diary>? summaryDiaries,
     SummaryStyle? summaryStyle,
     String? summaryCustom,
@@ -148,6 +154,7 @@ class DiaryCreateState {
       isLoadingSources: isLoadingSources ?? this.isLoadingSources,
       diaryStyle: diaryStyle ?? this.diaryStyle,
       diaryCustom: diaryCustom ?? this.diaryCustom,
+      diaryLength: diaryLength ?? this.diaryLength,
       summaryDiaries: summaryDiaries ?? this.summaryDiaries,
       summaryStyle: summaryStyle ?? this.summaryStyle,
       summaryCustom: summaryCustom ?? this.summaryCustom,
@@ -265,6 +272,11 @@ class DiaryCreateViewModel extends AutoDisposeNotifier<DiaryCreateState> {
     if (_isDisposed) return;
 
     state = state.copyWith(diaryStyle: style);
+  }
+
+  /// 文字数の目安を選ぶ(保存しない。日記を保存したら、指定しないに戻る)
+  void setDiaryLength(DiaryLength length) {
+    state = state.copyWith(diaryLength: length);
   }
 
   /// ふつうのAI日記の書き方を選ぶ(次回のために保存する)
@@ -494,6 +506,7 @@ class DiaryCreateViewModel extends AutoDisposeNotifier<DiaryCreateState> {
         posts: state.selectedPosts,
         style: state.diaryStyle,
         customInstruction: state.diaryCustom,
+        lengthChars: state.diaryLength.chars,
       ),
     );
   }

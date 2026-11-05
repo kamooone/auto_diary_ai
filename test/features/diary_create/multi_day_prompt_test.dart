@@ -34,6 +34,7 @@ void main() {
     DateTime end, {
     DiaryStyle style = DiaryStyle.diary,
     String custom = '',
+    int lengthChars = 0,
   }) async {
     final ai = CapturingAi();
     await GenerateDiaryUseCase(aiRepository: ai, photoRepository: NoPhotos())
@@ -47,9 +48,20 @@ void main() {
           posts: const [],
           style: style,
           customInstruction: custom,
+          lengthChars: lengthChars,
         );
     return ai.message!;
   }
+
+  test('文字数の目安を選んだときだけ、目安をプロンプトに入れる', () async {
+    final day = DateTime(2026, 1, 1);
+
+    expect(await normal(day, day), isNot(contains('文字数の目安')));
+
+    final message = await normal(day, day, lengthChars: 1000);
+    expect(message, contains('文字数の目安'));
+    expect(message, contains('1000文字くらいを目安'));
+  });
 
   test('ふつうの日記は、1日分ならまとめの書き方を付けない', () async {
     final message = await normal(DateTime(2026, 1, 1), DateTime(2026, 1, 1));

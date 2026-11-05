@@ -32,6 +32,7 @@ class TokenEstimator {
     tokensPerChar: tokensPerChar,
     tokensPerPhoto: tokensPerPhoto,
     plainOutput: outputTokens,
+    outputTokensPerChar: 0.35,
     diaryTokensPerChar: noteTokensPerChar,
     readingRatio: 0.08,
     briefRatio: 0.02,
@@ -54,6 +55,7 @@ class TokenEstimator {
     tokensPerChar: 0.9,
     tokensPerPhoto: 450,
     plainOutput: 100,
+    outputTokensPerChar: 0.5,
     diaryTokensPerChar: 0.82,
     readingRatio: 0.08,
     briefRatio: 0.045,
@@ -141,6 +143,7 @@ class TokenEstimator {
     SummaryStyle summaryStyle = SummaryStyle.reading,
     double multiplier = 1,
     AiModel model = AiModel.gemini,
+    int lengthChars = 0,
   }) {
     final c = _of(model);
 
@@ -161,7 +164,7 @@ class TokenEstimator {
         photoCount * c.tokensPerPhoto +
         SummaryText.length(diaries) * c.diaryTokensPerChar +
         (diaries.isEmpty
-            ? c.plainOutput
+            ? math.max(c.plainOutput, (lengthChars * c.outputTokensPerChar).round())
             : summaryOutputTokens(summaryStyle, diaries, model: model));
 
     return (tokens * multiplier).ceil();
@@ -179,6 +182,7 @@ class _Coefficients {
     required this.tokensPerChar,
     required this.tokensPerPhoto,
     required this.plainOutput,
+    required this.outputTokensPerChar,
     required this.diaryTokensPerChar,
     required this.readingRatio,
     required this.briefRatio,
@@ -195,6 +199,10 @@ class _Coefficients {
 
   /// 日記を1つにする以外(ふつうのAI日記)の出力
   final int plainOutput;
+
+  /// 文字数の目安を選んだときの、出力 = 目安の文字数 × この値
+  /// (AIは目安どおりに書くとは限らず、短くなることも多いため、実際のトークンより少なめ。要実測)
+  final double outputTokensPerChar;
   final double diaryTokensPerChar;
 
   /// 読み物・自分で指定の出力 = 日記の文字数 × この値

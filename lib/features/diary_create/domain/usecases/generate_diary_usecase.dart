@@ -44,6 +44,7 @@ class GenerateDiaryUseCase {
     PlanType plan = PlanType.free,
     DiaryStyle style = DiaryStyle.diary,
     String customInstruction = '',
+    int lengthChars = 0,
   }) async {
     // 撮影時刻順に並べる(選んだ写真は、枚数に関係なくすべて送る)
     final candidates = [...photos]
@@ -104,7 +105,7 @@ Xの投稿
 $postText
 
 ${DiaryStylePrompt.section(style: style, customInstruction: customInstruction, isMultiDay: !_isSameDay(startDate, endDate))}
-渡された情報にない出来事、気持ち、感想は、付け足さないでください。
+${lengthChars > 0 ? "\n文字数の目安\n本文は$lengthChars文字くらいを目安に書いてください。渡された情報が少ないときは、無理に伸ばさず、短くてかまいません。\n" : ""}渡された情報にない出来事、気持ち、感想は、付け足さないでください。
 
 回答は必ず次の形式で書いてください。前置きや説明、記号による装飾は付けないでください。
 
