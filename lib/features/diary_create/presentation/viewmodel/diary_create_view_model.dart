@@ -336,6 +336,22 @@ class DiaryCreateViewModel extends AutoDisposeNotifier<DiaryCreateState> {
     );
   }
 
+  /// 日記を保存したあとに、前回の選択内容(写真・期間・メモ・書き方など)を全て初期状態に戻す。
+  /// 保存してある書き方の選択も、初期値(日記・読み物)に戻す
+  void resetAfterSave() {
+    final diaryRepository = ref.read(diaryStyleRepositoryProvider);
+    final summaryRepository = ref.read(summaryStyleRepositoryProvider);
+
+    diaryRepository
+        .save(DiaryStyle.diary)
+        .catchError((Object e) => AppLog.add('日記', '書き方の保存に失敗: $e'));
+    summaryRepository
+        .save(SummaryStyle.reading)
+        .catchError((Object e) => AppLog.add('日記', '書き方の保存に失敗: $e'));
+
+    ref.invalidateSelf();
+  }
+
   void _saveSummaryStyle() {
     ref
         .read(summaryStyleRepositoryProvider)

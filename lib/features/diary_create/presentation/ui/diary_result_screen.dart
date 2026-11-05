@@ -126,10 +126,11 @@ class _DiaryResultScreenState extends ConsumerState<DiaryResultScreen> {
     final messenger = ScaffoldMessenger.of(context);
     final navigator = Navigator.of(context);
 
-    final saved = await ref.read(diaryCreateProvider.notifier).saveGeneratedDiary(
-          title: _titleController.text,
-          content: _contentController.text,
-        );
+    final viewModel = ref.read(diaryCreateProvider.notifier);
+    final saved = await viewModel.saveGeneratedDiary(
+      title: _titleController.text,
+      content: _contentController.text,
+    );
 
     messenger.showSnackBar(
       SnackBar(
@@ -139,6 +140,8 @@ class _DiaryResultScreenState extends ConsumerState<DiaryResultScreen> {
 
     // 保存できたら、入力画面も閉じてホームに戻る
     if (saved) {
+      // 次に日記を作るときに、前回の選択が残らないよう初期状態に戻す
+      viewModel.resetAfterSave();
       navigator.popUntil((route) => route.isFirst);
     }
   }
