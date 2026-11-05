@@ -291,6 +291,7 @@ class _DiaryAiScreenState extends ConsumerState<DiaryAiScreen> {
             decoration: InputDecoration(
               labelText: "${model.label}に追加で伝えたいこと",
               hintText: "例: 友人の誕生日だった。楽しかった気持ちを中心に書いてほしい",
+              helperText: "文字数は、上の「文字数の目安」で指定してください",
               border: OutlineInputBorder(),
               alignLabelWithHint: true,
             ),

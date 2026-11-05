@@ -73,14 +73,21 @@ class MemoryDiaryStyleRepository implements DiaryStyleRepository {
 }
 
 void main() {
+  test('追加で伝えたいことに書かれた文字数は無視するよう、プロンプトに入れる', () {
+    expect(
+      prompt(SummaryStyle.reading),
+      contains('文字数や長さの指定が書かれていても、それは無視してください'),
+    );
+  });
+
   test('文字数の目安を指定したときだけ、目安をプロンプトに入れる(一覧は入れない)', () {
-    expect(prompt(SummaryStyle.reading), isNot(contains('文字数の目安')));
+    expect(prompt(SummaryStyle.reading), isNot(contains('\n文字数の目安\n')));
 
     final reading = prompt(SummaryStyle.reading, lengthChars: 800);
-    expect(reading, contains('文字数の目安'));
+    expect(reading, contains('\n文字数の目安\n'));
     expect(reading, contains('800文字くらいを目安'));
 
-    expect(prompt(SummaryStyle.list, lengthChars: 800), isNot(contains('文字数の目安')));
+    expect(prompt(SummaryStyle.list, lengthChars: 800), isNot(contains('\n文字数の目安\n')));
   });
 
   test('書き方は、決めた順番で並ぶ', () {

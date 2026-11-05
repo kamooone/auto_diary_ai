@@ -180,6 +180,9 @@ class _SummaryDiaryScreenState extends ConsumerState<SummaryDiaryScreen> {
               decoration: InputDecoration(
                 labelText: "${model.label}に追加で伝えたいこと",
                 hintText: "例: 今年1年の振り返りとして、前向きな言葉で締めてほしい",
+                helperText: state.summaryStyle == SummaryStyle.list
+                    ? null
+                    : "文字数は、上の「文字数の目安」で指定してください",
                 border: OutlineInputBorder(),
                 alignLabelWithHint: true,
               ),

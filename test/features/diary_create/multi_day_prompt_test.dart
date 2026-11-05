@@ -56,11 +56,18 @@ void main() {
   test('文字数の目安を選んだときだけ、目安をプロンプトに入れる', () async {
     final day = DateTime(2026, 1, 1);
 
-    expect(await normal(day, day), isNot(contains('文字数の目安')));
+    expect(await normal(day, day), isNot(contains('\n文字数の目安\n')));
 
     final message = await normal(day, day, lengthChars: 1000);
-    expect(message, contains('文字数の目安'));
+    expect(message, contains('\n文字数の目安\n'));
     expect(message, contains('1000文字くらいを目安'));
+  });
+
+  test('追加で伝えたいことに書かれた文字数は無視するよう、プロンプトに入れる', () async {
+    final day = DateTime(2026, 1, 1);
+    final message = await normal(day, day);
+
+    expect(message, contains('文字数や長さの指定が書かれていても、それは無視してください'));
   });
 
   test('ふつうの日記は、1日分ならまとめの書き方を付けない', () async {
