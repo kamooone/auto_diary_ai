@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/logging/app_log.dart';
 import '../../../diary/domain/entities/diary.dart';
 import '../../../plan/application/providers/plan_provider.dart';
+import '../../../ai/domain/exceptions/ai_exception.dart';
 import '../../../plan/domain/exceptions/usage_limit_exception.dart';
 import '../../application/providers/diary_usecase_providers.dart';
 import '../../domain/services/consult_prompt.dart';
@@ -149,6 +150,10 @@ class SummaryConsultViewModel
       if (usage != null) ref.read(usageProvider.notifier).update(usage);
 
       _fail("今月のAIの使用量の上限に達しました");
+    } on AiBusyException {
+      AppLog.add('日記', '相談に失敗: AIが混み合っている');
+
+      _fail("AIが混み合っているようです。トークンは減っていません。少し時間をおいて、もう一度お試しください");
     } catch (e, stackTrace) {
       AppLog.add('日記', '相談に失敗: $e');
       debugPrint(e.toString());

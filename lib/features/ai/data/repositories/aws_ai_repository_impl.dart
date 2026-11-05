@@ -132,6 +132,11 @@ class AwsAiRepositoryImpl implements AiRepository {
       throw UsageLimitExceededException(_usageOf(response));
     }
 
+    // AI側が混雑などで応答できなかった
+    if (response.statusCode == 502) {
+      throw AiBusyException();
+    }
+
     if (response.statusCode != 200) {
       throw onError('Request failed: $path (${response.statusCode})');
     }

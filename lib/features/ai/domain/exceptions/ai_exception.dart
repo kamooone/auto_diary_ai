@@ -8,6 +8,13 @@ class AiUploadException implements Exception {
   String toString() => 'AiUploadException: $message';
 }
 
+/// AI(Gemini・OpenAI)側が、混雑などで応答できなかった(サーバーが502を返した)。
+/// このとき、トークンは使われない。少し時間をおくと、直ることが多い
+class AiBusyException implements Exception {
+  @override
+  String toString() => 'AiBusyException';
+}
+
 /// 日記生成(ai-chat)の失敗
 class AiChatException implements Exception {
   final String message;
