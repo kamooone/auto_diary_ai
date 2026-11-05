@@ -123,7 +123,7 @@ void main() {
   });
 
   group('GenerationProgress', () {
-    testWidgets('作成中は、ゲージと経過時間と、目安であることを示す', (tester) async {
+    testWidgets('作成中は、ゲージとパーセントと、目安であることを示す', (tester) async {
       await tester.pumpWidget(
         const MaterialApp(
           home: Scaffold(body: GenerationProgress(expectedSeconds: 20)),
@@ -133,7 +133,7 @@ void main() {
       expect(find.text('日記を書いています…'), findsOneWidget);
       expect(find.byType(LinearProgressIndicator), findsOneWidget);
       expect(find.textContaining('目安'), findsOneWidget);
-      expect(find.text('0秒'), findsOneWidget);
+      expect(find.text('0%'), findsOneWidget);
 
       await tester.pump(const Duration(seconds: 5));
 
@@ -142,7 +142,8 @@ void main() {
       );
       expect(bar.value, greaterThan(0.1));
       expect(bar.value, lessThan(0.9));
-      expect(find.text('5秒'), findsOneWidget);
+      // 20秒の見積もりの5秒後 = 90% × 5/20 = 22%
+      expect(find.text('22%'), findsOneWidget);
 
       // 画面を閉じたあとに、タイマーが残らないようにする
       await tester.pumpWidget(const SizedBox());

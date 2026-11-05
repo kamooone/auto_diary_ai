@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import '../../../domain/services/generation_gauge.dart';
 
-/// 日記を作っている間の表示(ダウンロードのようなゲージと、経過時間)
+/// 日記を作っている間の表示(ダウンロードのようなゲージと、パーセント)
 ///
 /// ゲージは、見積もった所要時間に合わせて進む目安で、正確な進み具合ではない
 class GenerationProgress extends StatefulWidget {
@@ -54,8 +54,8 @@ class _GenerationProgressState extends State<GenerationProgress>
             ),
             const SizedBox(height: 8),
             Text(
-              "${elapsed.floor()}秒",
-              style: Theme.of(context).textTheme.bodySmall,
+              "${(fraction * 100).floor()}%",
+              style: Theme.of(context).textTheme.titleMedium,
             ),
             const SizedBox(height: 4),
             Text(

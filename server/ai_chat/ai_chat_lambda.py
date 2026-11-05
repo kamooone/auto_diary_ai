@@ -70,6 +70,13 @@ GEMINI_RETRY_STATUSES = {404, 429, 500, 503, 504}
 # 3系のモデルの指定。合わないモデルが400を返したときは、指定なしでやり直す
 GEMINI_THINKING_CONFIG = {"thinkingLevel": "low"}
 
+# 503・500(Google側の混雑や一時的な障害)のとき、同じモデルを試し直す回数と、間の秒数
+# (503は数秒で返ってくる。時間切れは、待つ時間が長いので、試し直さない)
+# 予備のモデルを外したので、ここで粘る。待ち時間(GEMINI_TOTAL_BUDGET)に収まる範囲でだけ行う
+GEMINI_SAME_MODEL_RETRY_STATUSES = {500, 503}
+GEMINI_SAME_MODEL_RETRIES = 3
+GEMINI_RETRY_WAIT_SECONDS = 3
+
 # API Gatewayの統合タイムアウト(120秒に引き上げ済み)に間に合わせるため、Geminiに使える時間(秒)
 # (Geminiを呼ぶ前の処理と、回答を返す処理の分を引いてある)
 # API Gatewayと、このLambdaのタイムアウトは、どちらも120秒にしておくこと
@@ -349,9 +356,9 @@ def ask_gemini(api_key, message, images, context=None):
                 timeout=max(1, min(GEMINI_ATTEMPT_TIMEOUT, seconds_left())),
             )
 
-        try:
+        def fetch():
             try:
-                data = request(True)
+                return request(True)
             except UpstreamError as e:
                 if e.status != 400:
                     raise
@@ -362,7 +369,35 @@ def ask_gemini(api_key, message, images, context=None):
                     "details": str(e.details)[:300],
                     "action": "retry_without_thinking",
                 }, ensure_ascii=False))
-                data = request(False)
+                return request(False)
+
+        try:
+            retries = 0
+
+            while True:
+                try:
+                    data = fetch()
+                    break
+                except UpstreamError as e:
+                    wait = GEMINI_RETRY_WAIT_SECONDS * (retries + 1)
+
+                    # 混雑のときは、少し待って、同じモデルをもう一度試す
+                    can_retry = (
+                        e.status in GEMINI_SAME_MODEL_RETRY_STATUSES
+                        and retries < GEMINI_SAME_MODEL_RETRIES
+                        and seconds_left() - wait >= MIN_REMAINING_SECONDS
+                    )
+
+                    if not can_retry:
+                        raise
+
+                    retries += 1
+                    print(json.dumps({
+                        "provider": "Gemini", "model": model,
+                        "status": e.status, "retry": retries,
+                        "waitSeconds": wait, "action": "retry_same_model",
+                    }, ensure_ascii=False))
+                    time.sleep(wait)
         except UpstreamError as e:
             if e.status not in GEMINI_RETRY_STATUSES:
                 raise
@@ -400,6 +435,17 @@ def ask_gemini(api_key, message, images, context=None):
         )
         usage = data.get("usageMetadata", {})
         tokens = usage.get("totalTokenCount", 0)
+
+        # 文章が空のときは、失敗として扱う(空の日記で、トークンを使わせない)
+        if not answer.strip():
+            print(json.dumps({
+                "provider": "Gemini", "model": model,
+                "prompt": usage.get("promptTokenCount", 0),
+                "output": usage.get("candidatesTokenCount", 0),
+                "finishReason": candidates[0].get("finishReason"),
+                "action": "empty_answer",
+            }, ensure_ascii=False))
+            raise UpstreamError("Gemini", 200, "no answer text in response")
 
         # 入力・出力・思考の内訳(見積もりの係数を決めるために残す)
         print(json.dumps({

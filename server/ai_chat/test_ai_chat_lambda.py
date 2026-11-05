@@ -411,7 +411,9 @@ class AskGeminiTimeoutTest(unittest.TestCase):
         """outcomes: 呼ばれるたびの結果(例外か応答)と、その間に進む秒数のリスト"""
         clock = [0.0]
         timeouts = []
+        sleeps = []
         queue = list(outcomes)
+        self.sleeps = sleeps
 
         def fake_post(provider, url, headers, body, timeout=None):
             timeouts.append(timeout)
@@ -421,7 +423,12 @@ class AskGeminiTimeoutTest(unittest.TestCase):
                 raise result
             return result
 
+        def fake_sleep(seconds):
+            sleeps.append(seconds)
+            clock[0] += seconds
+
         with mock.patch.object(m, "post_json", fake_post), \
+                mock.patch.object(m.time, "sleep", fake_sleep), \
                 mock.patch.object(m.time, "monotonic", lambda: clock[0]):
             try:
                 answer = m.ask_gemini("key", "message", [])
@@ -459,13 +466,54 @@ class AskGeminiTimeoutTest(unittest.TestCase):
         self.assertEqual(timeouts, [m.GEMINI_TOTAL_BUDGET])
         self.assertLess(m.GEMINI_TOTAL_BUDGET, 120)
 
-    def test_a_busy_response_is_raised_without_another_model(self):
-        quick = m.UpstreamError("Gemini", 503, "busy")
-        answer, timeouts = self.run_gemini([(quick, 1)])
+    def test_a_busy_response_is_retried_on_the_same_model(self):
+        busy = m.UpstreamError("Gemini", 503, "busy")
+        answer, timeouts = self.run_gemini([(busy, 3), (busy, 2), (self.OK, 5)])
+
+        self.assertEqual(answer, ("回答", 10))
+        self.assertEqual(3, len(timeouts))
+        self.assertEqual([3, 6], self.sleeps)
+
+    def test_a_busy_response_is_raised_after_the_retries(self):
+        busy = m.UpstreamError("Gemini", 503, "busy")
+        answer, timeouts = self.run_gemini([(busy, 1)] * 10)
 
         self.assertIsInstance(answer, m.UpstreamError)
         self.assertEqual(503, answer.status)
+        self.assertEqual(1 + m.GEMINI_SAME_MODEL_RETRIES, len(timeouts))
+
+    def test_the_retry_gets_only_the_remaining_time(self):
+        busy = m.UpstreamError("Gemini", 503, "busy")
+        answer, timeouts = self.run_gemini([(busy, 20), (self.OK, 5)])
+
+        self.assertEqual(answer, ("回答", 10))
+        self.assertEqual(timeouts[1], m.GEMINI_TOTAL_BUDGET - 20 - 3)
+
+    def test_no_retry_when_the_time_is_nearly_used_up(self):
+        busy = m.UpstreamError("Gemini", 503, "busy")
+        answer, timeouts = self.run_gemini([(busy, m.GEMINI_TOTAL_BUDGET - 5)])
+
+        self.assertIsInstance(answer, m.UpstreamError)
         self.assertEqual(1, len(timeouts))
+        self.assertEqual([], self.sleeps)
+
+    def test_a_quota_error_is_not_retried(self):
+        quota = m.UpstreamError("Gemini", 429, "quota")
+        answer, timeouts = self.run_gemini([(quota, 1), (self.OK, 1)])
+
+        self.assertIsInstance(answer, m.UpstreamError)
+        self.assertEqual(429, answer.status)
+        self.assertEqual(1, len(timeouts))
+
+    def test_an_empty_answer_is_a_failure_and_not_charged(self):
+        empty = {
+            "candidates": [{"content": {"parts": []}, "finishReason": "STOP"}],
+            "usageMetadata": {"totalTokenCount": 2434},
+        }
+        answer, timeouts = self.run_gemini([(empty, 15)])
+
+        self.assertIsInstance(answer, m.UpstreamError)
+        self.assertIn("no answer text", str(answer.details))
 
     def test_a_timeout_is_raised_as_upstream_error(self):
         answer, timeouts = self.run_gemini(
