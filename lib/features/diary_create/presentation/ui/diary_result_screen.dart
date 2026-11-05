@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../domain/services/diary_copy_text.dart';
 import '../providers/diary_create_provider.dart';
 import '../viewmodel/diary_create_view_model.dart';
+import 'widgets/generation_progress.dart';
 
 /// AIが書いた日記を確認・修正して保存する画面
 class DiaryResultScreen extends ConsumerStatefulWidget {
@@ -148,16 +149,7 @@ class _DiaryResultScreenState extends ConsumerState<DiaryResultScreen> {
 
   Widget _buildBody(BuildContext context, DiaryCreateState state) {
     if (state.isLoading) {
-      return const Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            CircularProgressIndicator(),
-            SizedBox(height: 16),
-            Text("日記を書いています…"),
-          ],
-        ),
-      );
+      return GenerationProgress(expectedSeconds: state.expectedSeconds);
     }
 
     final errorMessage = state.errorMessage;

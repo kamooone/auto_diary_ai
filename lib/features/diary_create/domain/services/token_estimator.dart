@@ -40,6 +40,9 @@ class TokenEstimator {
     listPerDiary: 15,
     consultFixed: consultFixedTokens,
     consultOutput: consultOutputTokens,
+    baseSeconds: 2.5,
+    secondsPerInputToken: 0.00015,
+    outputTokensPerSecond: 100,
   );
 
   // GPT(gpt-5-mini)。写真は1枚約460(1枚と3枚の差から。写真は2〜8MBでも、
@@ -63,6 +66,9 @@ class TokenEstimator {
     listPerDiary: 35,
     consultFixed: 900,
     consultOutput: 500,
+    baseSeconds: 3,
+    secondsPerInputToken: 0.0004,
+    outputTokensPerSecond: 70,
   );
 
   static _Coefficients _of(AiModel model) => switch (model) {
@@ -153,10 +159,70 @@ class TokenEstimator {
     AiModel model = AiModel.gemini,
     int lengthChars = 0,
   }) {
-    final c = _of(model);
-
     // 日記を連結させるは、AIを使わずにつなげるので、トークンを使わない
     if (diaries.isNotEmpty && summaryStyle == SummaryStyle.chronicle) return 0;
+
+    final parts = _parts(
+      note: note,
+      timeline: timeline,
+      posts: posts,
+      photoCount: photoCount,
+      diaries: diaries,
+      summaryStyle: summaryStyle,
+      model: model,
+      lengthChars: lengthChars,
+    );
+
+    return ((parts.input + parts.output) * multiplier).ceil();
+  }
+
+  /// 作成が終わるまでにかかる時間(秒)の目安。作成中のゲージの長さに使う。
+  /// 正確さは求めない(混雑や、AIが考える量で、大きく変わる)。
+  /// 日記を連結させるは、AIを使わないので0
+  static int estimateSeconds({
+    required String note,
+    required List<TimelineItem> timeline,
+    required List<SharedPost> posts,
+    required int photoCount,
+    List<Diary> diaries = const [],
+    SummaryStyle summaryStyle = SummaryStyle.reading,
+    AiModel model = AiModel.gemini,
+    int lengthChars = 0,
+  }) {
+    if (diaries.isNotEmpty && summaryStyle == SummaryStyle.chronicle) return 0;
+
+    final c = _of(model);
+    final parts = _parts(
+      note: note,
+      timeline: timeline,
+      posts: posts,
+      photoCount: photoCount,
+      diaries: diaries,
+      summaryStyle: summaryStyle,
+      model: model,
+      lengthChars: lengthChars,
+    );
+
+    final seconds =
+        c.baseSeconds +
+        parts.input * c.secondsPerInputToken +
+        parts.output / c.outputTokensPerSecond;
+
+    return seconds.ceil();
+  }
+
+  // 入力と出力のトークンの見積もり(消費量と時間の、どちらの見積もりにも使う)
+  static ({double input, int output}) _parts({
+    required String note,
+    required List<TimelineItem> timeline,
+    required List<SharedPost> posts,
+    required int photoCount,
+    required List<Diary> diaries,
+    required SummaryStyle summaryStyle,
+    required AiModel model,
+    required int lengthChars,
+  }) {
+    final c = _of(model);
 
     final chars =
         TimelineText.format(timeline).length +
@@ -165,22 +231,23 @@ class TokenEstimator {
           (sum, e) => sum + e.text.length + e.url.length + _dateLength,
         );
 
-    final tokens =
+    final input =
         c.instruction +
         note.length * c.noteTokensPerChar +
         chars * c.tokensPerChar +
         photoCount * c.tokensPerPhoto +
-        SummaryText.length(diaries) * c.diaryTokensPerChar +
-        (diaries.isEmpty
-            ? math.max(c.plainOutput, (lengthChars * c.outputTokensPerChar).round())
-            : summaryOutputTokens(
-                summaryStyle,
-                diaries,
-                model: model,
-                lengthChars: lengthChars,
-              ));
+        SummaryText.length(diaries) * c.diaryTokensPerChar;
 
-    return (tokens * multiplier).ceil();
+    final output = diaries.isEmpty
+        ? math.max(c.plainOutput, (lengthChars * c.outputTokensPerChar).round())
+        : summaryOutputTokens(
+            summaryStyle,
+            diaries,
+            model: model,
+            lengthChars: lengthChars,
+          );
+
+    return (input: input, output: output);
   }
 
   // 投稿の日時の長さ(「2026-01-01 09:00:00.000」)
@@ -203,6 +270,9 @@ class _Coefficients {
     required this.listPerDiary,
     required this.consultFixed,
     required this.consultOutput,
+    required this.baseSeconds,
+    required this.secondsPerInputToken,
+    required this.outputTokensPerSecond,
   });
 
   final int instruction;
@@ -230,4 +300,13 @@ class _Coefficients {
 
   final int consultFixed;
   final int consultOutput;
+
+  /// 作成にかかる時間の目安 = [baseSeconds] + 入力 × [secondsPerInputToken] + 出力 ÷ [outputTokensPerSecond]
+  /// 実測(2026-11-05): GPTは、入力1,000トークンで約0.4秒、出力は毎秒約70トークン
+  /// (出来事の一覧31件が25秒、簡単なブログ風が9.6秒、読み物が20秒、86件が32秒)。
+  /// Gemini(lite)は、30件の読み物(入力8,685・出力544・思考597)が13.1秒、写真1枚が3.2秒
+  /// (思考の分も含めて出力を毎秒約100とした)。どちらも件数が少なく、混雑でも変わるので目安
+  final double baseSeconds;
+  final double secondsPerInputToken;
+  final double outputTokensPerSecond;
 }

@@ -14,7 +14,9 @@ import '../../application/providers/diary_usecase_providers.dart';
 import '../../domain/entities/diary_style.dart';
 import '../../domain/entities/generated_diary.dart';
 import '../../domain/entities/summary_style.dart';
+import '../../../ai/application/providers/ai_model_provider.dart';
 import '../../domain/services/summary_join.dart';
+import '../../domain/services/token_estimator.dart';
 import '../../domain/entities/photo.dart';
 
 class DiaryCreateState {
@@ -34,6 +36,9 @@ class DiaryCreateState {
 
   final String? errorMessage;
   final bool isLoading;
+
+  /// 作成にかかる時間の見積もり(秒)。作成中のゲージの長さに使う
+  final int expectedSeconds;
 
   /// 自分で書く日記の日付(startDateとendDateは同じ日)
   final DateTime startDate;
@@ -85,6 +90,7 @@ class DiaryCreateState {
     this.generatedByAi = true,
     this.errorMessage,
     this.isLoading = false,
+    this.expectedSeconds = 0,
     required this.startDate,
     required this.endDate,
     required this.aiStartDate,
@@ -115,6 +121,7 @@ class DiaryCreateState {
     String? errorMessage,
     bool clearError = false,
     bool? isLoading,
+    int? expectedSeconds,
     DateTime? startDate,
     DateTime? endDate,
     DateTime? aiStartDate,
@@ -143,6 +150,7 @@ class DiaryCreateState {
       generatedByAi: generatedByAi ?? this.generatedByAi,
       errorMessage: clearError ? null : (errorMessage ?? this.errorMessage),
       isLoading: isLoading ?? this.isLoading,
+      expectedSeconds: expectedSeconds ?? this.expectedSeconds,
       startDate: startDate ?? this.startDate,
       endDate: endDate ?? this.endDate,
       aiStartDate: aiStartDate ?? this.aiStartDate,
@@ -502,6 +510,14 @@ class DiaryCreateViewModel extends AutoDisposeNotifier<DiaryCreateState> {
 
   Future<void> generateDiary() {
     return _generate(
+      TokenEstimator.estimateSeconds(
+        note: state.aiNote,
+        timeline: state.selectedTimeline,
+        posts: state.selectedPosts,
+        photoCount: state.aiPhotos.length,
+        model: ref.read(aiModelProvider),
+        lengthChars: state.diaryLengthChars,
+      ),
       () => _generateDiaryUseCase.execute(
         plan: ref.read(planTypeProvider),
         note: state.aiNote,
@@ -535,6 +551,18 @@ class DiaryCreateViewModel extends AutoDisposeNotifier<DiaryCreateState> {
     }
 
     return _generate(
+      TokenEstimator.estimateSeconds(
+        note: state.aiNote,
+        timeline: const [],
+        posts: const [],
+        photoCount: 0,
+        diaries: state.summaryDiaries,
+        summaryStyle: state.summaryStyle,
+        model: ref.read(aiModelProvider),
+        lengthChars: state.summaryStyle == SummaryStyle.list
+            ? 0
+            : state.summaryLengthChars,
+      ),
       () => ref.read(generateSummaryDiaryUseCaseProvider).execute(
         plan: ref.read(planTypeProvider),
         note: state.aiNote,
@@ -547,10 +575,17 @@ class DiaryCreateViewModel extends AutoDisposeNotifier<DiaryCreateState> {
   }
 
   // 日記を書いてもらい、結果(または失敗)を状態に反映する
-  Future<void> _generate(Future<GeneratedDiary> Function() request) async {
+  Future<void> _generate(
+    int expectedSeconds,
+    Future<GeneratedDiary> Function() request,
+  ) async {
     if (state.isLoading) return;
 
-    state = state.copyWith(isLoading: true, clearError: true);
+    state = state.copyWith(
+      isLoading: true,
+      expectedSeconds: expectedSeconds,
+      clearError: true,
+    );
 
     try {
       final result = await request();
