@@ -122,6 +122,8 @@ class AwsAiRepositoryImpl implements AiRepository {
         response = await _send(path, body, token);
       }
     } on TimeoutException {
+      // 日記の生成の時間切れは、ほかの失敗と見分けられるようにする
+      if (path == _chatPath) throw AiTimeoutException();
       throw onError('Request timed out: $path');
     } on http.ClientException catch (e) {
       throw onError('Request failed: $path (${e.message})');
@@ -134,8 +136,18 @@ class AwsAiRepositoryImpl implements AiRepository {
 
     // AI側が混雑などで応答できなかった(日記の生成のときだけ。写真のアップロードの502は、
     // 混雑ではないので、アップロードの失敗として扱う)
+    //
+    // ただし、時間切れ(API Gatewayの504、またはサーバーがAIを待ちきれなかった502)は、
+    // 混雑とは別に扱う
+    if (path == _chatPath && response.statusCode == 504) {
+      throw AiTimeoutException();
+    }
+
     if (response.statusCode == 502 && path == _chatPath) {
       final body = utf8.decode(response.bodyBytes, allowMalformed: true);
+      if (body.toLowerCase().contains('timed out')) {
+        throw AiTimeoutException();
+      }
       throw AiBusyException(
         body.length > 200 ? body.substring(0, 200) : body,
       );

@@ -578,6 +578,16 @@ class DiaryCreateViewModel extends AutoDisposeNotifier<DiaryCreateState> {
         isLoading: false,
         errorMessage: "今月のAIの使用量の上限に達しました",
       );
+    } on AiTimeoutException {
+      AppLog.add('日記', '生成が時間切れ');
+
+      if (_isDisposed) return;
+
+      state = state.copyWith(
+        isLoading: false,
+        errorMessage:
+            "時間がかかりすぎて、生成できませんでした。文字数の目安を短くするか、少し時間をおいて、もう一度お試しください",
+      );
     } on AiBusyException catch (e) {
       AppLog.add('日記', 'AIが混み合っていて失敗: $e');
 

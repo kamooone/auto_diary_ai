@@ -20,6 +20,14 @@ class AiBusyException implements Exception {
   String toString() => 'AiBusyException: $details';
 }
 
+/// 日記の生成に時間がかかりすぎて、時間切れになった
+/// (アプリが待つ時間・API Gatewayの60秒・サーバーがAIを待つ時間のどれか)。
+/// 文字数の目安を大きくしていると、起きやすい
+class AiTimeoutException implements Exception {
+  @override
+  String toString() => 'AiTimeoutException';
+}
+
 /// 日記生成(ai-chat)の失敗
 class AiChatException implements Exception {
   final String message;
