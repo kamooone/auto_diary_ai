@@ -217,22 +217,108 @@ void main() {
       await tester.pumpWidget(const SizedBox());
     });
 
-    testWidgets('見積もった時間を過ぎたら、もう少しかかることを伝える', (tester) async {
+    testWidgets('見積もった時間を過ぎたら、流れる棒にして、混雑を伝える', (tester) async {
       await tester.pumpWidget(
         const MaterialApp(
           home: Scaffold(body: GenerationProgress(expectedSeconds: 5)),
         ),
       );
 
+      await tester.pump(const Duration(seconds: 3));
+      expect(
+        tester
+            .widget<LinearProgressIndicator>(find.byType(LinearProgressIndicator))
+            .value,
+        isNotNull,
+      );
+
+      await tester.pump(const Duration(seconds: 5));
+
+      // 値を決めない棒(流れる動き)になる
+      expect(
+        tester
+            .widget<LinearProgressIndicator>(find.byType(LinearProgressIndicator))
+            .value,
+        isNull,
+      );
+      expect(find.textContaining('AIが混み合っていると、時間がかかります'), findsOneWidget);
+      expect(find.text('処理中…'), findsOneWidget);
+
+      await tester.pumpWidget(const SizedBox());
+    });
+
+    testWidgets('作成が終わったら、100%まで満たしてから、終わりを知らせる', (tester) async {
+      var finished = 0;
+
+      Widget app({required bool done}) => MaterialApp(
+        home: Scaffold(
+          body: GenerationProgress(
+            expectedSeconds: 20,
+            isDone: done,
+            onFinished: () => finished++,
+          ),
+        ),
+      );
+
+      await tester.pumpWidget(app(done: false));
+      await tester.pump(const Duration(seconds: 2));
+
+      // 作成が終わった(約9%のところで)
+      await tester.pumpWidget(app(done: true));
+      await tester.pump(const Duration(milliseconds: 200));
+
+      final middle = tester
+          .widget<LinearProgressIndicator>(find.byType(LinearProgressIndicator))
+          .value!;
+      expect(middle, greaterThan(0.1));
+      expect(middle, lessThan(1));
+      expect(finished, 0);
+
+      await tester.pump(const Duration(milliseconds: 300));
+
+      expect(
+        tester
+            .widget<LinearProgressIndicator>(find.byType(LinearProgressIndicator))
+            .value,
+        1.0,
+      );
+      expect(find.text('100%'), findsOneWidget);
+      expect(finished, 1);
+
+      // 何度も知らせない
+      await tester.pump(const Duration(seconds: 1));
+      expect(finished, 1);
+
+      await tester.pumpWidget(const SizedBox());
+    });
+
+    testWidgets('見積もった時間を過ぎたあとに終わっても、90%から満たす', (tester) async {
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: Scaffold(body: GenerationProgress(expectedSeconds: 5)),
+        ),
+      );
       await tester.pump(const Duration(seconds: 8));
 
-      expect(find.textContaining('もう少しかかっています'), findsOneWidget);
-
-      final bar = tester.widget<LinearProgressIndicator>(
-        find.byType(LinearProgressIndicator),
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: GenerationProgress(
+              expectedSeconds: 5,
+              isDone: true,
+              onFinished: () {},
+            ),
+          ),
+        ),
       );
-      expect(bar.value, lessThan(1));
+      await tester.pump(const Duration(milliseconds: 100));
 
+      final value = tester
+          .widget<LinearProgressIndicator>(find.byType(LinearProgressIndicator))
+          .value!;
+      expect(value, greaterThanOrEqualTo(0.9));
+
+      await tester.pump(const Duration(milliseconds: 400));
       await tester.pumpWidget(const SizedBox());
     });
   });

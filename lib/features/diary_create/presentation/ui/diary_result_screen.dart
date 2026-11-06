@@ -18,6 +18,9 @@ class _DiaryResultScreenState extends ConsumerState<DiaryResultScreen> {
   final _titleController = TextEditingController();
   final _contentController = TextEditingController();
 
+  // 書き終えたあと、ゲージを100%まで満たしている間(満たし終えたら、確認画面にする)
+  var _isFinishing = false;
+
   @override
   void initState() {
     super.initState();
@@ -55,10 +58,11 @@ class _DiaryResultScreenState extends ConsumerState<DiaryResultScreen> {
     ref.listen(diaryCreateProvider, (previous, next) {
       if (previous?.isLoading == true && _isCompleted(next)) {
         _showGenerated(next);
+        setState(() => _isFinishing = true);
       }
     });
 
-    final isCompleted = _isCompleted(state);
+    final isCompleted = _isCompleted(state) && !_isFinishing;
 
     return Scaffold(
       appBar: AppBar(
@@ -148,8 +152,15 @@ class _DiaryResultScreenState extends ConsumerState<DiaryResultScreen> {
   }
 
   Widget _buildBody(BuildContext context, DiaryCreateState state) {
-    if (state.isLoading) {
-      return GenerationProgress(expectedSeconds: state.expectedSeconds);
+    // 書き終えたあとも、ゲージを100%まで満たすあいだは、作成中の表示にする
+    if (state.isLoading || _isFinishing) {
+      return GenerationProgress(
+        expectedSeconds: state.expectedSeconds,
+        isDone: !state.isLoading,
+        onFinished: () {
+          if (mounted) setState(() => _isFinishing = false);
+        },
+      );
     }
 
     final errorMessage = state.errorMessage;
