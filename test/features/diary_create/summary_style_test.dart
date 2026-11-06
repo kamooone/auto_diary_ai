@@ -248,6 +248,42 @@ void main() {
       }
     });
 
+    test('今後の決意や抱負で締めないことを、どの書き方にも伝える', () {
+      for (final style in SummaryStyle.values) {
+        final text = prompt(style, custom: '短く');
+
+        expect(text, contains('今後の決意や抱負'));
+        expect(text, contains('最後の段落も、日記に書かれた出来事で終えてください'));
+      }
+    });
+
+    test('読み物は、日記の材料のあとに、書く前の最終確認を置く', () {
+      for (final style in [SummaryStyle.reading, SummaryStyle.chronicle]) {
+        final text = prompt(style);
+        final material = text.indexOf('■2026年1月2日 ラーメン');
+        final check = text.indexOf('書く前の最終確認');
+        final format = text.indexOf('回答は必ず次の形式');
+
+        expect(check, greaterThan(material));
+        expect(format, greaterThan(check));
+        expect(text, contains('1つの段落は、2〜4文にしてください'));
+        expect(text, contains('「ほぼ毎日」「毎日」「毎日のように」「日課」「習慣」「いつも」は、使わないでください'));
+        expect(text, contains('同じ出来事や、同じ言い回しを、何度も書かないでください'));
+        expect(text, contains('材料のどの時期も、省かずに取り上げてください'));
+        expect(text, contains('タイトルは、材料の期間'));
+      }
+    });
+
+    test('簡単なブログ風・一覧・自分で指定には、最終確認を置かない', () {
+      for (final style in [
+        SummaryStyle.brief,
+        SummaryStyle.list,
+        SummaryStyle.custom,
+      ]) {
+        expect(prompt(style, custom: '短く'), isNot(contains('書く前の最終確認')));
+      }
+    });
+
     test('書き方ごとに、指示が違う', () {
       expect(prompt(SummaryStyle.reading), contains('形(読み物・ブログ風)'));
       expect(prompt(SummaryStyle.reading), contains('章立て'));
