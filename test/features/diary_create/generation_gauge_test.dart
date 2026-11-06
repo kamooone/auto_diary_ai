@@ -2,6 +2,7 @@ import 'package:auto_diary_ai/features/ai/domain/entities/ai_model.dart';
 import 'package:auto_diary_ai/features/diary/domain/entities/diary.dart';
 import 'package:auto_diary_ai/features/diary_create/domain/entities/summary_style.dart';
 import 'package:auto_diary_ai/features/diary_create/domain/services/generation_gauge.dart';
+import 'package:auto_diary_ai/features/diary_create/domain/services/summary_text.dart';
 import 'package:auto_diary_ai/features/diary_create/domain/services/token_estimator.dart';
 import 'package:auto_diary_ai/features/diary_create/presentation/ui/widgets/generation_progress.dart';
 import 'package:flutter/material.dart';
@@ -119,6 +120,73 @@ void main() {
       );
 
       expect(s, inInclusiveRange(5, 20));
+    });
+  });
+
+  group('実測との比較(ゲージが途中で終わらないこと)', () {
+    // 日記の合計の文字数が約[chars]になるよう、[count]件の日記を作る
+    List<Diary> sized(int count, int totalChars) {
+      final one = diaries(1, chars: 100);
+      final overhead = SummaryText.length(one) - 100;
+      final each = (totalChars / count - overhead).round();
+
+      return diaries(count, chars: each);
+    }
+
+    int seconds(List<Diary> d, AiModel model, {SummaryStyle? style}) {
+      return TokenEstimator.estimateSeconds(
+        note: '',
+        timeline: const [],
+        posts: const [],
+        photoCount: 0,
+        diaries: d,
+        summaryStyle: style ?? SummaryStyle.reading,
+        model: model,
+      );
+    }
+
+    // [actual]秒で終わったとき、ゲージがどこまで進んでいるか
+    double gaugeAtFinish(int estimated, double actual) =>
+        GenerationGauge.fraction(actual, estimated);
+
+    test('Gemini 353件(約21.5万文字)は実測31.5秒', () {
+      final s = seconds(sized(353, 215000), AiModel.gemini);
+
+      expect(s, inInclusiveRange(25, 45));
+      expect(gaugeAtFinish(s, 31.5), greaterThan(0.6));
+    });
+
+    test('Gemini 120件(約5万文字)は実測9.8秒', () {
+      final s = seconds(sized(120, 50000), AiModel.gemini);
+
+      expect(s, inInclusiveRange(8, 22));
+      // 以前は約47秒の見込みで、ゲージが約19%で終わっていた
+      expect(gaugeAtFinish(s, 9.8), greaterThan(0.4));
+    });
+
+    test('GPT 353件(約22.6万文字)は実測56.4秒', () {
+      final s = seconds(sized(353, 226000), AiModel.gpt);
+
+      expect(s, inInclusiveRange(45, 80));
+      // 以前は約147秒の見込みで、ゲージが約35%で終わっていた
+      expect(gaugeAtFinish(s, 56.4), greaterThan(0.6));
+    });
+
+    test('GPT 86件のブログ風(約3.5万文字)は実測32秒', () {
+      final s = seconds(sized(86, 35000), AiModel.gpt);
+
+      expect(s, inInclusiveRange(25, 45));
+      expect(gaugeAtFinish(s, 32), greaterThan(0.6));
+    });
+
+    test('GPT 31件の出来事の一覧は実測25秒(出力が遅い)', () {
+      final s = seconds(
+        sized(31, 9300),
+        AiModel.gpt,
+        style: SummaryStyle.list,
+      );
+
+      expect(s, inInclusiveRange(18, 32));
     });
   });
 

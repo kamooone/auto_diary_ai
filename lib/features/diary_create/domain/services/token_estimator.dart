@@ -40,9 +40,10 @@ class TokenEstimator {
     listPerDiary: 15,
     consultFixed: consultFixedTokens,
     consultOutput: consultOutputTokens,
-    baseSeconds: 2.5,
-    secondsPerInputToken: 0.00015,
-    outputTokensPerSecond: 100,
+    baseSeconds: 3,
+    secondsPerInputToken: 0.0002,
+    outputTokensPerSecond: 500,
+    listOutputTokensPerSecond: 500,
   );
 
   // GPT(gpt-5-mini)。写真は1枚約460(1枚と3枚の差から。写真は2〜8MBでも、
@@ -66,9 +67,10 @@ class TokenEstimator {
     listPerDiary: 35,
     consultFixed: 900,
     consultOutput: 500,
-    baseSeconds: 3,
-    secondsPerInputToken: 0.0004,
-    outputTokensPerSecond: 70,
+    baseSeconds: 4.5,
+    secondsPerInputToken: 0.00012,
+    outputTokensPerSecond: 130,
+    listOutputTokensPerSecond: 70,
   );
 
   static _Coefficients _of(AiModel model) => switch (model) {
@@ -206,7 +208,10 @@ class TokenEstimator {
     final seconds =
         c.baseSeconds +
         parts.input * c.secondsPerInputToken +
-        parts.output / c.outputTokensPerSecond;
+        parts.output /
+            (diaries.isNotEmpty && summaryStyle == SummaryStyle.list
+                ? c.listOutputTokensPerSecond
+                : c.outputTokensPerSecond);
 
     return seconds.ceil();
   }
@@ -273,6 +278,7 @@ class _Coefficients {
     required this.baseSeconds,
     required this.secondsPerInputToken,
     required this.outputTokensPerSecond,
+    required this.listOutputTokensPerSecond,
   });
 
   final int instruction;
@@ -302,11 +308,17 @@ class _Coefficients {
   final int consultOutput;
 
   /// 作成にかかる時間の目安 = [baseSeconds] + 入力 × [secondsPerInputToken] + 出力 ÷ [outputTokensPerSecond]
-  /// 実測(2026-11-05): GPTは、入力1,000トークンで約0.4秒、出力は毎秒約70トークン
-  /// (出来事の一覧31件が25秒、簡単なブログ風が9.6秒、読み物が20秒、86件が32秒)。
-  /// Gemini(lite)は、30件の読み物(入力8,685・出力544・思考597)が13.1秒、写真1枚が3.2秒
-  /// (思考の分も含めて出力を毎秒約100とした)。どちらも件数が少なく、混雑でも変わるので目安
+  /// (出来事の一覧は、出力が遅いので[listOutputTokensPerSecond])。
+  /// 作成中のゲージの長さに使う。見込みが実際より長いと、ゲージが途中で終わってしまうので、
+  /// 実測に近い値にする(短めなら、最後にゆっくり進むだけで済む)。
+  /// 実測(2026-11-05〜06、入力トークン / 出力トークン / 秒):
+  ///  GPT: ブログ風 31,112 / 3,053 / 32、353件 188,148 / 3,701 / 56.4、出来事の一覧 11,728 / 1,383 / 25、
+  ///       簡単なブログ風 31件 9.6、読み物 31件 20
+  ///  Gemini(lite): 写真1枚 1,363 / 64 / 3.2、30件 8,685 / 1,141(思考込み) / 13.1、
+  ///       120件 32,178 / 2,281 / 9.8、353件 134,869 / 4,349 / 31.5
+  /// Geminiは同じ程度の入力でも、秒数のばらつきが大きい(30件が120件より遅かった)
   final double baseSeconds;
   final double secondsPerInputToken;
   final double outputTokensPerSecond;
+  final double listOutputTokensPerSecond;
 }
