@@ -34,7 +34,7 @@ ${note.trim().isEmpty ? "(なし)" : note.trim()}
 
 日記(「■」から次の「■」までが、1つの日記です)
 ${SummaryText.formatForAi(diaries)}
-${_finalCheck(style)}
+${_finalCheck(style, chars)}
 回答は必ず次の形式で書いてください。前置きや説明、記号による装飾は付けないでください。
 
 タイトル: (日記のタイトルを1行で)
@@ -47,10 +47,20 @@ ${_finalCheck(style)}
   ///
   /// 材料が長いと、先頭にある「形」の規則が守られにくいため、材料の後ろにも、守ってほしい点を繰り返す。
   /// 長い文章で書く形(読み物・ブログ風)だけ。ほかの形は、規則が短く、守られている
-  static String _finalCheck(SummaryStyle style) {
+  static String _finalCheck(SummaryStyle style, int chars) {
     if (style != SummaryStyle.reading && style != SummaryStyle.chronicle) {
       return '';
     }
+
+    // 読み物(ブログ風)の長さの目安と同じ範囲
+    final range = SummaryText.lengthRange(
+      chars,
+      lowRatio: 0.15,
+      highRatio: 0.25,
+      minLow: 500,
+      maxLow: 8000,
+      maxHigh: 12000,
+    );
 
     return """
 書く前の最終確認(上の「形」の規則を守ってください。次の点は、特に忘れやすいです)
@@ -61,7 +71,7 @@ ${_finalCheck(style)}
 ・日記にない気持ち、決意、感想は、足さないでください。最後の段落も、日記に書かれた出来事で終えてください。
 ・材料のどの時期も、省かずに取り上げてください(終わりの月ほど薄くならないようにしてください)。
 ・章の見出しは、章の中身に合う言葉にしてください。タイトルは、材料の期間(何月から何月までか)に合わせてください。
-・長さは、上の目安の下限より短くならないようにしてください。
+・長さは、本文だけで、少なくとも${range.low}文字にしてください(目安は${range.low}〜${range.high}文字)。短くまとめすぎず、章や月ごとの段落でも、省略した出来事の細部を書き足してください。
 """;
   }
 
