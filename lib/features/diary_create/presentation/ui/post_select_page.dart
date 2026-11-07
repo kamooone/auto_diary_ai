@@ -3,6 +3,7 @@ import '../../../share/domain/entities/shared_post.dart';
 import '../../domain/services/day_grouper.dart';
 import '../../domain/services/month_filter.dart';
 import 'widgets/day_header.dart';
+import 'widgets/month_header.dart';
 import 'widgets/month_filter_bar.dart';
 
 /// AIに渡すXの投稿を選択する画面
@@ -33,6 +34,28 @@ class _PostSelectPageState extends State<PostSelectPage> {
   List<SharedPost> get _visible =>
       widget.posts.where((e) => _filter.matches(e.receivedAt)).toList();
 
+  // 開いている月。初めは、すべて閉じている(件数が多くても、月の一覧から選べる)
+  final _expandedMonths = <DateTime>{};
+
+  // その月の投稿が、すべて選択されていれば解除し、そうでなければすべて選択する
+  void _toggleMonth(MonthGroup<SharedPost> month) {
+    setState(() {
+      if (month.items.every(_selected.contains)) {
+        _selected.removeAll(month.items);
+      } else {
+        _selected.addAll(month.items);
+      }
+    });
+  }
+
+  void _toggleExpanded(DateTime month) {
+    setState(() {
+      _expandedMonths.contains(month)
+          ? _expandedMonths.remove(month)
+          : _expandedMonths.add(month);
+    });
+  }
+
   // その日の投稿が、すべて選択されていれば解除し、そうでなければすべて選択する
   void _toggleDay(DayGroup<SharedPost> day) {
     setState(() {
@@ -49,11 +72,11 @@ class _PostSelectPageState extends State<PostSelectPage> {
     final visible = _visible;
     final isAllSelected = visible.every(_selected.contains);
 
-    // 日付ごとの見出しと投稿を、1列に並べたもの
-    final rows = <Object>[
-      for (final day in groupByDay<SharedPost>(visible, (e) => e.receivedAt))
-        ...[day, ...day.items],
-    ];
+    // 月ごとの見出し、日付ごとの見出し、投稿を、1列に並べたもの
+    final rows = buildMonthRows<SharedPost>(
+      groupByDay<SharedPost>(visible, (e) => e.receivedAt),
+      _expandedMonths,
+    );
 
     return Scaffold(
       appBar: AppBar(
@@ -93,58 +116,70 @@ class _PostSelectPageState extends State<PostSelectPage> {
 
   Widget _list(List<Object> rows) {
     return ListView.separated(
-        itemCount: rows.length,
-        separatorBuilder: (context, index) => const Divider(height: 1),
-        itemBuilder: (context, index) {
-          final row = rows[index];
+      itemCount: rows.length,
+      separatorBuilder: (context, index) => const Divider(height: 1),
+      itemBuilder: (context, index) {
+        final row = rows[index];
 
-          // 日付の見出し
-          if (row is DayGroup<SharedPost>) {
-            return DayHeader(
-              date: row.date,
-              selectedCount: row.items.where(_selected.contains).length,
-              totalCount: row.items.length,
-              onToggle: () => _toggleDay(row),
-            );
-          }
-
-          final post = row as SharedPost;
-
-          return CheckboxListTile(
-            value: _selected.contains(post),
-            title: Text(
-              post.text.isEmpty ? "(テキストなし)" : post.text,
-              maxLines: 4,
-              overflow: TextOverflow.ellipsis,
-            ),
-            subtitle: Text(_time(post.receivedAt)),
-            onChanged: (checked) {
-              setState(() {
-                if (checked ?? false) {
-                  _selected.add(post);
-                } else {
-                  _selected.remove(post);
-                }
-              });
-            },
+        // 月の見出し
+        if (row is MonthGroup<SharedPost>) {
+          return MonthHeader(
+            month: row.month,
+            selectedCount: row.items.where(_selected.contains).length,
+            totalCount: row.items.length,
+            onToggle: () => _toggleMonth(row),
+            isExpanded: _expandedMonths.contains(row.month),
+            onTap: () => _toggleExpanded(row.month),
           );
-        },
+        }
+
+        // 日付の見出し
+        if (row is DayGroup<SharedPost>) {
+          return DayHeader(
+            date: row.date,
+            selectedCount: row.items.where(_selected.contains).length,
+            totalCount: row.items.length,
+            onToggle: () => _toggleDay(row),
+          );
+        }
+
+        final post = row as SharedPost;
+
+        return CheckboxListTile(
+          value: _selected.contains(post),
+          title: Text(
+            post.text.isEmpty ? "(テキストなし)" : post.text,
+            maxLines: 4,
+            overflow: TextOverflow.ellipsis,
+          ),
+          subtitle: Text(_time(post.receivedAt)),
+          onChanged: (checked) {
+            setState(() {
+              if (checked ?? false) {
+                _selected.add(post);
+              } else {
+                _selected.remove(post);
+              }
+            });
+          },
+        );
+      },
     );
   }
 
   Widget _confirmBar(BuildContext context) {
     return SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-          child: ElevatedButton(
-            // 元の並び順のまま返す
-            onPressed: () => Navigator.of(context).pop(
-              widget.posts.where(_selected.contains).toList(),
-            ),
-            child: Text("確定（${_selected.length}件）"),
-          ),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+        child: ElevatedButton(
+          // 元の並び順のまま返す
+          onPressed: () => Navigator.of(
+            context,
+          ).pop(widget.posts.where(_selected.contains).toList()),
+          child: Text("確定（${_selected.length}件）"),
         ),
-      );
+      ),
+    );
   }
 
   String _time(DateTime time) {

@@ -4,6 +4,7 @@ import '../../../location/presentation/formatters/timeline_formatter.dart';
 import '../../domain/services/day_grouper.dart';
 import '../../domain/services/month_filter.dart';
 import 'widgets/day_header.dart';
+import 'widgets/month_header.dart';
 import 'widgets/month_filter_bar.dart';
 
 /// AIに渡す行動履歴(滞在と移動)を選択する画面
@@ -34,6 +35,28 @@ class _TimelineSelectPageState extends State<TimelineSelectPage> {
   List<TimelineItem> get _visible =>
       widget.items.where((e) => _filter.matches(e.start)).toList();
 
+  // 開いている月。初めは、すべて閉じている(件数が多くても、月の一覧から選べる)
+  final _expandedMonths = <DateTime>{};
+
+  // その月の行動履歴が、すべて選択されていれば解除し、そうでなければすべて選択する
+  void _toggleMonth(MonthGroup<TimelineItem> month) {
+    setState(() {
+      if (month.items.every(_selected.contains)) {
+        _selected.removeAll(month.items);
+      } else {
+        _selected.addAll(month.items);
+      }
+    });
+  }
+
+  void _toggleExpanded(DateTime month) {
+    setState(() {
+      _expandedMonths.contains(month)
+          ? _expandedMonths.remove(month)
+          : _expandedMonths.add(month);
+    });
+  }
+
   // その日の行動履歴が、すべて選択されていれば解除し、そうでなければすべて選択する
   void _toggleDay(DayGroup<TimelineItem> day) {
     setState(() {
@@ -50,11 +73,11 @@ class _TimelineSelectPageState extends State<TimelineSelectPage> {
     final visible = _visible;
     final isAllSelected = visible.every(_selected.contains);
 
-    // 日付ごとの見出しと行動履歴を、1列に並べたもの
-    final rows = <Object>[
-      for (final day in groupByDay<TimelineItem>(visible, (e) => e.start))
-        ...[day, ...day.items],
-    ];
+    // 月ごとの見出し、日付ごとの見出し、行動履歴を、1列に並べたもの
+    final rows = buildMonthRows<TimelineItem>(
+      groupByDay<TimelineItem>(visible, (e) => e.start),
+      _expandedMonths,
+    );
 
     return Scaffold(
       appBar: AppBar(
@@ -87,58 +110,64 @@ class _TimelineSelectPageState extends State<TimelineSelectPage> {
           ),
           Expanded(
             child: ListView.builder(
-        itemCount: rows.length,
-        itemBuilder: (context, index) {
-          final row = rows[index];
+              itemCount: rows.length,
+              itemBuilder: (context, index) {
+                final row = rows[index];
 
-          // 日付の見出し
-          if (row is DayGroup<TimelineItem>) {
-            return DayHeader(
-              date: row.date,
-              selectedCount: row.items.where(_selected.contains).length,
-              totalCount: row.items.length,
-              onToggle: () => _toggleDay(row),
-            );
-          }
-
-          final item = row as TimelineItem;
-          final time = TimelineFormatter.timeRange(item);
-
-          return CheckboxListTile(
-            dense: true,
-            value: _selected.contains(item),
-            secondary: Icon(
-              switch (item) {
-                Stay() => Icons.place,
-                Move() => TimelineFormatter.transportIcon(item.transport),
-                RecordingOff() => Icons.pause_circle_outline,
-              },
-            ),
-            title: Text(
-              switch (item) {
-                Stay() => TimelineFormatter.stayTitle(item),
-                Move() => TimelineFormatter.moveTitle(item),
-                RecordingOff() => TimelineFormatter.recordingOffTitle,
-              },
-            ),
-            subtitle: Text(
-              switch (item) {
-                Stay() =>
-                  "$time（${TimelineFormatter.duration(item.duration)}）",
-                Move() || RecordingOff() => time,
-              },
-            ),
-            onChanged: (checked) {
-              setState(() {
-                if (checked ?? false) {
-                  _selected.add(item);
-                } else {
-                  _selected.remove(item);
+                // 月の見出し
+                if (row is MonthGroup<TimelineItem>) {
+                  return MonthHeader(
+                    month: row.month,
+                    selectedCount: row.items.where(_selected.contains).length,
+                    totalCount: row.items.length,
+                    onToggle: () => _toggleMonth(row),
+                    isExpanded: _expandedMonths.contains(row.month),
+                    onTap: () => _toggleExpanded(row.month),
+                  );
                 }
-              });
-            },
-          );
-        },
+
+                // 日付の見出し
+                if (row is DayGroup<TimelineItem>) {
+                  return DayHeader(
+                    date: row.date,
+                    selectedCount: row.items.where(_selected.contains).length,
+                    totalCount: row.items.length,
+                    onToggle: () => _toggleDay(row),
+                  );
+                }
+
+                final item = row as TimelineItem;
+                final time = TimelineFormatter.timeRange(item);
+
+                return CheckboxListTile(
+                  dense: true,
+                  value: _selected.contains(item),
+                  secondary: Icon(switch (item) {
+                    Stay() => Icons.place,
+                    Move() => TimelineFormatter.transportIcon(item.transport),
+                    RecordingOff() => Icons.pause_circle_outline,
+                  }),
+                  title: Text(switch (item) {
+                    Stay() => TimelineFormatter.stayTitle(item),
+                    Move() => TimelineFormatter.moveTitle(item),
+                    RecordingOff() => TimelineFormatter.recordingOffTitle,
+                  }),
+                  subtitle: Text(switch (item) {
+                    Stay() =>
+                      "$time（${TimelineFormatter.duration(item.duration)}）",
+                    Move() || RecordingOff() => time,
+                  }),
+                  onChanged: (checked) {
+                    setState(() {
+                      if (checked ?? false) {
+                        _selected.add(item);
+                      } else {
+                        _selected.remove(item);
+                      }
+                    });
+                  },
+                );
+              },
             ),
           ),
         ],
@@ -148,9 +177,9 @@ class _TimelineSelectPageState extends State<TimelineSelectPage> {
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
           child: ElevatedButton(
             // 時系列の並び順のまま返す
-            onPressed: () => Navigator.of(context).pop(
-              widget.items.where(_selected.contains).toList(),
-            ),
+            onPressed: () => Navigator.of(
+              context,
+            ).pop(widget.items.where(_selected.contains).toList()),
             child: Text("確定（${_selected.length}件）"),
           ),
         ),

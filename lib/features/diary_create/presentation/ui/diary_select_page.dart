@@ -24,9 +24,7 @@ class DiarySelectPage extends StatefulWidget {
 }
 
 class _DiarySelectPageState extends State<DiarySelectPage> {
-  late final _selectedIds = {
-    for (final e in widget.initialSelection) e.id,
-  };
+  late final _selectedIds = {for (final e in widget.initialSelection) e.id};
 
   // 年と月による絞り込み
   var _filter = MonthFilter.none;
@@ -52,11 +50,11 @@ class _DiarySelectPageState extends State<DiarySelectPage> {
   bool _isSelected(Diary diary) => _selectedIds.contains(diary.id);
 
   // その月の日記が、すべて選択されていれば解除し、そうでなければすべて選択する
-  void _toggleMonth(MonthGroup month) {
+  void _toggleMonth(MonthGroup<Diary> month) {
     setState(() {
-      month.diaries.every(_isSelected)
-          ? _unselect(month.diaries)
-          : _select(month.diaries);
+      month.items.every(_isSelected)
+          ? _unselect(month.items)
+          : _select(month.items);
     });
   }
 
@@ -80,27 +78,10 @@ class _DiarySelectPageState extends State<DiarySelectPage> {
     final isTooFew = selected.length == 1;
 
     // 月ごとの見出し、日付ごとの見出し、日記を、1列に並べたもの
-    final days = groupByDay<Diary>(visible, (e) => e.date);
-    final rows = <Object>[];
-    DateTime? currentMonth;
-    for (final day in days) {
-      final month = DateTime(day.date.year, day.date.month);
-      if (month != currentMonth) {
-        currentMonth = month;
-        rows.add(
-          MonthGroup(
-            month,
-            [
-              for (final d in days)
-                if (d.date.year == month.year && d.date.month == month.month)
-                  ...d.items,
-            ],
-          ),
-        );
-      }
-      // 閉じている月は、見出しだけを出す
-      if (_expandedMonths.contains(month)) rows.addAll([day, ...day.items]);
-    }
+    final rows = buildMonthRows<Diary>(
+      groupByDay<Diary>(visible, (e) => e.date),
+      _expandedMonths,
+    );
 
     return Scaffold(
       appBar: AppBar(
@@ -183,11 +164,11 @@ class _DiarySelectPageState extends State<DiarySelectPage> {
         final row = rows[index];
 
         // 月の見出し
-        if (row is MonthGroup) {
+        if (row is MonthGroup<Diary>) {
           return MonthHeader(
             month: row.month,
-            selectedCount: row.diaries.where(_isSelected).length,
-            totalCount: row.diaries.length,
+            selectedCount: row.items.where(_isSelected).length,
+            totalCount: row.items.length,
             onToggle: () => _toggleMonth(row),
             isExpanded: _expandedMonths.contains(row.month),
             onTap: () => _toggleExpanded(row.month),
@@ -232,12 +213,4 @@ class _DiarySelectPageState extends State<DiarySelectPage> {
     RegExp(r'(\d)(?=(\d{3})+$)'),
     (m) => "${m[1]},",
   );
-}
-
-/// 1か月分の日記(月ごとの見出しの行に使う)
-class MonthGroup {
-  const MonthGroup(this.month, this.diaries);
-
-  final DateTime month;
-  final List<Diary> diaries;
 }
