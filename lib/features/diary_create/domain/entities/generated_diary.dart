@@ -10,9 +10,13 @@ class GeneratedDiary {
   /// この日記を書いたあとの、今月の使用量(サーバーが返さない場合はnull)
   final UsageInfo? usage;
 
+  /// この日記を書いたモデルの名前(分からない場合はnull)
+  final String? modelName;
+
   const GeneratedDiary({
     required this.title,
     required this.content,
     this.usage,
+    this.modelName,
   });
 }

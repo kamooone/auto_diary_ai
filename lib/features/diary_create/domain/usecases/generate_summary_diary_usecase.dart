@@ -46,6 +46,7 @@ class GenerateSummaryDiaryUseCase {
       title: diary.title,
       content: diary.content,
       usage: reply.usage,
+      modelName: reply.modelName,
     );
   }
 }

@@ -78,7 +78,13 @@ class AwsAiRepositoryImpl implements AiRepository {
       throw AiChatException('answer is missing in response');
     }
 
-    return AiReply(answer: answer, usage: UsageInfo.fromJson(data));
+    final usedModel = data['usedModel'];
+
+    return AiReply(
+      answer: answer,
+      usage: UsageInfo.fromJson(data),
+      modelName: usedModel is String && usedModel.isNotEmpty ? usedModel : null,
+    );
   }
 
   Future<List<dynamic>> _uploadImages(AiMessageRequest request) async {

@@ -7,5 +7,8 @@ class AiReply {
   /// 今月の使用量(サーバーが返さない場合はnull)
   final UsageInfo? usage;
 
-  const AiReply({required this.answer, this.usage});
+  /// 実際に答えたモデルの名前(サーバーが返さない場合はnull)
+  final String? modelName;
+
+  const AiReply({required this.answer, this.usage, this.modelName});
 }

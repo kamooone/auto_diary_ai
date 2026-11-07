@@ -227,7 +227,7 @@ def post_json(provider, url, headers, body, timeout=None):
         ) from e
 
 
-def ask_openai(api_key, message, images, context=None):
+def ask_openai(api_key, message, images, context=None, info=None):
     """有料プラン: GPT。(回答, 消費したトークン数)を返す
 
     返事を待つ時間は、OPENAI_TOTAL_BUDGETまで(Lambdaの残り時間が短ければ、それまで)
@@ -287,6 +287,10 @@ def ask_openai(api_key, message, images, context=None):
         "total": tokens,
     }))
 
+    # 実際に答えたモデルの名前(アプリが、日記を書いたモデルとして見せる)
+    if info is not None:
+        info["model"] = OPENAI_MODEL
+
     return answer, tokens
 
 
@@ -310,13 +314,17 @@ def read_openai_answer(data):
     return answer
 
 
-def ask_gemini(api_key, message, images, context=None, allow_fallback=False):
+def ask_gemini(
+    api_key, message, images, context=None, allow_fallback=False, info=None
+):
     """無料プラン: Gemini。(回答, 消費したトークン数)を返す
 
     モデルが使えないとき(混んでいる、提供が終わったなど)は、
     GEMINI_MODELSの順に別のモデルへ切り替える。
     allow_fallbackがTrueのときは、最後に、予備のモデル(GEMINI_FALLBACK_MODEL)も試す
     (GEMINI_FALLBACK_WITHIN_SECONDS秒以内に失敗したときだけ)
+
+    infoに辞書を渡すと、実際に答えたモデルの名前を info["model"] に入れる
     """
     parts = [{"text": message}]
 
@@ -500,6 +508,9 @@ def ask_gemini(api_key, message, images, context=None, allow_fallback=False):
             "total": tokens,
             "seconds": round(time.monotonic() - attempt_started, 1),
         }))
+
+        if info is not None:
+            info["model"] = model
 
         return answer, tokens
 
@@ -833,12 +844,16 @@ def lambda_handler(event, context):
 
         # 有料プラン、またはユーザーが GPT を選んだときは GPT。それ以外は Gemini
         # (GPT を選んだときの、トークンの消費の倍率は、まだ設定していない)
+        # 実際に答えたモデルの名前(AIの関数が入れる)
+        answer_info = {}
+
         if plan == PAID or model == MODEL_GPT:
             answer, tokens = ask_openai(
                 get_api_key(OPENAI_SECRET_NAME, "OPENAI_API_KEY"),
                 message,
                 image_keys,
                 context,
+                info=answer_info,
             )
         else:
             answer, tokens = ask_gemini(
@@ -848,6 +863,7 @@ def lambda_handler(event, context):
                 context,
                 # アプリの設定で、オンにしたユーザーだけ
                 allow_fallback=body.get("geminiFallback") is True,
+                info=answer_info,
             )
 
         # S3の画像を削除
@@ -872,6 +888,8 @@ def lambda_handler(event, context):
 
         return response(200, {
             "answer": answer,
+            # 日記を書いたモデルの名前(分からないときは入れない)
+            **({"usedModel": answer_info["model"]} if "model" in answer_info else {}),
             **usage_payload(
                 plan,
                 state["used"] + from_allowance,

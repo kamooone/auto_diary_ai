@@ -125,6 +125,7 @@ ${lengthChars > 0 ? "\n文字数の目安\n本文は$lengthChars文字くらい�
       title: diary.title,
       content: diary.content,
       usage: reply.usage,
+      modelName: reply.modelName,
     );
   }
 

@@ -402,6 +402,25 @@ class AiChatUsageTest(unittest.TestCase):
         self.assertEqual(status, 400)
 
 
+    # --- 日記を書いたモデルの名前を、アプリに返す ---
+
+    def test_the_used_model_is_returned_to_the_app(self):
+        def fake(*args, info=None, **kwargs):
+            info["model"] = "gemini-flash-lite-latest"
+            return "日記", 1000
+
+        self.gemini.side_effect = fake
+        status, body = call(chat_event())
+
+        self.assertEqual(200, status)
+        self.assertEqual("gemini-flash-lite-latest", body["usedModel"])
+
+    def test_the_used_model_is_left_out_when_unknown(self):
+        status, body = call(chat_event())
+
+        self.assertEqual(200, status)
+        self.assertNotIn("usedModel", body)
+
     # --- アプリの設定(予備のモデルを使う)が、Geminiの呼び出しに渡る ---
 
     def fallback_flag(self, **kwargs):
@@ -575,6 +594,34 @@ class AskGeminiTimeoutTest(unittest.TestCase):
         self.assertEqual(answer, ("回答", 10))
         self.assertEqual(["gemini-flash-lite-latest", "fallback-lite"], models)
 
+    def test_the_answering_model_is_reported(self):
+        busy = m.UpstreamError("Gemini", 503, "busy")
+
+        def post_with(results):
+            queue = list(results)
+
+            def fake_post(provider, url, headers, body, timeout=None):
+                result = queue.pop(0)
+                if isinstance(result, Exception):
+                    raise result
+                return result
+
+            return fake_post
+
+        info = {}
+        with mock.patch.object(m, "post_json", post_with([self.OK])):
+            m.ask_gemini("key", "message", [], info=info)
+
+        self.assertEqual({"model": "gemini-flash-lite-latest"}, info)
+
+        # 予備のモデルが答えたときは、予備のモデルの名前
+        info = {}
+        with mock.patch.object(m, "post_json", post_with([busy, self.OK])), \
+                mock.patch.object(m, "GEMINI_FALLBACK_MODEL", "fallback-lite"):
+            m.ask_gemini("key", "message", [], allow_fallback=True, info=info)
+
+        self.assertEqual({"model": "fallback-lite"}, info)
+
     def test_fallback_is_not_used_when_not_allowed(self):
         busy = m.UpstreamError("Gemini", 503, "busy")
         answer, models = self.run_with_urls([(busy, 5)] * 10, False)
@@ -699,6 +746,14 @@ class AskOpenAiTest(unittest.TestCase):
             result = m.ask_openai("key", "こんにちは", [])
 
         return result, post.call_args.args[3]
+
+    def test_the_answering_model_is_reported(self):
+        info = {}
+        with mock.patch.object(m, "post_json", return_value=self.PLAIN), \
+                mock.patch.object(m, "OPENAI_MODEL", "gpt-test"):
+            m.ask_openai("key", "こんにちは", [], info=info)
+
+        self.assertEqual({"model": "gpt-test"}, info)
 
     def test_plain_response(self):
         (answer, tokens), _ = self.ask(self.PLAIN)

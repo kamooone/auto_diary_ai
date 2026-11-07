@@ -34,6 +34,9 @@ class DiaryCreateState {
   /// 生成した日記が、AIが書いたものか(日記を連結させるは、AIを使わずにつなげたもの)
   final bool generatedByAi;
 
+  /// 日記を書いたモデルの名前(AIを使わないとき、分からないときは空文字)
+  final String generatedModel;
+
   final String? errorMessage;
   final bool isLoading;
 
@@ -88,6 +91,7 @@ class DiaryCreateState {
     this.generatedTitle = '',
     this.generatedDiary = '',
     this.generatedByAi = true,
+    this.generatedModel = '',
     this.errorMessage,
     this.isLoading = false,
     this.expectedSeconds = 0,
@@ -118,6 +122,7 @@ class DiaryCreateState {
     String? generatedTitle,
     String? generatedDiary,
     bool? generatedByAi,
+    String? generatedModel,
     String? errorMessage,
     bool clearError = false,
     bool? isLoading,
@@ -148,6 +153,7 @@ class DiaryCreateState {
       generatedTitle: generatedTitle ?? this.generatedTitle,
       generatedDiary: generatedDiary ?? this.generatedDiary,
       generatedByAi: generatedByAi ?? this.generatedByAi,
+      generatedModel: generatedModel ?? this.generatedModel,
       errorMessage: clearError ? null : (errorMessage ?? this.errorMessage),
       isLoading: isLoading ?? this.isLoading,
       expectedSeconds: expectedSeconds ?? this.expectedSeconds,
@@ -544,6 +550,7 @@ class DiaryCreateViewModel extends AutoDisposeNotifier<DiaryCreateState> {
         generatedTitle: SummaryJoin.title(diaries),
         generatedDiary: SummaryJoin.content(diaries),
         generatedByAi: false,
+        generatedModel: '',
         isLoading: false,
         clearError: true,
       );
@@ -600,6 +607,9 @@ class DiaryCreateViewModel extends AutoDisposeNotifier<DiaryCreateState> {
         generatedTitle: result.title,
         generatedDiary: result.content,
         generatedByAi: true,
+        // サーバーが教えてくれたモデル。なければ、選んでいるAIのモデル
+        generatedModel:
+            result.modelName ?? ref.read(aiModelProvider).modelName,
         isLoading: false,
       );
     } on UsageLimitExceededException catch (e) {

@@ -107,4 +107,28 @@ void main() {
       expect((await sentBody()).containsKey('geminiFallback'), isFalse);
     });
   });
+
+  group('日記を書いたモデルの名前', () {
+    Future<String?> modelNameOf(Map<String, Object?> body) async {
+      final repository = AwsAiRepositoryImpl(
+        'https://example.com',
+        client: MockClient((_) async => json(200, body)),
+      );
+
+      return (await repository.sendMessage(request)).modelName;
+    }
+
+    test('サーバーが返したら、その名前を持つ', () async {
+      expect(
+        await modelNameOf({'answer': '回答', 'usedModel': 'gpt-5-mini'}),
+        'gpt-5-mini',
+      );
+    });
+
+    test('返さないときや、空のときは、null', () async {
+      expect(await modelNameOf({'answer': '回答'}), isNull);
+      expect(await modelNameOf({'answer': '回答', 'usedModel': ''}), isNull);
+      expect(await modelNameOf({'answer': '回答', 'usedModel': 1}), isNull);
+    });
+  });
 }
