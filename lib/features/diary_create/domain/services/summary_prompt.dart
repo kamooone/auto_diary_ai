@@ -21,7 +21,7 @@ class SummaryPrompt {
 以下は、ユーザー本人が書いた${diaries.length}件の日記です(日付の古い順)。
 これらを材料に、この期間を1つの日記にした文章を書いてください。あわせて、その内容に合ったタイトルも書いてください。
 
-${_style(style, chars, customInstruction)}
+${_style(style, chars, customInstruction, hasLength: lengthChars > 0 && style != SummaryStyle.list)}
 ${lengthChars > 0 && style != SummaryStyle.list ? "\n文字数の目安\n本文は$lengthChars文字くらいを目安に書いてください(この指定は、上の形の長さの指示より優先してください)。材料が少ないときは、無理に伸ばさず、短くてかまいません。\n" : ""}
 
 共通のルール
@@ -34,7 +34,7 @@ ${note.trim().isEmpty ? "(なし)" : note.trim()}
 
 日記(「■」から次の「■」までが、1つの日記です)
 ${SummaryText.formatForAi(diaries)}
-${_finalCheck(style, chars)}
+${_finalCheck(style, chars, lengthChars)}
 回答は必ず次の形式で書いてください。前置きや説明、記号による装飾は付けないでください。
 
 タイトル: (日記のタイトルを1行で)
@@ -47,10 +47,13 @@ ${_finalCheck(style, chars)}
   ///
   /// 材料が長いと、先頭にある「形」の規則が守られにくいため、材料の後ろにも、守ってほしい点を繰り返す。
   /// 長い文章で書く形(読み物・ブログ風)だけ。ほかの形は、規則が短く、守られている
-  static String _finalCheck(SummaryStyle style, int chars) {
+  static String _finalCheck(SummaryStyle style, int chars, int lengthChars) {
     if (style != SummaryStyle.reading && style != SummaryStyle.chronicle) {
       return '';
     }
+
+    // 文字数の目安を指定したときは、それだけに合わせる(下限の数字と食い違うと、中途半端な長さになる)
+    final hasLength = lengthChars > 0;
 
     // 読み物(ブログ風)の長さの目安と同じ範囲
     final range = SummaryText.lengthRange(
@@ -69,17 +72,22 @@ ${_finalCheck(style, chars)}
 ・同じ出来事や、同じ言い回しを、何度も書かないでください。繰り返された出来事は、「何度か」「たびたび」「ときどき」でまとめて、1回だけ書いてください。
 ・「ほぼ毎日」「毎日」「毎日のように」「日課」「習慣」「いつも」は、使わないでください。
 ・日記にない気持ち、決意、感想は、足さないでください。最後の段落も、日記に書かれた出来事で終えてください。
-・材料のどの時期も、省かずに取り上げてください(終わりの月ほど薄くならないようにしてください)。
+${hasLength ? "・文字数が短いときは、印象に残った出来事を選んでかまいません。ただし、期間の最初から最後まで、全体に触れてください(終わりの月ほど薄くならないようにしてください)。" : "・材料のどの時期も、省かずに取り上げてください(終わりの月ほど薄くならないようにしてください)。"}
 ・章の見出しは、章の中身に合う言葉にしてください。タイトルは、材料の期間(何月から何月までか)に合わせてください。
-・長さは、本文だけで、少なくとも${range.low}文字にしてください(目安は${range.low}〜${range.high}文字)。短くまとめすぎず、章や月ごとの段落でも、省略した出来事の細部を書き足してください。
+${hasLength ? "・長さは、上の「文字数の目安」($lengthChars文字くらい)に合わせてください。形の説明にある長さの目安は、使わないでください。" : "・長さは、本文だけで、少なくとも${range.low}文字にしてください(目安は${range.low}〜${range.high}文字)。短くまとめすぎず、章や月ごとの段落でも、省略した出来事の細部を書き足してください。"}
 """;
   }
 
-  static String _style(SummaryStyle style, int chars, String custom) {
+  static String _style(
+    SummaryStyle style,
+    int chars,
+    String custom, {
+    bool hasLength = false,
+  }) {
     return switch (style) {
-      SummaryStyle.reading => _reading(chars),
+      SummaryStyle.reading => _reading(chars, hasLength: hasLength),
       // 日記を連結させるは、AIを使わずにつなげる(SummaryJoin)ので、ここには来ない。念のため読み物にする
-      SummaryStyle.chronicle => _reading(chars),
+      SummaryStyle.chronicle => _reading(chars, hasLength: hasLength),
       SummaryStyle.brief => _brief(chars),
       SummaryStyle.list => _list,
       SummaryStyle.custom => """
@@ -97,7 +105,7 @@ ${custom.trim()}
     };
   }
 
-  static String _reading(int chars) => """
+  static String _reading(int chars, {bool hasLength = false}) => """
 形(読み物・ブログ風)
 簡単なブログ風(大事なところだけを書いて、ほかは省略する形)とは違い、省略した細かい出来事も、省略せずに、できるだけ詳しく、ブログのような文章で書く形です。
 材料を読んで、一番読みやすい構成を判断してください。
@@ -117,7 +125,7 @@ ${custom.trim()}
 ・「日記に書いた」「日記に記していた」のように、日記そのものに触れる言い方は、しないでください。本人が、そのときの出来事を直接書く形にしてください。
 ・意味が通る、自然な文にしてください。元の日記の複数の文を、無理につなげて、意味が分からない文にしないでください。
 ・「■」の日付と、その日記に書かれていることを、取り違えないでください。日記に書かれていない出来事や気持ちは、足さないでください。
-・長さの目安は${SummaryText.lengthGuide(chars, lowRatio: 0.15, highRatio: 0.25, minLow: 500, maxLow: 8000, maxHigh: 12000)}です。目安の下限より短くならないようにしてください。足りないときは、省略した出来事の細部を書き足してください。""";
+${hasLength ? "・長さは、下の「文字数の目安」に従ってください(ここでは、長さの目安を示しません)。文字数が短いときは、細部を省いてかまいません。" : "・長さの目安は${SummaryText.lengthGuide(chars, lowRatio: 0.15, highRatio: 0.25, minLow: 500, maxLow: 8000, maxHigh: 12000)}です。目安の下限より短くならないようにしてください。足りないときは、省略した出来事の細部を書き足してください。"}""";
 
   static String _brief(int chars) => """
 形(読み物・簡単なブログ風)

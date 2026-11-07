@@ -294,6 +294,39 @@ void main() {
       expect(text, contains('省略した出来事の細部を書き足してください'));
     });
 
+    test('文字数の目安を指定したときは、長さの下限の数字と食い違わないようにする', () {
+      final many = [
+        for (var i = 1; i <= 30; i++) diary(i, 't$i', 'あ' * 2000),
+      ];
+      final text = SummaryPrompt.build(
+        style: SummaryStyle.reading,
+        diaries: many,
+        note: '',
+        lengthChars: 1000,
+      );
+
+      // 目安を指定したので、下限の数字や、細部を書き足す指示は入れない
+      expect(text, isNot(contains('少なくとも8000文字')));
+      expect(text, isNot(contains('長さの目安は8000〜12000文字です')));
+      expect(text, isNot(contains('省略した出来事の細部を書き足してください')));
+
+      // 長さは、目安だけに合わせる
+      expect(text, contains('「文字数の目安」(1000文字くらい)に合わせてください'));
+      expect(text, contains('本文は1000文字くらいを目安に書いてください'));
+      expect(text, contains('文字数が短いときは、印象に残った出来事を選んでかまいません'));
+    });
+
+    test('文字数の目安がないときは、これまでどおり下限を伝える', () {
+      final text = SummaryPrompt.build(
+        style: SummaryStyle.reading,
+        diaries: [for (var i = 1; i <= 30; i++) diary(i, 't$i', 'あ' * 2000)],
+        note: '',
+      );
+
+      expect(text, contains('少なくとも8000文字にしてください'));
+      expect(text, contains('省略した出来事の細部を書き足してください'));
+    });
+
     test('簡単なブログ風・一覧・自分で指定には、最終確認を置かない', () {
       for (final style in [
         SummaryStyle.brief,
