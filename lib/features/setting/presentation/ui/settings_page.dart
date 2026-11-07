@@ -144,16 +144,6 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
             const Divider(),
           ],
 
-          // 外出しなくても、訪れた場所を取得できるかを確かめられるようにする
-          ListTile(
-            leading: const Icon(Icons.bug_report),
-            title: const Text("訪れた場所の取得テスト"),
-            subtitle: const Text("地名や緯度・経度を入力して、取得できるかを確かめます"),
-            onTap: () {
-              context.push(AppRoutes.placeSearchTest);
-            },
-          ),
-
           // まとめ日記を試すための日記を、まとめて追加・削除できるようにする
           ListTile(
             leading: const Icon(Icons.bug_report),

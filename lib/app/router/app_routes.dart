@@ -1,7 +1,6 @@
 // app/router/app_routes.dart
 import 'package:go_router/go_router.dart';
 import 'package:auto_diary_ai/features/home/presentation/ui/home_screen.dart';
-import 'package:auto_diary_ai/features/setting/presentation/ui/place_search_test_page.dart';
 import 'package:auto_diary_ai/features/setting/presentation/ui/settings_page.dart';
 import 'package:auto_diary_ai/features/map/presentation/ui/map_page.dart';
 import '../../features/calendar/presentation/ui/calendar_screen.dart';
@@ -21,7 +20,6 @@ class AppRoutes {
   static const plan = '/settings/plan';
   static const points = '/settings/points';
   static const sharedPosts = '/settings/shared_posts';
-  static const placeSearchTest = '/settings/place_search_test';
   static const map = '/map';
 
   static final routes = <RouteBase>[
@@ -63,10 +61,6 @@ class AppRoutes {
         GoRoute(
           path: points,
           builder: (context, state) => const PointsPage(),
-        ),
-        GoRoute(
-          path: placeSearchTest,
-          builder: (context, state) => const PlaceSearchTestPage(),
         ),
         GoRoute(
           path: map,
