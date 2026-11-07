@@ -19,4 +19,23 @@ void main() {
   test('1日の日記には、複数日の指示は入らない', () {
     expect(diary(multi: false), isNot(contains('どの日も省かずに')));
   });
+
+  group('ブログ風', () {
+    String blog({required bool multi}) => DiaryStylePrompt.section(
+      style: DiaryStyle.blog,
+      customInstruction: '',
+      isMultiDay: multi,
+    );
+
+    test('複数日のときは、期間の全体を書かせる指示が入る', () {
+      final text = blog(multi: true);
+
+      expect(text, contains('期間の全体を、最初から最後まで'));
+      expect(text, contains('最後の日や、1日だけの話にしない'));
+    });
+
+    test('1日のときは、複数日の指示は入らない', () {
+      expect(blog(multi: false), isNot(contains('期間の全体を')));
+    });
+  });
 }
