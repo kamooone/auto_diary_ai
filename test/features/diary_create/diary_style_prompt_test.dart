@@ -38,4 +38,27 @@ void main() {
       expect(blog(multi: false), isNot(contains('期間の全体を')));
     });
   });
+
+  group('時系列の記録と箇条書き', () {
+    String of(DiaryStyle style, {required bool multi}) =>
+        DiaryStylePrompt.section(
+          style: style,
+          customInstruction: '',
+          isMultiDay: multi,
+        );
+
+    for (final style in [DiaryStyle.record, DiaryStyle.bullets]) {
+      test('$style: 複数日のときは、期間の全体を日ごとに書かせる指示が入る', () {
+        final text = of(style, multi: true);
+
+        expect(text, contains('最初の日から最後の日まで'));
+        expect(text, contains('最後の日だけの記録にしない'));
+        expect(text, contains('1日あたり1〜3行'));
+      });
+
+      test('$style: 1日のときは、複数日の注意は入らない', () {
+        expect(of(style, multi: false), isNot(contains('最初の日から最後の日まで')));
+      });
+    }
+  });
 }
