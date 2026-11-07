@@ -66,6 +66,11 @@ class AiModelSelector extends ConsumerWidget {
                 Text(model.feature, style: theme.textTheme.bodyMedium),
                 const SizedBox(height: 4),
                 Text(
+                  "書き上がる文章: ${model.writing}",
+                  style: theme.textTheme.bodyMedium,
+                ),
+                const SizedBox(height: 4),
+                Text(
                   "送った日記の扱い: ${model.dataNote}",
                   style: theme.textTheme.bodyMedium,
                 ),
