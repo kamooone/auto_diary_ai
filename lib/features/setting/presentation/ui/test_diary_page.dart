@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../../core/app_info/install_date_provider.dart';
 import '../../../../core/database/isar_provider.dart';
 import '../../../diary/application/providers/diary_providers.dart';
 import '../../../location/application/providers/location_providers.dart';
@@ -209,6 +210,15 @@ class _TestDiaryPageState extends ConsumerState<TestDiaryPage> {
     });
   }
 
+  // テスト用のデータの日付を、日記の作成画面などで選べるよう、使い始めた日を早める
+  Future<void> _allowSelecting() {
+    return moveInstallDateEarlier(
+      ref.read(isarProvider),
+      ref.read(installDateProvider.notifier),
+      _first,
+    );
+  }
+
   Future<void> _run(Future<String> Function() task) async {
     setState(() {
       _isWorking = true;
@@ -218,6 +228,7 @@ class _TestDiaryPageState extends ConsumerState<TestDiaryPage> {
     String message;
     try {
       message = await task();
+      await _allowSelecting();
     } catch (e) {
       message = "失敗しました: $e";
     }

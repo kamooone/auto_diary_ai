@@ -56,7 +56,7 @@ void main() async {
             overrides: [
                 isarProvider.overrideWithValue(isar),
                 adGatewayProvider.overrideWithValue(ads),
-                installDateProvider.overrideWithValue(installDate),
+                installDateProvider.overrideWith((ref) => installDate),
             ],
 
             child: const App(),
