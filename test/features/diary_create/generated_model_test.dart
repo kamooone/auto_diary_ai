@@ -60,7 +60,7 @@ void main() {
     return container.read(diaryCreateProvider);
   }
 
-  test('サーバーが教えてくれたモデルの名前を、書いたモデルとして持つ', () async {
+  test('サーバーが教えてくれたモデルの名前を、使用したモデルとして持つ', () async {
     final state = await generate('gemini-flash-lite-latest');
 
     expect(state.generatedModel, 'gemini-flash-lite-latest');

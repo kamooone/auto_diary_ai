@@ -34,7 +34,7 @@ class DiaryCreateState {
   /// 生成した日記が、AIが書いたものか(日記を連結させるは、AIを使わずにつなげたもの)
   final bool generatedByAi;
 
-  /// 日記を書いたモデルの名前(AIを使わないとき、分からないときは空文字)
+  /// 使用したモデルの名前(AIを使わないとき、分からないときは空文字)
   final String generatedModel;
 
   final String? errorMessage;

@@ -191,12 +191,12 @@ class _DiaryResultScreenState extends ConsumerState<DiaryResultScreen> {
               : "選んだ日記を日付順につなげた内容です。必要なら修正してから保存してください。",
           style: Theme.of(context).textTheme.bodySmall,
         ),
-        // どのモデルが書いたか(AIを使わないときや、分からないときは出さない)
+        // 使用したモデル(AIを使わないときや、分からないときは出さない)
         if (state.generatedByAi && state.generatedModel.isNotEmpty)
           Padding(
             padding: const EdgeInsets.only(top: 2),
             child: Text(
-              "書いたモデル: ${state.generatedModel}",
+              "使用したモデル: ${state.generatedModel}",
               style: Theme.of(context).textTheme.bodySmall,
             ),
           ),
