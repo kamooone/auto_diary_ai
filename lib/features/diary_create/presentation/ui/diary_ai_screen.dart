@@ -9,7 +9,6 @@ import '../../../plan/presentation/widgets/usage_limit_guidance.dart';
 import '../../../plan/presentation/widgets/usage_meter.dart';
 import '../../../location/domain/entities/timeline_item.dart';
 import '../../../share/domain/entities/shared_post.dart';
-import '../../application/providers/diary_usecase_providers.dart';
 import '../providers/diary_create_provider.dart';
 import 'diary_result_screen.dart';
 import 'generate_flow.dart';
@@ -73,7 +72,7 @@ class _DiaryAiScreenState extends ConsumerState<DiaryAiScreen> {
   Widget build(BuildContext context) {
     final state = ref.watch(diaryCreateProvider);
     final viewModel = ref.read(diaryCreateProvider.notifier);
-    final plan = ref.watch(diaryPlanProvider);
+    final planType = ref.watch(planTypeProvider);
     final usage = ref.watch(usageProvider);
     final model = ref.watch(aiModelProvider);
     final isExceeded = usage?.isExceeded ?? false;
@@ -83,7 +82,7 @@ class _DiaryAiScreenState extends ConsumerState<DiaryAiScreen> {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          // 何月何日の日記を書くか(プランに関わらず1日だけ)
+          // 何月何日の日記を書くか(1日だけ)
           Card(
             child: ListTile(
               leading: const Icon(Icons.calendar_today),
@@ -96,27 +95,22 @@ class _DiaryAiScreenState extends ConsumerState<DiaryAiScreen> {
             ),
           ),
 
-          // 有料プランだけ、AIに渡す情報の期間を選べる
-          // (無料プランは、日記の日付と同じ日の情報だけを渡せる)
-          if (plan.allowsMultipleDays) ...[
-            const SizedBox(height: 4),
-            Card(
-              child: ListTile(
-                leading: const Icon(Icons.date_range),
-                title: const Text("AIに渡す情報の期間"),
-                subtitle: Text(
-                  DiaryPeriodText.format(state.aiStartDate, state.aiEndDate),
-                ),
-                trailing: const Icon(Icons.chevron_right),
-                onTap: () => _selectPeriod(context, state),
+          // AIに渡す情報の期間(プランに関わらず、複数日を選べる。初めは、日記の日付と同じ1日)
+          const SizedBox(height: 4),
+          Card(
+            child: ListTile(
+              leading: const Icon(Icons.date_range),
+              title: const Text("AIに渡す情報の期間"),
+              subtitle: Text(
+                DiaryPeriodText.format(state.aiStartDate, state.aiEndDate),
               ),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => _selectPeriod(context, state),
             ),
-          ],
+          ),
           const SizedBox(height: 4),
           Text(
-            plan.allowsMultipleDays
-                ? "写真・Xの投稿・行動履歴は、選んだ期間のものから選べます"
-                : "写真・Xの投稿・行動履歴は、日記の日付のものから選べます",
+            "写真・Xの投稿・行動履歴は、選んだ期間のものから選べます",
             style: Theme.of(context).textTheme.bodySmall,
           ),
           const SizedBox(height: 12),
@@ -131,7 +125,7 @@ class _DiaryAiScreenState extends ConsumerState<DiaryAiScreen> {
                   UsageMeter(usage: usage),
                   if (isExceeded) ...[
                     const SizedBox(height: 8),
-                    UsageLimitGuidance(isPaid: plan.type.isPaid),
+                    UsageLimitGuidance(isPaid: planType.isPaid),
                   ],
                 ],
               ),
@@ -374,7 +368,7 @@ class _DiaryAiScreenState extends ConsumerState<DiaryAiScreen> {
     }
   }
 
-  // 有料プランだけ
+  // AIに渡す情報の期間を選ぶ
   Future<void> _selectPeriod(
     BuildContext context,
     DiaryCreateState state,

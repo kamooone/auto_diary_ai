@@ -1,6 +1,4 @@
 import 'dart:io';
-import 'package:auto_diary_ai/features/diary_create/application/providers/diary_usecase_providers.dart';
-import 'package:auto_diary_ai/features/diary_create/domain/entities/diary_plan.dart';
 import 'package:auto_diary_ai/features/diary_create/presentation/providers/diary_create_provider.dart';
 import 'package:auto_diary_ai/features/diary_create/presentation/ui/widgets/diary_period_text.dart';
 import 'package:auto_diary_ai/features/plan/application/providers/plan_provider.dart';
@@ -21,19 +19,6 @@ class InMemoryPlanRepository implements PlanRepository {
 }
 
 void main() {
-  group('DiaryPlan', () {
-    test('AIに渡す情報は、無料プランも有料プランも、期間で選べる', () {
-      expect(DiaryPlan.free.allowsMultipleDays, isTrue);
-
-      expect(DiaryPlan.paid.allowsMultipleDays, isTrue);
-    });
-
-    test('プランの種類から制限を取り出せる', () {
-      expect(DiaryPlan.forType(PlanType.free), DiaryPlan.free);
-      expect(DiaryPlan.forType(PlanType.paid), DiaryPlan.paid);
-    });
-  });
-
   group('FilePlanRepository', () {
     late Directory dir;
     late FilePlanRepository repository;
@@ -90,14 +75,12 @@ void main() {
       await Future<void>.delayed(Duration.zero);
 
       expect(container.read(planTypeProvider), PlanType.paid);
-      expect(container.read(diaryPlanProvider), DiaryPlan.paid);
     });
 
-    test('プランを切り替えると、保存して制限も変わる', () async {
+    test('プランを切り替えると、保存される', () async {
       await container.read(planTypeProvider.notifier).setPlan(PlanType.paid);
 
       expect(repository.plan, PlanType.paid);
-      expect(container.read(diaryPlanProvider).allowsMultipleDays, isTrue);
     });
 
     test('読み込みが終わる前に切り替えても、遅れて届いた読み込み結果で戻らない', () async {
