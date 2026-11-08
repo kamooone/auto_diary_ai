@@ -1,13 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
-import '../../../../app/router/app_routes.dart';
 import '../../../../core/app_info/install_date_provider.dart';
 import '../../../ai/application/providers/ai_model_provider.dart';
 import '../../../ai/presentation/widgets/ai_model_selector.dart';
 import '../../../plan/application/providers/plan_provider.dart';
 import '../viewmodel/diary_create_view_model.dart';
-import '../../../plan/domain/entities/plan_availability.dart';
 import '../../../plan/presentation/widgets/usage_limit_guidance.dart';
 import '../../../plan/presentation/widgets/usage_meter.dart';
 import '../../../location/domain/entities/timeline_item.dart';
@@ -134,23 +131,7 @@ class _DiaryAiScreenState extends ConsumerState<DiaryAiScreen> {
                   UsageMeter(usage: usage),
                   if (isExceeded) ...[
                     const SizedBox(height: 8),
-                    if (paidPlanEnabled)
-                      Text(
-                        plan.type.isPaid
-                            ? "今月の使用量の上限に達しました。次のリセットまでAIは使えません。"
-                            : "今月の使用量の上限に達しました。有料プランにすると、"
-                                  "さらに多く使えます。",
-                        style: TextStyle(
-                          color: Theme.of(context).colorScheme.error,
-                        ),
-                      )
-                    else
-                      const UsageLimitGuidance(),
-                    if (paidPlanEnabled && !plan.type.isPaid)
-                      TextButton(
-                        onPressed: () => context.push(AppRoutes.plan),
-                        child: const Text("プランを見る"),
-                      ),
+                    UsageLimitGuidance(isPaid: plan.type.isPaid),
                   ],
                 ],
               ),
