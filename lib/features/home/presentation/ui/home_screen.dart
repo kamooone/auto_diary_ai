@@ -1,7 +1,7 @@
 import 'package:auto_diary_ai/common/extensions/build_context_ext.dart';
 import 'package:auto_diary_ai/features/home/presentation/ui/widgets/diary_list_view.dart';
 import 'package:auto_diary_ai/features/home/presentation/ui/widgets/home_scaffold.dart';
-import 'package:auto_diary_ai/features/home/presentation/ui/widgets/month_dropdown.dart';
+import 'package:auto_diary_ai/features/home/presentation/ui/widgets/year_month_dropdown.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -134,7 +134,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 else if (state.months.contains(selectedMonth))
                   Column(
                     children: [
-                      MonthDropdown(
+                      YearMonthDropdown(
                         months: state.months,
                         selectedMonth: selectedMonth,
                         onChanged: (month) {
