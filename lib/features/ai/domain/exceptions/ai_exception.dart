@@ -1,3 +1,5 @@
+import '../../../plan/domain/entities/usage_info.dart';
+
 /// 画像アップロード(ai-upload-url)の失敗
 class AiUploadException implements Exception {
   final String message;
@@ -36,4 +38,15 @@ class AiChatException implements Exception {
 
   @override
   String toString() => 'AiChatException: $message';
+}
+
+/// AIは答えたが、日記の本文が空だった(タイトルも本文も取り出せなかった)。
+/// 回答はあったので、トークンは使われている場合がある([usage]は、そのあとの今月の使用量)
+class AiEmptyDiaryException implements Exception {
+  final UsageInfo? usage;
+
+  AiEmptyDiaryException([this.usage]);
+
+  @override
+  String toString() => 'AiEmptyDiaryException';
 }

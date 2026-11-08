@@ -630,6 +630,19 @@ class DiaryCreateViewModel extends AutoDisposeNotifier<DiaryCreateState> {
         errorMessage:
             "時間がかかりすぎて、生成できませんでした。文字数の目安を短くするか、少し時間をおいて、もう一度お試しください",
       );
+    } on AiEmptyDiaryException catch (e) {
+      AppLog.add('日記', 'AIの回答が空だった');
+
+      // 回答はあったので、トークンは使われている場合がある。使用量を画面に反映する
+      final usage = e.usage;
+      if (usage != null) ref.read(usageProvider.notifier).update(usage);
+
+      if (_isDisposed) return;
+
+      state = state.copyWith(
+        isLoading: false,
+        errorMessage: "AIの回答が空だったため、生成できませんでした。もう一度お試しください(トークンは使われている場合があります)",
+      );
     } on AiBusyException catch (e) {
       AppLog.add('日記', 'AIが混み合っていて失敗: $e');
 

@@ -838,6 +838,22 @@ class AskOpenAiTest(unittest.TestCase):
 
         return result, post.call_args.args[3]
 
+    def test_a_blank_answer_is_a_failure_so_no_tokens_are_used(self):
+        for text in ("", "  ", "\n\n"):
+            data = {
+                "output": [{
+                    "type": "message",
+                    "content": [{"type": "output_text", "text": text}],
+                }],
+                "usage": {"total_tokens": 50},
+            }
+
+            with self.subTest(repr(text)):
+                with self.assertRaises(m.UpstreamError) as raised:
+                    self.ask(data)
+
+                self.assertIn("no answer text", str(raised.exception.details))
+
     def test_the_answering_model_is_reported(self):
         info = {}
         with mock.patch.object(m, "post_json", return_value=self.PLAIN), \

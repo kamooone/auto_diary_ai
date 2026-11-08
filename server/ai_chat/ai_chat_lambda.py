@@ -316,7 +316,8 @@ def read_openai_answer(data):
         if part.get("type") == "output_text"
     )
 
-    if not answer:
+    # 空白や改行だけのときも、空として扱う(空の日記で、トークンを使わせない)
+    if not answer.strip():
         raise UpstreamError("OpenAI", 200, "no answer text in response")
 
     return answer

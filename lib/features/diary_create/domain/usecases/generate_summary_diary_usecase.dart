@@ -1,4 +1,5 @@
 import '../../../ai/domain/entities/ai_message_request.dart';
+import '../../../ai/domain/exceptions/ai_exception.dart';
 import '../../../ai/domain/repositories/ai_repository.dart';
 import '../../../diary/domain/entities/diary.dart';
 import '../../../plan/domain/entities/plan_type.dart';
@@ -41,6 +42,9 @@ class GenerateSummaryDiaryUseCase {
     final reply = await _aiRepository.sendMessage(request);
 
     final diary = _parser.parse(reply.answer);
+
+    // 本文が空のときは、空の日記を出さずに、失敗として扱う(画面から、やり直せる)
+    if (diary.content.trim().isEmpty) throw AiEmptyDiaryException(reply.usage);
 
     return GeneratedDiary(
       title: diary.title,

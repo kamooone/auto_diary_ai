@@ -1,6 +1,8 @@
 import 'dart:convert';
 import 'package:auto_diary_ai/features/ai/domain/entities/ai_message_request.dart';
 import 'package:auto_diary_ai/features/ai/domain/entities/ai_reply.dart';
+import 'package:auto_diary_ai/features/ai/domain/exceptions/ai_exception.dart';
+import 'package:auto_diary_ai/features/plan/domain/entities/usage_info.dart';
 import 'package:auto_diary_ai/features/ai/domain/repositories/ai_repository.dart';
 import 'package:auto_diary_ai/features/diary/domain/entities/diary.dart';
 import 'package:auto_diary_ai/features/diary_create/domain/entities/diary_style.dart';
@@ -16,6 +18,9 @@ import 'package:flutter_test/flutter_test.dart';
 /// AIに渡す文章の指示は、サーバーが組み立てる(server/ai_chat/diary_prompts.py)。
 /// アプリが送るのは、材料と設定だけ。ここでは、その内容を確かめる。
 class CapturingAi implements AiRepository {
+  CapturingAi({this.answer = 'タイトル: t\n本文:\nb\n【相談の回答】\nok'});
+
+  final String answer;
   AiMessageRequest? request;
 
   Map<String, Object?> get prompt => request!.prompt;
@@ -23,9 +28,7 @@ class CapturingAi implements AiRepository {
   @override
   Future<AiReply> sendMessage(AiMessageRequest request) async {
     this.request = request;
-    return const AiReply(
-      answer: 'タイトル: t\n本文:\nb\n【相談の回答】\nok',
-    );
+    return AiReply(answer: answer);
   }
 }
 
@@ -181,6 +184,68 @@ void main() {
         ],
         'message': 'もっと短くして',
       });
+    });
+  });
+
+  group('AIの回答が空のとき', () {
+    for (final answer in ['', '  \n', 'タイトル: 無題\n本文:\n', 'タイトル:\n本文:\n']) {
+      test('ふつうの日記: 本文が空なら、失敗にする(${answer.replaceAll('\n', '\\n')})', () async {
+        final ai = CapturingAi(answer: answer);
+        final day = DateTime(2026, 1, 1);
+
+        await expectLater(
+          GenerateDiaryUseCase(aiRepository: ai, photoRepository: NoPhotos())
+              .execute(
+                note: '',
+                diaryDate: day,
+                startDate: day,
+                endDate: day,
+                photos: const <Photo>[],
+                timeline: const [],
+                posts: const [],
+              ),
+          throwsA(isA<AiEmptyDiaryException>()),
+        );
+      });
+
+      test('日記を1つにする: 本文が空なら、失敗にする(${answer.replaceAll('\n', '\\n')})', () async {
+        final ai = CapturingAi(answer: answer);
+
+        await expectLater(
+          GenerateSummaryDiaryUseCase(aiRepository: ai).execute(
+            note: '',
+            diaries: [diary(1, 't1', 'c1'), diary(2, 't2', 'c2')],
+          ),
+          throwsA(isA<AiEmptyDiaryException>()),
+        );
+      });
+    }
+
+    test('タイトルがなくても、本文があれば、失敗にしない', () async {
+      final ai = CapturingAi(answer: 'タイトルなしの本文');
+      final day = DateTime(2026, 1, 1);
+
+      final result = await GenerateDiaryUseCase(
+        aiRepository: ai,
+        photoRepository: NoPhotos(),
+      ).execute(
+        note: '',
+        diaryDate: day,
+        startDate: day,
+        endDate: day,
+        photos: const <Photo>[],
+        timeline: const [],
+        posts: const [],
+      );
+
+      expect(result.title, '');
+      expect(result.content, 'タイトルなしの本文');
+    });
+
+    test('使用量は、失敗にも付いてくる(画面に反映するため)', () {
+      const usage = UsageInfo(usedTokens: 10, limitTokens: 100);
+
+      expect(AiEmptyDiaryException(usage).usage, usage);
     });
   });
 }
