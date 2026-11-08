@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ポイント</title>
+  <style>
+    body { font-family: sans-serif; max-width: 480px; margin: 40px auto; padding: 0 16px; }
+    button { font-size: 16px; padding: 10px 20px; }
+    #message { color: #b00020; }
+    #notice { color: #1b5e20; }
+  </style>
+</head>
+<body>
+  <h1>ポイント</h1>
+
+  <div id="signedOut" hidden>
+    <p>ポイントを使うには、アカウントが必要です。</p>
+    <button id="loginButton">ログイン / アカウント作成</button>
+  </div>
+
+  <div id="signedIn" hidden>
+    <p>ログイン中: <strong id="email"></strong></p>
+    <p>ポイント: <strong id="points">-</strong></p>
+    <p>トークン: <strong id="tokens">-</strong></p>
+
+    <h2>トークンに交換</h2>
+    <p id="exchangeRule"></p>
+    <p>
+      <input id="exchangePoints" type="number" min="1" step="1" inputmode="numeric">
+      ポイント
+      <button id="exchangeButton">トークンに交換</button>
+    </p>
+
+    <h2>アプリを紐づける</h2>
+    <p>
+      日記アプリやゲームアプリの画面に表示された6桁のコードを入力してください。
+      同じアプリには、3台まで紐づけられます。
+      <strong>ご自身のアプリに表示されたコード以外は、入力しないでください。</strong>
+    </p>
+    <p>
+      <input id="pairingCode" type="text" inputmode="numeric" maxlength="6"
+             pattern="[0-9]{6}" placeholder="6桁のコード" autocomplete="off">
+      <button id="pairingButton">紐づける</button>
+    </p>
+    <p>紐づけ済み(<span id="deviceCount">0</span>件)</p>
+    <ul id="deviceList"></ul>
+
+    <h2>テスト用(公開前に無効にする)</h2>
+    <p><button id="grantButton">ポイントを10,000追加</button></p>
+    <button id="logoutButton">ログアウト</button>
+  </div>
+
+  <p id="message"></p>
+  <p id="notice"></p>
+
+  <script src="config.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

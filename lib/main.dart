@@ -1,12 +1,17 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:isar/isar.dart';
 import 'package:path_provider/path_provider.dart';
 import 'app.dart';
+import 'core/app_info/install_date_provider.dart';
 import 'core/database/isar_provider.dart';
-import 'features/map/data/models/location_log.dart';
-import 'features/share/data/models/shared_post_model.dart';
+import 'core/database/isar_schemas.dart';
+import 'features/ads/application/ads_provider.dart';
+import 'features/ads/data/admob_ad_gateway.dart';
+import 'features/location/data/datasources/isar_location_datasource.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import '../../app/startup/app_initializer.dart';
 
 void main() async {
 
@@ -25,12 +30,23 @@ void main() async {
     // LocationLogSchema は保存するテーブル（コレクション）の定義
     // directory にDBファイルの保存場所を指定
     final isar = await Isar.open(
-        [
-            LocationLogSchema,
-            SharedPostModelSchema,
-        ],
+        isarSchemas,
         directory: dir.path,
     );
+
+    // アプリを使い始めた日(日記や地図で選べる日付の下限)
+    final earliestLocation = await IsarLocationDataSource(isar).getEarliest();
+    final installDate = await loadInstallDate(
+        isar,
+        earliestRecord: earliestLocation?.timestamp,
+    );
+
+    // 通知・位置情報の許可と、位置情報の記録開始
+    await AppInitializer.initialize(isar);
+
+    // 広告を使えるように準備する(準備が終わるのを待たずに、アプリを開く)
+    final ads = AdMobAdGateway();
+    unawaited(ads.start());
 
     runApp(
         ProviderScope(
@@ -39,6 +55,8 @@ void main() async {
             // これによりアプリ全体で同じ Isar インスタンスを使用できる
             overrides: [
                 isarProvider.overrideWithValue(isar),
+                adGatewayProvider.overrideWithValue(ads),
+                installDateProvider.overrideWith((ref) => installDate),
             ],
 
             child: const App(),

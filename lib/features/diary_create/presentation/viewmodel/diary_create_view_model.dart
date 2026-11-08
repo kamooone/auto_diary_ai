@@ -1,55 +1,259 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/foundation.dart';
-import '../../../map/application/providers/location_providers.dart';
-import '../../../share/application/providers/share_service_provider.dart';
+import '../../../../core/logging/app_log.dart';
+import '../../../ai/domain/exceptions/ai_exception.dart';
+import '../../../diary/application/providers/diary_providers.dart';
+import '../../../diary/domain/entities/diary.dart';
+import '../../../location/application/providers/location_providers.dart';
+import '../../../plan/application/providers/plan_provider.dart';
+import '../../../plan/domain/exceptions/usage_limit_exception.dart';
+import '../../../location/domain/entities/timeline_item.dart';
+import '../../../share/application/providers/share_providers.dart';
+import '../../../share/domain/entities/shared_post.dart';
 import '../../application/providers/diary_usecase_providers.dart';
+import '../../domain/entities/diary_style.dart';
+import '../../domain/entities/generated_diary.dart';
+import '../../domain/entities/summary_style.dart';
+import '../../../ai/application/providers/ai_model_provider.dart';
+import '../../domain/services/summary_join.dart';
+import '../../domain/services/token_estimator.dart';
+import '../../domain/entities/photo.dart';
 
 class DiaryCreateState {
+  /// 自分で書く日記のタイトルと本文
   final String title;
   final String content;
+
+  /// AIに書いてもらうときに、追加で伝えたい内容
+  final String aiNote;
+
+  /// AIが書いた日記のタイトルと本文
+  final String generatedTitle;
   final String generatedDiary;
+
+  /// 生成した日記が、AIが書いたものか(日記を連結させるは、AIを使わずにつなげたもの)
+  final bool generatedByAi;
+
+  /// 使用したモデルの名前(AIを使わないとき、分からないときは空文字)
+  final String generatedModel;
+
+  final String? errorMessage;
   final bool isLoading;
-  final DateTime selectedDate;
+
+  /// 作成にかかる時間の見積もり(秒)。作成中のゲージの長さに使う
+  final int expectedSeconds;
+
+  /// 自分で書く日記の日付(startDateとendDateは同じ日)
+  final DateTime startDate;
+  final DateTime endDate;
+
+  /// AIに渡す情報(写真・Xの投稿・行動履歴)の期間
+  /// 初期値は日記の日付と同じ1日分。期間を選ぶと、選んだ期間
+  final DateTime aiStartDate;
+  final DateTime aiEndDate;
+
+  /// 自分で書く日記に添える写真(撮影日の制限なし)
+  final List<Photo> selectedPhotos;
+
+  /// AIに渡す写真(日記の日付に撮影したもの)
+  final List<Photo> aiPhotos;
+
+  /// 対象期間のXの投稿と、そのうちAIに渡すもの
+  final List<SharedPost> posts;
+  final List<SharedPost> selectedPosts;
+
+  /// 対象期間の行動履歴(滞在と移動)と、そのうちAIに渡すもの
+  final List<TimelineItem> timeline;
+  final List<TimelineItem> selectedTimeline;
+
+  /// Xの投稿と行動履歴を読み込み中かどうか
+  final bool isLoadingSources;
+
+  /// ふつうのAI日記の書き方と、「自分で指定」のときの書き方の指示
+  final DiaryStyle diaryStyle;
+  final String diaryCustom;
+
+  /// 文字数の目安(任意。指定しないときは0)
+  final int diaryLengthChars;
+  final int summaryLengthChars;
+
+  /// 日記を1つにするときの、材料にする作成済みの日記と、書き方
+  final List<Diary> summaryDiaries;
+  final SummaryStyle summaryStyle;
+
+  /// 書き方が「自分で指定」のときの、書き方の指示
+  final String summaryCustom;
 
   DiaryCreateState({
     this.title = '',
     this.content = '',
+    this.aiNote = '',
+    this.generatedTitle = '',
     this.generatedDiary = '',
+    this.generatedByAi = true,
+    this.generatedModel = '',
+    this.errorMessage,
     this.isLoading = false,
-    required this.selectedDate,
+    this.expectedSeconds = 0,
+    required this.startDate,
+    required this.endDate,
+    required this.aiStartDate,
+    required this.aiEndDate,
+    this.selectedPhotos = const [],
+    this.aiPhotos = const [],
+    this.posts = const [],
+    this.selectedPosts = const [],
+    this.timeline = const [],
+    this.selectedTimeline = const [],
+    this.isLoadingSources = false,
+    this.diaryStyle = DiaryStyle.diary,
+    this.diaryCustom = '',
+    this.diaryLengthChars = 0,
+    this.summaryLengthChars = 0,
+    this.summaryDiaries = const [],
+    this.summaryStyle = SummaryStyle.reading,
+    this.summaryCustom = '',
   });
 
   DiaryCreateState copyWith({
     String? title,
     String? content,
+    String? aiNote,
+    String? generatedTitle,
     String? generatedDiary,
+    bool? generatedByAi,
+    String? generatedModel,
+    String? errorMessage,
+    bool clearError = false,
     bool? isLoading,
-    DateTime? selectedDate,
+    int? expectedSeconds,
+    DateTime? startDate,
+    DateTime? endDate,
+    DateTime? aiStartDate,
+    DateTime? aiEndDate,
+    List<Photo>? selectedPhotos,
+    List<Photo>? aiPhotos,
+    List<SharedPost>? posts,
+    List<SharedPost>? selectedPosts,
+    List<TimelineItem>? timeline,
+    List<TimelineItem>? selectedTimeline,
+    bool? isLoadingSources,
+    DiaryStyle? diaryStyle,
+    String? diaryCustom,
+    int? diaryLengthChars,
+    int? summaryLengthChars,
+    List<Diary>? summaryDiaries,
+    SummaryStyle? summaryStyle,
+    String? summaryCustom,
   }) {
     return DiaryCreateState(
       title: title ?? this.title,
       content: content ?? this.content,
+      aiNote: aiNote ?? this.aiNote,
+      generatedTitle: generatedTitle ?? this.generatedTitle,
       generatedDiary: generatedDiary ?? this.generatedDiary,
+      generatedByAi: generatedByAi ?? this.generatedByAi,
+      generatedModel: generatedModel ?? this.generatedModel,
+      errorMessage: clearError ? null : (errorMessage ?? this.errorMessage),
       isLoading: isLoading ?? this.isLoading,
-      selectedDate: selectedDate ?? this.selectedDate,
+      expectedSeconds: expectedSeconds ?? this.expectedSeconds,
+      startDate: startDate ?? this.startDate,
+      endDate: endDate ?? this.endDate,
+      aiStartDate: aiStartDate ?? this.aiStartDate,
+      aiEndDate: aiEndDate ?? this.aiEndDate,
+      selectedPhotos: selectedPhotos ?? this.selectedPhotos,
+      aiPhotos: aiPhotos ?? this.aiPhotos,
+      posts: posts ?? this.posts,
+      selectedPosts: selectedPosts ?? this.selectedPosts,
+      timeline: timeline ?? this.timeline,
+      selectedTimeline: selectedTimeline ?? this.selectedTimeline,
+      isLoadingSources: isLoadingSources ?? this.isLoadingSources,
+      diaryStyle: diaryStyle ?? this.diaryStyle,
+      diaryCustom: diaryCustom ?? this.diaryCustom,
+      diaryLengthChars: diaryLengthChars ?? this.diaryLengthChars,
+      summaryLengthChars: summaryLengthChars ?? this.summaryLengthChars,
+      summaryDiaries: summaryDiaries ?? this.summaryDiaries,
+      summaryStyle: summaryStyle ?? this.summaryStyle,
+      summaryCustom: summaryCustom ?? this.summaryCustom,
     );
   }
 }
 
-class DiaryCreateViewModel extends Notifier<DiaryCreateState> {
+class DiaryCreateViewModel extends AutoDisposeNotifier<DiaryCreateState> {
   late final _generateDiaryUseCase = ref.read(generateDiaryUseCaseProvider);
-  late final _getTodayPhotosUseCase = ref.read(getTodayPhotosUseCaseProvider);
+
+  // 画面を閉じた後に読み込みや生成が終わった場合、結果を反映しないようにする
+  bool _isDisposed = false;
 
   @override
   DiaryCreateState build() {
+    // resetAfterSave(invalidateSelf)で作り直されるときも、同じインスタンスが使われる。
+    // 破棄済みのままだと、あとの生成結果が捨てられて、書いている表示が終わらなくなる
+    _isDisposed = false;
+    ref.onDispose(() => _isDisposed = true);
+
     final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+
+    // 初期表示は今日の日記
     return DiaryCreateState(
-      selectedDate: DateTime(now.year, now.month, now.day),
+      startDate: today,
+      endDate: today,
+      aiStartDate: today,
+      aiEndDate: today,
     );
   }
 
-  void setSelectedDate(DateTime date) {
-    state = state.copyWith(selectedDate: date);
+  // Xの投稿と行動履歴を読み込み済みの対象期間
+  DateTime? _loadedStart;
+  DateTime? _loadedEnd;
+
+  /// 日記の日付を変更する
+  /// AIに渡す情報の期間も、その日の1日分に戻す(有料プランは、期間を選び直せる)
+  /// 対象日が変わるとAIに渡せる情報も変わるため、AI用の選択内容は空に戻す
+  /// (自分で書く日記に添える写真は、日付に関係ないためそのまま残す)
+  void setDate(DateTime date) {
+    final day = DateTime(date.year, date.month, date.day);
+
+    state = state.copyWith(
+      startDate: day,
+      endDate: day,
+      aiStartDate: day,
+      aiEndDate: day,
+      aiPhotos: const [],
+      posts: const [],
+      selectedPosts: const [],
+      timeline: const [],
+      selectedTimeline: const [],
+    );
+
+    _loadedStart = null;
+    _loadedEnd = null;
+  }
+
+  /// AIに渡す情報の期間を変更する(プランに関わらず選べる)
+  /// 期間が変わるとAIに渡せる情報も変わるため、AI用の選択内容は空に戻す
+  void setAiDateRange(DateTime start, DateTime end) {
+    // 複数日を選べないプランでは、日記の日付の1日分だけ
+    if (!ref.read(diaryPlanProvider).allowsMultipleDays) return;
+
+    final first = DateTime(start.year, start.month, start.day);
+    var last = DateTime(end.year, end.month, end.day);
+
+    if (last.isBefore(first)) last = first;
+
+    state = state.copyWith(
+      aiStartDate: first,
+      aiEndDate: last,
+      aiPhotos: const [],
+      posts: const [],
+      selectedPosts: const [],
+      timeline: const [],
+      selectedTimeline: const [],
+    );
+
+    _loadedStart = null;
+    _loadedEnd = null;
   }
 
   void setInputTitle(String text) {
@@ -60,63 +264,406 @@ class DiaryCreateViewModel extends Notifier<DiaryCreateState> {
     state = state.copyWith(content: text);
   }
 
-  Future<void> generateDiary() async {
+  void setAiNote(String text) {
+    state = state.copyWith(aiNote: text);
+  }
 
-    state = state.copyWith(isLoading: true);
+  // 自分で書く日記に添える写真をセット
+  void setSelectedPhotos(List<Photo> photos) {
+    state = state.copyWith(selectedPhotos: List.unmodifiable(photos));
+  }
+
+  // AIに渡す写真をセット
+  void setAiPhotos(List<Photo> photos) {
+    state = state.copyWith(aiPhotos: List.unmodifiable(photos));
+  }
+
+  // まとめ日記の材料にする日記をセット
+  void setSummaryDiaries(List<Diary> diaries) {
+    state = state.copyWith(summaryDiaries: List.unmodifiable(diaries));
+  }
+
+  /// 前回のふつうのAI日記の書き方の選択を読み込む(画面を開いたときに呼ぶ)
+  Future<void> loadDiaryStyle() async {
+    final style = await ref.read(diaryStyleRepositoryProvider).load();
+    if (_isDisposed) return;
+
+    state = state.copyWith(diaryStyle: style);
+  }
+
+  /// 文字数の目安を入力する(保存しない。日記を保存したら、指定しないに戻る)
+  void setDiaryLength(int chars) {
+    state = state.copyWith(diaryLengthChars: chars);
+  }
+
+  void setSummaryLength(int chars) {
+    state = state.copyWith(summaryLengthChars: chars);
+  }
+
+  /// ふつうのAI日記の書き方を選ぶ(次回のために保存する)
+  void setDiaryStyle(DiaryStyle style) {
+    state = state.copyWith(diaryStyle: style);
+    _saveDiaryStyle();
+  }
+
+  /// 「自分で指定」の書き方の指示を書き換える(書いた指示は、保存しない)
+  void setDiaryCustom(String text) {
+    state = state.copyWith(diaryCustom: text);
+  }
+
+  /// 「自分で指定」に書いた指示を消す(画面を離れたときに呼ぶ)。
+  /// 「自分で指定」を選んでいたときは、日記に戻す
+  void clearDiaryCustom() {
+    if (_isDisposed) return;
+
+    final wasCustom = state.diaryStyle == DiaryStyle.custom;
+    state = state.copyWith(
+      diaryCustom: '',
+      diaryStyle: wasCustom ? DiaryStyle.diary : null,
+    );
+    if (wasCustom) _saveDiaryStyle();
+  }
+
+  void _saveDiaryStyle() {
+    ref
+        .read(diaryStyleRepositoryProvider)
+        .save(state.diaryStyle)
+        .catchError((Object e) => AppLog.add('日記', '書き方の保存に失敗: $e'));
+  }
+
+  /// 前回の書き方の選択を読み込む(画面を開いたときに呼ぶ)
+  Future<void> loadSummaryStyle() async {
+    final style = await ref.read(summaryStyleRepositoryProvider).load();
+    if (_isDisposed) return;
+
+    state = state.copyWith(summaryStyle: style);
+  }
+
+  /// 書き方を選ぶ(次回のために保存する)
+  void setSummaryStyle(SummaryStyle style) {
+    state = state.copyWith(summaryStyle: style);
+    _saveSummaryStyle();
+  }
+
+  /// 「自分で指定」の書き方の指示を書き換える
+  /// (書いた指示は、保存しない)
+  void setSummaryCustom(String text) {
+    state = state.copyWith(summaryCustom: text);
+  }
+
+  /// 「自分で指定」に書いた指示を消す(画面を離れたときに呼ぶ)。
+  /// 「自分で指定」を選んでいたときは、読み物に戻す
+  void clearSummaryCustom() {
+    if (_isDisposed) return;
+
+    final wasCustom = state.summaryStyle == SummaryStyle.custom;
+    state = state.copyWith(
+      summaryCustom: '',
+      summaryStyle: wasCustom ? SummaryStyle.reading : null,
+    );
+    if (wasCustom) _saveSummaryStyle();
+  }
+
+  /// 相談でAIが提案した書き方を、「自分で指定」にして反映する
+  void applySummaryProposal(String text) {
+    state = state.copyWith(
+      summaryStyle: SummaryStyle.custom,
+      summaryCustom: text,
+    );
+  }
+
+  /// 日記を保存したあとに、前回の選択内容(写真・期間・メモ・書き方など)を全て初期状態に戻す。
+  /// 保存してある書き方の選択も、初期値(日記・読み物)に戻す
+  void resetAfterSave() {
+    final diaryRepository = ref.read(diaryStyleRepositoryProvider);
+    final summaryRepository = ref.read(summaryStyleRepositoryProvider);
+
+    diaryRepository
+        .save(DiaryStyle.diary)
+        .catchError((Object e) => AppLog.add('日記', '書き方の保存に失敗: $e'));
+    summaryRepository
+        .save(SummaryStyle.reading)
+        .catchError((Object e) => AppLog.add('日記', '書き方の保存に失敗: $e'));
+
+    ref.invalidateSelf();
+  }
+
+  void _saveSummaryStyle() {
+    ref
+        .read(summaryStyleRepositoryProvider)
+        .save(state.summaryStyle)
+        .catchError((Object e) => AppLog.add('日記', '書き方の保存に失敗: $e'));
+  }
+
+  // AIに渡すXの投稿をセット
+  void setSelectedPosts(List<SharedPost> posts) {
+    state = state.copyWith(selectedPosts: List.unmodifiable(posts));
+  }
+
+  // AIに渡す行動履歴をセット
+  void setSelectedTimeline(List<TimelineItem> items) {
+    state = state.copyWith(selectedTimeline: List.unmodifiable(items));
+  }
+
+  /// 対象期間のXの投稿と行動履歴を読み込む(最初はすべて未選択にする)
+  ///
+  /// AIに書いてもらう画面を開いたときに呼ぶ。同じ期間をすでに読み込んでいる場合は、
+  /// ユーザーの選択を保つため読み込み直さない
+  Future<void> loadSources() async {
+    final start = state.aiStartDate;
+    final end = state.aiEndDate;
+
+    if (state.isLoadingSources) return;
+    if (_loadedStart == start && _loadedEnd == end) return;
+
+    state = state.copyWith(isLoadingSources: true);
+
+    final posts = <SharedPost>[];
+    final timeline = <TimelineItem>[];
 
     try {
-      // 今日の写真を取得
-      final photos = await _getTodayPhotosUseCase.execute(state.selectedDate);
+      final getSharedPosts = ref.read(getSharedPostsUseCaseProvider);
+      final getTimeline = ref.read(getTimelineByDateUseCaseProvider);
 
-      // 本日の行動履歴を取得
-      late final getLocationsByDateUseCase = ref.read(getLocationsByDateUseCaseProvider);
-      final locations = await getLocationsByDateUseCase.execute(
-        state.selectedDate,
-      );
+      for (var day = start;
+          !day.isAfter(end);
+          day = DateTime(day.year, day.month, day.day + 1)) {
+        posts.addAll(await getSharedPosts.execute(day));
+        // 記録をオフにしていた時間帯は、AIに渡す情報ではないため選択肢に出さない
+        timeline.addAll(
+          (await getTimeline.execute(day)).where((e) => e is! RecordingOff),
+        );
+      }
 
-      // 本日のXのポスト一覧を取得
-      late final shareService = ref.read(shareServiceProvider);
-      final posts = await shareService.getPosts(
-        state.selectedDate,
-      );
-
-      // AIに日記を書いてもらう処理を呼び出し
-      final result = await _generateDiaryUseCase.execute(
-        title: state.title,
-        content: state.content,
-        date: state.selectedDate,
-        photos: photos,
-        locations: locations,
-        posts: posts,
-      );
-
-      state = state.copyWith(
-        generatedDiary: result,
-        isLoading: false,
-      );
+      posts.sort((a, b) => a.receivedAt.compareTo(b.receivedAt));
     } catch (e, stackTrace) {
       debugPrint(e.toString());
       debugPrintStack(stackTrace: stackTrace);
+    }
 
-      state = state.copyWith(
-        isLoading: false,
-        generatedDiary: "生成に失敗しました",
+    if (_isDisposed) return;
+
+    // 読み込み中に対象日が変更された場合は反映せず、新しい対象日で読み込み直す
+    if (state.aiStartDate != start || state.aiEndDate != end) {
+      state = state.copyWith(isLoadingSources: false);
+      return loadSources();
+    }
+
+    _loadedStart = start;
+    _loadedEnd = end;
+
+    state = state.copyWith(
+      posts: List.unmodifiable(posts),
+      selectedPosts: const [],
+      timeline: List.unmodifiable(timeline),
+      selectedTimeline: const [],
+      isLoadingSources: false,
+    );
+  }
+
+  /// 自分で書いた内容を、そのまま日記として保存する
+  /// 保存できた場合はtrueを返す
+  Future<bool> saveManualDiary() {
+    return _saveDiary(
+      title: state.title,
+      content: state.content,
+      photos: state.selectedPhotos,
+      date: state.startDate,
+      isAiGenerated: false,
+    );
+  }
+
+  /// AIが書いた日記を保存する(確認画面でユーザーが修正した内容を受け取る)
+  /// 保存できた場合はtrueを返す
+  Future<bool> saveGeneratedDiary({
+    required String title,
+    required String content,
+  }) {
+    return _saveDiary(
+      title: title,
+      content: content,
+      photos: state.aiPhotos,
+      date: state.startDate,
+      isAiGenerated: state.generatedByAi,
+    );
+  }
+
+  Future<bool> _saveDiary({
+    required String title,
+    required String content,
+    required List<Photo> photos,
+    required DateTime date,
+    required bool isAiGenerated,
+  }) async {
+    try {
+      await ref.read(saveDiaryUseCaseProvider).execute(
+        Diary(
+          date: date,
+          title: title.trim(),
+          content: content.trim(),
+          isAiGenerated: isAiGenerated,
+          photoIds: [for (final photo in photos) photo.id],
+          createdAt: DateTime.now(),
+        ),
       );
+      return true;
+    } catch (e, stackTrace) {
+      debugPrint(e.toString());
+      debugPrintStack(stackTrace: stackTrace);
+      return false;
     }
   }
 
-  Future<void> pickPhoto() async {
-    state = state.copyWith(isLoading: true);
+  Future<void> generateDiary() {
+    return _generate(
+      TokenEstimator.estimateSeconds(
+        note: state.aiNote,
+        timeline: state.selectedTimeline,
+        posts: state.selectedPosts,
+        photoCount: state.aiPhotos.length,
+        model: ref.read(aiModelProvider),
+        lengthChars: state.diaryLengthChars,
+      ),
+      () => _generateDiaryUseCase.execute(
+        plan: ref.read(planTypeProvider),
+        note: state.aiNote,
+        diaryDate: state.startDate,
+        startDate: state.aiStartDate,
+        endDate: state.aiEndDate,
+        photos: state.aiPhotos,
+        timeline: state.selectedTimeline,
+        posts: state.selectedPosts,
+        style: state.diaryStyle,
+        customInstruction: state.diaryCustom,
+        lengthChars: state.diaryLengthChars,
+      ),
+    );
+  }
+
+  /// 選んだ作成済みの日記を、AIにまとめてもらう
+  Future<void> generateSummaryDiary() {
+    // 日記を連結させるは、AIを使わずに、日記を日付順につなげる
+    if (state.summaryStyle == SummaryStyle.chronicle) {
+      final diaries = state.summaryDiaries;
+
+      state = state.copyWith(
+        generatedTitle: SummaryJoin.title(diaries),
+        generatedDiary: SummaryJoin.content(diaries),
+        generatedByAi: false,
+        generatedModel: '',
+        isLoading: false,
+        clearError: true,
+      );
+      return Future.value();
+    }
+
+    return _generate(
+      TokenEstimator.estimateSeconds(
+        note: state.aiNote,
+        timeline: const [],
+        posts: const [],
+        photoCount: 0,
+        diaries: state.summaryDiaries,
+        summaryStyle: state.summaryStyle,
+        model: ref.read(aiModelProvider),
+        lengthChars: state.summaryStyle == SummaryStyle.list
+            ? 0
+            : state.summaryLengthChars,
+      ),
+      () => ref.read(generateSummaryDiaryUseCaseProvider).execute(
+        plan: ref.read(planTypeProvider),
+        note: state.aiNote,
+        diaries: state.summaryDiaries,
+        style: state.summaryStyle,
+        customInstruction: state.summaryCustom,
+        lengthChars: state.summaryLengthChars,
+      ),
+    );
+  }
+
+  // 日記を書いてもらい、結果(または失敗)を状態に反映する
+  Future<void> _generate(
+    int expectedSeconds,
+    Future<GeneratedDiary> Function() request,
+  ) async {
+    if (state.isLoading) return;
+
+    state = state.copyWith(
+      isLoading: true,
+      expectedSeconds: expectedSeconds,
+      clearError: true,
+    );
 
     try {
-      final photos =
-      await _getTodayPhotosUseCase.execute(state.selectedDate);
+      final result = await request();
 
-      debugPrint('今日の写真数: ${photos.length}');
+      // 今月の使用量を、画面に反映する
+      final usage = result.usage;
+      if (usage != null) ref.read(usageProvider.notifier).update(usage);
 
-      state = state.copyWith(isLoading: false);
-    } catch (e) {
-      state = state.copyWith(isLoading: false);
+      if (_isDisposed) return;
+
+      state = state.copyWith(
+        generatedTitle: result.title,
+        generatedDiary: result.content,
+        generatedByAi: true,
+        // サーバーが教えてくれたモデル。なければ、選んでいるAIのモデル
+        generatedModel:
+            result.modelName ?? ref.read(aiModelProvider).modelName,
+        isLoading: false,
+      );
+    } on UsageLimitExceededException catch (e) {
+      // 上限に達した場合は、使えるようになる時期を画面に示す
+      final usage = e.usage;
+      if (usage != null) ref.read(usageProvider.notifier).update(usage);
+
+      if (_isDisposed) return;
+
+      state = state.copyWith(
+        isLoading: false,
+        errorMessage: "今月のAIの使用量の上限に達しました",
+      );
+    } on AiTimeoutException {
+      AppLog.add('日記', '生成が時間切れ');
+
+      if (_isDisposed) return;
+
+      state = state.copyWith(
+        isLoading: false,
+        errorMessage:
+            "時間がかかりすぎて、生成できませんでした。文字数の目安を短くするか、少し時間をおいて、もう一度お試しください",
+      );
+    } on AiBusyException catch (e) {
+      AppLog.add('日記', 'AIが混み合っていて失敗: $e');
+
+      if (_isDisposed) return;
+
+      state = state.copyWith(
+        isLoading: false,
+        errorMessage: "AIが混み合っているようです。トークンは減っていません。少し時間をおいて、もう一度お試しください",
+      );
+    } on AiUploadException catch (e, stackTrace) {
+      AppLog.add('日記', '写真のアップロードに失敗: $e');
+      debugPrint(e.toString());
+      debugPrintStack(stackTrace: stackTrace);
+
+      if (_isDisposed) return;
+
+      state = state.copyWith(
+        isLoading: false,
+        errorMessage: "写真のアップロードに失敗しました",
+      );
+    } catch (e, stackTrace) {
+      AppLog.add('日記', '生成に失敗: $e');
+      debugPrint(e.toString());
+      debugPrintStack(stackTrace: stackTrace);
+
+      if (_isDisposed) return;
+
+      state = state.copyWith(
+        isLoading: false,
+        errorMessage: "生成に失敗しました",
+      );
     }
   }
 }

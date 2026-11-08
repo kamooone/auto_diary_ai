@@ -1,17 +1,31 @@
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../domain/usecases/send_message_usecase.dart';
-import '../../data/repositories/openai_repository_impl.dart';
+import '../../../../core/app_info/client_id.dart';
+import '../../../points/application/providers/device_link_provider.dart';
+import '../../data/repositories/aws_ai_repository_impl.dart';
 import '../../domain/repositories/ai_repository.dart';
+import 'ai_model_provider.dart';
+import 'gemini_fallback_provider.dart';
+
+// APIのベースURL(.envのAPI_BASE_URL)
+final apiBaseUrlProvider = Provider<String>((ref) {
+  final baseUrl = dotenv.env["API_BASE_URL"];
+
+  if (baseUrl == null || baseUrl.isEmpty) {
+    throw StateError("API_BASE_URLが.envに設定されていません");
+  }
+  return baseUrl;
+});
 
 // Repository
 final aiRepositoryProvider = Provider<AiRepository>((ref) {
-  return OpenAiRepositoryImpl(
-    dotenv.env["OPENAI_API_KEY"]!,
+  return AwsAiRepositoryImpl(
+    ref.watch(apiBaseUrlProvider),
+    clientId: ClientId.get,
+    deviceToken: ref.read(deviceLinkProvider.notifier).token,
+    onInvalidDeviceToken: ref.read(deviceLinkProvider.notifier).unlink,
+    // 送るたびに、そのときに選んでいるAIの種類を読む
+    model: () => ref.read(aiModelProvider),
+    geminiFallback: () => ref.read(geminiFallbackProvider),
   );
-});
-
-// UseCase
-final sendMessageUseCaseProvider = Provider((ref) {
-  return SendMessageUseCase(ref.read(aiRepositoryProvider));
 });

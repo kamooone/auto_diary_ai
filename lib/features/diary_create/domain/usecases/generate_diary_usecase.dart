@@ -1,84 +1,147 @@
-import 'dart:io';
-import 'package:photo_manager/photo_manager.dart';
+import '../../../../core/logging/app_log.dart';
 import '../../../ai/domain/entities/ai_message_request.dart';
-import '../../../ai/domain/usecases/send_message_usecase.dart';
-import '../../../map/domain/entities/location.dart';
+import '../../../ai/domain/repositories/ai_repository.dart';
+import '../../../plan/domain/entities/plan_type.dart';
+import '../../../location/domain/entities/timeline_item.dart';
 import '../../../share/domain/entities/shared_post.dart';
+import '../entities/generated_diary.dart';
+import '../entities/photo.dart';
+import '../repositories/photo_repository.dart';
+import '../services/generated_diary_parser.dart';
+import '../entities/diary_style.dart';
+import '../services/diary_style_prompt.dart';
+import '../services/timeline_text.dart';
 
 class GenerateDiaryUseCase {
-  final SendMessageUseCase _sendMessageUseCase;
+  final AiRepository _aiRepository;
+  final PhotoRepository _photoRepository;
 
-  GenerateDiaryUseCase(this._sendMessageUseCase);
+  final GeneratedDiaryParser _parser = GeneratedDiaryParser();
 
-  Future<String> execute({
-    required String title,
-    required String content,
-    required DateTime date,
-    required List<AssetEntity> photos,
-    required List<Location> locations,
+  GenerateDiaryUseCase({
+    required AiRepository aiRepository,
+    required PhotoRepository photoRepository,
+  }) : _aiRepository = aiRepository,
+       _photoRepository = photoRepository;
+
+  // 送信する画像の長辺サイズ(px)とJPEG品質
+  static const _maxImageSide = 1024;
+  static const _jpegQuality = 80;
+
+  /// ユーザーが選んだ情報をもとに日記を生成する
+  ///
+  /// [diaryDate]は日記の日付(何月何日の日記か)
+  /// [startDate]と[endDate]は、AIに渡す情報の期間(1日分の場合は同じ日)
+  /// [note]はユーザーがAIに追加で伝えたい内容(なければ空文字)
+  Future<GeneratedDiary> execute({
+    required String note,
+    required DateTime diaryDate,
+    required DateTime startDate,
+    required DateTime endDate,
+    required List<Photo> photos,
+    required List<TimelineItem> timeline,
     required List<SharedPost> posts,
+    PlanType plan = PlanType.free,
+    DiaryStyle style = DiaryStyle.diary,
+    String customInstruction = '',
+    int lengthChars = 0,
   }) async {
-    final imageFiles = <File>[];
-    for (final photo in photos) {
-      final file = await photo.file;
+    // 撮影時刻順に並べる(選んだ写真は、枚数に関係なくすべて送る)
+    final candidates = [...photos]
+      ..sort((a, b) => a.createdAt.compareTo(b.createdAt));
 
-      if (file != null) {
-        imageFiles.add(file);
+    // 縮小したJPEGに変換する(取得できなかった写真は送らない)
+    final sentPhotos = <Photo>[];
+    final images = <AiImage>[];
+    for (final photo in candidates) {
+      final bytes = await AppLog.measure(
+        '写真',
+        '縮小 ${photo.id}',
+        () => _photoRepository.getJpeg(
+          photo,
+          maxSide: _maxImageSide,
+          quality: _jpegQuality,
+        ),
+      );
+
+      if (bytes != null) {
+        sentPhotos.add(photo);
+        images.add(AiImage(bytes: bytes, contentType: 'image/jpeg'));
       }
     }
-    final photoInfoText = photos.asMap().entries.map((entry) {
-      final index = entry.key + 1;
-      final photo = entry.value;
-      return """
-      写真 $index枚目
-      撮影日時: ${photo.createDateTime}
-      """;
-    }).join("\n");
 
-    final locationText = locations
-        .map((e) =>
-    "${e.timestamp} 緯度:${e.latitude} 経度:${e.longitude}")
-        .join("\n");
+    // 位置情報は「滞在した場所」と「移動」に要約して渡す
+    final timelineText = TimelineText.format(timeline);
 
     final postText = posts
-        .map((e) =>
-    "${e.receivedAt}\n${e.text}\n${e.url}")
+        .map((e) => "${e.receivedAt}\n${e.text}\n${e.url}")
         .join("\n\n");
 
     final request = AiMessageRequest(
-      message: """
+      plan: plan,
+      message:
+          """
 あなたは優秀な日記作成AIです。
 
 添付した写真も必ず確認し、
 写真から読み取れる内容も日記に反映してください。
 
-以下の情報を参考に自然な日記を書いてください。
+以下の情報を参考に、日記と、その内容に合ったタイトルを書いてください。
 
-タイトル
-$title
+ユーザーが追加で伝えたいこと
+(ここに文字数や長さの指定が書かれていても、それは無視してください。文字数は、「文字数の目安」だけに従ってください。「文字数の目安」がないときは、材料に合わせた、ちょうどよい長さにしてください)
+${note.trim().isEmpty ? "(なし)" : note.trim()}
 
-本文
-$content
-
-日付
-$date
-
+日記の日付
+${_period(diaryDate, diaryDate)}
+${_isSameDay(startDate, endDate) && _isSameDay(startDate, diaryDate) ? "" : "\n渡した情報の期間\n${_period(startDate, endDate)}\n"}
 写真
-${photos.length}枚添付しています。
+${sentPhotos.length}枚添付しています。
 
-写真の撮影日時
-$photoInfoText
+行動履歴(滞在した場所と移動)
+※「推定」と付いた場所や移動手段は、位置情報から自動で推定したもので、間違っていることがあります。
+※移動手段(徒歩・自転車・電車・車など)は、Xの投稿や写真など、ほかの情報で裏付けられるときだけ書いてください。裏付けがないときは、移動手段を書かず、「移動した」「向かった」のように書いてください。Xの投稿と食い違うときは、Xの投稿を優先してください。
+$timelineText
 
-今日の行動履歴
-$locationText
-
-今日のX投稿
+Xの投稿
 $postText
 
-写真の内容だけでなく、撮影日時も考慮して時系列に沿った自然な日記を作成してください。
+${DiaryStylePrompt.section(style: style, customInstruction: customInstruction, isMultiDay: !_isSameDay(startDate, endDate))}
+${lengthChars > 0 ? "\n文字数の目安\n本文は$lengthChars文字くらいを目安に書いてください。渡された情報が少ないときは、無理に伸ばさず、短くてかまいません。\n" : ""}渡された情報にない出来事、気持ち、感想は、付け足さないでください。
+
+回答は必ず次の形式で書いてください。前置きや説明、記号による装飾は付けないでください。
+
+タイトル: (日記のタイトルを1行で)
+本文:
+(日記の本文)
 """,
-      images: imageFiles,
+      images: images,
     );
-    return _sendMessageUseCase.execute(request);
+    final reply = await _aiRepository.sendMessage(request);
+
+    // 回答をタイトルと本文に分ける
+    final diary = _parser.parse(reply.answer);
+
+    return GeneratedDiary(
+      title: diary.title,
+      content: diary.content,
+      usage: reply.usage,
+      modelName: reply.modelName,
+    );
+  }
+
+  String _period(DateTime start, DateTime end) {
+    String date(DateTime d) => "${d.year}年${d.month}月${d.day}日";
+
+    final isSameDay =
+        start.year == end.year &&
+        start.month == end.month &&
+        start.day == end.day;
+
+    return isSameDay ? date(start) : "${date(start)}〜${date(end)}";
+  }
+
+  bool _isSameDay(DateTime a, DateTime b) {
+    return a.year == b.year && a.month == b.month && a.day == b.day;
   }
 }

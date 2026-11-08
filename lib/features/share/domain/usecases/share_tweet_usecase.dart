@@ -1,13 +1,13 @@
 import 'package:auto_diary_ai/features/share/domain/entities/shared_post.dart';
-import '../../data/datasources/ogp_fetcher.dart';
+import '../repositories/share_repository.dart';
 
 class ShareTweetUseCase {
-  final OgpFetcher ogpFetcher;
+  final ShareRepository repository;
 
-  ShareTweetUseCase(this.ogpFetcher);
+  ShareTweetUseCase(this.repository);
 
   Future<SharedPost> execute(String url) async {
-    final text = await ogpFetcher.fetchText(url);
+    final text = await repository.fetchText(url);
 
     return SharedPost(
       url: url,

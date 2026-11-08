@@ -2,7 +2,7 @@ name: auto_diary_ai
 description: "AIで自動的に日記を生成するFlutterアプリ"
 publish_to: 'none'
 
-version: 1.0.0+1
+version: 1.0.0+106
 
 environment:
   sdk: ^3.9.0
@@ -21,6 +21,12 @@ dependencies:
   latlong2: ^0.9.1     # 座標クラス
   geolocator: ^14.0.2  # GPS取得
 
+  # --- Background Service ---
+  flutter_background_service: ^5.1.0
+
+  permission_handler: ^12.0.3
+  flutter_local_notifications: ^17.2.4
+
   isar: ^3.1.0
   isar_flutter_libs: ^3.1.0
 
@@ -32,14 +38,12 @@ dependencies:
   smooth_page_indicator: ^1.2.1
   awesome_dialog: ^3.3.0
   fluttertoast: ^9.0.0
-  image_picker: ^1.2.0
   path_provider: ^2.1.5
-  cached_network_image: ^3.4.1
   flutter_settings_ui: ^3.0.1
-  dio: ^5.9.0
   photo_manager: ^3.9.0
   receive_sharing_intent: 1.8.0
   http: ^1.2.2
+  google_mobile_ads: ^9.1.0  # AdMob広告
   html: ^0.15.4
   table_calendar: ^3.0.9
   flutter_dotenv: ^5.2.1
@@ -55,6 +59,10 @@ dependencies:
   flutter_localizations:
     sdk: flutter
   intl: ^0.20.2
+  geocoding: ^5.0.0
+  package_info_plus: ^10.2.2
+  url_launcher: ^6.3.3
+  flutter_secure_storage: ^11.2.0
 
 dev_dependencies:
   flutter_test:

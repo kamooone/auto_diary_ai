@@ -1,13 +1,16 @@
 import 'package:auto_diary_ai/common/extensions/build_context_ext.dart';
-import 'package:auto_diary_ai/features/home/presentation/ui/viewmodel/home_view_model.dart';
 import 'package:auto_diary_ai/features/home/presentation/ui/widgets/diary_list_view.dart';
 import 'package:auto_diary_ai/features/home/presentation/ui/widgets/home_scaffold.dart';
-import 'package:auto_diary_ai/features/home/presentation/ui/widgets/month_dropdown.dart';
+import 'package:auto_diary_ai/features/home/presentation/ui/widgets/year_month_dropdown.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:auto_diary_ai/app/router/app_routes.dart';
+import 'package:auto_diary_ai/core/app_info/app_version_provider.dart';
 import 'package:auto_diary_ai/features/home/presentation/providers/home_providers.dart';
+import 'package:auto_diary_ai/features/location/application/providers/location_providers.dart';
+import '../../../ads/presentation/banner_ad_view.dart';
+import '../viewmodel/home_view_model.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -24,6 +27,47 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     super.initState();
 
     pageController = PageController();
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _promptRecordingWidget();
+    });
+  }
+
+  // 行動履歴のオン・オフを切り替えるボタンを、ホーム画面に置くかどうかを尋ねる(初回のみ)
+  Future<void> _promptRecordingWidget() async {
+    final dataSource = ref.read(recordingStateDataSourceProvider);
+
+    if (!await dataSource.isWidgetPinSupported()) return;
+    if (await dataSource.isWidgetPinned()) return;
+    if (!await dataSource.consumeWidgetPrompt()) return;
+
+    if (!mounted) return;
+
+    final shouldAdd = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text("ホーム画面にボタンを表示しますか？"),
+        content: const Text(
+          "行動履歴のオン・オフを切り替えるボタンを、ホーム画面に表示できます。\n"
+          "表示すると、オン・オフの切り替えがすぐにできます。\n\n"
+          "あとから設定画面でも表示できます。",
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text("表示しない"),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text("表示する"),
+          ),
+        ],
+      ),
+    );
+
+    if (shouldAdd == true) {
+      await dataSource.requestPinWidget();
+    }
   }
 
   @override
@@ -62,62 +106,84 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
       actions: [
         IconButton(
+          icon: const Icon(Icons.calendar_month),
+          tooltip: "カレンダー",
+          onPressed: () {
+            context.push(AppRoutes.calendar);
+          },
+        ),
+        IconButton(
           icon: const Icon(Icons.settings),
           onPressed: () {
-            context.push('/settings');
+            context.push(AppRoutes.settings);
           },
         ),
       ],
 
-      body: Stack(
+      body: Column(
         children: [
-          Column(
-            children: [
-              MonthDropdown(
-                months: state.months,
-                selectedMonth: selectedMonth,
-                onChanged: (month) {
-                  viewModel.setMonth(month);
-                },
-              ),
-              Expanded(
-                child: DiaryListView(
-                  months: state.months,
-                  filteredItemsPerMonth: state.filteredItemsPerMonth,
-                  pageController: pageController,
-                  onPageChanged: viewModel.onPageChanged,
+          // 日記の一覧。下の日記作成ボタンとバナー広告には被らない
+          Expanded(
+            child: Stack(
+              children: [
+                // 月の切り替えは、選択中の月が一覧に反映されてから表示する
+                if (state.months.isEmpty)
+                  const Center(
+                    child: Text("まだ日記がありません\n右下のボタンから日記を作成できます"),
+                  )
+                else if (state.months.contains(selectedMonth))
+                  Column(
+                    children: [
+                      YearMonthDropdown(
+                        months: state.months,
+                        selectedMonth: selectedMonth,
+                        onChanged: (month) {
+                          viewModel.setMonth(month);
+                        },
+                      ),
+                      Expanded(
+                        child: DiaryListView(
+                          months: state.months,
+                          filteredItemsPerMonth: state.filteredItemsPerMonth,
+                          pageController: pageController,
+                          onPageChanged: viewModel.onPageChanged,
+                        ),
+                      ),
+                    ],
+                  ),
+
+                // 右下：日記作成(一覧の上に重ねる)
+                Positioned(
+                  right: 16,
+                  bottom: 8,
+                  child: FloatingActionButton(
+                    heroTag: 'diary',
+                    tooltip: '日記作成',
+                    onPressed: () {
+                      context.push(AppRoutes.diaryCreate);
+                    },
+                    child: const Icon(Icons.add),
+                  ),
                 ),
-              ),
-            ],
-          ),
-
-          // 左下：カレンダー
-          Positioned(
-            left: 16,
-            bottom: 16,
-            child: FloatingActionButton(
-              heroTag: 'calendar',
-              tooltip: 'カレンダー',
-              onPressed: () {
-                context.push('/calendar');
-              },
-              child: const Icon(Icons.calendar_month),
+              ],
             ),
           ),
 
-          // 右下：日記作成
-          Positioned(
-            right: 16,
-            bottom: 16,
-            child: FloatingActionButton(
-              heroTag: 'diary',
-              tooltip: '日記作成',
-              onPressed: () {
-                context.push(AppRoutes.diaryCreate);
-              },
-              child: const Icon(Icons.add),
-            ),
+          // 下部：バナー広告、バージョンの表示
+          // (バナー広告を読み込めていない間は、広告の分の空きを作らない)
+          const SizedBox(height: 4),
+          const BannerAdView(),
+          const SizedBox(height: 4),
+
+          // どの版のアプリが入っているかを確認するための表示
+          Text(
+            "バージョン ${ref.watch(appVersionProvider).valueOrNull ?? ""}",
+            style: Theme.of(context)
+                .textTheme
+                .bodySmall
+                ?.copyWith(color: Colors.grey),
           ),
+          const SizedBox(height: 8),
         ],
       ),
     );
