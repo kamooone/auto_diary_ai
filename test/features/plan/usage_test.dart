@@ -112,6 +112,42 @@ void main() {
       expect(sentPlan, 'paid');
     });
 
+    test('材料と設定(prompt)を送るときは、全文(message)は送らない', () async {
+      Map<String, dynamic>? sent;
+
+      final repository = AwsAiRepositoryImpl(
+        'https://example.com',
+        client: MockClient((http.Request r) async {
+          sent = jsonDecode(r.body) as Map<String, dynamic>;
+          return jsonResponse(200, {'answer': 'ok'});
+        }),
+      );
+
+      await repository.sendMessage(
+        const AiMessageRequest(prompt: {'kind': 'summary', 'style': 'list'}),
+      );
+
+      expect(sent!['prompt'], {'kind': 'summary', 'style': 'list'});
+      expect(sent!.containsKey('message'), isFalse);
+    });
+
+    test('promptがないときは、これまでどおり全文(message)を送る', () async {
+      Map<String, dynamic>? sent;
+
+      final repository = AwsAiRepositoryImpl(
+        'https://example.com',
+        client: MockClient((http.Request r) async {
+          sent = jsonDecode(r.body) as Map<String, dynamic>;
+          return jsonResponse(200, {'answer': 'ok'});
+        }),
+      );
+
+      await repository.sendMessage(request);
+
+      expect(sent!['message'], 'こんにちは');
+      expect(sent!.containsKey('prompt'), isFalse);
+    });
+
     test('回答と使用量を受け取り、端末のIDを送る', () async {
       String? clientId;
       Object? sentPlan;

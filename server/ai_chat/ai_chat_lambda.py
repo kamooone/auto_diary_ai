@@ -15,7 +15,12 @@ from datetime import datetime, timedelta, timezone
 from botocore.exceptions import ClientError
 
 # 日記まわりのプロンプト(同じフォルダのファイル。Lambdaには、このファイルと一緒に置くこと)
-import diary_prompts
+# 貼り忘れても、全文(message)を送る古いアプリは動くよう、読み込めないときは None にしておく
+try:
+    import diary_prompts
+except ImportError:
+    diary_prompts = None
+    print("diary_prompts.py を読み込めません。Lambdaに、このファイルと同じ場所に置いてください")
 
 
 secrets_manager = boto3.client("secretsmanager")
@@ -789,6 +794,10 @@ def lambda_handler(event, context):
 
         if prompt is not None:
             sent_images = body.get("images")
+
+            if diary_prompts is None:
+                delete_uploaded_images(sent_images)
+                return response(500, {"error": "diary_prompts.py is missing"})
 
             try:
                 message = diary_prompts.build_prompt(

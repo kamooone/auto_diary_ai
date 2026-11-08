@@ -489,6 +489,15 @@ class AiChatUsageTest(unittest.TestCase):
         self.assertEqual(200, status)
         self.assertNotIn("好きな文章", self.gemini.call_args.args[1])
 
+    def test_a_missing_prompt_module_is_reported_and_raw_messages_still_work(self):
+        with mock.patch.object(m, "diary_prompts", None):
+            status, body = call(self.prompt_event(self.SUMMARY_PROMPT))
+            raw_status, _ = call(chat_event())
+
+        self.assertEqual(500, status)
+        self.assertEqual("diary_prompts.py is missing", body["error"])
+        self.assertEqual(200, raw_status)
+
     def test_a_raw_message_is_allowed_by_default(self):
         status, _ = call(chat_event())
 

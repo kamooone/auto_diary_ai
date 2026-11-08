@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 import 'package:auto_diary_ai/features/ai/domain/entities/ai_message_request.dart';
 import 'package:auto_diary_ai/features/ai/domain/entities/ai_reply.dart';
@@ -13,7 +14,6 @@ import 'package:auto_diary_ai/features/diary_create/domain/repositories/summary_
 import 'package:auto_diary_ai/features/diary_create/presentation/providers/diary_create_provider.dart';
 import 'package:auto_diary_ai/features/diary_create/domain/services/consult_reply_parser.dart';
 import 'package:auto_diary_ai/features/diary_create/domain/services/summary_join.dart';
-import 'package:auto_diary_ai/features/diary_create/domain/services/summary_prompt.dart';
 import 'package:auto_diary_ai/features/diary_create/domain/services/token_estimator.dart';
 import 'package:auto_diary_ai/features/diary_create/presentation/viewmodel/summary_consult_view_model.dart';
 import 'package:auto_diary_ai/features/ai/application/providers/ai_provider.dart';
@@ -30,15 +30,6 @@ Diary diary(int day, String title, String content) => Diary(
 
 final diaries = [diary(1, '初詣', '神社に行った'), diary(2, 'ラーメン', '同僚と食べた')];
 
-String prompt(SummaryStyle style, {String custom = '', int lengthChars = 0}) =>
-    SummaryPrompt.build(
-      style: style,
-      diaries: diaries,
-      note: '',
-      customInstruction: custom,
-      lengthChars: lengthChars,
-    );
-
 class ScriptedAi implements AiRepository {
   ScriptedAi(this.answers);
 
@@ -47,7 +38,8 @@ class ScriptedAi implements AiRepository {
 
   @override
   Future<AiReply> sendMessage(AiMessageRequest request) async {
-    messages.add(request.message);
+    // 送った材料と設定(プロンプトの文章は、サーバーが組み立てる)
+    messages.add(jsonEncode(request.prompt));
     return AiReply(answer: answers.removeAt(0));
   }
 }
@@ -73,23 +65,6 @@ class MemoryDiaryStyleRepository implements DiaryStyleRepository {
 }
 
 void main() {
-  test('追加で伝えたいことに書かれた文字数は無視するよう、プロンプトに入れる', () {
-    expect(
-      prompt(SummaryStyle.reading),
-      contains('文字数や長さの指定が書かれていても、それは無視してください'),
-    );
-  });
-
-  test('文字数の目安を指定したときだけ、目安をプロンプトに入れる(一覧は入れない)', () {
-    expect(prompt(SummaryStyle.reading), isNot(contains('\n文字数の目安\n')));
-
-    final reading = prompt(SummaryStyle.reading, lengthChars: 800);
-    expect(reading, contains('\n文字数の目安\n'));
-    expect(reading, contains('800文字くらいを目安'));
-
-    expect(prompt(SummaryStyle.list, lengthChars: 800), isNot(contains('\n文字数の目安\n')));
-  });
-
   test('書き方は、決めた順番で並ぶ', () {
     expect(SummaryStyle.values.map((e) => e.label), [
       '日記を連結させる',
@@ -237,152 +212,6 @@ void main() {
     });
   });
 
-  group('SummaryPrompt', () {
-    test('どの書き方でも、日記の内容と、日記にないことは書かない決まりを渡す', () {
-      for (final style in SummaryStyle.values) {
-        final text = prompt(style, custom: '短く');
-
-        expect(text, contains('■2026年1月1日 初詣\n神社に行った'));
-        expect(text, contains('付け足さないでください'));
-        expect(text, contains('タイトル: (日記のタイトルを1行で)'));
-      }
-    });
-
-    test('今後の決意や抱負で締めないことを、どの書き方にも伝える', () {
-      for (final style in SummaryStyle.values) {
-        final text = prompt(style, custom: '短く');
-
-        expect(text, contains('今後の決意や抱負'));
-        expect(text, contains('最後の段落も、日記に書かれた出来事で終えてください'));
-      }
-    });
-
-    test('読み物は、日記の材料のあとに、書く前の最終確認を置く', () {
-      for (final style in [SummaryStyle.reading, SummaryStyle.chronicle]) {
-        final text = prompt(style);
-        final material = text.indexOf('■2026年1月2日 ラーメン');
-        final check = text.indexOf('書く前の最終確認');
-        final format = text.indexOf('回答は必ず次の形式');
-
-        expect(check, greaterThan(material));
-        expect(format, greaterThan(check));
-        expect(text, contains('1つの段落は、2〜4文にしてください'));
-        expect(text, contains('「ほぼ毎日」「毎日」「毎日のように」「日課」「習慣」「いつも」は、使わないでください'));
-        expect(text, contains('同じ出来事や、同じ言い回しを、何度も書かないでください'));
-        expect(text, contains('材料のどの時期も、省かずに取り上げてください'));
-        expect(text, contains('タイトルは、材料の期間'));
-      }
-    });
-
-    test('読み物の最終確認に、長さの下限を数字で入れる(日記が多いと、下限も増える)', () {
-      // 日記が少ないとき(最小の500文字)
-      expect(prompt(SummaryStyle.reading), contains('少なくとも500文字にしてください'));
-
-      // 日記が多いとき(約6万文字 → 15%で9,000 → 上限の8,000)
-      final many = [
-        for (var i = 1; i <= 30; i++) diary(i, 't$i', 'あ' * 2000),
-      ];
-      final text = SummaryPrompt.build(
-        style: SummaryStyle.reading,
-        diaries: many,
-        note: '',
-      );
-
-      expect(text, contains('少なくとも8000文字にしてください(目安は8000〜12000文字)'));
-      // 形の説明の目安と、同じ範囲
-      expect(text, contains('長さの目安は8000〜12000文字です'));
-      expect(text, contains('省略した出来事の細部を書き足してください'));
-    });
-
-    test('文字数の目安を指定したときは、長さの下限の数字と食い違わないようにする', () {
-      final many = [
-        for (var i = 1; i <= 30; i++) diary(i, 't$i', 'あ' * 2000),
-      ];
-      final text = SummaryPrompt.build(
-        style: SummaryStyle.reading,
-        diaries: many,
-        note: '',
-        lengthChars: 1000,
-      );
-
-      // 目安を指定したので、下限の数字や、細部を書き足す指示は入れない
-      expect(text, isNot(contains('少なくとも8000文字')));
-      expect(text, isNot(contains('長さの目安は8000〜12000文字です')));
-      expect(text, isNot(contains('省略した出来事の細部を書き足してください')));
-
-      // 長さは、目安だけに合わせる
-      expect(text, contains('「文字数の目安」(1000文字くらい)に合わせてください'));
-      expect(text, contains('本文は1000文字くらいを目安に書いてください'));
-      expect(text, contains('文字数が短いときは、印象に残った出来事を選んでかまいません'));
-    });
-
-    test('文字数の目安がないときは、これまでどおり下限を伝える', () {
-      final text = SummaryPrompt.build(
-        style: SummaryStyle.reading,
-        diaries: [for (var i = 1; i <= 30; i++) diary(i, 't$i', 'あ' * 2000)],
-        note: '',
-      );
-
-      expect(text, contains('少なくとも8000文字にしてください'));
-      expect(text, contains('省略した出来事の細部を書き足してください'));
-    });
-
-    test('簡単なブログ風・一覧・自分で指定には、最終確認を置かない', () {
-      for (final style in [
-        SummaryStyle.brief,
-        SummaryStyle.list,
-        SummaryStyle.custom,
-      ]) {
-        expect(prompt(style, custom: '短く'), isNot(contains('書く前の最終確認')));
-      }
-    });
-
-    test('書き方ごとに、指示が違う', () {
-      expect(prompt(SummaryStyle.reading), contains('形(読み物・ブログ風)'));
-      expect(prompt(SummaryStyle.reading), contains('章立て'));
-      expect(prompt(SummaryStyle.reading), contains('2〜4文ごとの段落'));
-      expect(prompt(SummaryStyle.reading), contains('羅列にしないでください'));
-      expect(prompt(SummaryStyle.reading), contains('頻度の言葉を使わないでください'));
-      expect(
-        prompt(SummaryStyle.reading),
-        contains('「ほぼ毎日」「毎日」「毎日のように」「日課」「習慣」「いつも」という言葉は、使わないでください'),
-      );
-      expect(
-        prompt(SummaryStyle.reading),
-        contains('日記そのものに触れる言い方は、しないでください'),
-      );
-      expect(
-        prompt(SummaryStyle.reading),
-        contains('どの段落も、最初の文で、その段落の出来事の月を示してください'),
-      );
-      expect(prompt(SummaryStyle.reading), contains('日付や時期が前に戻らないように'));
-      expect(prompt(SummaryStyle.reading), contains('目安の下限より短くならないように'));
-      expect(prompt(SummaryStyle.reading), contains('各章に、日付か時期を、少なくとも1つは入れてください'));
-      expect(prompt(SummaryStyle.reading), contains('省略せずに、できるだけ詳しく、ブログのような文章'));
-      expect(prompt(SummaryStyle.reading), contains('日付を先頭に付けた文を並べる書き方は避けてください'));
-
-      expect(prompt(SummaryStyle.brief), contains('読み物(ブログ風)を、もっと簡潔にした形'));
-      expect(prompt(SummaryStyle.brief), contains('「○月○日」と日付を添えて'));
-      expect(prompt(SummaryStyle.brief), contains('段落と段落の間は、1行空けてください'));
-      expect(prompt(SummaryStyle.brief), contains('どの段落にも、「○月○日」と日付を添えた出来事を'));
-      expect(prompt(SummaryStyle.brief), contains('日付が前に戻らないように'));
-      expect(prompt(SummaryStyle.brief), contains('別の日の出来事を混ぜないでください'));
-      expect(prompt(SummaryStyle.list), contains('「・○月○日 出来事」'));
-      expect(prompt(SummaryStyle.list), contains('取り違えないでください'));
-    });
-
-    test('自分で指定は、書いた指示を渡し、意味不明なときは読み物で書かせる', () {
-      final text = prompt(SummaryStyle.custom, custom: 'ですます調で仕事だけ');
-
-      expect(text, contains('ですます調で仕事だけ'));
-      expect(text, contains('最優先'));
-      expect(text, contains('意味不明なとき'));
-      expect(text, contains('日付の流れに沿った読みやすいブログ風の文章'));
-      // 読み物の形の全文は、指示に勝ってしまうため、入れない
-      expect(text, isNot(contains('形(読み物・ブログ風)')));
-    });
-  });
-
   group('TokenEstimator(書き方)', () {
     int estimate(SummaryStyle style) => TokenEstimator.estimate(
       note: '',
@@ -480,7 +309,7 @@ void main() {
       expect(ai.messages[1], isNot(contains('神社に行った')));
       expect(ai.messages[1], contains('MEMO-仕事中心'));
       expect(ai.messages[1], contains('もっと短くして'));
-      expect(ai.messages[1], contains('提案した書き方の指示: 章立てで書く。'));
+      expect(ai.messages[1], contains('"proposal":"章立てで書く。"'));
     });
   });
 

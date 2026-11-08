@@ -9,7 +9,7 @@ import '../entities/photo.dart';
 import '../repositories/photo_repository.dart';
 import '../services/generated_diary_parser.dart';
 import '../entities/diary_style.dart';
-import '../services/diary_style_prompt.dart';
+import '../services/prompt_spec.dart';
 import '../services/timeline_text.dart';
 
 class GenerateDiaryUseCase {
@@ -77,44 +77,20 @@ class GenerateDiaryUseCase {
         .map((e) => "${e.receivedAt}\n${e.text}\n${e.url}")
         .join("\n\n");
 
+    // 指示の文章と組み立ては、サーバーが持つ。アプリは、材料と設定だけを送る
     final request = AiMessageRequest(
       plan: plan,
-      message:
-          """
-あなたは優秀な日記作成AIです。
-
-添付した写真も必ず確認し、
-写真から読み取れる内容も日記に反映してください。
-
-以下の情報を参考に、日記と、その内容に合ったタイトルを書いてください。
-
-ユーザーが追加で伝えたいこと
-(ここに文字数や長さの指定が書かれていても、それは無視してください。文字数は、「文字数の目安」だけに従ってください。「文字数の目安」がないときは、材料に合わせた、ちょうどよい長さにしてください)
-${note.trim().isEmpty ? "(なし)" : note.trim()}
-
-日記の日付
-${_period(diaryDate, diaryDate)}
-${_isSameDay(startDate, endDate) && _isSameDay(startDate, diaryDate) ? "" : "\n渡した情報の期間\n${_period(startDate, endDate)}\n"}
-写真
-${sentPhotos.length}枚添付しています。
-
-行動履歴(滞在した場所と移動)
-※「推定」と付いた場所や移動手段は、位置情報から自動で推定したもので、間違っていることがあります。
-※移動手段(徒歩・自転車・電車・車など)は、Xの投稿や写真など、ほかの情報で裏付けられるときだけ書いてください。裏付けがないときは、移動手段を書かず、「移動した」「向かった」のように書いてください。Xの投稿と食い違うときは、Xの投稿を優先してください。
-$timelineText
-
-Xの投稿
-$postText
-
-${DiaryStylePrompt.section(style: style, customInstruction: customInstruction, isMultiDay: !_isSameDay(startDate, endDate))}
-${lengthChars > 0 ? "\n文字数の目安\n本文は$lengthChars文字くらいを目安に書いてください。渡された情報が少ないときは、無理に伸ばさず、短くてかまいません。\n" : ""}渡された情報にない出来事、気持ち、感想は、付け足さないでください。
-
-回答は必ず次の形式で書いてください。前置きや説明、記号による装飾は付けないでください。
-
-タイトル: (日記のタイトルを1行で)
-本文:
-(日記の本文)
-""",
+      prompt: PromptSpec.diary(
+        style: style,
+        customInstruction: customInstruction,
+        lengthChars: lengthChars,
+        diaryDate: diaryDate,
+        startDate: startDate,
+        endDate: endDate,
+        note: note,
+        timelineText: timelineText,
+        postsText: postText,
+      ),
       images: images,
     );
     final reply = await _aiRepository.sendMessage(request);
@@ -128,20 +104,5 @@ ${lengthChars > 0 ? "\n文字数の目安\n本文は$lengthChars文字くらい�
       usage: reply.usage,
       modelName: reply.modelName,
     );
-  }
-
-  String _period(DateTime start, DateTime end) {
-    String date(DateTime d) => "${d.year}年${d.month}月${d.day}日";
-
-    final isSameDay =
-        start.year == end.year &&
-        start.month == end.month &&
-        start.day == end.day;
-
-    return isSameDay ? date(start) : "${date(start)}〜${date(end)}";
-  }
-
-  bool _isSameDay(DateTime a, DateTime b) {
-    return a.year == b.year && a.month == b.month && a.day == b.day;
   }
 }

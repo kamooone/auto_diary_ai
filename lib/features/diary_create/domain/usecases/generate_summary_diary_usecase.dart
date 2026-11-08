@@ -5,7 +5,7 @@ import '../../../plan/domain/entities/plan_type.dart';
 import '../entities/generated_diary.dart';
 import '../entities/summary_style.dart';
 import '../services/generated_diary_parser.dart';
-import '../services/summary_prompt.dart';
+import '../services/prompt_spec.dart';
 
 /// 作成済みの日記を複数選んで、1つの日記にする
 class GenerateSummaryDiaryUseCase {
@@ -29,7 +29,7 @@ class GenerateSummaryDiaryUseCase {
   }) async {
     final request = AiMessageRequest(
       plan: plan,
-      message: SummaryPrompt.build(
+      prompt: PromptSpec.summary(
         style: style,
         diaries: diaries,
         note: note,

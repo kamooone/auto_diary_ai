@@ -3,7 +3,8 @@ import '../../../ai/domain/repositories/ai_repository.dart';
 import '../../../diary/domain/entities/diary.dart';
 import '../../../plan/domain/entities/plan_type.dart';
 import '../../../plan/domain/entities/usage_info.dart';
-import '../services/consult_prompt.dart';
+import '../services/consult_message.dart';
+import '../services/prompt_spec.dart';
 import '../services/consult_reply_parser.dart';
 import '../services/summary_text.dart';
 
@@ -29,7 +30,7 @@ class ConsultSummaryUseCase {
     required List<Diary> diaries,
     PlanType plan = PlanType.free,
   }) async {
-    final result = await _send(ConsultPrompt.first(diaries), plan);
+    final result = await _send(PromptSpec.consultFirst(diaries), plan);
 
     // AIが材料メモを付けなかったときは、タイトルの一覧で代わりにする
     final brief = result.reply.brief ?? fallbackBrief(diaries);
@@ -52,14 +53,21 @@ class ConsultSummaryUseCase {
     PlanType plan = PlanType.free,
   }) {
     return _send(
-      ConsultPrompt.followUp(brief: brief, history: history, message: message),
+      PromptSpec.consultFollowUp(
+        brief: brief,
+        history: history,
+        message: message,
+      ),
       plan,
     );
   }
 
-  Future<ConsultResult> _send(String message, PlanType plan) async {
+  Future<ConsultResult> _send(
+    Map<String, Object?> prompt,
+    PlanType plan,
+  ) async {
     final reply = await _aiRepository.sendMessage(
-      AiMessageRequest(plan: plan, message: message),
+      AiMessageRequest(plan: plan, prompt: prompt),
     );
 
     // 返答が空のときは、空の吹き出しを出さずに、失敗として扱う(画面から再送できる)
