@@ -81,7 +81,11 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
               child: UsageMeter(usage: usage),
             ),
             trailing: paidPlanEnabled ? Text(plan.label) : null,
-            onTap: () => context.push(AppRoutes.plan),
+            // 有料プランがない間は、使用量はこのタイルで見えるので、画面は開かない
+            // (有料プランを有効にしたときだけ、プランの画面を開く)
+            onTap: paidPlanEnabled
+                ? () => context.push(AppRoutes.plan)
+                : null,
           ),
 
           // 日記を書くAIの種類(Gemini / GPT)
