@@ -63,11 +63,8 @@ class AwsAiRepositoryImpl implements AiRepository {
     final data = await _post(
       _chatPath,
       jsonEncode({
-        // 材料と設定(prompt)を送ると、サーバーが指示と合わせて組み立てる
-        if (request.prompt != null)
-          'prompt': request.prompt
-        else
-          'message': request.message,
+        // 材料と設定を送ると、サーバーが指示と合わせて組み立てる
+        'prompt': request.prompt,
         'images': uploadedImages,
         'plan': request.plan.name,
         'model': (_model?.call() ?? AiModel.gemini).name,
@@ -94,7 +91,7 @@ class AwsAiRepositoryImpl implements AiRepository {
   Future<List<dynamic>> _uploadImages(AiMessageRequest request) async {
     final body = jsonEncode({
       // 画像のアップロードでは、文章は使わない(空だと断られないよう、短い文字を入れる)
-      'message': request.message.isEmpty ? 'prompt' : request.message,
+      'message': 'prompt',
       'images': [
         for (final image in request.images)
           {

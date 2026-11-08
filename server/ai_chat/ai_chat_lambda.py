@@ -15,7 +15,7 @@ from datetime import datetime, timedelta, timezone
 from botocore.exceptions import ClientError
 
 # 日記まわりのプロンプト(同じフォルダのファイル。Lambdaには、このファイルと一緒に置くこと)
-# 貼り忘れても、全文(message)を送る古いアプリは動くよう、読み込めないときは None にしておく
+# 貼り忘れたときに、原因が分かる返事(500)にするため、読み込めないときは None にしておく
 try:
     import diary_prompts
 except ImportError:
@@ -113,16 +113,6 @@ MIN_REMAINING_SECONDS = 12
 
 # Lambdaの残り時間から、回答を受け取ったあとの記録などの分として引く時間(秒)
 RESERVED_SECONDS = 3
-
-# アプリが送ってきた文章(message)を、そのままAIに渡すことを許すか
-# 環境変数 ALLOW_RAW_MESSAGE が "false" のとき、断る(prompt だけを受け付ける)
-# 今は、サーバーとアプリを入れ替える間のために、許している(true)。
-#   - 内部テストに入っている旧ビルドは、プロンプトの全文を message で送ってくる
-#   - サーバーとアプリの、どちらを先に入れ替えても、作成が止まらないようにする
-# 公開前に、アプリがすべて prompt を送るようになったら、"false" にする
-# (アプリから好きな文章をAIに送られて、トークンを使われるのを防げる)
-# 公開前に false にして、この分岐ごと消してもよい(旧ビルドを使わないなら)
-ALLOW_RAW_MESSAGE = os.environ.get("ALLOW_RAW_MESSAGE", "true").lower() != "false"
 
 # 受け付けるプラン。これ以外(未指定を含む)は、無料プランとして扱う
 PAID = "paid"
@@ -792,33 +782,27 @@ def lambda_handler(event, context):
         body = json.loads(event.get("body", "{}"))
 
         # プロンプトは、アプリが材料と設定(prompt)を送り、サーバーが組み立てる
-        # (旧: アプリが全文を message で送る。ALLOW_RAW_MESSAGE が true のときだけ受け付ける)
+        # (アプリから好きな文章をAIに送られて、トークンを使われないよう、全文は受け付けない)
         prompt = body.get("prompt")
 
-        if prompt is not None:
-            sent_images = body.get("images")
+        if prompt is None:
+            delete_uploaded_images(body.get("images"))
+            return response(400, {"error": "prompt is required"})
 
-            if diary_prompts is None:
-                delete_uploaded_images(sent_images)
-                return response(500, {"error": "diary_prompts.py is missing"})
+        sent_images = body.get("images")
 
-            try:
-                message = diary_prompts.build_prompt(
-                    prompt,
-                    len(sent_images) if isinstance(sent_images, list) else 0,
-                )
-            except diary_prompts.PromptError as e:
-                delete_uploaded_images(sent_images)
-                return response(400, {"error": f"invalid prompt: {e}"})
-        else:
-            message = body.get("message", "")
+        if diary_prompts is None:
+            delete_uploaded_images(sent_images)
+            return response(500, {"error": "diary_prompts.py is missing"})
 
-            if message and not ALLOW_RAW_MESSAGE:
-                delete_uploaded_images(body.get("images"))
-                return response(400, {"error": "prompt is required"})
-
-        if not message:
-            return response(400, {"error": "message is required"})
+        try:
+            message = diary_prompts.build_prompt(
+                prompt,
+                len(sent_images) if isinstance(sent_images, list) else 0,
+            )
+        except diary_prompts.PromptError as e:
+            delete_uploaded_images(sent_images)
+            return response(400, {"error": f"invalid prompt: {e}"})
 
         # アプリでユーザーが選んだAIの種類(未指定・不明な値は Gemini)
         model = MODEL_GPT if body.get("model") == MODEL_GPT else MODEL_GEMINI

@@ -14,7 +14,7 @@ http.Response json(int status, Object body) => http.Response.bytes(
 );
 
 void main() {
-  const request = AiMessageRequest(message: 'こんにちは');
+  const request = AiMessageRequest(prompt: {'kind': 'test'});
 
   Future<Object?> failureOf(http.Response response) async {
     final repository = AwsAiRepositoryImpl(

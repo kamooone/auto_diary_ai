@@ -18,7 +18,7 @@ import 'package:flutter_test/flutter_test.dart';
 class CapturingAi implements AiRepository {
   AiMessageRequest? request;
 
-  Map<String, Object?> get prompt => request!.prompt!;
+  Map<String, Object?> get prompt => request!.prompt;
 
   @override
   Future<AiReply> sendMessage(AiMessageRequest request) async {
@@ -81,7 +81,6 @@ void main() {
         note: '誕生日だった',
       );
 
-      expect(ai.request!.message, isEmpty);
       expect(ai.prompt, {
         'kind': 'diary',
         'style': 'blog',
@@ -132,7 +131,6 @@ void main() {
         lengthChars: 800,
       );
 
-      expect(ai.request!.message, isEmpty);
       expect(ai.prompt['kind'], 'summary');
       expect(ai.prompt['style'], 'brief');
       expect(ai.prompt['lengthChars'], 800);

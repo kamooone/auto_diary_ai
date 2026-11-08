@@ -106,6 +106,14 @@ def sha(value):
     return hashlib.sha256(value.encode()).hexdigest()
 
 
+# 日記を1つにする(出来事の一覧)の、材料と設定
+CHAT_PROMPT = {
+    "kind": "summary", "style": "list", "diaryCount": 2,
+    "diariesText": "■2026年1月1日\n初詣", "diariesChars": 12,
+    "note": "", "lengthChars": 0, "customInstruction": "",
+}
+
+
 def chat_event(plan="free", device_token=None, client_id=CLIENT_ID, model=None,
                gemini_fallback=None):
     headers = {}
@@ -113,7 +121,7 @@ def chat_event(plan="free", device_token=None, client_id=CLIENT_ID, model=None,
         headers["X-Client-Id"] = client_id
     if device_token:
         headers["X-Device-Token"] = device_token
-    body = {"message": "こんにちは", "plan": plan}
+    body = {"prompt": CHAT_PROMPT, "plan": plan}
     if model is not None:
         body["model"] = model
     if gemini_fallback is not None:
@@ -430,18 +438,13 @@ class AiChatUsageTest(unittest.TestCase):
     def prompt_event(self, prompt, images=None):
         event = chat_event()
         body = json.loads(event["body"])
-        del body["message"]
         body["prompt"] = prompt
         if images is not None:
             body["images"] = images
         event["body"] = json.dumps(body)
         return event
 
-    SUMMARY_PROMPT = {
-        "kind": "summary", "style": "list", "diaryCount": 2,
-        "diariesText": "■2026年1月1日\n初詣", "diariesChars": 12,
-        "note": "", "lengthChars": 0, "customInstruction": "",
-    }
+    SUMMARY_PROMPT = CHAT_PROMPT
 
     def test_the_server_builds_the_prompt_from_the_spec(self):
         status, _ = call(self.prompt_event(self.SUMMARY_PROMPT))
@@ -478,7 +481,20 @@ class AiChatUsageTest(unittest.TestCase):
         self.assertIn("invalid prompt", body["error"])
         self.gemini.assert_not_called()
 
-    def test_the_prompt_wins_over_a_raw_message(self):
+    def test_a_raw_message_is_refused(self):
+        event = chat_event()
+        body = json.loads(event["body"])
+        del body["prompt"]
+        body["message"] = "好きな文章"
+        event["body"] = json.dumps(body)
+
+        status, response_body = call(event)
+
+        self.assertEqual(400, status)
+        self.assertEqual("prompt is required", response_body["error"])
+        self.gemini.assert_not_called()
+
+    def test_a_raw_message_is_not_passed_even_with_a_prompt(self):
         event = self.prompt_event(self.SUMMARY_PROMPT)
         body = json.loads(event["body"])
         body["message"] = "好きな文章"
@@ -489,34 +505,12 @@ class AiChatUsageTest(unittest.TestCase):
         self.assertEqual(200, status)
         self.assertNotIn("好きな文章", self.gemini.call_args.args[1])
 
-    def test_a_missing_prompt_module_is_reported_and_raw_messages_still_work(self):
+    def test_a_missing_prompt_module_is_reported(self):
         with mock.patch.object(m, "diary_prompts", None):
-            status, body = call(self.prompt_event(self.SUMMARY_PROMPT))
-            raw_status, _ = call(chat_event())
+            status, body = call(chat_event())
 
         self.assertEqual(500, status)
         self.assertEqual("diary_prompts.py is missing", body["error"])
-        self.assertEqual(200, raw_status)
-
-    def test_a_raw_message_is_allowed_by_default(self):
-        status, _ = call(chat_event())
-
-        self.assertEqual(200, status)
-        self.assertEqual("こんにちは", self.gemini.call_args.args[1])
-
-    def test_a_raw_message_is_refused_when_not_allowed(self):
-        with mock.patch.object(m, "ALLOW_RAW_MESSAGE", False):
-            status, body = call(chat_event())
-
-        self.assertEqual(400, status)
-        self.assertEqual("prompt is required", body["error"])
-        self.gemini.assert_not_called()
-
-    def test_the_prompt_is_still_accepted_when_raw_messages_are_refused(self):
-        with mock.patch.object(m, "ALLOW_RAW_MESSAGE", False):
-            status, _ = call(self.prompt_event(self.SUMMARY_PROMPT))
-
-        self.assertEqual(200, status)
 
     # --- アプリの設定(予備のモデルを使う)が、Geminiの呼び出しに渡る ---
 
