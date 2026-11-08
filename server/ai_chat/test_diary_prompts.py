@@ -310,6 +310,61 @@ class ConsultPromptTest(unittest.TestCase):
         self.assertNotIn("日記\n2026", text)
 
 
+class DiaryAnswerTest(unittest.TestCase):
+    """日記の回答の、本文の取り出し(アプリの GeneratedDiaryParser と同じ結果になること)"""
+
+    def content(self, answer):
+        return prompts.diary_answer_content(answer)
+
+    def test_same_results_as_the_app_parser(self):
+        # アプリの generated_diary_parser_test.dart と、同じ入力と、同じ本文
+        self.assertEqual(
+            "今日は公園を歩いた。\n\n紅葉がきれいだった。",
+            self.content("タイトル: 秋の散歩\n本文:\n今日は公園を歩いた。\n\n紅葉がきれいだった。\n"),
+        )
+        self.assertEqual(
+            "今日は公園を歩いた。",
+            self.content("**タイトル：** 「秋の散歩」\n\n**本文：**\n今日は公園を歩いた。"),
+        )
+        self.assertEqual(
+            "今日は公園を歩いた。",
+            self.content("タイトル: 秋の散歩\n\n今日は公園を歩いた。"),
+        )
+        self.assertEqual(
+            "今日は公園を歩いた。\n楽しかった。",
+            self.content("タイトル: 秋の散歩\n本文: 今日は公園を歩いた。\n楽しかった。"),
+        )
+        self.assertEqual(
+            "今日は公園を歩いた。\nタイトル: これは本文の一部",
+            self.content("今日は公園を歩いた。\nタイトル: これは本文の一部"),
+        )
+
+    def test_empty_bodies(self):
+        diary = {"kind": "diary"}
+
+        for answer in [
+            "", "  \n", "タイトル: 無題", "タイトル: 無題\n本文:", "タイトル: 無題\n本文:\n",
+            "タイトル:\n本文:\n", "**タイトル：** x\n**本文：**\n  \n",
+        ]:
+            with self.subTest(repr(answer)):
+                self.assertTrue(prompts.is_empty_diary_answer(diary, answer))
+
+    def test_not_empty(self):
+        diary = {"kind": "summary"}
+
+        for answer in [
+            "タイトル: 無題\n本文:\n中身",
+            "タイトルなしの本文",
+            "本文: だけ",
+        ]:
+            with self.subTest(repr(answer)):
+                self.assertFalse(prompts.is_empty_diary_answer(diary, answer))
+
+    def test_other_kinds_are_not_checked(self):
+        for kind in ("consult_first", "consult_follow_up"):
+            self.assertFalse(prompts.is_empty_diary_answer({"kind": kind}, ""))
+
+
 class LengthRangeTest(unittest.TestCase):
     def test_clamps(self):
         self.assertEqual(prompts.length_range(0), (300, 500))

@@ -580,6 +580,60 @@ def build_consult_follow_up_prompt(spec):
 """
 
 
+# ---- 回答の判定 --------------------------------------------------------------
+
+# 日記・日記を1つにするの回答(「タイトル:」「本文:」の形式)
+_TITLE_PATTERN = re.compile(r"^[#*\s]*タイトル[*\s]*[:：]\s*(.*)$")
+_CONTENT_PATTERN = re.compile(r"^[#*\s]*本文[*\s]*[:：]\s*(.*)$")
+
+# 回答が日記の形式のプロンプト
+DIARY_ANSWER_KINDS = ("diary", "summary")
+
+
+def diary_answer_content(answer):
+    """日記の回答から、本文を取り出す(アプリの GeneratedDiaryParser と、同じ規則)
+
+    指示どおりの形式でなかったときは、回答全体を本文とする。
+    本文が空かの判定にだけ使う(サーバーは、本文を加工して返さない)。
+    アプリの解析(lib/.../generated_diary_parser.dart)を変えたら、ここも合わせること
+    """
+    lines = answer.strip().split("\n")
+
+    title_index = next((i for i, line in enumerate(lines) if line.strip()), -1)
+    title_match = (
+        _TITLE_PATTERN.match(lines[title_index].strip()) if title_index >= 0 else None
+    )
+
+    if title_match is None:
+        return answer.strip()
+
+    rest = lines[title_index + 1:]
+    content_index = next((i for i, line in enumerate(rest) if line.strip()), -1)
+    content_match = (
+        _CONTENT_PATTERN.match(rest[content_index].strip())
+        if content_index >= 0 else None
+    )
+
+    if content_match is None:
+        content_lines = rest
+    else:
+        same_line = re.sub(r"^[*#\s]+", "", content_match.group(1) or "")
+        content_lines = ([same_line] if same_line else []) + rest[content_index + 1:]
+
+    return "\n".join(content_lines).strip()
+
+
+def is_empty_diary_answer(spec, answer):
+    """日記の回答で、本文が空かどうか(空なら、失敗として扱い、トークンを使わせない)
+
+    日記・日記を1つにする以外(相談など)は、見ない
+    """
+    if not isinstance(spec, dict) or spec.get("kind") not in DIARY_ANSWER_KINDS:
+        return False
+
+    return not diary_answer_content(answer)
+
+
 # ---- 入口 --------------------------------------------------------------------
 
 def build_prompt(spec, photo_count=0):

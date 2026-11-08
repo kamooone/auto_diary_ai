@@ -641,7 +641,9 @@ class DiaryCreateViewModel extends AutoDisposeNotifier<DiaryCreateState> {
 
       state = state.copyWith(
         isLoading: false,
-        errorMessage: "AIの回答が空だったため、生成できませんでした。もう一度お試しください(トークンは使われている場合があります)",
+        errorMessage: e.tokensUsed
+            ? "AIの回答が空だったため、生成できませんでした。もう一度お試しください(トークンは使われている場合があります)"
+            : "AIの回答が空だったため、生成できませんでした。トークンは減っていません。もう一度お試しください",
       );
     } on AiBusyException catch (e) {
       AppLog.add('日記', 'AIが混み合っていて失敗: $e');

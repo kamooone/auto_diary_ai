@@ -901,6 +901,18 @@ def lambda_handler(event, context):
                 Key=image["s3_key"],
             )
 
+        # 日記の本文が空のときは、失敗として扱う(空の日記で、トークンを使わせない)
+        # (「タイトル:」だけで本文がない、など。回答の文字はあるので、AIの関数では、はじけない)
+        if diary_prompts.is_empty_diary_answer(prompt, answer):
+            print(json.dumps({
+                "model": model, "tokens": tokens, "action": "empty_diary_answer",
+            }, ensure_ascii=False))
+
+            return response(UPSTREAM_ERROR_STATUS, {
+                "error": "empty_diary_answer",
+                "details": "no diary body in the answer",
+            })
+
         # 使ったトークンを、毎月の枠 → アカウントのトークンの順に減らす
         from_allowance, from_balance = record_usage(
             state["usage_key"], plan, state["account_id"], tokens,

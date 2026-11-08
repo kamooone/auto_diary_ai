@@ -41,11 +41,15 @@ class AiChatException implements Exception {
 }
 
 /// AIは答えたが、日記の本文が空だった(タイトルも本文も取り出せなかった)。
-/// 回答はあったので、トークンは使われている場合がある([usage]は、そのあとの今月の使用量)
+///
+/// サーバーが見つけたときは、トークンは使われない([tokensUsed]がfalse)。
+/// アプリが見つけたときは、回答はあったので、トークンが使われている場合がある
+/// ([usage]は、そのあとの今月の使用量)
 class AiEmptyDiaryException implements Exception {
   final UsageInfo? usage;
+  final bool tokensUsed;
 
-  AiEmptyDiaryException([this.usage]);
+  AiEmptyDiaryException([this.usage, this.tokensUsed = true]);
 
   @override
   String toString() => 'AiEmptyDiaryException';

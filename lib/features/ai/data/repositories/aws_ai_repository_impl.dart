@@ -163,6 +163,10 @@ class AwsAiRepositoryImpl implements AiRepository {
       if (body.toLowerCase().contains('timed out')) {
         throw AiTimeoutException();
       }
+      // 回答に日記の本文がなかった(サーバーが見つけた。トークンは使われない)
+      if (body.contains('empty_diary_answer')) {
+        throw AiEmptyDiaryException(null, false);
+      }
       throw AiBusyException(
         body.length > 200 ? body.substring(0, 200) : body,
       );

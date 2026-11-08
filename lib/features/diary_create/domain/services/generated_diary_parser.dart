@@ -9,6 +9,9 @@ import '../entities/generated_diary.dart';
 ///     (本文)
 ///
 /// 指示どおりの形式でなかった場合は、回答全体を本文として扱う。
+///
+/// サーバー(server/ai_chat/diary_prompts.py の diary_answer_content)も、本文が空かの判定に、
+/// 同じ規則を使っている。この解析を変えたら、サーバーも合わせること。
 class GeneratedDiaryParser {
   static final _titlePattern = RegExp(r'^[#*\s]*タイトル[*\s]*[:：]\s*(.*)$');
   static final _contentPattern = RegExp(r'^[#*\s]*本文[*\s]*[:：]\s*(.*)$');

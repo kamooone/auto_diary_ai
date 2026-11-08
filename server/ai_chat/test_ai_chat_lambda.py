@@ -505,6 +505,27 @@ class AiChatUsageTest(unittest.TestCase):
         self.assertEqual(200, status)
         self.assertNotIn("好きな文章", self.gemini.call_args.args[1])
 
+    def test_an_empty_diary_body_is_a_failure_and_no_tokens_are_used(self):
+        self.gemini.return_value = ("タイトル: 無題\n本文:\n", 5000)
+
+        status, body = call(chat_event())
+
+        self.assertEqual(502, status)
+        self.assertEqual("empty_diary_answer", body["error"])
+
+        # トークンは使われない(使用量は0のまま)
+        status, body = call(usage_event())
+        self.assertEqual(200, status)
+        self.assertEqual(0, body["usage"]["usedTokens"])
+
+    def test_a_consult_answer_is_not_checked_for_a_diary_body(self):
+        self.gemini.return_value = ("【相談の回答】\nどんな長さがいいですか？", 100)
+        consult = {"kind": "consult_follow_up", "brief": "m", "history": [], "message": "x"}
+
+        status, _ = call(self.prompt_event(consult))
+
+        self.assertEqual(200, status)
+
     def test_a_missing_prompt_module_is_reported(self):
         with mock.patch.object(m, "diary_prompts", None):
             status, body = call(chat_event())

@@ -42,6 +42,18 @@ void main() {
       expect(e, isA<AiBusyException>());
     });
 
+    test('サーバーが見つけた、日記の本文が空の502は、空の日記(トークンは使われない)', () async {
+      final e = await failureOf(
+        json(502, {
+          'error': 'empty_diary_answer',
+          'details': 'no diary body in the answer',
+        }),
+      );
+
+      expect(e, isA<AiEmptyDiaryException>());
+      expect((e as AiEmptyDiaryException).tokensUsed, isFalse);
+    });
+
     test('サーバーがAIを待ちきれなかった502(timed out)は、時間切れ', () async {
       final e = await failureOf(
         json(502, {
