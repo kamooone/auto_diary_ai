@@ -3,6 +3,7 @@
   python3 -m unittest server/ai_chat/test_ai_chat_lambda.py
 """
 import hashlib
+import io
 import json
 import os
 import sys
@@ -71,6 +72,9 @@ exceptions = types.ModuleType("botocore.exceptions")
 exceptions.ClientError = ClientError
 sys.modules["botocore"] = botocore
 sys.modules["botocore.exceptions"] = exceptions
+
+# ai_chat_lambda.py が読み込む diary_prompts.py を、同じフォルダから見つけられるようにする
+sys.path.insert(0, os.path.dirname(__file__))
 
 LAMBDA_PATH = os.path.join(os.path.dirname(__file__), "ai_chat_lambda.py")
 LIMIT_PLACEHOLDER = "/* ここは直接入力する */"
@@ -420,6 +424,90 @@ class AiChatUsageTest(unittest.TestCase):
 
         self.assertEqual(200, status)
         self.assertNotIn("usedModel", body)
+
+    # --- プロンプトは、アプリが送る材料と設定から、サーバーが組み立てる ---
+
+    def prompt_event(self, prompt, images=None):
+        event = chat_event()
+        body = json.loads(event["body"])
+        del body["message"]
+        body["prompt"] = prompt
+        if images is not None:
+            body["images"] = images
+        event["body"] = json.dumps(body)
+        return event
+
+    SUMMARY_PROMPT = {
+        "kind": "summary", "style": "list", "diaryCount": 2,
+        "diariesText": "■2026年1月1日\n初詣", "diariesChars": 12,
+        "note": "", "lengthChars": 0, "customInstruction": "",
+    }
+
+    def test_the_server_builds_the_prompt_from_the_spec(self):
+        status, _ = call(self.prompt_event(self.SUMMARY_PROMPT))
+
+        self.assertEqual(200, status)
+        sent = self.gemini.call_args.args[1]
+        self.assertIn("出来事の一覧", sent)
+        self.assertIn("2件の日記", sent)
+        self.assertIn("■2026年1月1日", sent)
+
+    def test_the_photo_count_comes_from_the_images_sent(self):
+        prompt = {
+            "kind": "diary", "style": "diary", "diaryDate": "2026-01-01",
+            "startDate": "2026-01-01", "endDate": "2026-01-01",
+        }
+        images = [
+            {"s3_key": "a", "content_type": "image/jpeg"},
+            {"s3_key": "b", "content_type": "image/jpeg"},
+        ]
+
+        fake_s3 = mock.MagicMock()
+        fake_s3.get_object.return_value = {"Body": io.BytesIO(b"image")}
+
+        with mock.patch.object(m, "s3", fake_s3):
+            status, _ = call(self.prompt_event(prompt, images))
+
+        self.assertEqual(200, status)
+        self.assertIn("2枚添付しています", self.gemini.call_args.args[1])
+
+    def test_an_invalid_prompt_is_refused_without_using_ai(self):
+        status, body = call(self.prompt_event({"kind": "unknown"}))
+
+        self.assertEqual(400, status)
+        self.assertIn("invalid prompt", body["error"])
+        self.gemini.assert_not_called()
+
+    def test_the_prompt_wins_over_a_raw_message(self):
+        event = self.prompt_event(self.SUMMARY_PROMPT)
+        body = json.loads(event["body"])
+        body["message"] = "好きな文章"
+        event["body"] = json.dumps(body)
+
+        status, _ = call(event)
+
+        self.assertEqual(200, status)
+        self.assertNotIn("好きな文章", self.gemini.call_args.args[1])
+
+    def test_a_raw_message_is_allowed_by_default(self):
+        status, _ = call(chat_event())
+
+        self.assertEqual(200, status)
+        self.assertEqual("こんにちは", self.gemini.call_args.args[1])
+
+    def test_a_raw_message_is_refused_when_not_allowed(self):
+        with mock.patch.object(m, "ALLOW_RAW_MESSAGE", False):
+            status, body = call(chat_event())
+
+        self.assertEqual(400, status)
+        self.assertEqual("prompt is required", body["error"])
+        self.gemini.assert_not_called()
+
+    def test_the_prompt_is_still_accepted_when_raw_messages_are_refused(self):
+        with mock.patch.object(m, "ALLOW_RAW_MESSAGE", False):
+            status, _ = call(self.prompt_event(self.SUMMARY_PROMPT))
+
+        self.assertEqual(200, status)
 
     # --- アプリの設定(予備のモデルを使う)が、Geminiの呼び出しに渡る ---
 

@@ -14,6 +14,9 @@ from datetime import datetime, timedelta, timezone
 
 from botocore.exceptions import ClientError
 
+# 日記まわりのプロンプト(同じフォルダのファイル。Lambdaには、このファイルと一緒に置くこと)
+import diary_prompts
+
 
 secrets_manager = boto3.client("secretsmanager")
 ssm = boto3.client("ssm")
@@ -105,6 +108,13 @@ MIN_REMAINING_SECONDS = 12
 
 # Lambdaの残り時間から、回答を受け取ったあとの記録などの分として引く時間(秒)
 RESERVED_SECONDS = 3
+
+# アプリが送ってきた文章(message)を、そのままAIに渡すことを許すか
+# 環境変数 ALLOW_RAW_MESSAGE が "false" のとき、断る(prompt だけを受け付ける)
+# 古いアプリは、プロンプトの全文を message で送ってくる。公開前のため、いまは許している。
+# すべてのアプリが prompt を送るようになったら、"false" にする(アプリから好きな文章を
+# AIに送られて、トークンを使われるのを防げる)
+ALLOW_RAW_MESSAGE = os.environ.get("ALLOW_RAW_MESSAGE", "true").lower() != "false"
 
 # 受け付けるプラン。これ以外(未指定を含む)は、無料プランとして扱う
 PAID = "paid"
@@ -773,7 +783,27 @@ def lambda_handler(event, context):
 
         body = json.loads(event.get("body", "{}"))
 
-        message = body.get("message", "")
+        # プロンプトは、アプリが材料と設定(prompt)を送り、サーバーが組み立てる
+        # (旧: アプリが全文を message で送る。ALLOW_RAW_MESSAGE が true のときだけ受け付ける)
+        prompt = body.get("prompt")
+
+        if prompt is not None:
+            sent_images = body.get("images")
+
+            try:
+                message = diary_prompts.build_prompt(
+                    prompt,
+                    len(sent_images) if isinstance(sent_images, list) else 0,
+                )
+            except diary_prompts.PromptError as e:
+                delete_uploaded_images(sent_images)
+                return response(400, {"error": f"invalid prompt: {e}"})
+        else:
+            message = body.get("message", "")
+
+            if message and not ALLOW_RAW_MESSAGE:
+                delete_uploaded_images(body.get("images"))
+                return response(400, {"error": "prompt is required"})
 
         if not message:
             return response(400, {"error": "message is required"})
