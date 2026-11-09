@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../app/router/app_routes.dart';
-import '../../../ads/application/ads_provider.dart';
 import '../../../ai/application/providers/gemini_fallback_provider.dart';
 import '../../../ai/presentation/widgets/ai_model_selector.dart';
 import '../../../plan/application/providers/plan_provider.dart';
@@ -53,20 +52,6 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
       appBar: AppBar(title: const Text("Settings")),
       body: ListView(
         children: [
-          ListTile(
-            leading: const Icon(Icons.map),
-            title: const Text("Map"),
-            onTap: () async {
-              // 地図を表示する直前に、広告を表示する
-              await ref.read(adPolicyProvider).beforeMap();
-              if (!context.mounted) return;
-
-              context.push(AppRoutes.map);
-            },
-          ),
-
-          const Divider(),
-
           ListTile(
             leading: Icon(
               !paidPlanEnabled

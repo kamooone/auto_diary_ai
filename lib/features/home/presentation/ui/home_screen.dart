@@ -9,6 +9,7 @@ import 'package:auto_diary_ai/app/router/app_routes.dart';
 import 'package:auto_diary_ai/core/app_info/app_version_provider.dart';
 import 'package:auto_diary_ai/features/home/presentation/providers/home_providers.dart';
 import 'package:auto_diary_ai/features/location/application/providers/location_providers.dart';
+import '../../../ads/application/ads_provider.dart';
 import '../../../ads/presentation/banner_ad_view.dart';
 import '../viewmodel/home_view_model.dart';
 
@@ -110,6 +111,17 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           tooltip: "カレンダー",
           onPressed: () {
             context.push(AppRoutes.calendar);
+          },
+        ),
+        IconButton(
+          icon: const Icon(Icons.map),
+          tooltip: "地図",
+          onPressed: () async {
+            // 地図を表示する直前に、広告を表示する
+            await ref.read(adPolicyProvider).beforeMap();
+            if (!context.mounted) return;
+
+            context.push(AppRoutes.map);
           },
         ),
         IconButton(
