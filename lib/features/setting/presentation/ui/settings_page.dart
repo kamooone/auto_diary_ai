@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../app/router/app_routes.dart';
 import '../../../ai/application/providers/gemini_fallback_provider.dart';
 import '../../../ai/presentation/widgets/ai_model_selector.dart';
+import '../../../inquiry/application/providers/inquiry_providers.dart';
 import '../../../plan/application/providers/plan_provider.dart';
 import '../../../plan/domain/entities/plan_availability.dart';
 import '../../../plan/presentation/widgets/usage_meter.dart';
@@ -104,6 +105,23 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
             title: const Text("Xの投稿"),
             subtitle: const Text("保存した投稿の削除、内容の修正、日時の変更ができます"),
             onTap: () => context.push(AppRoutes.sharedPosts),
+          ),
+
+          ListTile(
+            leading: const Icon(Icons.mail_outline),
+            title: const Text("お問い合わせ"),
+            subtitle: Text(
+              (ref.watch(hasUnreadReplyProvider).valueOrNull ?? false)
+                  ? "新しい返信があります"
+                  : "不具合のご報告や、ご要望をお送りください",
+            ),
+            trailing: (ref.watch(hasUnreadReplyProvider).valueOrNull ?? false)
+                ? const Badge(smallSize: 18)
+                : null,
+            onTap: () async {
+              await context.push(AppRoutes.inquiry);
+              ref.invalidate(hasUnreadReplyProvider);
+            },
           ),
 
           const Divider(),

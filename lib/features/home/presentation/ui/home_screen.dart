@@ -11,6 +11,7 @@ import 'package:auto_diary_ai/features/home/presentation/providers/home_provider
 import 'package:auto_diary_ai/features/location/application/providers/location_providers.dart';
 import '../../../ads/application/ads_provider.dart';
 import '../../../ads/presentation/banner_ad_view.dart';
+import '../../../inquiry/application/providers/inquiry_providers.dart';
 import '../../../memo/presentation/ui/memo_edit_dialog.dart';
 import '../../../memo/presentation/ui/memo_list_view.dart';
 import '../viewmodel/home_view_model.dart';
@@ -130,9 +131,17 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           },
         ),
         IconButton(
-          icon: const Icon(Icons.settings),
-          onPressed: () {
-            context.push(AppRoutes.settings);
+          // お問い合わせに、新しい返信があるときは、印を付ける
+          icon: Badge(
+            // 小さすぎて気づきにくいので、標準(6)の3倍にする
+            smallSize: 18,
+            isLabelVisible:
+                ref.watch(hasUnreadReplyProvider).valueOrNull ?? false,
+            child: const Icon(Icons.settings),
+          ),
+          onPressed: () async {
+            await context.push(AppRoutes.settings);
+            ref.invalidate(hasUnreadReplyProvider);
           },
         ),
       ],

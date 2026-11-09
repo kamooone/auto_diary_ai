@@ -6,6 +6,7 @@ import 'package:auto_diary_ai/features/map/presentation/ui/map_page.dart';
 import '../../features/calendar/presentation/ui/calendar_screen.dart';
 import '../../features/diary_create/presentation/ui/diary_create_screen.dart';
 import '../../features/diary_create/presentation/ui/summary_diary_screen.dart';
+import '../../features/inquiry/presentation/ui/inquiry_page.dart';
 import '../../features/plan/presentation/ui/plan_page.dart';
 import '../../features/points/presentation/ui/points_page.dart';
 import '../../features/share/presentation/ui/share_initializer.dart';
@@ -20,6 +21,7 @@ class AppRoutes {
   static const plan = '/settings/plan';
   static const points = '/settings/points';
   static const sharedPosts = '/settings/shared_posts';
+  static const inquiry = '/settings/inquiry';
   static const map = '/map';
 
   static final routes = <RouteBase>[
@@ -61,6 +63,10 @@ class AppRoutes {
         GoRoute(
           path: points,
           builder: (context, state) => const PointsPage(),
+        ),
+        GoRoute(
+          path: inquiry,
+          builder: (context, state) => const InquiryPage(),
         ),
         GoRoute(
           path: map,
