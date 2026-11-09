@@ -11,6 +11,8 @@ import 'package:auto_diary_ai/features/home/presentation/providers/home_provider
 import 'package:auto_diary_ai/features/location/application/providers/location_providers.dart';
 import '../../../ads/application/ads_provider.dart';
 import '../../../ads/presentation/banner_ad_view.dart';
+import '../../../memo/presentation/ui/memo_edit_dialog.dart';
+import '../../../memo/presentation/ui/memo_list_view.dart';
 import '../viewmodel/home_view_model.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
@@ -22,6 +24,9 @@ class HomeScreen extends ConsumerStatefulWidget {
 
 class _HomeScreenState extends ConsumerState<HomeScreen> {
   late final PageController pageController;
+
+  // 0: 日記、1: ひとことメモ
+  var _tabIndex = 0;
 
   @override
   void initState() {
@@ -134,49 +139,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
       body: Column(
         children: [
-          // 日記の一覧。下の日記作成ボタンとバナー広告には被らない
+          // タブの中身。下の作成ボタンとバナー広告には被らない
+          // (タブを切り替えても、日記の月の選択やスクロールの位置を保つため、両方を持ち続ける)
           Expanded(
-            child: Stack(
+            child: IndexedStack(
+              index: _tabIndex,
               children: [
-                // 月の切り替えは、選択中の月が一覧に反映されてから表示する
-                if (state.months.isEmpty)
-                  const Center(
-                    child: Text("まだ日記がありません\n右下のボタンから日記を作成できます"),
-                  )
-                else if (state.months.contains(selectedMonth))
-                  Column(
-                    children: [
-                      YearMonthDropdown(
-                        months: state.months,
-                        selectedMonth: selectedMonth,
-                        onChanged: (month) {
-                          viewModel.setMonth(month);
-                        },
-                      ),
-                      Expanded(
-                        child: DiaryListView(
-                          months: state.months,
-                          filteredItemsPerMonth: state.filteredItemsPerMonth,
-                          pageController: pageController,
-                          onPageChanged: viewModel.onPageChanged,
-                        ),
-                      ),
-                    ],
-                  ),
-
-                // 右下：日記作成(一覧の上に重ねる)
-                Positioned(
-                  right: 16,
-                  bottom: 8,
-                  child: FloatingActionButton(
-                    heroTag: 'diary',
-                    tooltip: '日記作成',
-                    onPressed: () {
-                      context.push(AppRoutes.diaryCreate);
-                    },
-                    child: const Icon(Icons.add),
-                  ),
-                ),
+                _diaryTab(state, viewModel, selectedMonth),
+                const _MemoTab(),
               ],
             ),
           ),
@@ -198,6 +168,100 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           const SizedBox(height: 8),
         ],
       ),
+
+      bottomNavigationBar: NavigationBar(
+        selectedIndex: _tabIndex,
+        onDestinationSelected: (index) => setState(() => _tabIndex = index),
+        destinations: const [
+          NavigationDestination(
+            icon: Icon(Icons.menu_book_outlined),
+            selectedIcon: Icon(Icons.menu_book),
+            label: "日記",
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.edit_note_outlined),
+            selectedIcon: Icon(Icons.edit_note),
+            label: "ひとこと",
+          ),
+        ],
+      ),
+    );
+  }
+
+  // 「日記」タブ: 日記の一覧と、日記を作るボタン
+  Widget _diaryTab(
+    HomeUiModel state,
+    HomeViewModel viewModel,
+    String selectedMonth,
+  ) {
+    return Stack(
+      children: [
+        // 月の切り替えは、選択中の月が一覧に反映されてから表示する
+        if (state.months.isEmpty)
+          const Center(
+            child: Text("まだ日記がありません\n右下のボタンから日記を作成できます"),
+          )
+        else if (state.months.contains(selectedMonth))
+          Column(
+            children: [
+              YearMonthDropdown(
+                months: state.months,
+                selectedMonth: selectedMonth,
+                onChanged: (month) {
+                  viewModel.setMonth(month);
+                },
+              ),
+              Expanded(
+                child: DiaryListView(
+                  months: state.months,
+                  filteredItemsPerMonth: state.filteredItemsPerMonth,
+                  pageController: pageController,
+                  onPageChanged: viewModel.onPageChanged,
+                ),
+              ),
+            ],
+          ),
+
+        // 右下：日記作成(一覧の上に重ねる)
+        Positioned(
+          right: 16,
+          bottom: 8,
+          child: FloatingActionButton(
+            heroTag: 'diary',
+            tooltip: '日記作成',
+            onPressed: () {
+              context.push(AppRoutes.diaryCreate);
+            },
+            child: const Icon(Icons.add),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// 「ひとこと」タブ: ひとことメモの一覧と、メモを追加するボタン
+class _MemoTab extends StatelessWidget {
+  const _MemoTab();
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      children: [
+        const MemoListView(),
+
+        // 右下：メモの追加(一覧の上に重ねる)
+        Positioned(
+          right: 16,
+          bottom: 8,
+          child: FloatingActionButton(
+            heroTag: 'memo',
+            tooltip: 'ひとことメモを追加',
+            onPressed: () => showMemoEditDialog(context),
+            child: const Icon(Icons.add),
+          ),
+        ),
+      ],
     );
   }
 }

@@ -7,6 +7,7 @@ class HomeScaffold extends StatelessWidget {
   final String title;
   final List<Widget>? actions;
   final Widget? floatingActionButton;
+  final Widget? bottomNavigationBar;
 
   const HomeScaffold({
     super.key,
@@ -14,6 +15,7 @@ class HomeScaffold extends StatelessWidget {
     required this.title,
     this.actions,
     this.floatingActionButton,
+    this.bottomNavigationBar,
   });
 
   @override
@@ -26,6 +28,7 @@ class HomeScaffold extends StatelessWidget {
       ),
       body: SafeArea(child: body),
       floatingActionButton: floatingActionButton,
+      bottomNavigationBar: bottomNavigationBar,
     );
   }
 }
