@@ -1,4 +1,6 @@
 import '../../../diary/domain/entities/diary.dart';
+import '../../../memo/domain/entities/memo.dart';
+import '../../../memo/domain/services/memo_text.dart';
 import '../entities/diary_style.dart';
 import '../entities/summary_style.dart';
 import 'consult_message.dart';
@@ -14,7 +16,8 @@ class PromptSpec {
 
   /// ふつうのAI日記
   ///
-  /// [timelineText]は行動履歴、[postsText]はXの投稿を、文章にしたもの
+  /// [timelineText]は行動履歴、[postsText]はXの投稿を、文章にしたもの。
+  /// [memos]は、選んだひとことメモ(文章にして、`memosText`で送る)
   static Map<String, Object?> diary({
     required DiaryStyle style,
     required String customInstruction,
@@ -25,6 +28,7 @@ class PromptSpec {
     required String note,
     required String timelineText,
     required String postsText,
+    List<Memo> memos = const [],
   }) {
     return {
       'kind': 'diary',
@@ -37,6 +41,7 @@ class PromptSpec {
       'note': note,
       'timelineText': timelineText,
       'postsText': postsText,
+      'memosText': MemoText.format(memos),
     };
   }
 

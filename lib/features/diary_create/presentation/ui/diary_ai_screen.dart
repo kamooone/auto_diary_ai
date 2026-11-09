@@ -8,10 +8,12 @@ import '../viewmodel/diary_create_view_model.dart';
 import '../../../plan/presentation/widgets/usage_limit_guidance.dart';
 import '../../../plan/presentation/widgets/usage_meter.dart';
 import '../../../location/domain/entities/timeline_item.dart';
+import '../../../memo/domain/entities/memo.dart';
 import '../../../share/domain/entities/shared_post.dart';
 import '../providers/diary_create_provider.dart';
 import 'diary_result_screen.dart';
 import 'generate_flow.dart';
+import 'memo_select_page.dart';
 import 'post_select_page.dart';
 import 'timeline_select_page.dart';
 import 'widgets/diary_period_text.dart';
@@ -191,6 +193,37 @@ class _DiaryAiScreenState extends ConsumerState<DiaryAiScreen> {
                 ),
                 const Divider(height: 1),
                 ListTile(
+                  leading: const Icon(Icons.edit_note),
+                  title: const Text("ひとことメモ"),
+                  subtitle: Text(
+                    _selectionText(
+                      isLoading: state.isLoadingSources,
+                      total: state.memos.length,
+                      selected: state.selectedMemos.length,
+                      emptyText: "この日のメモはありません",
+                    ),
+                  ),
+                  trailing: _trailing(state.isLoadingSources),
+                  enabled: state.memos.isNotEmpty,
+                  onTap: () async {
+                    final memos = await Navigator.of(context)
+                        .push<List<Memo>>(
+                          MaterialPageRoute(
+                            fullscreenDialog: true,
+                            builder: (context) => MemoSelectPage(
+                              memos: state.memos,
+                              initialSelection: state.selectedMemos,
+                            ),
+                          ),
+                        );
+
+                    if (memos != null) {
+                      viewModel.setSelectedMemos(memos);
+                    }
+                  },
+                ),
+                const Divider(height: 1),
+                ListTile(
                   leading: const Icon(Icons.timeline),
                   title: const Text("行動履歴"),
                   subtitle: Text(
@@ -329,6 +362,7 @@ class _DiaryAiScreenState extends ConsumerState<DiaryAiScreen> {
       note: state.aiNote,
       timeline: state.selectedTimeline,
       posts: state.selectedPosts,
+      memos: state.selectedMemos,
       photoCount: state.aiPhotos.length,
       model: ref.read(aiModelProvider),
       lengthChars: state.diaryLengthChars,

@@ -33,6 +33,7 @@ AIに渡す文章(プロンプト)が、どこに書いてあるかの一覧。
 |---|---|
 | `services/prompt_spec.dart` | **サーバーに送る内容(キー名)を作る。** キー名は、サーバーの `diary_prompts.py` と合わせてある |
 | `services/timeline_text.dart` | 行動履歴を文章にする(「滞在: 場所」「移動(自転車と推定)」) |
+| `lib/features/memo/domain/services/memo_text.dart` | ひとことメモを文章にする(日時と本文を、古い順に並べる)。サーバーに送る内容(`memosText`)と、トークンの見積もりの、両方で使う |
 | `services/summary_text.dart` | 日記を文章にする(`formatForAi`は「■」で区切る)、文字数 |
 | `usecases/generate_diary_usecase.dart` | ふつうの日記: 写真の縮小、行動履歴・投稿を文章にして、`PromptSpec.diary` を送る |
 | `usecases/generate_summary_diary_usecase.dart` | 日記を1つにする: `PromptSpec.summary` を送る |

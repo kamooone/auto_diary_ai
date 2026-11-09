@@ -3,6 +3,8 @@ import 'dart:math' as math;
 import '../../../ai/domain/entities/ai_model.dart';
 import '../../../diary/domain/entities/diary.dart';
 import '../../../location/domain/entities/timeline_item.dart';
+import '../../../memo/domain/entities/memo.dart';
+import '../../../memo/domain/services/memo_text.dart';
 import '../../../share/domain/entities/shared_post.dart';
 import '../entities/summary_style.dart';
 import 'summary_text.dart';
@@ -154,6 +156,7 @@ class TokenEstimator {
     required String note,
     required List<TimelineItem> timeline,
     required List<SharedPost> posts,
+    List<Memo> memos = const [],
     required int photoCount,
     List<Diary> diaries = const [],
     SummaryStyle summaryStyle = SummaryStyle.reading,
@@ -168,6 +171,7 @@ class TokenEstimator {
       note: note,
       timeline: timeline,
       posts: posts,
+      memos: memos,
       photoCount: photoCount,
       diaries: diaries,
       summaryStyle: summaryStyle,
@@ -185,6 +189,7 @@ class TokenEstimator {
     required String note,
     required List<TimelineItem> timeline,
     required List<SharedPost> posts,
+    List<Memo> memos = const [],
     required int photoCount,
     List<Diary> diaries = const [],
     SummaryStyle summaryStyle = SummaryStyle.reading,
@@ -198,6 +203,7 @@ class TokenEstimator {
       note: note,
       timeline: timeline,
       posts: posts,
+      memos: memos,
       photoCount: photoCount,
       diaries: diaries,
       summaryStyle: summaryStyle,
@@ -221,6 +227,7 @@ class TokenEstimator {
     required String note,
     required List<TimelineItem> timeline,
     required List<SharedPost> posts,
+    required List<Memo> memos,
     required int photoCount,
     required List<Diary> diaries,
     required SummaryStyle summaryStyle,
@@ -231,6 +238,7 @@ class TokenEstimator {
 
     final chars =
         TimelineText.format(timeline).length +
+        MemoText.format(memos).length +
         posts.fold<int>(
           0,
           (sum, e) => sum + e.text.length + e.url.length + _dateLength,

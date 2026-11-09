@@ -4,6 +4,7 @@ import '../../../ai/domain/exceptions/ai_exception.dart';
 import '../../../ai/domain/repositories/ai_repository.dart';
 import '../../../plan/domain/entities/plan_type.dart';
 import '../../../location/domain/entities/timeline_item.dart';
+import '../../../memo/domain/entities/memo.dart';
 import '../../../share/domain/entities/shared_post.dart';
 import '../entities/generated_diary.dart';
 import '../entities/photo.dart';
@@ -42,6 +43,7 @@ class GenerateDiaryUseCase {
     required List<Photo> photos,
     required List<TimelineItem> timeline,
     required List<SharedPost> posts,
+    List<Memo> memos = const [],
     PlanType plan = PlanType.free,
     DiaryStyle style = DiaryStyle.diary,
     String customInstruction = '',
@@ -91,6 +93,7 @@ class GenerateDiaryUseCase {
         note: note,
         timelineText: timelineText,
         postsText: postText,
+        memos: memos,
       ),
       images: images,
     );

@@ -1,6 +1,8 @@
+import 'package:auto_diary_ai/features/diary_create/presentation/ui/memo_select_page.dart';
 import 'package:auto_diary_ai/features/diary_create/presentation/ui/post_select_page.dart';
 import 'package:auto_diary_ai/features/diary_create/presentation/ui/timeline_select_page.dart';
 import 'package:auto_diary_ai/features/location/domain/entities/timeline_item.dart';
+import 'package:auto_diary_ai/features/memo/domain/entities/memo.dart';
 import 'package:auto_diary_ai/features/share/domain/entities/shared_post.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -93,6 +95,47 @@ void main() {
 
       expect(find.text('場所2/1'), findsOneWidget);
       expect(find.text('場所1/1'), findsNothing);
+    });
+  });
+
+  group('ひとことメモの選択画面', () {
+    final memos = [
+      Memo(id: 1, text: 'm1', createdAt: DateTime(2026, 1, 1, 9)),
+      Memo(id: 2, text: 'm2', createdAt: DateTime(2026, 1, 2, 9)),
+      Memo(id: 3, text: 'm3', createdAt: DateTime(2026, 2, 1, 9)),
+    ];
+
+    Future<void> open(WidgetTester tester) => tester.pumpWidget(
+      MaterialApp(
+        home: MemoSelectPage(memos: memos, initialSelection: const []),
+      ),
+    );
+
+    testWidgets('月は初めは閉じていて、月ごとにまとめて選択・解除できる', (tester) async {
+      await open(tester);
+
+      expect(find.text('2026年1月  0/2'), findsOneWidget);
+      expect(find.text('m1'), findsNothing);
+
+      await tester.tap(find.text('この月をすべて選択').first);
+      await tester.pump();
+
+      expect(find.text('ひとことメモ (2/3)'), findsOneWidget);
+
+      await tester.tap(find.text('この月を解除'));
+      await tester.pump();
+
+      expect(find.text('ひとことメモ (0/3)'), findsOneWidget);
+    });
+
+    testWidgets('見出しを押すと、その月のメモが開く', (tester) async {
+      await open(tester);
+
+      await tester.tap(find.text('2026年2月  0/1'));
+      await tester.pump();
+
+      expect(find.text('m3'), findsOneWidget);
+      expect(find.text('m1'), findsNothing);
     });
   });
 }

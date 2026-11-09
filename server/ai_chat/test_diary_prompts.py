@@ -23,7 +23,7 @@ def diary_spec(**kwargs):
         "kind": "diary", "style": "diary", "customInstruction": "",
         "lengthChars": 0, "diaryDate": "2026-01-01",
         "startDate": "2026-01-01", "endDate": "2026-01-01",
-        "note": "", "timelineText": "", "postsText": "",
+        "note": "", "timelineText": "", "postsText": "", "memosText": "",
     }
     spec.update(kwargs)
     return spec
@@ -93,6 +93,34 @@ class DiaryPromptTest(unittest.TestCase):
         self.assertIn("07:00 滞在: 自宅", text)
         self.assertIn("満員電車", text)
         self.assertIn("(なし)", build(diary_spec()))
+
+    def test_memos_are_added_only_when_chosen(self):
+        self.assertNotIn("ひとことメモ", build(diary_spec()))
+        self.assertNotIn("ひとことメモ", build(diary_spec(memosText="   ")))
+
+        # 古いアプリ(memosText を送らない)でも、動く
+        spec = diary_spec()
+        del spec["memosText"]
+        self.assertNotIn("ひとことメモ", build(spec))
+
+        text = build(diary_spec(
+            postsText="Xの本文", memosText="2026-11-09 12:34\nカフェでのんびり",
+        ))
+
+        self.assertIn(
+            "ひとことメモ(本人が、その時に書いたメモです。", text,
+        )
+        self.assertIn("2026-11-09 12:34\nカフェでのんびり", text)
+        # Xの投稿のあと、書き方の指示の前
+        self.assertLess(text.index("Xの本文"), text.index("ひとことメモ(本人"))
+        self.assertLess(text.index("ひとことメモ(本人"), text.index("書き方(日記)"))
+
+    def test_without_memos_the_prompt_is_the_same_as_before(self):
+        with_empty = build(diary_spec())
+        without_key = diary_spec()
+        del without_key["memosText"]
+
+        self.assertEqual(with_empty, build(without_key))
 
     def test_transport_must_be_backed_by_other_information(self):
         text = build(diary_spec())

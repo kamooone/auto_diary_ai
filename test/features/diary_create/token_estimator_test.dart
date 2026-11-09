@@ -7,6 +7,8 @@ import 'package:auto_diary_ai/features/diary_create/domain/services/timeline_tex
 import 'package:auto_diary_ai/features/diary_create/domain/services/token_estimator.dart';
 import 'package:auto_diary_ai/features/diary_create/presentation/ui/widgets/token_shortage_dialog.dart';
 import 'package:auto_diary_ai/features/location/domain/entities/timeline_item.dart';
+import 'package:auto_diary_ai/features/memo/domain/entities/memo.dart';
+import 'package:auto_diary_ai/features/memo/domain/services/memo_text.dart';
 import 'package:auto_diary_ai/features/share/domain/entities/shared_post.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -24,6 +26,7 @@ void main() {
     String note = '',
     List<TimelineItem> timeline = const [],
     List<SharedPost> posts = const [],
+    List<Memo> memos = const [],
     int photoCount = 0,
     double multiplier = 1,
   }) {
@@ -31,6 +34,7 @@ void main() {
       note: note,
       timeline: timeline,
       posts: posts,
+      memos: memos,
       photoCount: photoCount,
       multiplier: multiplier,
     );
@@ -75,6 +79,18 @@ void main() {
 
       expect(
         estimate(timeline: [stay]) - estimate(),
+        (length * TokenEstimator.tokensPerChar).ceil(),
+      );
+    });
+
+    test('ひとことメモは、AIに渡す文章と同じものの長さで数える', () {
+      final memos = [
+        Memo(text: 'カフェでのんびり', createdAt: DateTime(2026, 11, 9, 12, 34)),
+      ];
+      final length = MemoText.format(memos).length;
+
+      expect(
+        estimate(memos: memos) - estimate(),
         (length * TokenEstimator.tokensPerChar).ceil(),
       );
     });

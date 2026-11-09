@@ -13,6 +13,7 @@ import 'package:auto_diary_ai/features/diary_create/domain/services/consult_mess
 import 'package:auto_diary_ai/features/diary_create/domain/usecases/consult_summary_usecase.dart';
 import 'package:auto_diary_ai/features/diary_create/domain/usecases/generate_diary_usecase.dart';
 import 'package:auto_diary_ai/features/diary_create/domain/usecases/generate_summary_diary_usecase.dart';
+import 'package:auto_diary_ai/features/memo/domain/entities/memo.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 /// AIに渡す文章の指示は、サーバーが組み立てる(server/ai_chat/diary_prompts.py)。
@@ -54,6 +55,7 @@ void main() {
     String custom = '',
     int lengthChars = 0,
     String note = '',
+    List<Memo> memos = const [],
   }) async {
     final ai = CapturingAi();
     await GenerateDiaryUseCase(aiRepository: ai, photoRepository: NoPhotos())
@@ -65,6 +67,7 @@ void main() {
           photos: const <Photo>[],
           timeline: const [],
           posts: const [],
+          memos: memos,
           style: style,
           customInstruction: custom,
           lengthChars: lengthChars,
@@ -95,7 +98,24 @@ void main() {
         'note': '誕生日だった',
         'timelineText': '',
         'postsText': '',
+        'memosText': '',
       });
+    });
+
+    test('選んだひとことメモは、日時の古い順に、文章にして送る', () async {
+      final ai = await normal(
+        DateTime(2026, 11, 9),
+        DateTime(2026, 11, 9),
+        memos: [
+          Memo(text: ' 夕方のメモ ', createdAt: DateTime(2026, 11, 9, 17, 5)),
+          Memo(text: '朝のメモ', createdAt: DateTime(2026, 11, 9, 8, 30)),
+        ],
+      );
+
+      expect(
+        ai.prompt['memosText'],
+        '2026-11-09 08:30\n朝のメモ\n\n2026-11-09 17:05\n夕方のメモ',
+      );
     });
 
     test('日付は、月と日を2桁にして送る', () async {

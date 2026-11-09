@@ -9,6 +9,8 @@ import '../../../plan/application/providers/plan_provider.dart';
 import '../../../plan/domain/exceptions/usage_limit_exception.dart';
 import '../../../location/domain/entities/timeline_item.dart';
 import '../../../share/application/providers/share_providers.dart';
+import '../../../memo/application/providers/memo_providers.dart';
+import '../../../memo/domain/entities/memo.dart';
 import '../../../share/domain/entities/shared_post.dart';
 import '../../application/providers/diary_usecase_providers.dart';
 import '../../domain/entities/diary_style.dart';
@@ -62,6 +64,10 @@ class DiaryCreateState {
   final List<SharedPost> posts;
   final List<SharedPost> selectedPosts;
 
+  /// 対象期間のひとことメモと、そのうちAIに渡すもの
+  final List<Memo> memos;
+  final List<Memo> selectedMemos;
+
   /// 対象期間の行動履歴(滞在と移動)と、そのうちAIに渡すもの
   final List<TimelineItem> timeline;
   final List<TimelineItem> selectedTimeline;
@@ -103,6 +109,8 @@ class DiaryCreateState {
     this.aiPhotos = const [],
     this.posts = const [],
     this.selectedPosts = const [],
+    this.memos = const [],
+    this.selectedMemos = const [],
     this.timeline = const [],
     this.selectedTimeline = const [],
     this.isLoadingSources = false,
@@ -135,6 +143,8 @@ class DiaryCreateState {
     List<Photo>? aiPhotos,
     List<SharedPost>? posts,
     List<SharedPost>? selectedPosts,
+    List<Memo>? memos,
+    List<Memo>? selectedMemos,
     List<TimelineItem>? timeline,
     List<TimelineItem>? selectedTimeline,
     bool? isLoadingSources,
@@ -165,6 +175,8 @@ class DiaryCreateState {
       aiPhotos: aiPhotos ?? this.aiPhotos,
       posts: posts ?? this.posts,
       selectedPosts: selectedPosts ?? this.selectedPosts,
+      memos: memos ?? this.memos,
+      selectedMemos: selectedMemos ?? this.selectedMemos,
       timeline: timeline ?? this.timeline,
       selectedTimeline: selectedTimeline ?? this.selectedTimeline,
       isLoadingSources: isLoadingSources ?? this.isLoadingSources,
@@ -223,6 +235,8 @@ class DiaryCreateViewModel extends AutoDisposeNotifier<DiaryCreateState> {
       aiPhotos: const [],
       posts: const [],
       selectedPosts: const [],
+      memos: const [],
+      selectedMemos: const [],
       timeline: const [],
       selectedTimeline: const [],
     );
@@ -245,6 +259,8 @@ class DiaryCreateViewModel extends AutoDisposeNotifier<DiaryCreateState> {
       aiPhotos: const [],
       posts: const [],
       selectedPosts: const [],
+      memos: const [],
+      selectedMemos: const [],
       timeline: const [],
       selectedTimeline: const [],
     );
@@ -397,12 +413,17 @@ class DiaryCreateViewModel extends AutoDisposeNotifier<DiaryCreateState> {
     state = state.copyWith(selectedPosts: List.unmodifiable(posts));
   }
 
+  // AIに渡すひとことメモをセット
+  void setSelectedMemos(List<Memo> memos) {
+    state = state.copyWith(selectedMemos: List.unmodifiable(memos));
+  }
+
   // AIに渡す行動履歴をセット
   void setSelectedTimeline(List<TimelineItem> items) {
     state = state.copyWith(selectedTimeline: List.unmodifiable(items));
   }
 
-  /// 対象期間のXの投稿と行動履歴を読み込む(最初はすべて未選択にする)
+  /// 対象期間のXの投稿・ひとことメモ・行動履歴を読み込む(最初はすべて未選択にする)
   ///
   /// AIに書いてもらう画面を開いたときに呼ぶ。同じ期間をすでに読み込んでいる場合は、
   /// ユーザーの選択を保つため読み込み直さない
@@ -416,6 +437,7 @@ class DiaryCreateViewModel extends AutoDisposeNotifier<DiaryCreateState> {
     state = state.copyWith(isLoadingSources: true);
 
     final posts = <SharedPost>[];
+    final memos = <Memo>[];
     final timeline = <TimelineItem>[];
 
     try {
@@ -433,6 +455,13 @@ class DiaryCreateViewModel extends AutoDisposeNotifier<DiaryCreateState> {
       }
 
       posts.sort((a, b) => a.receivedAt.compareTo(b.receivedAt));
+
+      // ひとことメモは、期間の最終日の終わりまで
+      memos.addAll(
+        await ref
+            .read(memoRepositoryProvider)
+            .findBetween(start, DateTime(end.year, end.month, end.day + 1)),
+      );
     } catch (e, stackTrace) {
       debugPrint(e.toString());
       debugPrintStack(stackTrace: stackTrace);
@@ -452,6 +481,8 @@ class DiaryCreateViewModel extends AutoDisposeNotifier<DiaryCreateState> {
     state = state.copyWith(
       posts: List.unmodifiable(posts),
       selectedPosts: const [],
+      memos: List.unmodifiable(memos),
+      selectedMemos: const [],
       timeline: List.unmodifiable(timeline),
       selectedTimeline: const [],
       isLoadingSources: false,
@@ -517,6 +548,7 @@ class DiaryCreateViewModel extends AutoDisposeNotifier<DiaryCreateState> {
         note: state.aiNote,
         timeline: state.selectedTimeline,
         posts: state.selectedPosts,
+        memos: state.selectedMemos,
         photoCount: state.aiPhotos.length,
         model: ref.read(aiModelProvider),
         lengthChars: state.diaryLengthChars,
@@ -530,6 +562,7 @@ class DiaryCreateViewModel extends AutoDisposeNotifier<DiaryCreateState> {
         photos: state.aiPhotos,
         timeline: state.selectedTimeline,
         posts: state.selectedPosts,
+        memos: state.selectedMemos,
         style: state.diaryStyle,
         customInstruction: state.diaryCustom,
         lengthChars: state.diaryLengthChars,

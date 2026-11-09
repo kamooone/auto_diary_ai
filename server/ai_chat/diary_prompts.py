@@ -230,7 +230,8 @@ def build_diary_prompt(spec, photo_count):
     """ふつうのAI日記のプロンプト
 
     spec: style, customInstruction, lengthChars, diaryDate, startDate, endDate(yyyy-MM-dd),
-          note, timelineText(行動履歴を文章にしたもの), postsText(Xの投稿を文章にしたもの)
+          note, timelineText(行動履歴を文章にしたもの), postsText(Xの投稿を文章にしたもの),
+          memosText(ひとことメモを文章にしたもの。なければ空。省略してもよい)
     photo_count: 添付した写真の枚数
     """
     style = _text(spec, "style", "diary")
@@ -242,6 +243,7 @@ def build_diary_prompt(spec, photo_count):
     note = _text(spec, "note").strip()
     timeline_text = _text(spec, "timelineText")
     posts_text = _text(spec, "postsText")
+    memos_text = _text(spec, "memosText").strip()
 
     is_multi_day = start != end
 
@@ -261,6 +263,14 @@ def build_diary_prompt(spec, photo_count):
 
     note_text = note if note else "(なし)"
     style_section = diary_style_section(style, custom_instruction, is_multi_day)
+
+    # ひとことメモ(本人が、その時に書いた言葉)。選んだときだけ入れる
+    memo_section = (
+        "ひとことメモ(本人が、その時に書いたメモです。本人の気持ちや出来事を最もよく表す"
+        "材料なので、内容を日記に反映してください)\n"
+        f"{memos_text}\n\n"
+        if memos_text else ""
+    )
 
     return f"""あなたは優秀な日記作成AIです。
 
@@ -287,7 +297,7 @@ def build_diary_prompt(spec, photo_count):
 Xの投稿
 {posts_text}
 
-{style_section}
+{memo_section}{style_section}
 {length_section}渡された情報にない出来事、気持ち、感想は、付け足さないでください。
 
 {ANSWER_FORMAT}"""
