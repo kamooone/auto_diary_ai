@@ -16,8 +16,9 @@ class PhotoSelectionCard extends StatelessWidget {
   /// 選択済みの写真
   final List<Photo> photos;
 
-  /// 選べる写真の撮影期間([from]以上[to]未満)
-  /// 指定しない場合は、端末内のすべての写真から選べる
+  /// 写真を選ぶ画面を開いたときの、撮影期間の目安([from]以上[to]未満)
+  /// (画面の年と月の選択で、ほかの年月や、すべての写真にも切り替えられる)
+  /// 指定しない場合は、初めから端末内のすべての写真を表示する
   final DateTime? from;
   final DateTime? to;
 

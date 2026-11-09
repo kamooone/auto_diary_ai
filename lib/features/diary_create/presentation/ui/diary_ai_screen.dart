@@ -112,7 +112,8 @@ class _DiaryAiScreenState extends ConsumerState<DiaryAiScreen> {
           ),
           const SizedBox(height: 4),
           Text(
-            "写真・Xの投稿・行動履歴は、選んだ期間のものから選べます",
+            "Xの投稿・ひとことメモ・行動履歴は、選んだ期間のものから選べます。"
+            "写真は、年と月を切り替えて、ほかの時期のものも選べます",
             style: Theme.of(context).textTheme.bodySmall,
           ),
           const SizedBox(height: 12),
@@ -144,7 +145,7 @@ class _DiaryAiScreenState extends ConsumerState<DiaryAiScreen> {
           ),
           const SizedBox(height: 12),
 
-          // AIには、日記の日付に撮影した写真だけを渡せる
+          // AIに渡す写真。初めは日記の日付の月の写真を表示し、年と月を変えて、ほかの写真も選べる
           PhotoSelectionCard(
             photos: state.aiPhotos,
             from: state.aiStartDate,

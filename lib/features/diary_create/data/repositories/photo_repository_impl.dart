@@ -69,6 +69,31 @@ class PhotoRepositoryImpl implements PhotoRepository {
   }
 
   @override
+  Future<DateTime?> getOldestDate() async {
+    final permission = await PhotoManager.requestPermissionExtend();
+
+    if (!permission.hasAccess) {
+      throw PhotoPermissionException();
+    }
+
+    final albums = await PhotoManager.getAssetPathList(
+      type: RequestType.image,
+      onlyAll: true,
+      filterOption: FilterOptionGroup(
+        orders: [
+          const OrderOption(type: OrderOptionType.createDate, asc: true),
+        ],
+      ),
+    );
+
+    if (albums.isEmpty) return null;
+
+    final assets = await albums.first.getAssetListRange(start: 0, end: 1);
+
+    return assets.isEmpty ? null : assets.first.createDateTime;
+  }
+
+  @override
   Future<Uint8List?> getThumbnail(Photo photo) async {
     final asset = await _findAsset(photo.id);
 

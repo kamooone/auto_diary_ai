@@ -14,4 +14,7 @@ class GetPhotosUseCase {
   }) {
     return repository.getPhotos(page: page, size: size, from: from, to: to);
   }
+
+  /// 一番古い写真の撮影日時(写真がない場合はnull)
+  Future<DateTime?> oldestDate() => repository.getOldestDate();
 }

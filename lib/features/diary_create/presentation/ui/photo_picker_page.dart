@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../application/providers/diary_usecase_providers.dart';
 import '../../domain/entities/photo.dart';
+import '../../domain/services/photo_period_filter.dart';
+import 'widgets/photo_period_filter_bar.dart';
 import 'widgets/photo_thumbnail.dart';
 
 /// 日記に使う写真を選択する画面
@@ -16,7 +18,9 @@ class PhotoPickerPage extends ConsumerStatefulWidget {
 
   final List<Photo> initialSelection;
 
-  /// 表示する写真の撮影期間([from]以上[to]未満)
+  /// 初めに表示する写真の撮影期間([from]以上[to]未満)の目安(日記の日付や、AIに渡す情報の期間)
+  /// 期間が1か月に収まるときはその月、ほかは始まりの年に絞って表示する。
+  /// 画面の年と月の選択で、ほかの年月や、すべての写真に切り替えられる。
   /// 指定しない場合は、端末内のすべての写真を表示する
   final DateTime? from;
   final DateTime? to;
@@ -31,6 +35,15 @@ class _PhotoPickerPageState extends ConsumerState<PhotoPickerPage> {
   final _photos = <Photo>[];
   late final _selected = [...widget.initialSelection];
 
+  // 年と月による絞り込み(初めは、日記の日付に合わせる)
+  late var _filter = PhotoPeriodFilter.initial(from: widget.from, to: widget.to);
+
+  // 年の選択肢(一番古い写真の年から、今年まで)
+  late var _years = PhotoPeriodFilter.years(oldest: null, now: DateTime.now());
+
+  // 絞り込みを変えたあとに、前の絞り込みの読み込み結果が届いても、使わないための番号
+  var _generation = 0;
+
   int _page = 0;
   bool _isLoading = false;
   bool _hasMore = true;
@@ -39,23 +52,56 @@ class _PhotoPickerPageState extends ConsumerState<PhotoPickerPage> {
   @override
   void initState() {
     super.initState();
+    _loadYears();
+    _loadMore();
+  }
+
+  Future<void> _loadYears() async {
+    try {
+      final oldest = await ref.read(getPhotosUseCaseProvider).oldestDate();
+
+      if (!mounted) return;
+      setState(() {
+        _years = PhotoPeriodFilter.years(oldest: oldest, now: DateTime.now());
+      });
+    } catch (e) {
+      // 年の選択肢が今年だけになるだけなので、握りつぶす(写真の読み込みの失敗は、別に表示する)
+      debugPrint(e.toString());
+    }
+  }
+
+  // 年と月を変えて、写真を読み込み直す(選択済みの写真は、そのまま残す)
+  void _changeFilter(PhotoPeriodFilter filter) {
+    if (filter == _filter) return;
+
+    setState(() {
+      _filter = filter;
+      _generation++;
+      _photos.clear();
+      _page = 0;
+      _hasMore = true;
+      _isLoading = false;
+      _errorMessage = null;
+    });
+
     _loadMore();
   }
 
   Future<void> _loadMore() async {
     if (_isLoading || !_hasMore) return;
 
+    final generation = _generation;
     setState(() => _isLoading = true);
 
     try {
       final photos = await ref.read(getPhotosUseCaseProvider).execute(
         page: _page,
         size: _pageSize,
-        from: widget.from,
-        to: widget.to,
+        from: _filter.from,
+        to: _filter.to,
       );
 
-      if (!mounted) return;
+      if (!mounted || generation != _generation) return;
       setState(() {
         _photos.addAll(photos);
         _page++;
@@ -65,7 +111,7 @@ class _PhotoPickerPageState extends ConsumerState<PhotoPickerPage> {
     } catch (e) {
       debugPrint(e.toString());
 
-      if (!mounted) return;
+      if (!mounted || generation != _generation) return;
       setState(() {
         _errorMessage = "写真を読み込めませんでした。写真へのアクセスを許可してください。";
         _hasMore = false;
@@ -91,7 +137,16 @@ class _PhotoPickerPageState extends ConsumerState<PhotoPickerPage> {
       appBar: AppBar(
         title: Text("写真を選択 (${_selected.length}枚)"),
       ),
-      body: _buildBody(),
+      body: Column(
+        children: [
+          PhotoPeriodFilterBar(
+            years: _years,
+            value: _filter,
+            onChanged: _changeFilter,
+          ),
+          Expanded(child: _buildBody()),
+        ],
+      ),
       bottomNavigationBar: SafeArea(
         child: Padding(
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
@@ -119,7 +174,9 @@ class _PhotoPickerPageState extends ConsumerState<PhotoPickerPage> {
         child: _isLoading
             ? const CircularProgressIndicator()
             : Text(
-                widget.from == null ? "写真がありません" : "この日に撮影した写真はありません",
+                _filter == PhotoPeriodFilter.all
+                    ? "写真がありません"
+                    : "この期間に撮影した写真はありません",
               ),
       );
     }

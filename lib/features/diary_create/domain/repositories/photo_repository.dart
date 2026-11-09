@@ -11,6 +11,10 @@ abstract class PhotoRepository {
     DateTime? to,
   });
 
+  /// 端末内で、一番古い写真の撮影日時(写真がない場合はnull)
+  /// 年の選択肢の範囲を決めるのに使う
+  Future<DateTime?> getOldestDate();
+
   /// 一覧表示用のサムネイルを取得
   Future<Uint8List?> getThumbnail(Photo photo);
 
