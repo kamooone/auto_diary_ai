@@ -9,6 +9,7 @@ import unittest
 from datetime import datetime, timedelta, timezone
 
 os.environ["INQUIRY_TABLE_NAME"] = "inquiries"
+os.environ["PUSH_TOKEN_TABLE_NAME"] = "push-tokens"
 sys.path.insert(0, os.path.dirname(__file__))
 
 import inquiry  # noqa: E402
@@ -23,8 +24,12 @@ class FakeDynamo:
 
     def __init__(self):
         self.rows = []
+        self.tokens = {}
 
     def put_item(self, TableName, Item):
+        if TableName == "push-tokens":
+            self.tokens[Item["clientId"]["S"]] = Item
+            return
         self.rows.append(Item)
 
     def query(self, TableName, KeyConditionExpression, ExpressionAttributeValues,
@@ -190,6 +195,51 @@ class HandleTest(unittest.TestCase):
         self.assertEqual(
             inquiry.handle("POST", self.db, CLIENT, None),
             (400, {"error": "message_required"}),
+        )
+
+
+TOKEN = "fcm:" + "A" * 40
+
+
+class PushTokenTest(unittest.TestCase):
+    def setUp(self):
+        self.db = FakeDynamo()
+        inquiry.send_inquiry(self.db, CLIENT, body(), now=NOW)
+
+    def register(self, token, client=CLIENT):
+        return inquiry.handle_push_token(
+            self.db, client, json.dumps({"token": token})
+        )
+
+    def test_registers_and_overwrites(self):
+        self.assertEqual(self.register(TOKEN), (200, {"ok": True}))
+        self.assertEqual(self.db.tokens[CLIENT]["token"]["S"], TOKEN)
+
+        self.register(TOKEN + "2")
+        self.assertEqual(self.db.tokens[CLIENT]["token"]["S"], TOKEN + "2")
+        self.assertEqual(len(self.db.tokens), 1)
+
+    def test_invalid_token_is_rejected(self):
+        for bad in ["short", "a b" * 20, "x" * 4097, 123, None]:
+            self.assertEqual(
+                self.register(bad), (400, {"error": "invalid_token"}), msg=str(bad)
+            )
+        self.assertEqual(self.db.tokens, {})
+
+    def test_client_without_inquiry_is_rejected(self):
+        self.assertEqual(
+            self.register(TOKEN, client=OTHER), (403, {"error": "no_inquiry"})
+        )
+        self.assertEqual(self.db.tokens, {})
+
+    def test_bad_body(self):
+        self.assertEqual(
+            inquiry.handle_push_token(self.db, CLIENT, "not json"),
+            (400, {"error": "invalid_body"}),
+        )
+        self.assertEqual(
+            inquiry.handle_push_token(self.db, CLIENT, None),
+            (400, {"error": "invalid_token"}),
         )
 
 

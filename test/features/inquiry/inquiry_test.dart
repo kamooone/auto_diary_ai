@@ -1,12 +1,17 @@
 import 'dart:convert';
+import 'dart:async';
 import 'dart:io';
 import 'package:auto_diary_ai/features/inquiry/application/providers/inquiry_providers.dart';
+import 'package:auto_diary_ai/features/inquiry/application/push_registrar.dart';
 import 'package:auto_diary_ai/features/inquiry/data/aws_inquiry_repository_impl.dart';
+import 'package:auto_diary_ai/features/inquiry/data/aws_push_token_repository_impl.dart';
 import 'package:auto_diary_ai/features/inquiry/data/file_inquiry_state_store.dart';
 import 'package:auto_diary_ai/features/inquiry/domain/entities/inquiry_category.dart';
 import 'package:auto_diary_ai/features/inquiry/domain/entities/inquiry_exception.dart';
 import 'package:auto_diary_ai/features/inquiry/domain/entities/inquiry_message.dart';
 import 'package:auto_diary_ai/features/inquiry/domain/repositories/inquiry_repository.dart';
+import 'package:auto_diary_ai/features/inquiry/domain/repositories/push_token_repository.dart';
+import 'package:auto_diary_ai/features/inquiry/domain/services/push_messaging_gateway.dart';
 import 'package:auto_diary_ai/features/inquiry/presentation/ui/inquiry_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -54,6 +59,40 @@ class FakeInquiryRepository implements InquiryRepository {
 
   @override
   Future<List<InquiryMessage>> fetch() async => [...messages];
+}
+
+class FakePushGateway implements PushMessagingGateway {
+  String? token = 'token-1';
+  var openedFromNotificationAtStart = false;
+  final refresh = StreamController<String>.broadcast();
+  final foreground = StreamController<void>.broadcast();
+  final opened = StreamController<void>.broadcast();
+
+  @override
+  Future<String?> getToken() async => token;
+
+  @override
+  Stream<String> get onTokenRefresh => refresh.stream;
+
+  @override
+  Stream<void> get onForegroundMessage => foreground.stream;
+
+  @override
+  Stream<void> get onNotificationOpened => opened.stream;
+
+  @override
+  Future<bool> openedFromNotification() async => openedFromNotificationAtStart;
+}
+
+class FakePushTokens implements PushTokenRepository {
+  final registered = <String>[];
+  var fails = false;
+
+  @override
+  Future<void> register(String token) async {
+    if (fails) throw http.ClientException('x');
+    registered.add(token);
+  }
 }
 
 class MemoryStateStore implements InquiryStateStore {
@@ -268,16 +307,22 @@ void main() {
   group('お問い合わせの画面', () {
     late FakeInquiryRepository repository;
     late MemoryStateStore store;
+    late FakePushGateway pushGateway;
+    late FakePushTokens pushTokens;
 
     setUp(() {
       repository = FakeInquiryRepository();
       store = MemoryStateStore();
+      pushGateway = FakePushGateway();
+      pushTokens = FakePushTokens();
     });
 
     Widget app() => ProviderScope(
       overrides: [
         inquiryRepositoryProvider.overrideWithValue(repository),
         inquiryStateStoreProvider.overrideWithValue(store),
+        pushMessagingGatewayProvider.overrideWithValue(pushGateway),
+        pushTokenRepositoryProvider.overrideWithValue(pushTokens),
       ],
       child: const MaterialApp(home: InquiryPage()),
     );
@@ -308,6 +353,8 @@ void main() {
 
       expect(repository.sent, [(InquiryCategory.request, '夜のモードが欲しい')]);
       expect(store.state.hasSent, isTrue);
+      // 送ったので、返信の通知の宛先を登録する
+      expect(pushTokens.registered, ['token-1']);
       expect(find.text('夜のモードが欲しい'), findsOneWidget);
       expect(find.text('送信しました。ありがとうございます'), findsOneWidget);
       expect(
@@ -361,6 +408,121 @@ void main() {
         tester.widget<TextField>(find.byKey(const Key('inquiryText'))).controller!.text,
         '本文',
       );
+    });
+  });
+
+  group('AwsPushTokenRepositoryImpl', () {
+    test('端末のIDと宛先を送る。成功以外は例外', () async {
+      late http.Request request;
+      var status = 200;
+
+      final repository = AwsPushTokenRepositoryImpl(
+        'https://example.com',
+        clientId: () async => 'abc12345',
+        client: MockClient((r) async {
+          request = r;
+          return json(status, {'ok': true});
+        }),
+      );
+
+      await repository.register('tok');
+
+      expect(request.url.toString(), 'https://example.com/push-token');
+      expect(request.method, 'POST');
+      expect(request.headers['X-Client-Id'], 'abc12345');
+      expect(jsonDecode(request.body), {'token': 'tok'});
+
+      status = 500;
+      await expectLater(
+        repository.register('tok'),
+        throwsA(isA<http.ClientException>()),
+      );
+    });
+  });
+
+  group('PushRegistrar', () {
+    late FakePushGateway gateway;
+    late FakePushTokens tokens;
+    late MemoryStateStore store;
+    late int opened;
+    late int arrived;
+    late PushRegistrar registrar;
+
+    setUp(() {
+      gateway = FakePushGateway();
+      tokens = FakePushTokens();
+      store = MemoryStateStore();
+      opened = 0;
+      arrived = 0;
+      registrar = PushRegistrar(
+        gateway: gateway,
+        tokens: tokens,
+        store: store,
+        onOpenInquiry: () => opened++,
+        onReplyArrived: () => arrived++,
+      );
+      addTearDown(registrar.dispose);
+    });
+
+    Future<void> settle() => Future<void>.delayed(Duration.zero);
+
+    test('一度も送っていない端末は、宛先を登録しない', () async {
+      await registrar.start();
+      gateway.refresh.add('new-token');
+      await settle();
+
+      expect(tokens.registered, isEmpty);
+    });
+
+    test('送ったことがある端末は、起動時に宛先を登録し、宛先が新しくなったら登録し直す', () async {
+      await store.markSent();
+
+      await registrar.start();
+      expect(tokens.registered, ['token-1']);
+
+      gateway.refresh.add('token-2');
+      await settle();
+      expect(tokens.registered, ['token-1', 'token-2']);
+    });
+
+    test('宛先がない・登録に失敗しても、例外にしない', () async {
+      await store.markSent();
+      gateway.token = null;
+      await registrar.start();
+      expect(tokens.registered, isEmpty);
+
+      tokens.fails = true;
+      gateway.token = 'token-1';
+      await registrar.sync();
+      expect(tokens.registered, isEmpty);
+    });
+
+    test('通知をタップして開いたとき・起動したときは、お問い合わせを開く', () async {
+      gateway.openedFromNotificationAtStart = true;
+      await registrar.start();
+      expect(opened, 1);
+
+      gateway.opened.add(null);
+      await settle();
+      expect(opened, 2);
+    });
+
+    test('アプリを開いている間に通知が届いたら、表示の更新を求める', () async {
+      await registrar.start();
+
+      gateway.foreground.add(null);
+      await settle();
+
+      expect(arrived, 1);
+      expect(opened, 0);
+    });
+
+    test('startを2回呼んでも、1回分だけ動く', () async {
+      await store.markSent();
+      await registrar.start();
+      await registrar.start();
+
+      expect(tokens.registered, ['token-1']);
     });
   });
 }

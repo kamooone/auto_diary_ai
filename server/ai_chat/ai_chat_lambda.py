@@ -796,6 +796,33 @@ def inquiry_method(event):
     return None
 
 
+def is_push_token_request(event):
+    """POST /push-token か(HTTP APIとREST APIの、どちらの形式でも判定する)"""
+    if event.get("routeKey") == "POST /push-token":
+        return True
+
+    return (
+        event.get("httpMethod") == "POST"
+        and event.get("resource") == "/push-token"
+    )
+
+
+def push_token(event):
+    """POST /push-token: 返信の通知の宛先を登録する"""
+    if inquiry is None:
+        return response(500, {"error": "inquiry.py is missing"})
+
+    client_id = header_of(event, "x-client-id")
+
+    if not client_id or not CLIENT_ID_PATTERN.match(client_id):
+        return response(400, {"error": "client_id_required"})
+
+    status, body = inquiry.handle_push_token(
+        dynamodb, client_id, event.get("body")
+    )
+    return response(status, body)
+
+
 def inquiries(event, method):
     """POST /inquiries: 問い合わせを送る / GET /inquiries: 送った内容と返信を見る"""
     if inquiry is None:
@@ -819,6 +846,9 @@ def lambda_handler(event, context):
     try:
         if is_plan_usage_request(event):
             return plan_usage(event)
+
+        if is_push_token_request(event):
+            return push_token(event)
 
         inquiry_request = inquiry_method(event)
 

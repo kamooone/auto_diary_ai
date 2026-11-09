@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../application/providers/inquiry_providers.dart';
@@ -39,6 +40,9 @@ class _InquiryPageState extends ConsumerState<InquiryPage> {
           .read(inquiryRepositoryProvider)
           .send(category: _category, message: _controller.text.trim());
       await ref.read(inquiryStateStoreProvider).markSent();
+
+      // 返信の通知を受けられるよう、この端末の宛先を登録する(失敗しても、送信は成功のまま)
+      unawaited(ref.read(pushRegistrarProvider).sync());
 
       _controller.clear();
       ref.invalidate(inquiryMessagesProvider);
