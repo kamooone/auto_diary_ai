@@ -133,6 +133,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         IconButton(
           // お問い合わせに、新しい返信があるときは、印を付ける
           icon: Badge(
+            // 小さすぎて気づきにくいので、標準(6)の3倍にする
+            smallSize: 18,
             isLabelVisible:
                 ref.watch(hasUnreadReplyProvider).valueOrNull ?? false,
             child: const Icon(Icons.settings),

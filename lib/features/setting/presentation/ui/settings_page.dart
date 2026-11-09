@@ -116,7 +116,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                   : "不具合のご報告や、ご要望をお送りください",
             ),
             trailing: (ref.watch(hasUnreadReplyProvider).valueOrNull ?? false)
-                ? const Badge()
+                ? const Badge(smallSize: 18)
                 : null,
             onTap: () async {
               await context.push(AppRoutes.inquiry);
