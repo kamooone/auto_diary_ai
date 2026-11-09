@@ -21,6 +21,8 @@ plugins {
     id("dev.flutter.flutter-plugin-loader") version "1.0.0"
     id("com.android.application") version "8.13.2" apply false
     id("org.jetbrains.kotlin.android") version "2.2.20" apply false
+    // Firebase(お問い合わせの返信のプッシュ通知)。google-services.json を読み込む
+    id("com.google.gms.google-services") version "4.5.0" apply false
 }
 
 include(":app")

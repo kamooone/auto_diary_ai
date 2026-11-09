@@ -16,6 +16,7 @@ os.environ["USAGE_TABLE_NAME"] = "usage"
 os.environ["ACCOUNTS_TABLE_NAME"] = "accounts"
 os.environ["DEVICES_TABLE_NAME"] = "devices"
 os.environ["INQUIRY_TABLE_NAME"] = "inquiries"
+os.environ["PUSH_TOKEN_TABLE_NAME"] = "push-tokens"
 
 
 class ClientError(Exception):
@@ -589,6 +590,38 @@ class InquiryRouteTest(unittest.TestCase):
 
         self.assertEqual(status, 500)
         self.assertIn("inquiry.py", body["error"])
+
+
+class PushTokenRouteTest(unittest.TestCase):
+    def event(self, client_id=CLIENT_ID, rest=False):
+        headers = {"X-Client-Id": client_id} if client_id else {}
+        event = {"headers": headers, "body": '{"token": "t"}'}
+        if rest:
+            event.update(httpMethod="POST", resource="/push-token")
+        else:
+            event["routeKey"] = "POST /push-token"
+        return event
+
+    def test_routes_to_inquiry_module(self):
+        for rest in (False, True):
+            with mock.patch.object(
+                m.inquiry, "handle_push_token", return_value=(200, {"ok": True})
+            ) as handle:
+                status, body = call(self.event(rest=rest))
+
+            self.assertEqual((status, body), (200, {"ok": True}))
+            handle.assert_called_once_with(
+                m.dynamodb, CLIENT_ID, '{"token": "t"}'
+            )
+
+    def test_client_id_is_required(self):
+        status, body = call(self.event(client_id=None))
+        self.assertEqual((status, body), (400, {"error": "client_id_required"}))
+
+    def test_missing_module_is_500(self):
+        with mock.patch.object(m, "inquiry", None):
+            status, _ = call(self.event())
+        self.assertEqual(status, 500)
 
 
 class AskGeminiTimeoutTest(unittest.TestCase):

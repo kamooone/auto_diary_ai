@@ -2,22 +2,34 @@
 
   POST /inquiries : 端末から問い合わせを送る
   GET  /inquiries : その端末の、送った内容と、開発者からの返信を、古い順に返す
+  POST /push-token: 返信の通知を送る宛先(FCMのトークン)を登録する
 
 保存先は DynamoDB のテーブル(環境変数 INQUIRY_TABLE_NAME。なければ auto-diary-inquiries)。
   パーティションキー clientId (S) : 端末の匿名のID
   ソートキー        sk (S)       : "<日時(UTC・ミリ秒)>#<乱数>"。日時順に並ぶ
 返信は、開発者が inquiry_admin.py で書き込む(from が "developer" の行)。
 
+宛先は、別のテーブル(環境変数 PUSH_TOKEN_TABLE_NAME。なければ auto-diary-push-tokens。
+パーティションキー clientId (S))に置く。返信の通知は、inquiry_push_lambda.py(別のLambda)が送る。
+
 ai_chat_lambda.py と同じ場所に置く。端末のIDの確認などは、ai_chat_lambda.py 側で済ませて渡す。
 """
 import json
 import os
+import re
 import secrets
 from datetime import datetime, timedelta, timezone
 
 INQUIRY_TABLE_NAME = os.environ.get("INQUIRY_TABLE_NAME", "auto-diary-inquiries")
 
+PUSH_TOKEN_TABLE_NAME = os.environ.get(
+    "PUSH_TOKEN_TABLE_NAME", "auto-diary-push-tokens"
+)
+
 CATEGORIES = ("bug", "request", "other")
+
+# FCMのトークンとして受け付ける形(英数字と ":" "_" "-" ".")と長さ
+PUSH_TOKEN_PATTERN = re.compile(r"^[A-Za-z0-9:_.\-]{20,4096}$")
 
 # 本文の最大文字数
 MAX_MESSAGE_LENGTH = 1000
@@ -160,6 +172,45 @@ def list_messages(dynamodb, client_id):
         dynamodb, client_id, limit=MAX_RETURNED, descending=True
     )
     return [to_message(e) for e in reversed(items)]
+
+
+def register_push_token(dynamodb, client_id, body, now=None):
+    """返信の通知の宛先を登録する(同じ端末は上書き)
+
+    一度も問い合わせを送っていない端末は、受け付けない(宛先を、むやみに溜めないため)。
+    """
+    token = body.get("token") if isinstance(body, dict) else None
+
+    if not isinstance(token, str) or not PUSH_TOKEN_PATTERN.match(token):
+        raise InquiryError(400, "invalid_token")
+
+    if not query_messages(dynamodb, client_id, limit=1):
+        raise InquiryError(403, "no_inquiry")
+
+    now = (now or datetime.now(timezone.utc)).astimezone(timezone.utc)
+
+    dynamodb.put_item(
+        TableName=PUSH_TOKEN_TABLE_NAME,
+        Item={
+            "clientId": {"S": client_id},
+            "token": {"S": token},
+            "updatedAt": {"S": now.isoformat()},
+        },
+    )
+
+
+def handle_push_token(dynamodb, client_id, body_text):
+    """POST /push-token を処理して、(ステータス, 本文のdict)を返す"""
+    try:
+        try:
+            body = json.loads(body_text or "{}")
+        except json.JSONDecodeError:
+            raise InquiryError(400, "invalid_body")
+
+        register_push_token(dynamodb, client_id, body)
+        return 200, {"ok": True}
+    except InquiryError as e:
+        return e.status, {"error": e.error}
 
 
 def handle(method, dynamodb, client_id, body_text):

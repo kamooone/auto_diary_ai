@@ -4,10 +4,17 @@ import 'package:path_provider/path_provider.dart';
 import '../../../../core/app_info/app_version_provider.dart';
 import '../../../../core/app_info/client_id.dart';
 import '../../../ai/application/providers/ai_provider.dart';
+import '../../../../app/router/app_router.dart';
+import '../../../../app/router/app_routes.dart';
 import '../../data/aws_inquiry_repository_impl.dart';
+import '../../data/aws_push_token_repository_impl.dart';
+import '../../data/firebase_push_messaging_gateway.dart';
 import '../../data/file_inquiry_state_store.dart';
 import '../../domain/entities/inquiry_message.dart';
 import '../../domain/repositories/inquiry_repository.dart';
+import '../../domain/repositories/push_token_repository.dart';
+import '../../domain/services/push_messaging_gateway.dart';
+import '../push_registrar.dart';
 
 final inquiryRepositoryProvider = Provider<InquiryRepository>((ref) {
   return AwsInquiryRepositoryImpl(
@@ -53,4 +60,32 @@ final hasUnreadReplyProvider = FutureProvider.autoDispose<bool>((ref) async {
   } catch (_) {
     return false;
   }
+});
+
+final pushMessagingGatewayProvider = Provider<PushMessagingGateway>((ref) {
+  return FirebasePushMessagingGateway();
+});
+
+final pushTokenRepositoryProvider = Provider<PushTokenRepository>((ref) {
+  return AwsPushTokenRepositoryImpl(
+    ref.watch(apiBaseUrlProvider),
+    clientId: ClientId.get,
+  );
+});
+
+/// 返信の通知の宛先の登録と、通知を受けたときの動き(アプリの起動時に start する)
+final pushRegistrarProvider = Provider<PushRegistrar>((ref) {
+  final registrar = PushRegistrar(
+    gateway: ref.watch(pushMessagingGatewayProvider),
+    tokens: ref.watch(pushTokenRepositoryProvider),
+    store: ref.watch(inquiryStateStoreProvider),
+    onOpenInquiry: () => AppRouter.router.push(AppRoutes.inquiry),
+    onReplyArrived: () {
+      ref.invalidate(hasUnreadReplyProvider);
+      ref.invalidate(inquiryMessagesProvider);
+    },
+  );
+  ref.onDispose(registrar.dispose);
+
+  return registrar;
 });

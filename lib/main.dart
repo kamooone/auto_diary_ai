@@ -1,4 +1,6 @@
 import 'dart:async';
+import 'dart:io';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:isar/isar.dart';
@@ -40,6 +42,13 @@ void main() async {
         isar,
         earliestRecord: earliestLocation?.timestamp,
     );
+
+    // Firebase(お問い合わせの返信のプッシュ通知に使う)。使えなくても、アプリは動かす
+    if (Platform.isAndroid) {
+        try {
+            await Firebase.initializeApp();
+        } catch (_) {}
+    }
 
     // 通知・位置情報の許可と、位置情報の記録開始
     await AppInitializer.initialize(isar);
