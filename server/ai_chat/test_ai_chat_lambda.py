@@ -15,6 +15,7 @@ from unittest import mock
 os.environ["USAGE_TABLE_NAME"] = "usage"
 os.environ["ACCOUNTS_TABLE_NAME"] = "accounts"
 os.environ["DEVICES_TABLE_NAME"] = "devices"
+os.environ["INQUIRY_TABLE_NAME"] = "inquiries"
 
 
 class ClientError(Exception):
@@ -548,6 +549,46 @@ class AiChatUsageTest(unittest.TestCase):
         self.assertTrue(self.fallback_flag(gemini_fallback=True))
         self.assertFalse(self.fallback_flag(gemini_fallback=False))
         self.assertFalse(self.fallback_flag(gemini_fallback="true"))
+
+
+class InquiryRouteTest(unittest.TestCase):
+    """/inquiries が、inquiry.py に渡される(HTTP APIとREST APIの両方)"""
+
+    def event(self, method, client_id=CLIENT_ID, rest=False):
+        headers = {"X-Client-Id": client_id} if client_id else {}
+        event = {"headers": headers, "body": '{"message": "m"}'}
+        if rest:
+            event.update(httpMethod=method, resource="/inquiries")
+        else:
+            event["routeKey"] = f"{method} /inquiries"
+        return event
+
+    def test_routes_to_inquiry_module(self):
+        for method in ("POST", "GET"):
+            for rest in (False, True):
+                with mock.patch.object(
+                    m.inquiry, "handle", return_value=(200, {"ok": 1})
+                ) as handle:
+                    status, body = call(self.event(method, rest=rest))
+
+                self.assertEqual((status, body), (200, {"ok": 1}))
+                handle.assert_called_once_with(
+                    method, m.dynamodb, CLIENT_ID, '{"message": "m"}'
+                )
+
+    def test_client_id_is_required(self):
+        status, body = call(self.event("POST", client_id=None))
+        self.assertEqual((status, body), (400, {"error": "client_id_required"}))
+
+        status, _ = call(self.event("GET", client_id="x"))
+        self.assertEqual(status, 400)
+
+    def test_missing_module_is_500(self):
+        with mock.patch.object(m, "inquiry", None):
+            status, body = call(self.event("GET"))
+
+        self.assertEqual(status, 500)
+        self.assertIn("inquiry.py", body["error"])
 
 
 class AskGeminiTimeoutTest(unittest.TestCase):

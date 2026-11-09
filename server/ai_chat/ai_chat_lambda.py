@@ -23,6 +23,14 @@ except ImportError:
     print("diary_prompts.py を読み込めません。Lambdaに、このファイルと同じ場所に置いてください")
 
 
+# お問い合わせ(同じフォルダのファイル)。読み込めないときは、問い合わせの機能だけ500にする
+try:
+    import inquiry
+except ImportError:
+    inquiry = None
+    print("inquiry.py を読み込めません。Lambdaに、このファイルと同じ場所に置いてください")
+
+
 secrets_manager = boto3.client("secretsmanager")
 ssm = boto3.client("ssm")
 s3 = boto3.client("s3")
@@ -772,6 +780,38 @@ def plan_usage(event):
     ))
 
 
+def inquiry_method(event):
+    """/inquiries へのリクエストなら、"POST" か "GET"。違えばNone
+    (HTTP APIとREST APIの、どちらの形式でも判定する)"""
+    route_key = event.get("routeKey")
+
+    if route_key in ("POST /inquiries", "GET /inquiries"):
+        return route_key.split(" ")[0]
+
+    if event.get("resource") == "/inquiries" and event.get("httpMethod") in (
+        "POST", "GET",
+    ):
+        return event["httpMethod"]
+
+    return None
+
+
+def inquiries(event, method):
+    """POST /inquiries: 問い合わせを送る / GET /inquiries: 送った内容と返信を見る"""
+    if inquiry is None:
+        return response(500, {"error": "inquiry.py is missing"})
+
+    client_id = header_of(event, "x-client-id")
+
+    if not client_id or not CLIENT_ID_PATTERN.match(client_id):
+        return response(400, {"error": "client_id_required"})
+
+    status, body = inquiry.handle(
+        method, dynamodb, client_id, event.get("body")
+    )
+    return response(status, body)
+
+
 def lambda_handler(event, context):
 
     image_keys = []
@@ -779,6 +819,11 @@ def lambda_handler(event, context):
     try:
         if is_plan_usage_request(event):
             return plan_usage(event)
+
+        inquiry_request = inquiry_method(event)
+
+        if inquiry_request is not None:
+            return inquiries(event, inquiry_request)
 
         body = json.loads(event.get("body", "{}"))
 
