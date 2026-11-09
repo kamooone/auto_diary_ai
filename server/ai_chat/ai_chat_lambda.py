@@ -14,6 +14,14 @@ from datetime import datetime, timedelta, timezone
 
 from botocore.exceptions import ClientError
 
+# 日記まわりのプロンプト(同じフォルダのファイル。Lambdaには、このファイルと一緒に置くこと)
+# 貼り忘れたときに、原因が分かる返事(500)にするため、読み込めないときは None にしておく
+try:
+    import diary_prompts
+except ImportError:
+    diary_prompts = None
+    print("diary_prompts.py を読み込めません。Lambdaに、このファイルと同じ場所に置いてください")
+
 
 secrets_manager = boto3.client("secretsmanager")
 ssm = boto3.client("ssm")
@@ -308,7 +316,8 @@ def read_openai_answer(data):
         if part.get("type") == "output_text"
     )
 
-    if not answer:
+    # 空白や改行だけのときも、空として扱う(空の日記で、トークンを使わせない)
+    if not answer.strip():
         raise UpstreamError("OpenAI", 200, "no answer text in response")
 
     return answer
@@ -773,10 +782,28 @@ def lambda_handler(event, context):
 
         body = json.loads(event.get("body", "{}"))
 
-        message = body.get("message", "")
+        # プロンプトは、アプリが材料と設定(prompt)を送り、サーバーが組み立てる
+        # (アプリから好きな文章をAIに送られて、トークンを使われないよう、全文は受け付けない)
+        prompt = body.get("prompt")
 
-        if not message:
-            return response(400, {"error": "message is required"})
+        if prompt is None:
+            delete_uploaded_images(body.get("images"))
+            return response(400, {"error": "prompt is required"})
+
+        sent_images = body.get("images")
+
+        if diary_prompts is None:
+            delete_uploaded_images(sent_images)
+            return response(500, {"error": "diary_prompts.py is missing"})
+
+        try:
+            message = diary_prompts.build_prompt(
+                prompt,
+                len(sent_images) if isinstance(sent_images, list) else 0,
+            )
+        except diary_prompts.PromptError as e:
+            delete_uploaded_images(sent_images)
+            return response(400, {"error": f"invalid prompt: {e}"})
 
         # アプリでユーザーが選んだAIの種類(未指定・不明な値は Gemini)
         model = MODEL_GPT if body.get("model") == MODEL_GPT else MODEL_GEMINI
@@ -873,6 +900,18 @@ def lambda_handler(event, context):
                 Bucket=BUCKET_NAME,
                 Key=image["s3_key"],
             )
+
+        # 日記の本文が空のときは、失敗として扱う(空の日記で、トークンを使わせない)
+        # (「タイトル:」だけで本文がない、など。回答の文字はあるので、AIの関数では、はじけない)
+        if diary_prompts.is_empty_diary_answer(prompt, answer):
+            print(json.dumps({
+                "model": model, "tokens": tokens, "action": "empty_diary_answer",
+            }, ensure_ascii=False))
+
+            return response(UPSTREAM_ERROR_STATUS, {
+                "error": "empty_diary_answer",
+                "details": "no diary body in the answer",
+            })
 
         # 使ったトークンを、毎月の枠 → アカウントのトークンの順に減らす
         from_allowance, from_balance = record_usage(

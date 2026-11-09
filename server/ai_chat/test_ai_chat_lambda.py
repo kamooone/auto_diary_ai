@@ -3,6 +3,7 @@
   python3 -m unittest server/ai_chat/test_ai_chat_lambda.py
 """
 import hashlib
+import io
 import json
 import os
 import sys
@@ -72,6 +73,9 @@ exceptions.ClientError = ClientError
 sys.modules["botocore"] = botocore
 sys.modules["botocore.exceptions"] = exceptions
 
+# ai_chat_lambda.py が読み込む diary_prompts.py を、同じフォルダから見つけられるようにする
+sys.path.insert(0, os.path.dirname(__file__))
+
 LAMBDA_PATH = os.path.join(os.path.dirname(__file__), "ai_chat_lambda.py")
 LIMIT_PLACEHOLDER = "/* ここは直接入力する */"
 
@@ -102,6 +106,14 @@ def sha(value):
     return hashlib.sha256(value.encode()).hexdigest()
 
 
+# 日記を1つにする(出来事の一覧)の、材料と設定
+CHAT_PROMPT = {
+    "kind": "summary", "style": "list", "diaryCount": 2,
+    "diariesText": "■2026年1月1日\n初詣", "diariesChars": 12,
+    "note": "", "lengthChars": 0, "customInstruction": "",
+}
+
+
 def chat_event(plan="free", device_token=None, client_id=CLIENT_ID, model=None,
                gemini_fallback=None):
     headers = {}
@@ -109,7 +121,7 @@ def chat_event(plan="free", device_token=None, client_id=CLIENT_ID, model=None,
         headers["X-Client-Id"] = client_id
     if device_token:
         headers["X-Device-Token"] = device_token
-    body = {"message": "こんにちは", "plan": plan}
+    body = {"prompt": CHAT_PROMPT, "plan": plan}
     if model is not None:
         body["model"] = model
     if gemini_fallback is not None:
@@ -420,6 +432,106 @@ class AiChatUsageTest(unittest.TestCase):
 
         self.assertEqual(200, status)
         self.assertNotIn("usedModel", body)
+
+    # --- プロンプトは、アプリが送る材料と設定から、サーバーが組み立てる ---
+
+    def prompt_event(self, prompt, images=None):
+        event = chat_event()
+        body = json.loads(event["body"])
+        body["prompt"] = prompt
+        if images is not None:
+            body["images"] = images
+        event["body"] = json.dumps(body)
+        return event
+
+    SUMMARY_PROMPT = CHAT_PROMPT
+
+    def test_the_server_builds_the_prompt_from_the_spec(self):
+        status, _ = call(self.prompt_event(self.SUMMARY_PROMPT))
+
+        self.assertEqual(200, status)
+        sent = self.gemini.call_args.args[1]
+        self.assertIn("出来事の一覧", sent)
+        self.assertIn("2件の日記", sent)
+        self.assertIn("■2026年1月1日", sent)
+
+    def test_the_photo_count_comes_from_the_images_sent(self):
+        prompt = {
+            "kind": "diary", "style": "diary", "diaryDate": "2026-01-01",
+            "startDate": "2026-01-01", "endDate": "2026-01-01",
+        }
+        images = [
+            {"s3_key": "a", "content_type": "image/jpeg"},
+            {"s3_key": "b", "content_type": "image/jpeg"},
+        ]
+
+        fake_s3 = mock.MagicMock()
+        fake_s3.get_object.return_value = {"Body": io.BytesIO(b"image")}
+
+        with mock.patch.object(m, "s3", fake_s3):
+            status, _ = call(self.prompt_event(prompt, images))
+
+        self.assertEqual(200, status)
+        self.assertIn("2枚添付しています", self.gemini.call_args.args[1])
+
+    def test_an_invalid_prompt_is_refused_without_using_ai(self):
+        status, body = call(self.prompt_event({"kind": "unknown"}))
+
+        self.assertEqual(400, status)
+        self.assertIn("invalid prompt", body["error"])
+        self.gemini.assert_not_called()
+
+    def test_a_raw_message_is_refused(self):
+        event = chat_event()
+        body = json.loads(event["body"])
+        del body["prompt"]
+        body["message"] = "好きな文章"
+        event["body"] = json.dumps(body)
+
+        status, response_body = call(event)
+
+        self.assertEqual(400, status)
+        self.assertEqual("prompt is required", response_body["error"])
+        self.gemini.assert_not_called()
+
+    def test_a_raw_message_is_not_passed_even_with_a_prompt(self):
+        event = self.prompt_event(self.SUMMARY_PROMPT)
+        body = json.loads(event["body"])
+        body["message"] = "好きな文章"
+        event["body"] = json.dumps(body)
+
+        status, _ = call(event)
+
+        self.assertEqual(200, status)
+        self.assertNotIn("好きな文章", self.gemini.call_args.args[1])
+
+    def test_an_empty_diary_body_is_a_failure_and_no_tokens_are_used(self):
+        self.gemini.return_value = ("タイトル: 無題\n本文:\n", 5000)
+
+        status, body = call(chat_event())
+
+        self.assertEqual(502, status)
+        self.assertEqual("empty_diary_answer", body["error"])
+
+        # トークンは使われない(使用量は0のまま)
+        status, body = call(usage_event())
+        self.assertEqual(200, status)
+        self.assertEqual(0, body["usage"]["usedTokens"])
+
+    def test_a_consult_answer_is_not_checked_for_a_diary_body(self):
+        self.gemini.return_value = ("【相談の回答】\nどんな長さがいいですか？", 100)
+        consult = {"kind": "consult_follow_up", "brief": "m", "history": [], "message": "x"}
+
+        status, _ = call(self.prompt_event(consult))
+
+        self.assertEqual(200, status)
+
+    def test_a_missing_prompt_module_is_reported(self):
+        with mock.patch.object(m, "diary_prompts", None):
+            status, body = call(chat_event())
+
+        self.assertEqual(500, status)
+        self.assertEqual("diary_prompts.py is missing", body["error"])
 
     # --- アプリの設定(予備のモデルを使う)が、Geminiの呼び出しに渡る ---
 
@@ -746,6 +858,22 @@ class AskOpenAiTest(unittest.TestCase):
             result = m.ask_openai("key", "こんにちは", [])
 
         return result, post.call_args.args[3]
+
+    def test_a_blank_answer_is_a_failure_so_no_tokens_are_used(self):
+        for text in ("", "  ", "\n\n"):
+            data = {
+                "output": [{
+                    "type": "message",
+                    "content": [{"type": "output_text", "text": text}],
+                }],
+                "usage": {"total_tokens": 50},
+            }
+
+            with self.subTest(repr(text)):
+                with self.assertRaises(m.UpstreamError) as raised:
+                    self.ask(data)
+
+                self.assertIn("no answer text", str(raised.exception.details))
 
     def test_the_answering_model_is_reported(self):
         info = {}

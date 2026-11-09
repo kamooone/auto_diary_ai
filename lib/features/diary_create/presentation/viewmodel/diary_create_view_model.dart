@@ -209,7 +209,7 @@ class DiaryCreateViewModel extends AutoDisposeNotifier<DiaryCreateState> {
   DateTime? _loadedEnd;
 
   /// 日記の日付を変更する
-  /// AIに渡す情報の期間も、その日の1日分に戻す(有料プランは、期間を選び直せる)
+  /// AIに渡す情報の期間も、その日の1日分に戻す(期間は、選び直せる)
   /// 対象日が変わるとAIに渡せる情報も変わるため、AI用の選択内容は空に戻す
   /// (自分で書く日記に添える写真は、日付に関係ないためそのまま残す)
   void setDate(DateTime date) {
@@ -231,12 +231,9 @@ class DiaryCreateViewModel extends AutoDisposeNotifier<DiaryCreateState> {
     _loadedEnd = null;
   }
 
-  /// AIに渡す情報の期間を変更する(プランに関わらず選べる)
+  /// AIに渡す情報の期間を変更する(プランに関わらず、複数日を選べる)
   /// 期間が変わるとAIに渡せる情報も変わるため、AI用の選択内容は空に戻す
   void setAiDateRange(DateTime start, DateTime end) {
-    // 複数日を選べないプランでは、日記の日付の1日分だけ
-    if (!ref.read(diaryPlanProvider).allowsMultipleDays) return;
-
     final first = DateTime(start.year, start.month, start.day);
     var last = DateTime(end.year, end.month, end.day);
 
@@ -632,6 +629,21 @@ class DiaryCreateViewModel extends AutoDisposeNotifier<DiaryCreateState> {
         isLoading: false,
         errorMessage:
             "時間がかかりすぎて、生成できませんでした。文字数の目安を短くするか、少し時間をおいて、もう一度お試しください",
+      );
+    } on AiEmptyDiaryException catch (e) {
+      AppLog.add('日記', 'AIの回答が空だった');
+
+      // 回答はあったので、トークンは使われている場合がある。使用量を画面に反映する
+      final usage = e.usage;
+      if (usage != null) ref.read(usageProvider.notifier).update(usage);
+
+      if (_isDisposed) return;
+
+      state = state.copyWith(
+        isLoading: false,
+        errorMessage: e.tokensUsed
+            ? "AIの回答が空だったため、生成できませんでした。もう一度お試しください(トークンは使われている場合があります)"
+            : "AIの回答が空だったため、生成できませんでした。トークンは減っていません。もう一度お試しください",
       );
     } on AiBusyException catch (e) {
       AppLog.add('日記', 'AIが混み合っていて失敗: $e');

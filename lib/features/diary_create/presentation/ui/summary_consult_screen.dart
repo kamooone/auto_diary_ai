@@ -5,7 +5,7 @@ import '../../../ai/application/providers/ai_model_provider.dart';
 import '../../../diary/domain/entities/diary.dart';
 import '../../../plan/application/providers/plan_provider.dart';
 import '../../../plan/domain/entities/usage_info.dart';
-import '../../domain/services/consult_prompt.dart';
+import '../../domain/services/consult_message.dart';
 import '../viewmodel/summary_consult_view_model.dart';
 import 'widgets/token_shortage_dialog.dart';
 

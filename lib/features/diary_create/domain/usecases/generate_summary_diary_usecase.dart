@@ -1,11 +1,12 @@
 import '../../../ai/domain/entities/ai_message_request.dart';
+import '../../../ai/domain/exceptions/ai_exception.dart';
 import '../../../ai/domain/repositories/ai_repository.dart';
 import '../../../diary/domain/entities/diary.dart';
 import '../../../plan/domain/entities/plan_type.dart';
 import '../entities/generated_diary.dart';
 import '../entities/summary_style.dart';
 import '../services/generated_diary_parser.dart';
-import '../services/summary_prompt.dart';
+import '../services/prompt_spec.dart';
 
 /// 作成済みの日記を複数選んで、1つの日記にする
 class GenerateSummaryDiaryUseCase {
@@ -29,7 +30,7 @@ class GenerateSummaryDiaryUseCase {
   }) async {
     final request = AiMessageRequest(
       plan: plan,
-      message: SummaryPrompt.build(
+      prompt: PromptSpec.summary(
         style: style,
         diaries: diaries,
         note: note,
@@ -41,6 +42,9 @@ class GenerateSummaryDiaryUseCase {
     final reply = await _aiRepository.sendMessage(request);
 
     final diary = _parser.parse(reply.answer);
+
+    // 本文が空のときは、空の日記を出さずに、失敗として扱う(画面から、やり直せる)
+    if (diary.content.trim().isEmpty) throw AiEmptyDiaryException(reply.usage);
 
     return GeneratedDiary(
       title: diary.title,

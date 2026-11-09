@@ -6,7 +6,7 @@ import '../../../plan/application/providers/plan_provider.dart';
 import '../../../ai/domain/exceptions/ai_exception.dart';
 import '../../../plan/domain/exceptions/usage_limit_exception.dart';
 import '../../application/providers/diary_usecase_providers.dart';
-import '../../domain/services/consult_prompt.dart';
+import '../../domain/services/consult_message.dart';
 import '../../domain/usecases/consult_summary_usecase.dart';
 
 class SummaryConsultState {

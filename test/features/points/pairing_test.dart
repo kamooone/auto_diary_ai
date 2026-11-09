@@ -342,7 +342,7 @@ void main() {
   });
 
   group('端末用トークンの送信', () {
-    final request = AiMessageRequest(message: 'こんにちは', images: const []);
+    final request = AiMessageRequest(prompt: const {'kind': 'test'}, images: const []);
 
     test('紐づけ済みなら、AIの呼び出しにトークンを付ける', () async {
       String? sent;

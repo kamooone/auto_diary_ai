@@ -92,7 +92,7 @@ void main() {
   });
 
   group('AwsAiRepositoryImpl', () {
-    const request = AiMessageRequest(message: 'こんにちは');
+    const request = AiMessageRequest(prompt: {'kind': 'test'});
 
     test('有料プランのときは、プランをpaidで送る', () async {
       Object? sentPlan;
@@ -106,10 +106,29 @@ void main() {
       );
 
       await repository.sendMessage(
-        const AiMessageRequest(message: 'こんにちは', plan: PlanType.paid),
+        const AiMessageRequest(prompt: {'kind': 'test'}, plan: PlanType.paid),
       );
 
       expect(sentPlan, 'paid');
+    });
+
+    test('材料と設定(prompt)を送る。全文(message)は送らない', () async {
+      Map<String, dynamic>? sent;
+
+      final repository = AwsAiRepositoryImpl(
+        'https://example.com',
+        client: MockClient((http.Request r) async {
+          sent = jsonDecode(r.body) as Map<String, dynamic>;
+          return jsonResponse(200, {'answer': 'ok'});
+        }),
+      );
+
+      await repository.sendMessage(
+        const AiMessageRequest(prompt: {'kind': 'summary', 'style': 'list'}),
+      );
+
+      expect(sent!['prompt'], {'kind': 'summary', 'style': 'list'});
+      expect(sent!.containsKey('message'), isFalse);
     });
 
     test('回答と使用量を受け取り、端末のIDを送る', () async {

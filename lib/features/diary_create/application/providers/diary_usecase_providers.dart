@@ -8,18 +8,11 @@ import '../../domain/repositories/summary_style_repository.dart';
 import '../../domain/usecases/consult_summary_usecase.dart';
 import '../../data/repositories/photo_repository_impl.dart';
 import '../../domain/repositories/photo_repository.dart';
-import '../../domain/entities/diary_plan.dart';
 import '../../domain/usecases/generate_diary_usecase.dart';
 import '../../domain/usecases/generate_summary_diary_usecase.dart';
 import '../../domain/usecases/get_photo_thumbnail_usecase.dart';
 import '../../domain/usecases/get_photos_usecase.dart';
 import '../../../ai/application/providers/ai_provider.dart';
-import '../../../plan/application/providers/plan_provider.dart';
-
-// 日記作成の制限(ユーザーのプランに応じた値)
-final diaryPlanProvider = Provider<DiaryPlan>((ref) {
-  return DiaryPlan.forType(ref.watch(planTypeProvider));
-});
 
 // Repository
 final photoRepositoryProvider = Provider<PhotoRepository>((ref) {

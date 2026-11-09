@@ -63,7 +63,8 @@ class AwsAiRepositoryImpl implements AiRepository {
     final data = await _post(
       _chatPath,
       jsonEncode({
-        'message': request.message,
+        // 材料と設定を送ると、サーバーが指示と合わせて組み立てる
+        'prompt': request.prompt,
         'images': uploadedImages,
         'plan': request.plan.name,
         'model': (_model?.call() ?? AiModel.gemini).name,
@@ -89,7 +90,8 @@ class AwsAiRepositoryImpl implements AiRepository {
 
   Future<List<dynamic>> _uploadImages(AiMessageRequest request) async {
     final body = jsonEncode({
-      'message': request.message,
+      // 画像のアップロードでは、文章は使わない(空だと断られないよう、短い文字を入れる)
+      'message': 'prompt',
       'images': [
         for (final image in request.images)
           {
@@ -160,6 +162,10 @@ class AwsAiRepositoryImpl implements AiRepository {
       final body = utf8.decode(response.bodyBytes, allowMalformed: true);
       if (body.toLowerCase().contains('timed out')) {
         throw AiTimeoutException();
+      }
+      // 回答に日記の本文がなかった(サーバーが見つけた。トークンは使われない)
+      if (body.contains('empty_diary_answer')) {
+        throw AiEmptyDiaryException(null, false);
       }
       throw AiBusyException(
         body.length > 200 ? body.substring(0, 200) : body,
