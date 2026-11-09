@@ -1,6 +1,8 @@
+import 'package:auto_diary_ai/features/diary_create/domain/services/photo_period_filter.dart';
 import 'package:auto_diary_ai/features/memo/application/providers/memo_providers.dart';
 import 'package:auto_diary_ai/features/memo/domain/entities/memo.dart';
 import 'package:auto_diary_ai/features/memo/domain/repositories/memo_repository.dart';
+import 'package:auto_diary_ai/features/memo/domain/services/memo_filter.dart';
 import 'package:auto_diary_ai/features/memo/presentation/ui/memo_edit_dialog.dart';
 import 'package:auto_diary_ai/features/memo/presentation/ui/memo_list_view.dart';
 import 'package:flutter/material.dart';
@@ -121,6 +123,96 @@ void main() {
     });
   });
 
+  group('年・月と検索の絞り込み', () {
+    Future<void> setUpThree(WidgetTester tester) async {
+      await repository.save(memo('海に行った', DateTime(2025, 8, 3, 10)));
+      await repository.save(memo('山に行った', DateTime(2026, 8, 5, 10)));
+      await repository.save(memo('海は青かった', DateTime(2026, 9, 1, 10)));
+
+      await tester.pumpWidget(app());
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('初めは、すべてのメモが出る', (tester) async {
+      await setUpThree(tester);
+
+      expect(find.text('海に行った'), findsOneWidget);
+      expect(find.text('山に行った'), findsOneWidget);
+      expect(find.text('海は青かった'), findsOneWidget);
+    });
+
+    testWidgets('検索すると、その言葉を含むメモだけになる', (tester) async {
+      await setUpThree(tester);
+
+      await tester.enterText(find.byKey(const Key('memoSearch')), '海');
+      await tester.pumpAndSettle();
+
+      expect(find.text('海に行った'), findsOneWidget);
+      expect(find.text('海は青かった'), findsOneWidget);
+      expect(find.text('山に行った'), findsNothing);
+    });
+
+    testWidgets('年を選ぶと、その年のメモだけになり、検索と同時に使える', (tester) async {
+      await setUpThree(tester);
+
+      await tester.tap(find.byKey(const Key('photoYear')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('2026年').last);
+      await tester.pumpAndSettle();
+
+      expect(find.text('海に行った'), findsNothing);
+      expect(find.text('山に行った'), findsOneWidget);
+
+      await tester.enterText(find.byKey(const Key('memoSearch')), '海');
+      await tester.pumpAndSettle();
+
+      expect(find.text('海は青かった'), findsOneWidget);
+      expect(find.text('山に行った'), findsNothing);
+    });
+
+    testWidgets('合うメモがないときは、案内を出す', (tester) async {
+      await setUpThree(tester);
+
+      await tester.enterText(find.byKey(const Key('memoSearch')), '空');
+      await tester.pumpAndSettle();
+
+      expect(find.text('条件に合うメモがありません'), findsOneWidget);
+    });
+  });
+
+  group('MemoFilter', () {
+    final memos = [
+      memo('Coffee と 読書', DateTime(2026, 8, 31, 23, 59)),
+      memo('読書だけ', DateTime(2026, 9, 1)),
+    ];
+
+    test('年・月は、月の初めから終わりまでを含む', () {
+      final august = MemoFilter.apply(
+        memos,
+        period: const PhotoPeriodFilter(year: 2026, month: 8),
+      );
+
+      expect(august.map((e) => e.text), ['Coffee と 読書']);
+    });
+
+    test('空白で区切ると、すべての言葉を含むものを探す(大文字・小文字は区別しない)', () {
+      expect(MemoFilter.apply(memos, query: 'coffee\u3000読書').length, 1);
+      expect(MemoFilter.apply(memos, query: '読書').length, 2);
+      expect(MemoFilter.apply(memos, query: '  ').length, 2);
+    });
+
+    test('年の選択肢は、メモのある年だけ(新しい年が先頭)', () {
+      expect(
+        MemoFilter.years([
+          memo('a', DateTime(2024, 1, 1)),
+          memo('b', DateTime(2026, 1, 1)),
+          memo('c', DateTime(2024, 5, 1)),
+        ]),
+        [2026, 2024],
+      );
+    });
+  });
+
   group('追加・修正のダイアログ', () {
     testWidgets('本文を書くまでは、追加できない', (tester) async {
       await tester.pumpWidget(app());
@@ -131,11 +223,11 @@ void main() {
           tester.widget<FilledButton>(find.widgetWithText(FilledButton, '追加'));
       expect(button().onPressed, isNull);
 
-      await tester.enterText(find.byType(TextField), '   ');
+      await tester.enterText(find.descendant(of: find.byType(AlertDialog), matching: find.byType(TextField)), '   ');
       await tester.pump();
       expect(button().onPressed, isNull);
 
-      await tester.enterText(find.byType(TextField), '散歩した');
+      await tester.enterText(find.descendant(of: find.byType(AlertDialog), matching: find.byType(TextField)), '散歩した');
       await tester.pump();
       expect(button().onPressed, isNotNull);
     });
@@ -145,7 +237,7 @@ void main() {
       await tester.tap(find.text('追加ボタン'));
       await tester.pumpAndSettle();
 
-      await tester.enterText(find.byType(TextField), '  散歩した  ');
+      await tester.enterText(find.descendant(of: find.byType(AlertDialog), matching: find.byType(TextField)), '  散歩した  ');
       await tester.pump();
       await tester.tap(find.widgetWithText(FilledButton, '追加'));
       await tester.pumpAndSettle();
@@ -160,10 +252,10 @@ void main() {
       await tester.tap(find.text('追加ボタン'));
       await tester.pumpAndSettle();
 
-      await tester.enterText(find.byType(TextField), 'あ' * 300);
+      await tester.enterText(find.descendant(of: find.byType(AlertDialog), matching: find.byType(TextField)), 'あ' * 300);
       await tester.pump();
 
-      final field = tester.widget<TextField>(find.byType(TextField));
+      final field = tester.widget<TextField>(find.descendant(of: find.byType(AlertDialog), matching: find.byType(TextField)));
       expect(field.controller!.text.length, Memo.maxLength);
     });
 
@@ -178,7 +270,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('ひとことメモを修正'), findsOneWidget);
-      await tester.enterText(find.byType(TextField), '直した文');
+      await tester.enterText(find.descendant(of: find.byType(AlertDialog), matching: find.byType(TextField)), '直した文');
       await tester.pump();
       await tester.tap(find.widgetWithText(FilledButton, '保存'));
       await tester.pumpAndSettle();
@@ -194,7 +286,7 @@ void main() {
       await tester.tap(find.text('追加ボタン'));
       await tester.pumpAndSettle();
 
-      await tester.enterText(find.byType(TextField), '書きかけ');
+      await tester.enterText(find.descendant(of: find.byType(AlertDialog), matching: find.byType(TextField)), '書きかけ');
       await tester.tap(find.text('キャンセル'));
       await tester.pumpAndSettle();
 

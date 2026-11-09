@@ -2,26 +2,38 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../diary_create/domain/entities/photo.dart';
 import '../../../diary_create/presentation/ui/widgets/photo_thumbnail.dart';
+import '../../../diary_create/domain/services/photo_period_filter.dart';
+import '../../../diary_create/presentation/ui/widgets/photo_period_filter_bar.dart';
 import '../../application/providers/memo_providers.dart';
 import '../../domain/entities/memo.dart';
+import '../../domain/services/memo_filter.dart';
 import 'memo_edit_dialog.dart';
 
 /// ホーム画面の「ひとこと」タブ。ひとことメモを、新しい順に並べる
-class MemoListView extends ConsumerWidget {
+///
+/// 上の年・月のセレクトボックスと検索の入力欄で、絞り込める
+class MemoListView extends ConsumerStatefulWidget {
   const MemoListView({super.key});
 
-  static const _weekdays = ['月', '火', '水', '木', '金', '土', '日'];
+  @override
+  ConsumerState<MemoListView> createState() => _MemoListViewState();
+}
 
-  /// 「2026年11月9日（月） 12:34」の形
-  static String dateTimeText(DateTime t) {
-    final minute = t.minute.toString().padLeft(2, '0');
+/// 「2026年11月9日（月） 12:34」の形
+String memoDateTimeText(DateTime t) {
+  const weekdays = ['月', '火', '水', '木', '金', '土', '日'];
+  final minute = t.minute.toString().padLeft(2, '0');
 
-    return "${t.year}年${t.month}月${t.day}日（${_weekdays[t.weekday - 1]}） "
-        "${t.hour}:$minute";
-  }
+  return "${t.year}年${t.month}月${t.day}日（${weekdays[t.weekday - 1]}） "
+      "${t.hour}:$minute";
+}
+
+class _MemoListViewState extends ConsumerState<MemoListView> {
+  var _period = PhotoPeriodFilter.all;
+  var _query = '';
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final memos = ref.watch(allMemosProvider);
 
     return memos.when(
@@ -37,12 +49,42 @@ class MemoListView extends ConsumerWidget {
           );
         }
 
-        return ListView.separated(
-          // 右下のボタンに、最後のメモが隠れないようにする
-          padding: const EdgeInsets.only(bottom: 88),
-          itemCount: memos.length,
-          separatorBuilder: (context, index) => const Divider(height: 1),
-          itemBuilder: (context, index) => _MemoTile(memo: memos[index]),
+        final shown = MemoFilter.apply(memos, period: _period, query: _query);
+
+        return Column(
+          children: [
+            PhotoPeriodFilterBar(
+              years: MemoFilter.years(memos),
+              value: _period,
+              onChanged: (value) => setState(() => _period = value),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+              child: TextField(
+                key: const Key('memoSearch'),
+                decoration: const InputDecoration(
+                  hintText: "メモを検索",
+                  prefixIcon: Icon(Icons.search),
+                  isDense: true,
+                  border: OutlineInputBorder(),
+                ),
+                onChanged: (value) => setState(() => _query = value),
+              ),
+            ),
+            Expanded(
+              child: shown.isEmpty
+                  ? const Center(child: Text("条件に合うメモがありません"))
+                  : ListView.separated(
+                      // 右下のボタンに、最後のメモが隠れないようにする
+                      padding: const EdgeInsets.only(bottom: 88),
+                      itemCount: shown.length,
+                      separatorBuilder: (context, index) =>
+                          const Divider(height: 1),
+                      itemBuilder: (context, index) =>
+                          _MemoTile(memo: shown[index]),
+                    ),
+            ),
+          ],
         );
       },
     );
@@ -93,7 +135,7 @@ class _MemoTile extends ConsumerWidget {
               children: [
                 Expanded(
                   child: Text(
-                    MemoListView.dateTimeText(memo.createdAt),
+                    memoDateTimeText(memo.createdAt),
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
                       color: Colors.grey[600],
                     ),
