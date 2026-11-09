@@ -3,14 +3,16 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/app_info/install_date_provider.dart';
 import '../../../../core/database/isar_provider.dart';
 import '../../../diary/application/providers/diary_providers.dart';
+import '../../../memo/application/providers/memo_providers.dart';
 import '../../../location/application/providers/location_providers.dart';
 import '../../../share/application/providers/share_providers.dart';
 import '../../application/test_data_service.dart';
 import '../../domain/services/test_diary_generator.dart';
 import '../../domain/services/test_location_generator.dart';
+import '../../domain/services/test_memo_generator.dart';
 import '../../domain/services/test_post_generator.dart';
 
-/// 日記・Xの投稿・行動履歴の、テスト用のデータを追加・削除する画面
+/// 日記・Xの投稿・ひとことメモ・行動履歴の、テスト用のデータを追加・削除する画面
 ///
 /// 日記を1つにする機能や、トークンの見積もりを、日記を1件ずつ書かなくても試せるようにする
 class TestDiaryPage extends ConsumerStatefulWidget {
@@ -26,6 +28,7 @@ class _TestDiaryPageState extends ConsumerState<TestDiaryPage> {
 
   int? _postCount;
   int? _locationCount;
+  int? _memoCount;
 
   // 2026年1月1日から10月27日まで
   static final _first = DateTime(2026, 1, 1);
@@ -35,6 +38,7 @@ class _TestDiaryPageState extends ConsumerState<TestDiaryPage> {
     shareRepository: ref.read(shareRepositoryProvider),
     registeredPlaceRepository: ref.read(registeredPlaceRepositoryProvider),
     isar: ref.read(isarProvider),
+    memoRepository: ref.read(memoRepositoryProvider),
   );
 
   @override
@@ -46,11 +50,13 @@ class _TestDiaryPageState extends ConsumerState<TestDiaryPage> {
   Future<void> _loadCounts() async {
     final postCount = await _service.postCount();
     final locationCount = await _service.locationCount();
+    final memoCount = await _service.memoCount();
 
     if (!mounted) return;
     setState(() {
       _postCount = postCount;
       _locationCount = locationCount;
+      _memoCount = memoCount;
     });
   }
 
@@ -106,6 +112,27 @@ class _TestDiaryPageState extends ConsumerState<TestDiaryPage> {
           OutlinedButton(
             onPressed: _isWorking || (_postCount ?? 0) == 0 ? null : _deletePosts,
             child: const Text("テスト用のXの投稿をすべて削除する"),
+          ),
+
+          // ---- ひとことメモ ----
+          const Divider(height: 40),
+          Text("テスト用のひとことメモ", style: Theme.of(context).textTheme.titleMedium),
+          const SizedBox(height: 8),
+          const Text(
+            "同じ期間(2026年1月1日〜10月27日)に、1日0〜3件のメモを追加します(写真はつきません)。\n"
+            "文が「${TestMemoGenerator.textPrefix}」で始まるメモが、テスト用です。",
+          ),
+          const SizedBox(height: 8),
+          Text("今あるテスト用のメモ: ${_memoCount ?? "-"}件"),
+          const SizedBox(height: 8),
+          ElevatedButton(
+            onPressed: _isWorking ? null : _addMemos,
+            child: const Text("テスト用のひとことメモを追加する"),
+          ),
+          const SizedBox(height: 8),
+          OutlinedButton(
+            onPressed: _isWorking || (_memoCount ?? 0) == 0 ? null : _deleteMemos,
+            child: const Text("テスト用のひとことメモをすべて削除する"),
           ),
 
           // ---- 行動履歴 ----
@@ -193,6 +220,22 @@ class _TestDiaryPageState extends ConsumerState<TestDiaryPage> {
       final count = await _service.deletePosts();
       ref.invalidate(allSharedPostsProvider);
       return "投稿を$count件削除しました";
+    });
+  }
+
+  Future<void> _addMemos() async {
+    await _run(() async {
+      final count = await _service.addMemos(first: _first, last: _last);
+      ref.invalidate(allMemosProvider);
+      return "メモを$count件追加しました";
+    });
+  }
+
+  Future<void> _deleteMemos() async {
+    await _run(() async {
+      final count = await _service.deleteMemos();
+      ref.invalidate(allMemosProvider);
+      return "メモを$count件削除しました";
     });
   }
 

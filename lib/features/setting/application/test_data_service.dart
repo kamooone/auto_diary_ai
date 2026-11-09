@@ -5,11 +5,13 @@ import 'package:path_provider/path_provider.dart';
 import '../../location/data/models/location_log.dart';
 import '../../location/domain/entities/registered_place.dart';
 import '../../location/domain/repositories/registered_place_repository.dart';
+import '../../memo/domain/repositories/memo_repository.dart';
 import '../../share/domain/repositories/share_repository.dart';
 import '../domain/services/test_location_generator.dart';
+import '../domain/services/test_memo_generator.dart';
 import '../domain/services/test_post_generator.dart';
 
-/// テスト用のXの投稿と行動履歴を、追加・削除する(設定画面の「テストデータ」から使う)
+/// テスト用のXの投稿・ひとことメモ・行動履歴を、追加・削除する(設定画面の「テストデータ」から使う)
 ///
 /// - 投稿: URLが[TestPostGenerator.urlPrefix]で始まるものが、テスト用
 /// - 行動履歴: 滞在する場所は「登録した場所」(名前が[TestLocationGenerator.namePrefix]で始まる)、
@@ -19,11 +21,13 @@ class TestDataService {
     required this.shareRepository,
     required this.registeredPlaceRepository,
     required this.isar,
+    required this.memoRepository,
   });
 
   final ShareRepository shareRepository;
   final RegisteredPlaceRepository registeredPlaceRepository;
   final Isar isar;
+  final MemoRepository memoRepository;
 
   // ------------------------------------------------------------
   // Xの投稿
@@ -54,6 +58,40 @@ class TestDataService {
 
     for (final post in targets) {
       await shareRepository.delete(post.id!);
+    }
+
+    return targets.length;
+  }
+
+  // ------------------------------------------------------------
+  // ひとことメモ
+  // ------------------------------------------------------------
+
+  Future<int> memoCount() async {
+    final memos = await memoRepository.findAll();
+    return memos.where(TestMemoGenerator.isTestMemo).length;
+  }
+
+  /// すでにあるテスト用のメモは、重ならないよう入れ替える。追加した件数を返す
+  Future<int> addMemos({required DateTime first, required DateTime last}) async {
+    await deleteMemos();
+
+    final memos = TestMemoGenerator.generate(first: first, last: last);
+    for (final memo in memos) {
+      await memoRepository.save(memo);
+    }
+
+    return memos.length;
+  }
+
+  /// 削除した件数を返す
+  Future<int> deleteMemos() async {
+    final targets = (await memoRepository.findAll())
+        .where(TestMemoGenerator.isTestMemo)
+        .toList();
+
+    for (final memo in targets) {
+      await memoRepository.delete(memo.id!);
     }
 
     return targets.length;
