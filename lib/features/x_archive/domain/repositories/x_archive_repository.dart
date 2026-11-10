@@ -1,4 +1,5 @@
 import '../entities/x_archive_post.dart';
+import '../entities/x_archive_post_filter.dart';
 
 /// 取り込みの結果
 class XArchiveImportResult {
@@ -23,12 +24,15 @@ abstract class XArchiveRepository {
   /// 保存した投稿の件数
   Future<int> count();
 
-  /// 保存した投稿を、新しい順に取得する。[year] を渡すと、その年(日本時間)だけ
+  /// 保存した投稿を、新しい順に取得する。[filter] に合うものだけ
   Future<List<XArchivePost>> findPage({
     required int offset,
     required int limit,
-    int? year,
+    XArchivePostFilter filter = XArchivePostFilter.none,
   });
+
+  /// [filter] に合う投稿の件数
+  Future<int> countMatching(XArchivePostFilter filter);
 
   Future<XArchivePost?> find(String tweetId);
 

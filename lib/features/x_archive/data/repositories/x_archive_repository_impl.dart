@@ -1,6 +1,7 @@
 import 'package:isar/isar.dart';
 
 import '../../domain/entities/x_archive_post.dart';
+import '../../domain/entities/x_archive_post_filter.dart';
 import '../../domain/repositories/x_archive_repository.dart';
 import '../../domain/services/x_archive_summary.dart';
 import '../models/x_archive_post_model.dart';
@@ -62,21 +63,39 @@ class XArchiveRepositoryImpl implements XArchiveRepository {
   Future<List<XArchivePost>> findPage({
     required int offset,
     required int limit,
-    int? year,
+    XArchivePostFilter filter = XArchivePostFilter.none,
   }) async {
-    final query = year == null
-        ? isar.xArchivePostModels.where().sortByCreatedAtDesc()
-        : isar.xArchivePostModels
-            .filter()
-            .createdAtBetween(
-              // 日本時間の年の始まりと終わりを、UTCに直した範囲
-              DateTime.utc(year, 1, 1).subtract(const Duration(hours: 9)),
-              DateTime.utc(year + 1, 1, 1).subtract(const Duration(hours: 9)),
-              includeUpper: false,
-            )
-            .sortByCreatedAtDesc();
-    final models = await query.offset(offset).limit(limit).findAll();
+    final models = await _filtered(filter)
+        .sortByCreatedAtDesc()
+        .offset(offset)
+        .limit(limit)
+        .findAll();
     return models.map(_toPost).toList();
+  }
+
+  @override
+  Future<int> countMatching(XArchivePostFilter filter) {
+    return _filtered(filter).count();
+  }
+
+  QueryBuilder<XArchivePostModel, XArchivePostModel, QAfterFilterCondition>
+      _filtered(XArchivePostFilter filter) {
+    final from = filter.from;
+    final to = filter.to;
+    final words = filter.words;
+    return isar.xArchivePostModels
+        .filter()
+        .optional(
+          from != null && to != null,
+          (q) => q.createdAtBetween(from!, to!, includeUpper: false),
+        )
+        .optional(
+          words.isNotEmpty,
+          (q) => q.allOf(
+            words,
+            (q, word) => q.textContains(word, caseSensitive: false),
+          ),
+        );
   }
 
   @override

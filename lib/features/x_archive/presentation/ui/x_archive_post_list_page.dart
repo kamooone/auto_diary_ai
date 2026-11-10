@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -8,12 +10,14 @@ import '../../../diary_create/application/providers/diary_usecase_providers.dart
 import '../../../diary_create/domain/entities/photo.dart';
 import '../../application/services/x_archive_photo_loader.dart';
 import '../../domain/entities/x_archive_post.dart';
+import '../../domain/entities/x_archive_post_filter.dart';
+import 'x_archive_filter_bar.dart';
 import '../../../diary_create/presentation/ui/widgets/photo_viewer_page.dart';
 import 'x_archive_photo_strip.dart';
 import 'x_archive_post_detail_page.dart';
 import 'x_archive_post_formatter.dart';
 
-/// 取り込んだXの投稿を、新しい順に見る画面(年で絞り込める)
+/// 取り込んだXの投稿を、新しい順に見る画面(年・月・日と検索語で絞り込める)
 class XArchivePostListPage extends ConsumerStatefulWidget {
   const XArchivePostListPage({super.key});
 
@@ -23,58 +27,93 @@ class XArchivePostListPage extends ConsumerStatefulWidget {
 }
 
 class _XArchivePostListPageState extends ConsumerState<XArchivePostListPage> {
-  static const _pageSize = 50;
+  static const _pageSize = 100;
 
   final _scroll = ScrollController();
   final _posts = <XArchivePost>[];
-  Map<int, int> _yearCounts = {};
-  int? _year;
+  List<int> _years = [];
+  XArchivePostFilter _filter = XArchivePostFilter.none;
+  int _matched = 0;
   bool _loading = false;
   bool _hasMore = true;
+
+  // 条件を変えたら増やす。古い条件の読み込み結果を捨てるための番号
+  int _generation = 0;
+  Timer? _debounce;
 
   @override
   void initState() {
     super.initState();
     _scroll.addListener(() {
-      if (_scroll.position.extentAfter < 400) _loadMore();
+      if (_scroll.position.extentAfter < 600) _loadMore();
     });
-    _reload();
+    _reload(refreshYears: true);
   }
 
   @override
   void dispose() {
+    _debounce?.cancel();
     _scroll.dispose();
     super.dispose();
   }
 
-  Future<void> _reload() async {
+  /// 条件に合う投稿を、最初から読み直す
+  Future<void> _reload({bool refreshYears = false}) async {
+    final generation = ++_generation;
     final repo = ref.read(xArchiveRepositoryProvider);
-    final counts = await repo.countByYear();
-    if (!mounted) return;
+    final filter = _filter;
+
+    if (refreshYears) {
+      final counts = await repo.countByYear();
+      if (!mounted || generation != _generation) return;
+      _years = counts.keys.toList()..sort((a, b) => b.compareTo(a));
+      if (filter.year != null && !counts.containsKey(filter.year)) {
+        _filter = XArchivePostFilter.none.withQuery(filter.query);
+      }
+    }
+
+    final matched = await repo.countMatching(_filter);
+    if (!mounted || generation != _generation) return;
     setState(() {
-      _yearCounts = counts;
-      if (_year != null && !counts.containsKey(_year)) _year = null;
+      _matched = matched;
       _posts.clear();
       _hasMore = true;
+      _loading = false;
     });
+    if (_scroll.hasClients) _scroll.jumpTo(0);
     await _loadMore();
   }
 
   Future<void> _loadMore() async {
     if (_loading || !_hasMore) return;
     _loading = true;
-    final repo = ref.read(xArchiveRepositoryProvider);
-    final page = await repo.findPage(
-      offset: _posts.length,
-      limit: _pageSize,
-      year: _year,
-    );
-    if (!mounted) return;
+    final generation = _generation;
+    final page = await ref.read(xArchiveRepositoryProvider).findPage(
+          offset: _posts.length,
+          limit: _pageSize,
+          filter: _filter,
+        );
+    if (!mounted || generation != _generation) return;
     setState(() {
       _posts.addAll(page);
       _hasMore = page.length == _pageSize;
     });
     _loading = false;
+  }
+
+  void _onFilterChanged(XArchivePostFilter filter) {
+    final queryOnly = filter.year == _filter.year &&
+        filter.month == _filter.month &&
+        filter.day == _filter.day;
+    setState(() => _filter = filter);
+
+    _debounce?.cancel();
+    if (queryOnly) {
+      // 文字を打つたびに探さないよう、少し待つ
+      _debounce = Timer(const Duration(milliseconds: 300), _reload);
+    } else {
+      _reload();
+    }
   }
 
   Future<void> _openDetail(int index) async {
@@ -110,13 +149,12 @@ class _XArchivePostListPageState extends ConsumerState<XArchivePostListPage> {
     );
     if (ok != true) return;
     await ref.read(xArchiveRepositoryProvider).deleteAll();
-    await _reload();
+    await _reload(refreshYears: true);
   }
 
   @override
   Widget build(BuildContext context) {
-    final total = _yearCounts.values.fold<int>(0, (a, b) => a + b);
-    final years = _yearCounts.keys.toList()..sort((a, b) => b.compareTo(a));
+    final empty = _posts.isEmpty && !_loading && !_hasMore;
 
     return Scaffold(
       appBar: AppBar(
@@ -125,7 +163,9 @@ class _XArchivePostListPageState extends ConsumerState<XArchivePostListPage> {
           PopupMenuButton<String>(
             onSelected: (value) {
               if (value == 'import') {
-                context.push(AppRoutes.xArchiveImport).then((_) => _reload());
+                context
+                    .push(AppRoutes.xArchiveImport)
+                    .then((_) => _reload(refreshYears: true));
               } else if (value == 'delete') {
                 _deleteAll();
               }
@@ -139,47 +179,48 @@ class _XArchivePostListPageState extends ConsumerState<XArchivePostListPage> {
       ),
       body: Column(
         children: [
-          if (years.isNotEmpty)
-            SizedBox(
-              height: 52,
-              child: ListView(
-                scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.symmetric(horizontal: 12),
-                children: [
-                  _yearChip('すべて($total)', null),
-                  for (final y in years) _yearChip('$y(${_yearCounts[y]})', y),
-                ],
+          XArchiveFilterBar(
+            years: _years,
+            filter: _filter,
+            onChanged: _onFilterChanged,
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 4),
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                '$_matched件',
+                style: Theme.of(context).textTheme.bodySmall,
               ),
             ),
+          ),
           Expanded(
-            child: _posts.isEmpty && !_loading && !_hasMore
-                ? const Center(child: Text('取り込んだ投稿はありません'))
-                : ListView.separated(
+            child: empty
+                ? Center(
+                    child: Text(
+                      _filter.isNone ? '取り込んだ投稿はありません' : '条件に合う投稿がありません',
+                    ),
+                  )
+                : Scrollbar(
                     controller: _scroll,
-                    itemCount: _posts.length,
-                    separatorBuilder: (_, __) => const Divider(height: 1),
-                    itemBuilder: (context, i) => _PostTile(
-                      key: ValueKey(_posts[i].tweetId),
-                      post: _posts[i],
-                      onTap: () => _openDetail(i),
+                    // つまんで、すばやく動かせるようにする
+                    interactive: true,
+                    thumbVisibility: true,
+                    thickness: 8,
+                    radius: const Radius.circular(4),
+                    child: ListView.separated(
+                      controller: _scroll,
+                      itemCount: _posts.length,
+                      separatorBuilder: (_, __) => const Divider(height: 1),
+                      itemBuilder: (context, i) => _PostTile(
+                        key: ValueKey(_posts[i].tweetId),
+                        post: _posts[i],
+                        onTap: () => _openDetail(i),
+                      ),
                     ),
                   ),
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _yearChip(String label, int? year) {
-    return Padding(
-      padding: const EdgeInsets.only(right: 8),
-      child: ChoiceChip(
-        label: Text(label),
-        selected: _year == year,
-        onSelected: (_) {
-          setState(() => _year = year);
-          _reload();
-        },
       ),
     );
   }
