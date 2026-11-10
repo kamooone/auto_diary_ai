@@ -10,6 +10,7 @@ import '../../features/location/data/models/timeline_snapshot.dart';
 import '../../features/memo/data/models/memo_model.dart';
 import '../../features/share/data/models/shared_post_model.dart';
 import '../../features/x_archive/data/models/x_archive_post_model.dart';
+import '../../features/x_archive/data/models/x_archive_recall_settings_model.dart';
 
 final isarSchemas = [
   LocationLogSchema,
@@ -24,4 +25,5 @@ final isarSchemas = [
   SharedPostModelSchema,
   MemoModelSchema,
   XArchivePostModelSchema,
+  XArchiveRecallSettingsModelSchema,
 ];

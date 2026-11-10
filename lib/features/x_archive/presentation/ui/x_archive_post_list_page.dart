@@ -6,16 +6,11 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../app/router/app_routes.dart';
 import '../../application/providers/x_archive_providers.dart';
-import '../../../diary_create/application/providers/diary_usecase_providers.dart';
-import '../../../diary_create/domain/entities/photo.dart';
-import '../../application/services/x_archive_photo_loader.dart';
 import '../../domain/entities/x_archive_post.dart';
 import '../../domain/entities/x_archive_post_filter.dart';
 import 'x_archive_filter_bar.dart';
-import '../../../diary_create/presentation/ui/widgets/photo_strip.dart';
-import '../../../diary_create/presentation/ui/widgets/photo_viewer_page.dart';
 import 'x_archive_post_detail_page.dart';
-import 'x_archive_post_formatter.dart';
+import 'x_archive_post_tile.dart';
 
 /// 取り込んだXの投稿を、新しい順に見る画面(年・月・日と検索語で絞り込める)
 class XArchivePostListPage extends ConsumerStatefulWidget {
@@ -212,79 +207,13 @@ class _XArchivePostListPageState extends ConsumerState<XArchivePostListPage> {
                       controller: _scroll,
                       itemCount: _posts.length,
                       separatorBuilder: (_, __) => const Divider(height: 1),
-                      itemBuilder: (context, i) => _PostTile(
+                      itemBuilder: (context, i) => XArchivePostTile(
                         key: ValueKey(_posts[i].tweetId),
                         post: _posts[i],
                         onTap: () => _openDetail(i),
                       ),
                     ),
                   ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _PostTile extends ConsumerStatefulWidget {
-  final XArchivePost post;
-  final VoidCallback onTap;
-
-  const _PostTile({super.key, required this.post, required this.onTap});
-
-  @override
-  ConsumerState<_PostTile> createState() => _PostTileState();
-}
-
-class _PostTileState extends ConsumerState<_PostTile> {
-  late Future<List<Photo>> _photos = _load();
-
-  Future<List<Photo>> _load() {
-    return loadXArchivePhotos(widget.post, ref.read(photoRepositoryProvider));
-  }
-
-  @override
-  void didUpdateWidget(_PostTile oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (oldWidget.post.tweetId != widget.post.tweetId ||
-        oldWidget.post.photoIds != widget.post.photoIds) {
-      _photos = _load();
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final post = widget.post;
-    return ListTile(
-      onTap: widget.onTap,
-      title: Text(
-        post.text.isEmpty ? '(本文なし)' : post.text,
-        maxLines: 4,
-        overflow: TextOverflow.ellipsis,
-      ),
-      subtitle: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            [
-              XArchivePostFormatter.date(post.createdAt),
-              ...XArchivePostFormatter.notes(post),
-            ].join('  ・  '),
-          ),
-          FutureBuilder<List<Photo>>(
-            future: _photos,
-            builder: (context, snapshot) {
-              final photos = snapshot.data ?? const <Photo>[];
-              if (photos.isEmpty) return const SizedBox.shrink();
-              return Padding(
-                padding: const EdgeInsets.only(top: 8),
-                child: PhotoStrip(
-                  photos: photos,
-                  onTap: (i) =>
-                      showPhotoViewer(context, photos, initialIndex: i),
-                ),
-              );
-            },
           ),
         ],
       ),
