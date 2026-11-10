@@ -80,6 +80,24 @@ class XArchiveRepositoryImpl implements XArchiveRepository {
   }
 
   @override
+  Future<XArchivePost?> find(String tweetId) async {
+    final model =
+        await isar.xArchivePostModels.where().tweetIdEqualTo(tweetId).findFirst();
+    return model == null ? null : _toPost(model);
+  }
+
+  @override
+  Future<void> updatePhotoIds(String tweetId, List<String>? photoIds) async {
+    final model =
+        await isar.xArchivePostModels.where().tweetIdEqualTo(tweetId).findFirst();
+    if (model == null) return;
+    model.photoIds = photoIds;
+    await isar.writeTxn(() async {
+      await isar.xArchivePostModels.put(model);
+    });
+  }
+
+  @override
   Future<Map<int, int>> countByYear() async {
     final dates = await isar.xArchivePostModels
         .where()
@@ -111,7 +129,9 @@ class XArchiveRepositoryImpl implements XArchiveRepository {
       ),
       replyToScreenName: m.replyToScreenName,
       imageFileNames: m.imageFileNames,
+      imageAspectRatios: m.imageAspectRatios,
       hasVideo: m.hasVideo,
+      photoIds: m.photoIds,
     );
   }
 
@@ -123,6 +143,8 @@ class XArchiveRepositoryImpl implements XArchiveRepository {
       ..kind = post.kind.name
       ..replyToScreenName = post.replyToScreenName
       ..imageFileNames = post.imageFileNames
-      ..hasVideo = post.hasVideo;
+      ..imageAspectRatios = post.imageAspectRatios
+      ..hasVideo = post.hasVideo
+      ..photoIds = post.photoIds;
   }
 }

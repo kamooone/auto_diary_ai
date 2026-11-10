@@ -32,8 +32,14 @@ class XArchivePost {
   /// 画像のファイル名(アーカイブの tweets_media の中の名前)。動画は含まない
   final List<String> imageFileNames;
 
+  /// 画像の縦横比(横÷縦)。[imageFileNames]と同じ並び。分からないものは0
+  final List<double> imageAspectRatios;
+
   /// 動画やGIFが付いているか(今は取り込まない)
   final bool hasVideo;
+
+  /// 利用者が選んだ端末の写真のID。nullなら、日時などから探した候補を出す
+  final List<String>? photoIds;
 
   const XArchivePost({
     required this.tweetId,
@@ -42,7 +48,9 @@ class XArchivePost {
     required this.kind,
     this.replyToScreenName,
     this.imageFileNames = const [],
+    this.imageAspectRatios = const [],
     this.hasVideo = false,
+    this.photoIds,
   });
 
   /// 投稿のURL。ユーザー名が分からなくても開ける形

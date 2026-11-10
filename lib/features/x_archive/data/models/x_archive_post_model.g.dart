@@ -27,28 +27,38 @@ const XArchivePostModelSchema = CollectionSchema(
       name: r'hasVideo',
       type: IsarType.bool,
     ),
-    r'imageFileNames': PropertySchema(
+    r'imageAspectRatios': PropertySchema(
       id: 2,
+      name: r'imageAspectRatios',
+      type: IsarType.doubleList,
+    ),
+    r'imageFileNames': PropertySchema(
+      id: 3,
       name: r'imageFileNames',
       type: IsarType.stringList,
     ),
     r'kind': PropertySchema(
-      id: 3,
+      id: 4,
       name: r'kind',
       type: IsarType.string,
     ),
+    r'photoIds': PropertySchema(
+      id: 5,
+      name: r'photoIds',
+      type: IsarType.stringList,
+    ),
     r'replyToScreenName': PropertySchema(
-      id: 4,
+      id: 6,
       name: r'replyToScreenName',
       type: IsarType.string,
     ),
     r'text': PropertySchema(
-      id: 5,
+      id: 7,
       name: r'text',
       type: IsarType.string,
     ),
     r'tweetId': PropertySchema(
-      id: 6,
+      id: 8,
       name: r'tweetId',
       type: IsarType.string,
     )
@@ -100,6 +110,7 @@ int _xArchivePostModelEstimateSize(
   Map<Type, List<int>> allOffsets,
 ) {
   var bytesCount = offsets.last;
+  bytesCount += 3 + object.imageAspectRatios.length * 8;
   bytesCount += 3 + object.imageFileNames.length * 3;
   {
     for (var i = 0; i < object.imageFileNames.length; i++) {
@@ -108,6 +119,18 @@ int _xArchivePostModelEstimateSize(
     }
   }
   bytesCount += 3 + object.kind.length * 3;
+  {
+    final list = object.photoIds;
+    if (list != null) {
+      bytesCount += 3 + list.length * 3;
+      {
+        for (var i = 0; i < list.length; i++) {
+          final value = list[i];
+          bytesCount += value.length * 3;
+        }
+      }
+    }
+  }
   {
     final value = object.replyToScreenName;
     if (value != null) {
@@ -127,11 +150,13 @@ void _xArchivePostModelSerialize(
 ) {
   writer.writeDateTime(offsets[0], object.createdAt);
   writer.writeBool(offsets[1], object.hasVideo);
-  writer.writeStringList(offsets[2], object.imageFileNames);
-  writer.writeString(offsets[3], object.kind);
-  writer.writeString(offsets[4], object.replyToScreenName);
-  writer.writeString(offsets[5], object.text);
-  writer.writeString(offsets[6], object.tweetId);
+  writer.writeDoubleList(offsets[2], object.imageAspectRatios);
+  writer.writeStringList(offsets[3], object.imageFileNames);
+  writer.writeString(offsets[4], object.kind);
+  writer.writeStringList(offsets[5], object.photoIds);
+  writer.writeString(offsets[6], object.replyToScreenName);
+  writer.writeString(offsets[7], object.text);
+  writer.writeString(offsets[8], object.tweetId);
 }
 
 XArchivePostModel _xArchivePostModelDeserialize(
@@ -144,11 +169,13 @@ XArchivePostModel _xArchivePostModelDeserialize(
   object.createdAt = reader.readDateTime(offsets[0]);
   object.hasVideo = reader.readBool(offsets[1]);
   object.id = id;
-  object.imageFileNames = reader.readStringList(offsets[2]) ?? [];
-  object.kind = reader.readString(offsets[3]);
-  object.replyToScreenName = reader.readStringOrNull(offsets[4]);
-  object.text = reader.readString(offsets[5]);
-  object.tweetId = reader.readString(offsets[6]);
+  object.imageAspectRatios = reader.readDoubleList(offsets[2]) ?? [];
+  object.imageFileNames = reader.readStringList(offsets[3]) ?? [];
+  object.kind = reader.readString(offsets[4]);
+  object.photoIds = reader.readStringList(offsets[5]);
+  object.replyToScreenName = reader.readStringOrNull(offsets[6]);
+  object.text = reader.readString(offsets[7]);
+  object.tweetId = reader.readString(offsets[8]);
   return object;
 }
 
@@ -164,14 +191,18 @@ P _xArchivePostModelDeserializeProp<P>(
     case 1:
       return (reader.readBool(offset)) as P;
     case 2:
-      return (reader.readStringList(offset) ?? []) as P;
+      return (reader.readDoubleList(offset) ?? []) as P;
     case 3:
-      return (reader.readString(offset)) as P;
+      return (reader.readStringList(offset) ?? []) as P;
     case 4:
-      return (reader.readStringOrNull(offset)) as P;
-    case 5:
       return (reader.readString(offset)) as P;
+    case 5:
+      return (reader.readStringList(offset)) as P;
     case 6:
+      return (reader.readStringOrNull(offset)) as P;
+    case 7:
+      return (reader.readString(offset)) as P;
+    case 8:
       return (reader.readString(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -544,6 +575,161 @@ extension XArchivePostModelQueryFilter
   }
 
   QueryBuilder<XArchivePostModel, XArchivePostModel, QAfterFilterCondition>
+      imageAspectRatiosElementEqualTo(
+    double value, {
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'imageAspectRatios',
+        value: value,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<XArchivePostModel, XArchivePostModel, QAfterFilterCondition>
+      imageAspectRatiosElementGreaterThan(
+    double value, {
+    bool include = false,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'imageAspectRatios',
+        value: value,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<XArchivePostModel, XArchivePostModel, QAfterFilterCondition>
+      imageAspectRatiosElementLessThan(
+    double value, {
+    bool include = false,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'imageAspectRatios',
+        value: value,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<XArchivePostModel, XArchivePostModel, QAfterFilterCondition>
+      imageAspectRatiosElementBetween(
+    double lower,
+    double upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'imageAspectRatios',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<XArchivePostModel, XArchivePostModel, QAfterFilterCondition>
+      imageAspectRatiosLengthEqualTo(int length) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(
+        r'imageAspectRatios',
+        length,
+        true,
+        length,
+        true,
+      );
+    });
+  }
+
+  QueryBuilder<XArchivePostModel, XArchivePostModel, QAfterFilterCondition>
+      imageAspectRatiosIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(
+        r'imageAspectRatios',
+        0,
+        true,
+        0,
+        true,
+      );
+    });
+  }
+
+  QueryBuilder<XArchivePostModel, XArchivePostModel, QAfterFilterCondition>
+      imageAspectRatiosIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(
+        r'imageAspectRatios',
+        0,
+        false,
+        999999,
+        true,
+      );
+    });
+  }
+
+  QueryBuilder<XArchivePostModel, XArchivePostModel, QAfterFilterCondition>
+      imageAspectRatiosLengthLessThan(
+    int length, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(
+        r'imageAspectRatios',
+        0,
+        true,
+        length,
+        include,
+      );
+    });
+  }
+
+  QueryBuilder<XArchivePostModel, XArchivePostModel, QAfterFilterCondition>
+      imageAspectRatiosLengthGreaterThan(
+    int length, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(
+        r'imageAspectRatios',
+        length,
+        include,
+        999999,
+        true,
+      );
+    });
+  }
+
+  QueryBuilder<XArchivePostModel, XArchivePostModel, QAfterFilterCondition>
+      imageAspectRatiosLengthBetween(
+    int lower,
+    int upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(
+        r'imageAspectRatios',
+        lower,
+        includeLower,
+        upper,
+        includeUpper,
+      );
+    });
+  }
+
+  QueryBuilder<XArchivePostModel, XArchivePostModel, QAfterFilterCondition>
       imageFileNamesElementEqualTo(
     String value, {
     bool caseSensitive = true,
@@ -902,6 +1088,249 @@ extension XArchivePostModelQueryFilter
         property: r'kind',
         value: '',
       ));
+    });
+  }
+
+  QueryBuilder<XArchivePostModel, XArchivePostModel, QAfterFilterCondition>
+      photoIdsIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'photoIds',
+      ));
+    });
+  }
+
+  QueryBuilder<XArchivePostModel, XArchivePostModel, QAfterFilterCondition>
+      photoIdsIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'photoIds',
+      ));
+    });
+  }
+
+  QueryBuilder<XArchivePostModel, XArchivePostModel, QAfterFilterCondition>
+      photoIdsElementEqualTo(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'photoIds',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<XArchivePostModel, XArchivePostModel, QAfterFilterCondition>
+      photoIdsElementGreaterThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'photoIds',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<XArchivePostModel, XArchivePostModel, QAfterFilterCondition>
+      photoIdsElementLessThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'photoIds',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<XArchivePostModel, XArchivePostModel, QAfterFilterCondition>
+      photoIdsElementBetween(
+    String lower,
+    String upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'photoIds',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<XArchivePostModel, XArchivePostModel, QAfterFilterCondition>
+      photoIdsElementStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'photoIds',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<XArchivePostModel, XArchivePostModel, QAfterFilterCondition>
+      photoIdsElementEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'photoIds',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<XArchivePostModel, XArchivePostModel, QAfterFilterCondition>
+      photoIdsElementContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'photoIds',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<XArchivePostModel, XArchivePostModel, QAfterFilterCondition>
+      photoIdsElementMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'photoIds',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<XArchivePostModel, XArchivePostModel, QAfterFilterCondition>
+      photoIdsElementIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'photoIds',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<XArchivePostModel, XArchivePostModel, QAfterFilterCondition>
+      photoIdsElementIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'photoIds',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<XArchivePostModel, XArchivePostModel, QAfterFilterCondition>
+      photoIdsLengthEqualTo(int length) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(
+        r'photoIds',
+        length,
+        true,
+        length,
+        true,
+      );
+    });
+  }
+
+  QueryBuilder<XArchivePostModel, XArchivePostModel, QAfterFilterCondition>
+      photoIdsIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(
+        r'photoIds',
+        0,
+        true,
+        0,
+        true,
+      );
+    });
+  }
+
+  QueryBuilder<XArchivePostModel, XArchivePostModel, QAfterFilterCondition>
+      photoIdsIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(
+        r'photoIds',
+        0,
+        false,
+        999999,
+        true,
+      );
+    });
+  }
+
+  QueryBuilder<XArchivePostModel, XArchivePostModel, QAfterFilterCondition>
+      photoIdsLengthLessThan(
+    int length, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(
+        r'photoIds',
+        0,
+        true,
+        length,
+        include,
+      );
+    });
+  }
+
+  QueryBuilder<XArchivePostModel, XArchivePostModel, QAfterFilterCondition>
+      photoIdsLengthGreaterThan(
+    int length, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(
+        r'photoIds',
+        length,
+        include,
+        999999,
+        true,
+      );
+    });
+  }
+
+  QueryBuilder<XArchivePostModel, XArchivePostModel, QAfterFilterCondition>
+      photoIdsLengthBetween(
+    int lower,
+    int upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(
+        r'photoIds',
+        lower,
+        includeLower,
+        upper,
+        includeUpper,
+      );
     });
   }
 
@@ -1542,6 +1971,13 @@ extension XArchivePostModelQueryWhereDistinct
   }
 
   QueryBuilder<XArchivePostModel, XArchivePostModel, QDistinct>
+      distinctByImageAspectRatios() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'imageAspectRatios');
+    });
+  }
+
+  QueryBuilder<XArchivePostModel, XArchivePostModel, QDistinct>
       distinctByImageFileNames() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'imageFileNames');
@@ -1552,6 +1988,13 @@ extension XArchivePostModelQueryWhereDistinct
       {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'kind', caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<XArchivePostModel, XArchivePostModel, QDistinct>
+      distinctByPhotoIds() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'photoIds');
     });
   }
 
@@ -1599,6 +2042,13 @@ extension XArchivePostModelQueryProperty
     });
   }
 
+  QueryBuilder<XArchivePostModel, List<double>, QQueryOperations>
+      imageAspectRatiosProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'imageAspectRatios');
+    });
+  }
+
   QueryBuilder<XArchivePostModel, List<String>, QQueryOperations>
       imageFileNamesProperty() {
     return QueryBuilder.apply(this, (query) {
@@ -1609,6 +2059,13 @@ extension XArchivePostModelQueryProperty
   QueryBuilder<XArchivePostModel, String, QQueryOperations> kindProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'kind');
+    });
+  }
+
+  QueryBuilder<XArchivePostModel, List<String>?, QQueryOperations>
+      photoIdsProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'photoIds');
     });
   }
 

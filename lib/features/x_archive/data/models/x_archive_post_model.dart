@@ -24,7 +24,13 @@ class XArchivePostModel {
   /// アーカイブの tweets_media の中の画像のファイル名
   late List<String> imageFileNames;
 
+  /// 画像の縦横比(横÷縦)。imageFileNames と同じ並び。古いデータでは空
+  List<double> imageAspectRatios = [];
+
   late bool hasVideo;
+
+  /// 利用者が選んだ端末の写真のID。nullなら、日時などから探した候補を出す
+  List<String>? photoIds;
 
   XArchivePostModel();
 }

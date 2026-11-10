@@ -47,6 +47,7 @@ class XArchiveParser {
 
     final media = _mediaList(tweet);
     final images = <String>[];
+    final ratios = <double>[];
     var hasVideo = false;
     var text = fullText;
     for (final m in media) {
@@ -58,7 +59,10 @@ class XArchiveParser {
       }
       if (type == 'photo') {
         final name = _imageFileName(id, m['media_url_https']);
-        if (name != null) images.add(name);
+        if (name != null) {
+          images.add(name);
+          ratios.add(_aspectRatio(m['sizes']));
+        }
       } else {
         hasVideo = true;
       }
@@ -90,8 +94,22 @@ class XArchiveParser {
           ? screenName
           : null,
       imageFileNames: images,
+      imageAspectRatios: ratios,
       hasVideo: hasVideo,
     );
+  }
+
+  /// sizes の large(なければ他)から、横÷縦を求める。分からなければ0
+  double _aspectRatio(Object? sizes) {
+    if (sizes is! Map) return 0;
+    for (final key in ['large', 'medium', 'small']) {
+      final size = sizes[key];
+      if (size is! Map) continue;
+      final w = num.tryParse('${size['w']}');
+      final h = num.tryParse('${size['h']}');
+      if (w != null && h != null && w > 0 && h > 0) return w / h;
+    }
+    return 0;
   }
 
   List<Map> _mediaList(Map tweet) {

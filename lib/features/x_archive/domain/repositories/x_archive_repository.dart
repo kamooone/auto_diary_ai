@@ -30,6 +30,11 @@ abstract class XArchiveRepository {
     int? year,
   });
 
+  Future<XArchivePost?> find(String tweetId);
+
+  /// 投稿に結びつける端末の写真を、利用者が選んだものにする。nullで、自動の候補に戻す
+  Future<void> updatePhotoIds(String tweetId, List<String>? photoIds);
+
   /// 保存した投稿の、年(日本時間)ごとの件数
   Future<Map<int, int>> countByYear();
 

@@ -139,4 +139,29 @@ void main() {
   test('配列が無いファイルは FormatException', () {
     expect(() => parser.parse('hello'), throwsFormatException);
   });
+
+  test('画像の縦横比(横÷縦)を、sizesのlargeから求める', () {
+    final posts = parser.parse(_js([
+      _tweet(id: '400', extra: {
+        'extended_entities': {
+          'media': [
+            {
+              'type': 'photo',
+              'url': 'https://t.co/a',
+              'media_url_https': 'https://pbs.twimg.com/media/A.jpg',
+              'sizes': {
+                'large': {'w': '2000', 'h': '1000', 'resize': 'fit'},
+              },
+            },
+            {
+              'type': 'photo',
+              'url': 'https://t.co/b',
+              'media_url_https': 'https://pbs.twimg.com/media/B.jpg',
+            },
+          ],
+        },
+      }),
+    ]));
+    expect(posts.single.imageAspectRatios, [2.0, 0.0]);
+  });
 }
