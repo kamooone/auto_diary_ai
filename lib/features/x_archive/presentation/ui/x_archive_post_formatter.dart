@@ -30,7 +30,9 @@ class XArchivePostFormatter {
     final kind = kindLabel(post);
     return [
       if (kind.isNotEmpty) kind,
-      if (post.imageFileNames.isNotEmpty) '画像${post.imageFileNames.length}枚',
+      if (post.kind != XArchivePostKind.retweet &&
+          post.imageFileNames.isNotEmpty)
+        '画像${post.imageFileNames.length}枚',
       if (post.hasVideo) '動画あり',
     ];
   }

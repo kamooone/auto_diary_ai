@@ -18,6 +18,8 @@ Future<List<Photo>> loadXArchivePhotos(
       for (final id in chosen) Photo(id: id, createdAt: post.createdAt),
     ];
   }
+  // リツイートの画像は他の人のもので、端末にはない
+  if (post.kind == XArchivePostKind.retweet) return const [];
   if (post.imageFileNames.isEmpty) return const [];
 
   try {

@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../diary_create/application/providers/diary_usecase_providers.dart';
 import '../../../diary_create/domain/entities/photo.dart';
 import '../../../diary_create/presentation/ui/widgets/photo_selection_card.dart';
+import '../../../diary_create/presentation/ui/widgets/photo_viewer_page.dart';
 import '../../application/providers/x_archive_providers.dart';
 import '../../application/services/x_archive_photo_loader.dart';
 import '../../domain/entities/x_archive_post.dart';
@@ -71,7 +72,9 @@ class _XArchivePostDetailPageState
           const SizedBox(height: 8),
           SelectableText(_post.text.isEmpty ? '(本文なし)' : _post.text),
           const SizedBox(height: 16),
-          if (photos == null)
+          if (_post.kind == XArchivePostKind.retweet)
+            const SizedBox.shrink()
+          else if (photos == null)
             const Center(child: CircularProgressIndicator())
           else ...[
             PhotoSelectionCard(
@@ -79,6 +82,8 @@ class _XArchivePostDetailPageState
               from: range.from,
               to: range.to,
               onChanged: (selected) => _save([for (final p in selected) p.id]),
+              onPhotoTap: (i) =>
+                  showPhotoViewer(context, photos, initialIndex: i),
             ),
             const SizedBox(height: 8),
             Text(
