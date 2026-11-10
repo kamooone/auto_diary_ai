@@ -94,6 +94,32 @@ class XArchiveRecallNotifier {
     );
   }
 
+  static const _testNotificationIdBase = 7100;
+
+  /// 動作確認用:通知を、今すぐ [count] 件出す(見た目と、タップで画面が開くことを確かめる)
+  Future<void> showTestNotifications({int count = 20}) async {
+    if (!_initialized) return;
+
+    for (var i = 1; i <= count; i++) {
+      await _plugin.show(
+        _testNotificationIdBase + i,
+        '(テスト $i/$count) $title',
+        body,
+        const NotificationDetails(
+          android: AndroidNotificationDetails(
+            _channelId,
+            '過去のツイート',
+            channelDescription: '過去のツイートを、毎日お知らせします',
+            importance: Importance.defaultImportance,
+            priority: Priority.defaultPriority,
+          ),
+          iOS: DarwinNotificationDetails(),
+        ),
+        payload: payload,
+      );
+    }
+  }
+
   /// 予約した通知を取り消す
   Future<void> cancel() async {
     if (!_initialized) return;

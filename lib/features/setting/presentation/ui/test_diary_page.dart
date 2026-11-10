@@ -1,3 +1,4 @@
+import '../../../x_archive/application/providers/x_archive_recall_providers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/app_info/install_date_provider.dart';
@@ -160,6 +161,20 @@ class _TestDiaryPageState extends ConsumerState<TestDiaryPage> {
             child: const Text("テスト用の行動履歴をすべて削除する"),
           ),
 
+          // ---- 通知 ----
+          const Divider(height: 40),
+          Text("テスト用の通知", style: Theme.of(context).textTheme.titleMedium),
+          const SizedBox(height: 8),
+          const Text(
+            "「過去のツイートの通知」を、今すぐ20件出します(毎日の予約とは別です)。"
+            "通知の見た目と、タップすると「過去のツイート」の画面が開くことを確かめられます。",
+          ),
+          const SizedBox(height: 8),
+          ElevatedButton(
+            onPressed: _isWorking ? null : _showTestNotifications,
+            child: const Text("テスト用の通知を20件出す"),
+          ),
+
           if (_isWorking) ...[
             const SizedBox(height: 16),
             const Center(child: CircularProgressIndicator()),
@@ -171,6 +186,21 @@ class _TestDiaryPageState extends ConsumerState<TestDiaryPage> {
         ],
       ),
     );
+  }
+
+  Future<void> _showTestNotifications() async {
+    final notifier = ref.read(xArchiveRecallNotifierProvider);
+
+    String message;
+    if (await notifier.requestPermission()) {
+      await notifier.showTestNotifications(count: 20);
+      message = "通知を20件出しました。通知欄を確認してください";
+    } else {
+      message = "通知が許可されていません。端末の設定で、通知を許可してください";
+    }
+
+    if (!mounted) return;
+    setState(() => _message = message);
   }
 
   // すでにあるテスト用の日記は、重ならないよう入れ替える
