@@ -64,6 +64,8 @@ class PhotoRepositoryImpl implements PhotoRepository {
       return Photo(
         id: asset.id,
         createdAt: asset.createDateTime,
+        width: asset.orientatedWidth,
+        height: asset.orientatedHeight,
       );
     }).toList();
   }

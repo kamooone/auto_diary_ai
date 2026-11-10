@@ -17,18 +17,23 @@ const SharedPostModelSchema = CollectionSchema(
   name: r'SharedPostModel',
   id: 7558179099828780986,
   properties: {
-    r'receivedAt': PropertySchema(
+    r'photoIds': PropertySchema(
       id: 0,
+      name: r'photoIds',
+      type: IsarType.stringList,
+    ),
+    r'receivedAt': PropertySchema(
+      id: 1,
       name: r'receivedAt',
       type: IsarType.dateTime,
     ),
     r'text': PropertySchema(
-      id: 1,
+      id: 2,
       name: r'text',
       type: IsarType.string,
     ),
     r'url': PropertySchema(
-      id: 2,
+      id: 3,
       name: r'url',
       type: IsarType.string,
     )
@@ -53,6 +58,13 @@ int _sharedPostModelEstimateSize(
   Map<Type, List<int>> allOffsets,
 ) {
   var bytesCount = offsets.last;
+  bytesCount += 3 + object.photoIds.length * 3;
+  {
+    for (var i = 0; i < object.photoIds.length; i++) {
+      final value = object.photoIds[i];
+      bytesCount += value.length * 3;
+    }
+  }
   bytesCount += 3 + object.text.length * 3;
   bytesCount += 3 + object.url.length * 3;
   return bytesCount;
@@ -64,9 +76,10 @@ void _sharedPostModelSerialize(
   List<int> offsets,
   Map<Type, List<int>> allOffsets,
 ) {
-  writer.writeDateTime(offsets[0], object.receivedAt);
-  writer.writeString(offsets[1], object.text);
-  writer.writeString(offsets[2], object.url);
+  writer.writeStringList(offsets[0], object.photoIds);
+  writer.writeDateTime(offsets[1], object.receivedAt);
+  writer.writeString(offsets[2], object.text);
+  writer.writeString(offsets[3], object.url);
 }
 
 SharedPostModel _sharedPostModelDeserialize(
@@ -77,9 +90,10 @@ SharedPostModel _sharedPostModelDeserialize(
 ) {
   final object = SharedPostModel();
   object.id = id;
-  object.receivedAt = reader.readDateTime(offsets[0]);
-  object.text = reader.readString(offsets[1]);
-  object.url = reader.readString(offsets[2]);
+  object.photoIds = reader.readStringList(offsets[0]) ?? [];
+  object.receivedAt = reader.readDateTime(offsets[1]);
+  object.text = reader.readString(offsets[2]);
+  object.url = reader.readString(offsets[3]);
   return object;
 }
 
@@ -91,10 +105,12 @@ P _sharedPostModelDeserializeProp<P>(
 ) {
   switch (propertyId) {
     case 0:
-      return (reader.readDateTime(offset)) as P;
+      return (reader.readStringList(offset) ?? []) as P;
     case 1:
-      return (reader.readString(offset)) as P;
+      return (reader.readDateTime(offset)) as P;
     case 2:
+      return (reader.readString(offset)) as P;
+    case 3:
       return (reader.readString(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -249,6 +265,231 @@ extension SharedPostModelQueryFilter
         upper: upper,
         includeUpper: includeUpper,
       ));
+    });
+  }
+
+  QueryBuilder<SharedPostModel, SharedPostModel, QAfterFilterCondition>
+      photoIdsElementEqualTo(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'photoIds',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<SharedPostModel, SharedPostModel, QAfterFilterCondition>
+      photoIdsElementGreaterThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'photoIds',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<SharedPostModel, SharedPostModel, QAfterFilterCondition>
+      photoIdsElementLessThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'photoIds',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<SharedPostModel, SharedPostModel, QAfterFilterCondition>
+      photoIdsElementBetween(
+    String lower,
+    String upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'photoIds',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<SharedPostModel, SharedPostModel, QAfterFilterCondition>
+      photoIdsElementStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'photoIds',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<SharedPostModel, SharedPostModel, QAfterFilterCondition>
+      photoIdsElementEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'photoIds',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<SharedPostModel, SharedPostModel, QAfterFilterCondition>
+      photoIdsElementContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'photoIds',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<SharedPostModel, SharedPostModel, QAfterFilterCondition>
+      photoIdsElementMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'photoIds',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<SharedPostModel, SharedPostModel, QAfterFilterCondition>
+      photoIdsElementIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'photoIds',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<SharedPostModel, SharedPostModel, QAfterFilterCondition>
+      photoIdsElementIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'photoIds',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<SharedPostModel, SharedPostModel, QAfterFilterCondition>
+      photoIdsLengthEqualTo(int length) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(
+        r'photoIds',
+        length,
+        true,
+        length,
+        true,
+      );
+    });
+  }
+
+  QueryBuilder<SharedPostModel, SharedPostModel, QAfterFilterCondition>
+      photoIdsIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(
+        r'photoIds',
+        0,
+        true,
+        0,
+        true,
+      );
+    });
+  }
+
+  QueryBuilder<SharedPostModel, SharedPostModel, QAfterFilterCondition>
+      photoIdsIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(
+        r'photoIds',
+        0,
+        false,
+        999999,
+        true,
+      );
+    });
+  }
+
+  QueryBuilder<SharedPostModel, SharedPostModel, QAfterFilterCondition>
+      photoIdsLengthLessThan(
+    int length, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(
+        r'photoIds',
+        0,
+        true,
+        length,
+        include,
+      );
+    });
+  }
+
+  QueryBuilder<SharedPostModel, SharedPostModel, QAfterFilterCondition>
+      photoIdsLengthGreaterThan(
+    int length, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(
+        r'photoIds',
+        length,
+        include,
+        999999,
+        true,
+      );
+    });
+  }
+
+  QueryBuilder<SharedPostModel, SharedPostModel, QAfterFilterCondition>
+      photoIdsLengthBetween(
+    int lower,
+    int upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(
+        r'photoIds',
+        lower,
+        includeLower,
+        upper,
+        includeUpper,
+      );
     });
   }
 
@@ -686,6 +927,13 @@ extension SharedPostModelQuerySortThenBy
 extension SharedPostModelQueryWhereDistinct
     on QueryBuilder<SharedPostModel, SharedPostModel, QDistinct> {
   QueryBuilder<SharedPostModel, SharedPostModel, QDistinct>
+      distinctByPhotoIds() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'photoIds');
+    });
+  }
+
+  QueryBuilder<SharedPostModel, SharedPostModel, QDistinct>
       distinctByReceivedAt() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'receivedAt');
@@ -712,6 +960,13 @@ extension SharedPostModelQueryProperty
   QueryBuilder<SharedPostModel, int, QQueryOperations> idProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'id');
+    });
+  }
+
+  QueryBuilder<SharedPostModel, List<String>, QQueryOperations>
+      photoIdsProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'photoIds');
     });
   }
 

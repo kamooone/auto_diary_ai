@@ -11,6 +11,7 @@ class PhotoSelectionCard extends StatelessWidget {
     this.from,
     this.to,
     required this.onChanged,
+    this.onPhotoTap,
   });
 
   /// 選択済みの写真
@@ -23,6 +24,9 @@ class PhotoSelectionCard extends StatelessWidget {
   final DateTime? to;
 
   final ValueChanged<List<Photo>> onChanged;
+
+  /// 写真をタップしたときの動作(選択中の写真の何番目か)。渡さなければ何もしない
+  final ValueChanged<int>? onPhotoTap;
 
   @override
   Widget build(BuildContext context) {
@@ -70,9 +74,14 @@ class PhotoSelectionCard extends StatelessWidget {
                       child: Stack(
                         fit: StackFit.expand,
                         children: [
-                          ClipRRect(
-                            borderRadius: BorderRadius.circular(8),
-                            child: PhotoThumbnail(photo: photo),
+                          GestureDetector(
+                            onTap: onPhotoTap == null
+                                ? null
+                                : () => onPhotoTap!(index),
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(8),
+                              child: PhotoThumbnail(photo: photo),
+                            ),
                           ),
                           Positioned(
                             top: 2,

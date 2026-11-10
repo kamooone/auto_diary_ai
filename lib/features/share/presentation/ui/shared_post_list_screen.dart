@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../diary_create/domain/entities/photo.dart';
 import '../../../diary_create/domain/services/day_grouper.dart';
 import '../../../diary_create/domain/services/month_filter.dart';
 import '../../../diary_create/presentation/ui/widgets/month_filter_bar.dart';
+import '../../../diary_create/presentation/ui/widgets/photo_strip.dart';
+import '../../../diary_create/presentation/ui/widgets/photo_viewer_page.dart';
 import '../../application/providers/share_providers.dart';
 import '../../domain/entities/shared_post.dart';
 import '../formatters/shared_post_format.dart';
@@ -102,7 +105,27 @@ class _PostListState extends ConsumerState<_PostList> {
             maxLines: 3,
             overflow: TextOverflow.ellipsis,
           ),
-          subtitle: Text(SharedPostFormat.time(post.receivedAt)),
+          subtitle: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(SharedPostFormat.time(post.receivedAt)),
+              if (post.photoIds.isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.only(top: 8),
+                  child: Builder(builder: (context) {
+                    final photos = [
+                      for (final id in post.photoIds)
+                        Photo(id: id, createdAt: post.receivedAt),
+                    ];
+                    return PhotoStrip(
+                      photos: photos,
+                      onTap: (i) =>
+                          showPhotoViewer(context, photos, initialIndex: i),
+                    );
+                  }),
+                ),
+            ],
+          ),
           trailing: IconButton(
             icon: const Icon(Icons.delete_outline),
             tooltip: "削除",

@@ -11,6 +11,8 @@ import '../../features/plan/presentation/ui/plan_page.dart';
 import '../../features/points/presentation/ui/points_page.dart';
 import '../../features/share/presentation/ui/share_initializer.dart';
 import '../../features/share/presentation/ui/shared_post_list_screen.dart';
+import '../../features/x_archive/presentation/ui/x_archive_import_page.dart';
+import '../../features/x_archive/presentation/ui/x_archive_post_list_page.dart';
 
 class AppRoutes {
   static const home = '/';
@@ -21,6 +23,8 @@ class AppRoutes {
   static const plan = '/settings/plan';
   static const points = '/settings/points';
   static const sharedPosts = '/settings/shared_posts';
+  static const xArchiveImport = '/settings/x_archive_import';
+  static const xArchivePosts = '/settings/x_archive_posts';
   static const inquiry = '/settings/inquiry';
   static const map = '/map';
 
@@ -55,6 +59,14 @@ class AppRoutes {
         GoRoute(
           path: sharedPosts,
           builder: (context, state) => const SharedPostListScreen(),
+        ),
+        GoRoute(
+          path: xArchivePosts,
+          builder: (context, state) => const XArchivePostListPage(),
+        ),
+        GoRoute(
+          path: xArchiveImport,
+          builder: (context, state) => const XArchiveImportPage(),
         ),
         GoRoute(
           path: plan,

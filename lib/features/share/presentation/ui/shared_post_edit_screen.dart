@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../diary_create/domain/entities/photo.dart';
+import '../../../diary_create/presentation/ui/widgets/photo_selection_card.dart';
+import '../../../diary_create/presentation/ui/widgets/photo_viewer_page.dart';
 import '../../application/providers/share_providers.dart';
 import '../../domain/entities/shared_post.dart';
 import '../formatters/shared_post_format.dart';
@@ -20,6 +24,7 @@ class SharedPostEditScreen extends ConsumerStatefulWidget {
 class _SharedPostEditScreenState extends ConsumerState<SharedPostEditScreen> {
   late final _textController = TextEditingController(text: widget.post.text);
   late DateTime _receivedAt = widget.post.receivedAt;
+  late List<String> _photoIds = widget.post.photoIds;
 
   bool _isSaving = false;
 
@@ -29,10 +34,15 @@ class _SharedPostEditScreenState extends ConsumerState<SharedPostEditScreen> {
     super.dispose();
   }
 
-  // 本文か日時を変えているか
+  List<Photo> get _photos => [
+        for (final id in _photoIds) Photo(id: id, createdAt: _receivedAt),
+      ];
+
+  // 本文、日時、写真を変えているか
   bool get _isChanged =>
       _textController.text != widget.post.text ||
-      _receivedAt != widget.post.receivedAt;
+      _receivedAt != widget.post.receivedAt ||
+      !listEquals(_photoIds, widget.post.photoIds);
 
   @override
   Widget build(BuildContext context) {
@@ -83,6 +93,17 @@ class _SharedPostEditScreenState extends ConsumerState<SharedPostEditScreen> {
                 ),
               ],
             ),
+          ),
+          const SizedBox(height: 12),
+          PhotoSelectionCard(
+            photos: _photos,
+            // 写真を選ぶ画面を開いたときの目安は、投稿の少し前から後まで
+            from: _receivedAt.subtract(const Duration(hours: 24)),
+            to: _receivedAt.add(const Duration(hours: 1)),
+            onChanged: (selected) => setState(
+              () => _photoIds = [for (final p in selected) p.id],
+            ),
+            onPhotoTap: (i) => showPhotoViewer(context, _photos, initialIndex: i),
           ),
           const SizedBox(height: 12),
           // URLは変更できない
@@ -156,6 +177,7 @@ class _SharedPostEditScreenState extends ConsumerState<SharedPostEditScreen> {
             widget.post,
             text: _textController.text,
             receivedAt: _receivedAt,
+            photoIds: _photoIds,
           );
 
       navigator.pop(true);

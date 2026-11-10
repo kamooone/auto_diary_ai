@@ -9,5 +9,8 @@ class SharedPostModel {
   late String text;
   late DateTime receivedAt;
 
+  /// 結びつけた端末の写真のID(古いデータでは空)
+  List<String> photoIds = [];
+
   SharedPostModel();
 }
