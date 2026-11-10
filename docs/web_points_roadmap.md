@@ -30,6 +30,7 @@
 | 5 | ペアリング: 端末とアカウントの紐づけ | アプリのコードをWebに入れると紐づく |
 | 6 | `/ai/chat` との連携 | AI利用時にトークンが引かれる。使用量APIが残高を返す |
 | 7 | 本番化: ゲームからの付与、不正対策、退会ページ、プライバシー | 公開できる状態 |
+| 8 | ポイントの履歴 | Webに、いつ何のポイントが入った・使ったかの一覧が出る |
 
 手順1〜4は、日記アプリと独立して作れる。5以降で、アプリ側の実装(私が行う)と合流する。
 
@@ -381,6 +382,58 @@ python3 tools/make_app_key.py kamoooneshot
 4. `POST /events`(ヘッダー `X-App-Key`・`X-Device-Token`、本文 `{"eventId":"test-0001","type":"stage_clear"}`)
    → `granted: 100`。同じ本文をもう一度送ると `duplicate`。別の `eventId` で送ると `event_limit`。
 5. Webの画面で、ポイントが増えている。
+
+### Lambdaの単体テスト(AWSにつながない)
+```
+python3 -m unittest server/points_api/test_lambda_function.py
+```
+
+---
+
+## 手順8: ポイントの履歴
+
+Webのポイント画面に、「ポイントの履歴」を出す。データは、手順4・7から、ledgerテーブルに記録済み。
+
+### 決めたこと
+- 新しい順に50件ずつ表示し、「もっと見る」で続きを読み込む。
+- 出す種類: ゲームで獲得(`game_grant`)、トークンへの交換(`exchange`)、テスト用の追加(`dev_grant`)。
+  テスト用の追加は、「テスト用のポイント追加」と表示する(公開前に開発用の機能を無効にすると、増えなくなる)。
+- 表示名はサーバーが決める: ゲームの獲得は「ゲーム名: 成果の名前」(例: `KamoooneShot: ステージクリア`)。
+  成果の名前は、`EVENT_RULES` の `label`(Webの表示用。ゲームには関係しない)。成果を足すときは、`label` も付ける。
+- 絞り込み(ゲームごと・期間)は作らない。日時は日本時間で表示する。
+
+### API: `GET /history`(ログインが必要)
+- クエリ `next`(省略可): 前回の応答の `next`。それより古い履歴を返す。
+- 応答(200):
+
+```json
+{
+  "entries": [
+    {"id": "<entryId>", "type": "game_grant", "label": "KamoooneShot: ステージクリア",
+     "points": 50, "tokens": 0, "createdAt": 1792422783}
+  ],
+  "next": "<entryId>"
+}
+```
+
+- `points` と `tokens` は増減(交換は、ポイントが負・トークンが正)。`next` は、続きがあるときだけ付く。
+- 400 `invalid_cursor`: `next` の形が正しくない。
+
+### 作業(AWS)
+1. Lambdaの実行ロールのインラインポリシーに、ledgerテーブル(`auto-diary-points-ledger`)への
+   **`dynamodb:Query`** を足す(今は `PutItem` などだけ)。
+2. Lambdaのコードを `server/points_api/lambda_function.py` の内容に置き換えて、Deploy。
+   (環境変数は、変更なし)
+3. API Gateway(HTTP API)に、ルート `GET /history` を足す。統合は同じLambda、オーソライザーは `cognito`
+   (`GET /me` と同じ)。CORSは変更なし(`GET` は許可済み)。
+4. Webのファイル(`index.html`、`app.js`)を、S3に上げ直して、CloudFrontのキャッシュを削除する。
+
+### 確認
+- ログインすると、残高の下に「ポイントの履歴」が出る。
+- 「ポイントを10,000追加」→「トークンに交換」の順に押すと、履歴の先頭に「トークンに交換(-ポイント・+トークン)」、
+  その下に「テスト用のポイント追加(+10,000ポイント)」が増える。
+- 50件を超えると、「もっと見る」が出て、続きが読み込める。
+- ゲームからポイントが付くと(手順7の確認)、「ゲーム名: ステージクリア(+50ポイント)」が出る。
 
 ### Lambdaの単体テスト(AWSにつながない)
 ```

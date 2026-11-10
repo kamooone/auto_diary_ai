@@ -95,3 +95,5 @@ auto_diary の「ポイント・トークン」と同じ流れ。ゲームの画
 ## 履歴
 
 付いたポイントは、履歴のテーブル(ledger)に `game_grant` として残る(アプリID・成果の種類つき)。
+Webのポイント画面の「ポイントの履歴」に表示される(`docs/web_points_roadmap.md` の手順8)。
+表示名は、サーバーの `EVENT_RULES` の `label`(ゲームには関係しない)。

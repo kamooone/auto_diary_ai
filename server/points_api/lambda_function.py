@@ -7,6 +7,7 @@
     POST   /pairing/lookup      紐づけコードから、どの端末かを確認する
     POST   /pairing/confirm     紐づけコードを確定し、端末とアカウントを結ぶ
     GET    /devices             紐づけ済みの端末の一覧
+    GET    /history             ポイントの履歴(新しい順。?next=… で続きを取得)
     DELETE /devices/{deviceId}  端末の紐づけを解除する
 
   ログインなしで呼ぶもの(アプリが呼ぶ。オーソライザーを付けない)
@@ -74,8 +75,9 @@ APPS = {
 #   points      : 1回で付くポイント(ゲームはポイントを送らず、種類だけ送る)
 #   maxPerDay   : 1日(日本時間)に付く回数の上限(1アカウントあたり)
 #   maxTotal    : 生涯で付く回数の上限
+#   label       : Webの履歴に出す名前(ゲームには関係しない)
 EVENT_RULES = {
-    "stage_clear": {"points": 50},
+    "stage_clear": {"points": 50, "label": "ステージクリア"},
 }
 
 # アプリごとに違うルールにしたいときは、ここに書く(例: {"escape_2": {"stage_clear": {...}}})
@@ -609,6 +611,86 @@ def delete_device(account_id, device_id):
     return response(200, {"deleted": True})
 
 
+# ---------- ポイントの履歴
+
+# 1回に返す件数
+HISTORY_PAGE_SIZE = 50
+
+# 履歴の行のキー(時刻のミリ秒13桁 # 乱数32桁)。続きの取得に使う
+ENTRY_ID_PATTERN = re.compile(r"^\d{13}#[0-9a-f]{32}$")
+
+HISTORY_TYPE_LABELS = {
+    "exchange": "トークンに交換",
+    "dev_grant": "テスト用のポイント追加",
+}
+
+
+def event_label(app_id, event_type):
+    rule = rule_for(app_id, event_type) or {}
+    return rule.get("label", event_type)
+
+
+def history_label(item):
+    """履歴の1行に出す名前"""
+    kind = item["type"]["S"]
+
+    if kind == "game_grant":
+        app_id = item["appId"]["S"]
+        app_name = APPS.get(app_id, {}).get("name", "ゲーム")
+        return f"{app_name}: {event_label(app_id, item['eventType']['S'])}"
+
+    return HISTORY_TYPE_LABELS.get(kind, kind)
+
+
+def history(account_id, params):
+    """ポイントの履歴を、新しい順に返す
+
+    1回に HISTORY_PAGE_SIZE 件。続きがあるときだけ next を返す
+    (次の呼び出しで ?next=<next> を付けると、その続きから返す)。
+    """
+    start_key = None
+    cursor = (params or {}).get("next")
+
+    if cursor is not None:
+        if not isinstance(cursor, str) or not ENTRY_ID_PATTERN.match(cursor):
+            return response(400, {"error": "invalid_cursor"})
+
+        start_key = {"accountId": {"S": account_id}, "entryId": {"S": cursor}}
+
+    query = {
+        "TableName": LEDGER_TABLE_NAME,
+        "KeyConditionExpression": "accountId = :a",
+        "ExpressionAttributeValues": {":a": {"S": account_id}},
+        "ScanIndexForward": False,
+        # 続きがあるかを知るため、1件多く読む
+        "Limit": HISTORY_PAGE_SIZE + 1,
+    }
+    if start_key:
+        query["ExclusiveStartKey"] = start_key
+
+    items = dynamodb.query(**query)["Items"]
+    has_more = len(items) > HISTORY_PAGE_SIZE
+    items = items[:HISTORY_PAGE_SIZE]
+
+    body = {
+        "entries": [
+            {
+                "id": item["entryId"]["S"],
+                "type": item["type"]["S"],
+                "label": history_label(item),
+                "points": int(item["pointsDelta"]["N"]),
+                "tokens": int(item["tokensDelta"]["N"]),
+                "createdAt": int(item["createdAt"]["N"]),
+            }
+            for item in items
+        ]
+    }
+    if has_more:
+        body["next"] = items[-1]["entryId"]["S"]
+
+    return response(200, body)
+
+
 # ---------- ゲームの成果(ポイントを付ける)
 
 def today_jst():
@@ -849,6 +931,9 @@ def lambda_handler(event, context):
 
         if route == "GET /me":
             return response(200, get_or_create(account_id))
+
+        if route == "GET /history":
+            return history(account_id, event.get("queryStringParameters"))
 
         if route == "POST /exchange":
             return exchange(account_id, event.get("body"))

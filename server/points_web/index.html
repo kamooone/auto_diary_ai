@@ -9,6 +9,13 @@
     button { font-size: 16px; padding: 10px 20px; }
     #message { color: #b00020; }
     #notice { color: #1b5e20; }
+    #historyList { list-style: none; padding: 0; margin: 0; }
+    #historyList li { display: flex; justify-content: space-between; gap: 12px;
+                      padding: 8px 0; border-bottom: 1px solid #ddd; }
+    .historyTime { color: #666; font-size: 13px; }
+    .historyAmount { white-space: nowrap; text-align: right; }
+    .plus { color: #1b5e20; }
+    .minus { color: #b00020; }
   </style>
 </head>
 <body>
@@ -31,6 +38,11 @@
       ポイント
       <button id="exchangeButton">トークンに交換</button>
     </p>
+
+    <h2>ポイントの履歴</h2>
+    <p id="historyEmpty" hidden>まだ履歴がありません。</p>
+    <ul id="historyList"></ul>
+    <p><button id="historyMoreButton" hidden>もっと見る</button></p>
 
     <h2>アプリを紐づける</h2>
     <p>
