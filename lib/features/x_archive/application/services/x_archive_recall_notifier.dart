@@ -9,7 +9,7 @@ import 'package:timezone/timezone.dart' as tz;
 /// (「毎日この時刻」と1度予約すれば、アプリを開かなくても続く)
 class XArchiveRecallNotifier {
   XArchiveRecallNotifier([FlutterLocalNotificationsPlugin? plugin])
-      : _plugin = plugin ?? FlutterLocalNotificationsPlugin();
+    : _plugin = plugin ?? FlutterLocalNotificationsPlugin();
 
   final FlutterLocalNotificationsPlugin _plugin;
 
@@ -49,8 +49,10 @@ class XArchiveRecallNotifier {
 
   /// 通知を出してよいか、許可を求める。許可されたらtrue
   Future<bool> requestPermission() async {
-    final android = _plugin.resolvePlatformSpecificImplementation<
-        AndroidFlutterLocalNotificationsPlugin>();
+    final android = _plugin
+        .resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin
+        >();
     if (android == null) return true;
     return await android.requestNotificationsPermission() ?? false;
   }
@@ -96,15 +98,30 @@ class XArchiveRecallNotifier {
 
   static const _testNotificationIdBase = 7100;
 
-  /// 動作確認用:通知を、今すぐ [count] 件出す(見た目と、タップで画面が開くことを確かめる)
+  /// 通知の印から、紹介する日を取り出す。日の指定がなければnull(タップした日)
+  static DateTime? dateFromPayload(String? payload) {
+    const prefix = '${XArchiveRecallNotifier.payload}:';
+    if (payload == null || !payload.startsWith(prefix)) return null;
+    return DateTime.tryParse(payload.substring(prefix.length));
+  }
+
+  /// 動作確認用:通知を、今すぐ [count] 件出す
+  ///
+  /// 1件目は今日、2件目は明日…と、通知ごとに別の日の紹介画面が開く。
   Future<void> showTestNotifications({int count = 20}) async {
     if (!_initialized) return;
 
-    for (var i = 1; i <= count; i++) {
+    final jst = DateTime.now().toUtc().add(const Duration(hours: 9));
+    for (var i = 0; i < count; i++) {
+      final date = DateTime(jst.year, jst.month, jst.day + i);
+      final dateText =
+          '${date.year}-'
+          '${date.month.toString().padLeft(2, '0')}-'
+          '${date.day.toString().padLeft(2, '0')}';
       await _plugin.show(
-        _testNotificationIdBase + i,
-        '(テスト $i/$count) $title',
-        body,
+        _testNotificationIdBase + i + 1,
+        '(テスト ${i + 1}/$count) $title',
+        '${date.month}月${date.day}日の分です。$body',
         const NotificationDetails(
           android: AndroidNotificationDetails(
             _channelId,
@@ -115,7 +132,7 @@ class XArchiveRecallNotifier {
           ),
           iOS: DarwinNotificationDetails(),
         ),
-        payload: payload,
+        payload: '$payload:$dateText',
       );
     }
   }

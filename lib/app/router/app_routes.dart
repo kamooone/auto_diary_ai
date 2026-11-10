@@ -66,7 +66,9 @@ class AppRoutes {
         ),
         GoRoute(
           path: xArchiveRecall,
-          builder: (context, state) => const XArchiveRecallPage(),
+          builder: (context, state) => XArchiveRecallPage(
+            date: DateTime.tryParse(state.uri.queryParameters['date'] ?? ''),
+          ),
         ),
         GoRoute(
           path: xArchiveRecallSettings,

@@ -22,7 +22,7 @@ class XArchiveRecall {
   /// 「N年前の今日」の投稿(近い年が先)
   final List<XArchiveRecallYear> years;
 
-  /// 数が少ないときに足す、ランダムな投稿
+  /// 最後に添える、ランダムな投稿
   final List<XArchivePost> randoms;
 
   const XArchiveRecall({this.years = const [], this.randoms = const []});

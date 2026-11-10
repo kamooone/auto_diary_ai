@@ -33,12 +33,17 @@ final xArchiveRecallAvailableProvider = FutureProvider.autoDispose<bool>((ref) a
   return await ref.watch(xArchiveRepositoryProvider).countOriginals() > 0;
 });
 
-/// 今日の「過去のツイート紹介」の中身
-final xArchiveRecallProvider = FutureProvider.autoDispose<XArchiveRecall>((ref) {
-  // 日本時間の今日(年月日だけを使う)
-  final jst = DateTime.now().toUtc().add(const Duration(hours: 9));
-  final today = DateTime(jst.year, jst.month, jst.day);
-  return ref.watch(xArchiveRecallBuilderProvider).build(today);
+/// 「過去のツイート紹介」の中身。[date] を渡さなければ、日本時間の今日
+final xArchiveRecallProvider =
+    FutureProvider.autoDispose.family<XArchiveRecall, DateTime?>((ref, date) {
+  final DateTime day;
+  if (date != null) {
+    day = DateTime(date.year, date.month, date.day);
+  } else {
+    final jst = DateTime.now().toUtc().add(const Duration(hours: 9));
+    day = DateTime(jst.year, jst.month, jst.day);
+  }
+  return ref.watch(xArchiveRecallBuilderProvider).build(day);
 });
 
 /// アプリの起動時に、保存した設定と通知の予約をそろえる

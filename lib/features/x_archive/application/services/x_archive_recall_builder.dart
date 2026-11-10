@@ -8,8 +8,8 @@ import '../../domain/services/x_archive_recall_rules.dart';
 
 /// 「過去のツイート紹介」の中身を作る
 ///
-/// 今日と同じ月日の投稿を、1年前、2年前…と集める。全体の数が少ないときは、
-/// ランダムな投稿を足す。ランダムは日付から決めるので、同じ日なら何度開いても同じ。
+/// 今日と同じ月日の投稿を、1年前、2年前…と集める。そのあとに、ランダムな投稿を
+/// 添える。ランダムは日付から決めるので、同じ日なら何度開いても同じ。
 class XArchiveRecallBuilder {
   final XArchiveRepository repository;
 
@@ -21,8 +21,8 @@ class XArchiveRecallBuilder {
   /// 「N年前の今日」の投稿の合計の上限
   static const totalMax = 20;
 
-  /// 全体がこれより少ないときに、ランダムな投稿を足す
-  static const minTotal = 5;
+  /// 最後に出す、ランダムな投稿の数(「他にもこんなツイートが過去にありました」)
+  static const randomCount = 5;
 
   /// 日本時間の [today] (年月日だけを使う)の紹介を作る
   Future<XArchiveRecall> build(DateTime today) async {
@@ -67,7 +67,7 @@ class XArchiveRecallBuilder {
 
     return XArchiveRecall(
       years: years,
-      randoms: await _randoms(today, need: minTotal - total, usedIds: usedIds),
+      randoms: await _randoms(today, need: randomCount, usedIds: usedIds),
     );
   }
 

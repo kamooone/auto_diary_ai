@@ -92,7 +92,7 @@ void main() {
     expect(recall.years.single.posts.first.tweetId, 'p0');
   });
 
-  test('今日の分が少ないと、ランダムな投稿を足して、同じ日なら同じ結果になる', () async {
+  test('最後にランダムな投稿を5件添える。同じ日なら同じ結果になる', () async {
     final repo = FakeXArchiveRepository([
       post('today', 2025, 11, 11),
       for (var i = 1; i <= 30; i++) post('o$i', 2023, 5, i),
@@ -102,14 +102,14 @@ void main() {
     final second = await builder.build(today);
 
     expect(first.years.single.posts.single.tweetId, 'today');
-    expect(first.randoms, hasLength(4)); // 合計5件になるまで
+    expect(first.randoms, hasLength(5));
     expect(first.randoms.map((p) => p.tweetId), isNot(contains('today')));
     expect(
       second.randoms.map((p) => p.tweetId),
       first.randoms.map((p) => p.tweetId),
     );
     // ほかの日は、別の投稿になりうる(同じ日付の結果は変わらない)
-    expect(first.randoms.map((p) => p.tweetId).toSet(), hasLength(4));
+    expect(first.randoms.map((p) => p.tweetId).toSet(), hasLength(5));
   });
 
   test('うるう日は、その日がない年を飛ばす', () async {

@@ -25,7 +25,9 @@ class _AppState extends ConsumerState<App> {
     WidgetsBinding.instance.addPostFrameCallback((_) => _startPush());
 
     // 過去のツイートの通知の準備(タップで紹介画面を開く)
-    WidgetsBinding.instance.addPostFrameCallback((_) => _startRecallNotification());
+    WidgetsBinding.instance.addPostFrameCallback(
+      (_) => _startRecallNotification(),
+    );
   }
 
   Future<void> _startRecallNotification() async {
@@ -47,8 +49,17 @@ class _AppState extends ConsumerState<App> {
   }
 
   void _openRecallIfNeeded(String? payload) {
-    if (payload != XArchiveRecallNotifier.payload) return;
-    AppRouter.router.push(AppRoutes.xArchiveRecall);
+    if (payload == null ||
+        !payload.startsWith(XArchiveRecallNotifier.payload)) {
+      return;
+    }
+    // テスト用の通知には日付がつく(本番の通知は、タップした日)
+    final date = XArchiveRecallNotifier.dateFromPayload(payload);
+    AppRouter.router.push(
+      date == null
+          ? AppRoutes.xArchiveRecall
+          : '${AppRoutes.xArchiveRecall}?date=${date.toIso8601String().substring(0, 10)}',
+    );
   }
 
   Future<void> _startPush() async {

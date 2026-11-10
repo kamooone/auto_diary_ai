@@ -8,13 +8,19 @@ import '../../domain/entities/x_archive_recall.dart';
 import 'x_archive_post_detail_page.dart';
 import 'x_archive_post_tile.dart';
 
-/// 今日の「過去のツイート紹介」(N年前の今日のツイートと、ランダムなツイート)
+/// 「過去のツイート紹介」(N年前の今日のツイートと、ランダムなツイート)
+const _randomHeading = '他にもこんなツイートが過去にありました';
+const _noTodayMessage = Object();
+
 class XArchiveRecallPage extends ConsumerWidget {
-  const XArchiveRecallPage({super.key});
+  const XArchiveRecallPage({super.key, this.date});
+
+  /// 紹介する日。渡さなければ、日本時間の今日
+  final DateTime? date;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final recall = ref.watch(xArchiveRecallProvider);
+    final recall = ref.watch(xArchiveRecallProvider(date));
 
     return Scaffold(
       appBar: AppBar(title: const Text('過去のツイート')),
@@ -36,8 +42,9 @@ class XArchiveRecallPage extends ConsumerWidget {
 
           final rows = <Object>[
             for (final year in recall.years) ...[year, ...year.posts],
+            if (recall.years.isEmpty) _noTodayMessage,
             if (recall.randoms.isNotEmpty) ...[
-              'ほかのツイート',
+              _randomHeading,
               ...recall.randoms,
             ],
           ];
@@ -51,6 +58,12 @@ class XArchiveRecallPage extends ConsumerWidget {
                   key: ValueKey(row.tweetId),
                   post: row,
                   onTap: () => _open(context, ref, row),
+                );
+              }
+              if (identical(row, _noTodayMessage)) {
+                return const Padding(
+                  padding: EdgeInsets.all(16),
+                  child: Text('この日と同じ月日のツイートは、見つかりませんでした'),
                 );
               }
               final String label;
