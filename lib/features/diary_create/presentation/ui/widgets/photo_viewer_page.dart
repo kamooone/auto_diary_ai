@@ -76,23 +76,71 @@ class _PhotoPage extends ConsumerStatefulWidget {
 }
 
 class _PhotoPageState extends ConsumerState<_PhotoPage> {
-  // 画面いっぱいに見るので、サムネイルより大きく読む
-  static const _maxSide = 2048;
-  static const _quality = 90;
+  // 最初に出す大きさ。速く出すため、画面に収まる程度にする
+  static const _baseSide = 2048;
+  static const _baseQuality = 90;
 
-  late final Future<Uint8List?> _bytes = ref
+  // 拡大したときに読み直す大きさ。メモリとGPUの上限に収まる範囲にする
+  static const _zoomedSide = 4096;
+  static const _zoomedQuality = 95;
+
+  // この倍率を超えて拡大したら、大きい画像に差し替える
+  static const _zoomThreshold = 1.5;
+
+  final _transform = TransformationController();
+
+  late final Future<Uint8List?> _base = ref
       .read(photoRepositoryProvider)
-      .getJpeg(widget.photo, maxSide: _maxSide, quality: _quality);
+      .getJpeg(widget.photo, maxSide: _baseSide, quality: _baseQuality);
+
+  Uint8List? _zoomed;
+  bool _zoomedRequested = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _transform.addListener(_onTransform);
+  }
+
+  @override
+  void dispose() {
+    _transform.removeListener(_onTransform);
+    _transform.dispose();
+    super.dispose();
+  }
+
+  /// 元の写真が最初の大きさ以下なら、読み直しても変わらないので省く
+  bool get _canBeSharper {
+    final w = widget.photo.width;
+    final h = widget.photo.height;
+    if (w == null || h == null) return true;
+    return (w > h ? w : h) > _baseSide;
+  }
+
+  void _onTransform() {
+    if (_zoomedRequested || !_canBeSharper) return;
+    if (_transform.value.getMaxScaleOnAxis() <= _zoomThreshold) return;
+    _zoomedRequested = true;
+    _loadZoomed();
+  }
+
+  Future<void> _loadZoomed() async {
+    final bytes = await ref
+        .read(photoRepositoryProvider)
+        .getJpeg(widget.photo, maxSide: _zoomedSide, quality: _zoomedQuality);
+    if (!mounted || bytes == null) return;
+    setState(() => _zoomed = bytes);
+  }
 
   @override
   Widget build(BuildContext context) {
     return FutureBuilder<Uint8List?>(
-      future: _bytes,
+      future: _base,
       builder: (context, snapshot) {
         if (snapshot.connectionState != ConnectionState.done) {
           return const Center(child: CircularProgressIndicator());
         }
-        final bytes = snapshot.data;
+        final bytes = _zoomed ?? snapshot.data;
         if (bytes == null) {
           return const Center(
             child: Text(
@@ -102,9 +150,17 @@ class _PhotoPageState extends ConsumerState<_PhotoPage> {
           );
         }
         return InteractiveViewer(
+          transformationController: _transform,
           minScale: 1,
           maxScale: 5,
-          child: Center(child: Image.memory(bytes, fit: BoxFit.contain)),
+          child: Center(
+            child: Image.memory(
+              bytes,
+              fit: BoxFit.contain,
+              // 差し替えるときに、一瞬消えないようにする
+              gaplessPlayback: true,
+            ),
+          ),
         );
       },
     );
