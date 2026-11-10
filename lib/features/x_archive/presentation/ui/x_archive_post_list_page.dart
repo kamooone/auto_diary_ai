@@ -12,8 +12,8 @@ import '../../application/services/x_archive_photo_loader.dart';
 import '../../domain/entities/x_archive_post.dart';
 import '../../domain/entities/x_archive_post_filter.dart';
 import 'x_archive_filter_bar.dart';
+import '../../../diary_create/presentation/ui/widgets/photo_strip.dart';
 import '../../../diary_create/presentation/ui/widgets/photo_viewer_page.dart';
-import 'x_archive_photo_strip.dart';
 import 'x_archive_post_detail_page.dart';
 import 'x_archive_post_formatter.dart';
 
@@ -278,7 +278,7 @@ class _PostTileState extends ConsumerState<_PostTile> {
               if (photos.isEmpty) return const SizedBox.shrink();
               return Padding(
                 padding: const EdgeInsets.only(top: 8),
-                child: XArchivePhotoStrip(
+                child: PhotoStrip(
                   photos: photos,
                   onTap: (i) =>
                       showPhotoViewer(context, photos, initialIndex: i),

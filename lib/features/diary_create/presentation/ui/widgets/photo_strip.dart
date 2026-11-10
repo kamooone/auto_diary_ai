@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 
-import '../../../diary_create/domain/entities/photo.dart';
-import '../../../diary_create/presentation/ui/widgets/photo_thumbnail.dart';
+import '../../../domain/entities/photo.dart';
+import 'photo_thumbnail.dart';
 
-/// 投稿に結びつけた写真を、横に並べる
-class XArchivePhotoStrip extends StatelessWidget {
-  const XArchivePhotoStrip({super.key, required this.photos, this.onTap});
+/// 写真のサムネイルを、横に並べる(タップで全画面表示などに使う)
+class PhotoStrip extends StatelessWidget {
+  const PhotoStrip({super.key, required this.photos, this.onTap});
 
   final List<Photo> photos;
 

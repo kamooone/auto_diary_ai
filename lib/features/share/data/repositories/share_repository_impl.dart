@@ -21,7 +21,8 @@ class ShareRepositoryImpl implements ShareRepository {
     final entity = SharedPostModel()
       ..url = post.url
       ..text = post.text
-      ..receivedAt = post.receivedAt;
+      ..receivedAt = post.receivedAt
+      ..photoIds = post.photoIds;
 
     try {
       await isar.writeTxn(() async {
@@ -76,7 +77,8 @@ class ShareRepositoryImpl implements ShareRepository {
       ..id = id
       ..url = post.url
       ..text = post.text
-      ..receivedAt = post.receivedAt;
+      ..receivedAt = post.receivedAt
+      ..photoIds = post.photoIds;
 
     try {
       await isar.writeTxn(() async {
@@ -108,6 +110,7 @@ class ShareRepositoryImpl implements ShareRepository {
       url: model.url,
       text: model.text,
       receivedAt: model.receivedAt,
+      photoIds: model.photoIds,
     );
   }
 }

@@ -80,6 +80,33 @@ void main() {
       expect(updated.url, 'https://x.com/user/status/1');
     });
 
+    test('写真を結びつけて修正できる。渡さなければ、写真は変わらない', () async {
+      final useCase = UpdateSharedPostUseCase(repository);
+
+      await useCase.execute(
+        repository.posts.first,
+        text: 'おはよう',
+        receivedAt: DateTime(2026, 1, 1, 8),
+        photoIds: ['p1', 'p2'],
+      );
+      expect(repository.posts.first.photoIds, ['p1', 'p2']);
+
+      await useCase.execute(
+        repository.posts.first,
+        text: '本文だけ直す',
+        receivedAt: DateTime(2026, 1, 1, 8),
+      );
+      expect(repository.posts.first.photoIds, ['p1', 'p2']);
+
+      await useCase.execute(
+        repository.posts.first,
+        text: '本文だけ直す',
+        receivedAt: DateTime(2026, 1, 1, 8),
+        photoIds: [],
+      );
+      expect(repository.posts.first.photoIds, isEmpty);
+    });
+
     test('保存されていない投稿は、修正も削除もできない', () async {
       final unsaved = SharedPost(
         url: 'https://x.com/a',

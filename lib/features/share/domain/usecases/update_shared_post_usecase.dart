@@ -6,11 +6,14 @@ class UpdateSharedPostUseCase {
 
   UpdateSharedPostUseCase(this.repository);
 
-  /// 投稿の本文と日時を修正する(URLは変えない)
+  /// 投稿の本文、日時、結びつけた写真を修正する(URLは変えない)
+  ///
+  /// [photoIds] を渡さなければ、写真はそのまま
   Future<void> execute(
     SharedPost post, {
     required String text,
     required DateTime receivedAt,
+    List<String>? photoIds,
   }) {
     if (post.id == null) {
       throw ArgumentError('保存されていない投稿は修正できません');
@@ -22,6 +25,7 @@ class UpdateSharedPostUseCase {
         url: post.url,
         text: text,
         receivedAt: receivedAt,
+        photoIds: photoIds ?? post.photoIds,
       ),
     );
   }

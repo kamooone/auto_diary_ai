@@ -6,10 +6,14 @@ class SharedPost {
   final String text;
   final DateTime receivedAt;
 
+  /// 結びつけた端末の写真のID
+  final List<String> photoIds;
+
   SharedPost({
     this.id,
     required this.url,
     required this.text,
     required this.receivedAt,
+    this.photoIds = const [],
   });
 }
