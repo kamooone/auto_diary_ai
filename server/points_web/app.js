@@ -26,6 +26,9 @@ const els = {
   pairingCode: document.getElementById("pairingCode"),
   deviceCount: document.getElementById("deviceCount"),
   deviceList: document.getElementById("deviceList"),
+  historyList: document.getElementById("historyList"),
+  historyEmpty: document.getElementById("historyEmpty"),
+  historyMore: document.getElementById("historyMoreButton"),
   message: document.getElementById("message"),
 };
 
@@ -197,6 +200,88 @@ async function loadBalance() {
   showBalance(await callApi("GET", "/me"));
 }
 
+// ---------- ポイントの履歴
+
+// 続きを読み込むための目印(サーバーが返した next)。続きがなければ null
+let historyNext = null;
+let historyLoading = false;
+
+// 日時は、日本時間で表示する
+const historyTime = new Intl.DateTimeFormat("ja-JP", {
+  timeZone: "Asia/Tokyo",
+  year: "numeric",
+  month: "numeric",
+  day: "numeric",
+  hour: "2-digit",
+  minute: "2-digit",
+});
+
+function signed(value) {
+  return `${value > 0 ? "+" : ""}${yen.format(value)}`;
+}
+
+function historyRow(entry) {
+  const item = document.createElement("li");
+
+  // 内容(ゲームの名前などはサーバーが決めた文字だが、念のため textContent で表示する)
+  const left = document.createElement("div");
+  const label = document.createElement("div");
+  label.textContent = entry.label;
+  const time = document.createElement("div");
+  time.className = "historyTime";
+  time.textContent = historyTime.format(new Date(entry.createdAt * 1000));
+  left.append(label, time);
+
+  // ポイントの増減(トークンが増えたときは、その数も出す)
+  const right = document.createElement("div");
+  right.className = "historyAmount";
+  const points = document.createElement("div");
+  points.className = entry.points >= 0 ? "plus" : "minus";
+  points.textContent = `${signed(entry.points)}ポイント`;
+  right.append(points);
+
+  if (entry.tokens !== 0) {
+    const tokens = document.createElement("div");
+    tokens.textContent = `${signed(entry.tokens)}トークン`;
+    right.append(tokens);
+  }
+
+  item.append(left, right);
+  return item;
+}
+
+// reset: true なら、先頭から読み直す(交換した直後など)。false なら、続きを足す
+async function loadHistory({ reset }) {
+  if (historyLoading) return;
+  historyLoading = true;
+  els.historyMore.disabled = true;
+
+  try {
+    const next = reset ? null : historyNext;
+    const path = next ? `/history?next=${encodeURIComponent(next)}` : "/history";
+    const data = await callApi("GET", path);
+
+    if (reset) els.historyList.replaceChildren();
+    els.historyList.append(...data.entries.map(historyRow));
+
+    historyNext = data.next ?? null;
+    els.historyEmpty.hidden = els.historyList.children.length > 0;
+    els.historyMore.hidden = historyNext === null;
+  } finally {
+    historyLoading = false;
+    els.historyMore.disabled = false;
+  }
+}
+
+// 履歴の読み込みに失敗しても、残高などの表示は止めない
+async function refreshHistory() {
+  try {
+    await loadHistory({ reset: true });
+  } catch (e) {
+    show(e.message);
+  }
+}
+
 // ---------- アプリの紐づけ
 
 function showDevices({ devices }) {
@@ -294,6 +379,7 @@ async function grantForTest() {
   try {
     showBalance(await callApi("POST", "/dev/grant", { amount: 10000 }));
     showNotice("テスト用に、10,000ポイントを追加しました。");
+    await refreshHistory();
   } catch (e) {
     show(e.message);
   }
@@ -327,6 +413,7 @@ async function exchange() {
     showBalance(await callApi("POST", "/exchange", pendingExchange));
     pendingExchange = null;
     showNotice(`${yen.format(points)}ポイントを、トークンに交換しました。`);
+    await refreshHistory();
   } catch (e) {
     show(e.message);
   } finally {
@@ -372,6 +459,8 @@ async function main() {
   document.getElementById("grantButton").onclick = grantForTest;
   document.getElementById("exchangeButton").onclick = exchange;
   document.getElementById("pairingButton").onclick = pairDevice;
+  els.historyMore.onclick = () =>
+    loadHistory({ reset: false }).catch((e) => show(e.message));
 
   const query = new URLSearchParams(location.search);
 
@@ -398,6 +487,7 @@ async function main() {
   if (sessionStorage.getItem("access_token")) {
     try {
       await loadBalance();
+      await loadHistory({ reset: true });
       await loadDevices();
       fillPendingPairingCode();
     } catch (e) {

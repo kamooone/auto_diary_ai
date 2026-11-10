@@ -473,6 +473,138 @@ class UnlinkSelfTest(unittest.TestCase):
         fake_client.delete_item.assert_not_called()
 
 
+def ledger_item(entry_id, kind, points, tokens=0, app_id=None, event_type=None,
+                created_at=1792422783):
+    item = {
+        "accountId": {"S": "user-1"},
+        "entryId": {"S": entry_id},
+        "type": {"S": kind},
+        "pointsDelta": {"N": str(points)},
+        "tokensDelta": {"N": str(tokens)},
+        "createdAt": {"N": str(created_at)},
+    }
+    if app_id:
+        item["appId"] = {"S": app_id}
+        item["eventType"] = {"S": event_type}
+    return item
+
+
+def entry_id(n):
+    return f"{1792422783000 + n:013d}#{n:032x}"
+
+
+class HistoryTest(unittest.TestCase):
+    def setUp(self):
+        fake_client.reset_mock(side_effect=True)
+        fake_client.query.return_value = {"Items": []}
+
+    def test_履歴がなければ空(self):
+        status, body = call("GET /history")
+
+        self.assertEqual((status, body), (200, {"entries": []}))
+
+    def test_自分のアカウントの履歴を新しい順に読む(self):
+        call("GET /history")
+
+        args = fake_client.query.call_args.kwargs
+        self.assertEqual(args["TableName"], "ledger")
+        self.assertEqual(
+            args["ExpressionAttributeValues"], {":a": {"S": "user-1"}}
+        )
+        self.assertFalse(args["ScanIndexForward"])
+        self.assertEqual(args["Limit"], m.HISTORY_PAGE_SIZE + 1)
+        self.assertNotIn("ExclusiveStartKey", args)
+
+    def test_種類ごとの表示名とポイント(self):
+        fake_client.query.return_value = {"Items": [
+            ledger_item(entry_id(3), "exchange", -12000, 12000),
+            ledger_item(entry_id(2), "game_grant", 50, app_id="kamoooneshot",
+                        event_type="stage_clear"),
+            ledger_item(entry_id(1), "dev_grant", 10000),
+        ]}
+
+        status, body = call("GET /history")
+
+        self.assertEqual(status, 200)
+        self.assertEqual(
+            [(e["label"], e["points"], e["tokens"]) for e in body["entries"]],
+            [
+                ("トークンに交換", -12000, 12000),
+                ("KamoooneShot: ステージクリア", 50, 0),
+                ("テスト用のポイント追加", 10000, 0),
+            ],
+        )
+        self.assertEqual(body["entries"][0]["id"], entry_id(3))
+        self.assertEqual(body["entries"][0]["createdAt"], 1792422783)
+        self.assertNotIn("next", body)
+
+    def test_表示名のない成果は成果の名前をそのまま出す(self):
+        fake_client.query.return_value = {"Items": [
+            ledger_item(entry_id(1), "game_grant", 100, app_id="escape_2",
+                        event_type="new_event"),
+        ]}
+
+        _, body = call("GET /history")
+
+        self.assertEqual(body["entries"][0]["label"], "脱出ゲーム２: new_event")
+
+    def test_続きがあるときだけnextを返し1ページの件数に切る(self):
+        items = [
+            ledger_item(entry_id(n), "dev_grant", 1)
+            for n in range(m.HISTORY_PAGE_SIZE + 1, 0, -1)
+        ]
+        fake_client.query.return_value = {"Items": items}
+
+        _, body = call("GET /history")
+
+        self.assertEqual(len(body["entries"]), m.HISTORY_PAGE_SIZE)
+        self.assertEqual(body["next"], body["entries"][-1]["id"])
+
+    def test_ちょうど1ページ分ならnextは返さない(self):
+        items = [
+            ledger_item(entry_id(n), "dev_grant", 1)
+            for n in range(m.HISTORY_PAGE_SIZE, 0, -1)
+        ]
+        fake_client.query.return_value = {"Items": items}
+
+        _, body = call("GET /history")
+
+        self.assertEqual(len(body["entries"]), m.HISTORY_PAGE_SIZE)
+        self.assertNotIn("next", body)
+
+    def test_nextを渡すとその続きから読む(self):
+        cursor = entry_id(7)
+        result = m.lambda_handler(
+            {**event("GET /history"), "queryStringParameters": {"next": cursor}},
+            None,
+        )
+
+        self.assertEqual(result["statusCode"], 200)
+        start = fake_client.query.call_args.kwargs["ExclusiveStartKey"]
+        # アカウントは、ログイン中のもの(送られた値では決まらない)
+        self.assertEqual(
+            start,
+            {"accountId": {"S": "user-1"}, "entryId": {"S": cursor}},
+        )
+
+    def test_正しくないnextは断る(self):
+        for bad in ["abc", "", "1#2", entry_id(1) + "x", 5]:
+            result = m.lambda_handler(
+                {**event("GET /history"), "queryStringParameters": {"next": bad}},
+                None,
+            )
+            self.assertEqual(result["statusCode"], 400, bad)
+            self.assertEqual(json.loads(result["body"])["error"], "invalid_cursor")
+
+        fake_client.query.assert_not_called()
+
+    def test_ログインなしでは読めない(self):
+        result = m.lambda_handler(event("GET /history", logged_in=False), None)
+
+        self.assertEqual(result["statusCode"], 500)
+        fake_client.query.assert_not_called()
+
+
 class EventRulesDocTest(unittest.TestCase):
     """ゲームに渡す説明(docs/game_points_api.md)の成果の一覧が、サーバーのルールと一致するか
 
