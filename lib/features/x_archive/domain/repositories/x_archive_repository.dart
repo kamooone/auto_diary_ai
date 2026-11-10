@@ -23,6 +23,16 @@ abstract class XArchiveRepository {
   /// 保存した投稿の件数
   Future<int> count();
 
+  /// 保存した投稿を、新しい順に取得する。[year] を渡すと、その年(日本時間)だけ
+  Future<List<XArchivePost>> findPage({
+    required int offset,
+    required int limit,
+    int? year,
+  });
+
+  /// 保存した投稿の、年(日本時間)ごとの件数
+  Future<Map<int, int>> countByYear();
+
   /// 保存した投稿をすべて消す
   Future<void> deleteAll();
 }

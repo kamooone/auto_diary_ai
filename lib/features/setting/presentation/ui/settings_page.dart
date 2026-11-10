@@ -108,10 +108,10 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
           ),
 
           ListTile(
-            leading: const Icon(Icons.upload_file),
-            title: const Text("Xのアーカイブを取り込む"),
-            subtitle: const Text("Xからダウンロードした過去の投稿を、年ごとに取り込みます"),
-            onTap: () => context.push(AppRoutes.xArchiveImport),
+            leading: const Icon(Icons.history),
+            title: const Text("取り込んだXの投稿"),
+            subtitle: const Text("Xのアーカイブから取り込んだ過去の投稿を見ます。ここから取り込みもできます"),
+            onTap: () => context.push(AppRoutes.xArchivePosts),
           ),
 
           ListTile(

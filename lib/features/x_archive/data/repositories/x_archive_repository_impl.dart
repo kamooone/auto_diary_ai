@@ -2,6 +2,7 @@ import 'package:isar/isar.dart';
 
 import '../../domain/entities/x_archive_post.dart';
 import '../../domain/repositories/x_archive_repository.dart';
+import '../../domain/services/x_archive_summary.dart';
 import '../models/x_archive_post_model.dart';
 
 class XArchiveRepositoryImpl implements XArchiveRepository {
@@ -58,10 +59,60 @@ class XArchiveRepositoryImpl implements XArchiveRepository {
   Future<int> count() => isar.xArchivePostModels.count();
 
   @override
+  Future<List<XArchivePost>> findPage({
+    required int offset,
+    required int limit,
+    int? year,
+  }) async {
+    final query = year == null
+        ? isar.xArchivePostModels.where().sortByCreatedAtDesc()
+        : isar.xArchivePostModels
+            .filter()
+            .createdAtBetween(
+              // 日本時間の年の始まりと終わりを、UTCに直した範囲
+              DateTime.utc(year, 1, 1).subtract(const Duration(hours: 9)),
+              DateTime.utc(year + 1, 1, 1).subtract(const Duration(hours: 9)),
+              includeUpper: false,
+            )
+            .sortByCreatedAtDesc();
+    final models = await query.offset(offset).limit(limit).findAll();
+    return models.map(_toPost).toList();
+  }
+
+  @override
+  Future<Map<int, int>> countByYear() async {
+    final dates = await isar.xArchivePostModels
+        .where()
+        .createdAtProperty()
+        .findAll();
+    final counts = <int, int>{};
+    for (final d in dates) {
+      final y = xArchiveYearJst(d);
+      counts[y] = (counts[y] ?? 0) + 1;
+    }
+    return counts;
+  }
+
+  @override
   Future<void> deleteAll() async {
     await isar.writeTxn(() async {
       await isar.xArchivePostModels.clear();
     });
+  }
+
+  XArchivePost _toPost(XArchivePostModel m) {
+    return XArchivePost(
+      tweetId: m.tweetId,
+      text: m.text,
+      createdAt: m.createdAt,
+      kind: XArchivePostKind.values.firstWhere(
+        (k) => k.name == m.kind,
+        orElse: () => XArchivePostKind.post,
+      ),
+      replyToScreenName: m.replyToScreenName,
+      imageFileNames: m.imageFileNames,
+      hasVideo: m.hasVideo,
+    );
   }
 
   XArchivePostModel _toModel(XArchivePost post) {
