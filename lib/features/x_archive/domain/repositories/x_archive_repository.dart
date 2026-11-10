@@ -34,6 +34,15 @@ abstract class XArchiveRepository {
   /// [filter] に合う投稿の件数
   Future<int> countMatching(XArchivePostFilter filter);
 
+  /// リツイートとリプライを除いた投稿(通常の投稿と引用)の件数
+  Future<int> countOriginals();
+
+  /// リツイートとリプライを除いた投稿を、新しい順に取得する
+  Future<List<XArchivePost>> findOriginals({
+    required int offset,
+    required int limit,
+  });
+
   Future<XArchivePost?> find(String tweetId);
 
   /// 投稿に結びつける端末の写真を、利用者が選んだものにする。nullで、自動の候補に戻す

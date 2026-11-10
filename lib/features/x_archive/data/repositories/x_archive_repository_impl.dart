@@ -98,6 +98,31 @@ class XArchiveRepositoryImpl implements XArchiveRepository {
         );
   }
 
+  QueryBuilder<XArchivePostModel, XArchivePostModel, QAfterFilterCondition>
+      _originals() {
+    return isar.xArchivePostModels
+        .filter()
+        .kindEqualTo(XArchivePostKind.post.name)
+        .or()
+        .kindEqualTo(XArchivePostKind.quote.name);
+  }
+
+  @override
+  Future<int> countOriginals() => _originals().count();
+
+  @override
+  Future<List<XArchivePost>> findOriginals({
+    required int offset,
+    required int limit,
+  }) async {
+    final models = await _originals()
+        .sortByCreatedAtDesc()
+        .offset(offset)
+        .limit(limit)
+        .findAll();
+    return models.map(_toPost).toList();
+  }
+
   @override
   Future<XArchivePost?> find(String tweetId) async {
     final model =
