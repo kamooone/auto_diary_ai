@@ -13,7 +13,10 @@ class XArchiveRepositoryImpl implements XArchiveRepository {
   XArchiveRepositoryImpl(this.isar);
 
   @override
-  Future<XArchiveImportResult> import(List<XArchivePost> posts) async {
+  Future<XArchiveImportResult> import(
+    List<XArchivePost> posts, {
+    void Function(int done)? onProgress,
+  }) async {
     var added = 0;
     var skipped = 0;
 
@@ -45,6 +48,7 @@ class XArchiveRepositoryImpl implements XArchiveRepository {
         });
         added += fresh.length;
       }
+      onProgress?.call(end);
     }
 
     return XArchiveImportResult(added: added, skipped: skipped);
