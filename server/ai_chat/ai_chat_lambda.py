@@ -243,6 +243,57 @@ def post_json(provider, url, headers, body, timeout=None):
         ) from e
 
 
+def image_size(data):
+    """画像(JPEGまたはPNG)の、縦横のピクセル数 (幅, 高さ) を返す。読めないときは None
+
+    画像を開かずに、ヘッダーだけ読む(AIが数える画像のトークンと見比べるためのログ用)
+    """
+    # PNG: 先頭8バイトの印のあと、IHDR(幅4バイト・高さ4バイト)
+    if data[:8] == b"\x89PNG\r\n\x1a\n" and len(data) >= 24:
+        return (
+            int.from_bytes(data[16:20], "big"),
+            int.from_bytes(data[20:24], "big"),
+        )
+
+    # JPEG: 先頭は FF D8。SOF(C0〜CF。C4・C8・CC を除く)に、高さと幅が入っている
+    if data[:2] != b"\xff\xd8":
+        return None
+
+    i = 2
+    n = len(data)
+    while i + 3 < n:
+        if data[i] != 0xFF:
+            return None
+        while i < n and data[i] == 0xFF:
+            i += 1
+        if i >= n:
+            return None
+
+        marker = data[i]
+        i += 1
+
+        # 長さのないマーカー(TEM・RSTn・SOI)
+        if marker == 0x01 or 0xD0 <= marker <= 0xD8:
+            continue
+        if marker == 0xD9 or i + 1 >= n:
+            return None
+
+        length = (data[i] << 8) | data[i + 1]
+        if length < 2:
+            return None
+
+        if 0xC0 <= marker <= 0xCF and marker not in (0xC4, 0xC8, 0xCC):
+            if i + 6 >= n:
+                return None
+            height = (data[i + 3] << 8) | data[i + 4]
+            width = (data[i + 5] << 8) | data[i + 6]
+            return (width, height) if width and height else None
+
+        i += length
+
+    return None
+
+
 def ask_openai(api_key, message, images, context=None, info=None):
     """有料プラン: GPT。(回答, 消費したトークン数)を返す
 
@@ -933,6 +984,8 @@ def lambda_handler(event, context):
             })
 
         # S3から画像を取得(どちらのAIにも、Base64で渡す)
+        image_sizes = []
+
         for image in image_keys:
 
             s3_object = s3.get_object(
@@ -940,9 +993,19 @@ def lambda_handler(event, context):
                 Key=image["s3_key"],
             )
 
-            image["base64"] = base64.b64encode(
-                s3_object["Body"].read()
-            ).decode("utf-8")
+            image_bytes = s3_object["Body"].read()
+
+            size = image_size(image_bytes)
+            image_sizes.append(
+                f"{size[0]}x{size[1]}:{len(image_bytes)}" if size
+                else f"?:{len(image_bytes)}"
+            )
+
+            image["base64"] = base64.b64encode(image_bytes).decode("utf-8")
+
+        # AIに渡す画像の、縦横(ピクセル)とバイト数(画像のトークンと見比べるため)
+        if image_sizes:
+            print(json.dumps({"imageCount": len(image_sizes), "images": image_sizes}))
 
         # 有料プラン、またはユーザーが GPT を選んだときは GPT。それ以外は Gemini
         # (GPT を選んだときの、トークンの消費の倍率は、まだ設定していない)
