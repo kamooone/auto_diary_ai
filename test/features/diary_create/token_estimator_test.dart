@@ -1,6 +1,7 @@
 import 'package:auto_diary_ai/features/ai/domain/entities/ai_model.dart';
 import 'package:auto_diary_ai/features/diary/domain/entities/diary.dart';
 import 'package:auto_diary_ai/features/diary_create/domain/entities/diary_length.dart';
+import 'package:auto_diary_ai/features/diary_create/domain/entities/photo.dart';
 import 'package:auto_diary_ai/features/diary_create/domain/entities/summary_style.dart';
 import 'package:auto_diary_ai/features/diary_create/domain/services/summary_text.dart';
 import 'package:auto_diary_ai/features/diary_create/domain/services/timeline_text.dart';
@@ -222,22 +223,76 @@ void main() {
   });
 
   group('TokenEstimator(GPT・ふつうの日記)', () {
-    int plain(int photos) => TokenEstimator.estimate(
+    Photo photo(int w, int h) =>
+        Photo(id: '$w$h', createdAt: DateTime(2026, 1, 1), width: w, height: h);
+
+    int plain(List<Photo> photos) => TokenEstimator.estimate(
       note: '',
       timeline: const [],
       posts: const [],
-      photoCount: photos,
+      photoCount: photos.length,
+      photos: photos,
       model: AiModel.gpt,
     );
 
-    // 実測(2026-11-11、長辺1024に縮小した写真): 写真1枚(横長) 1,630、
-    // 3枚(縦長2枚+横長1枚) 3,079。見積もりは、実測の80%以上100%未満
-    test('写真1枚は、実測1,630の80〜100%', () {
-      expect(plain(1), inInclusiveRange(1304, 1629));
+    // 実測(2026-11-11、長辺1024に縮小): 写真1枚(縦長) 1,599、3枚(縦長) 3,126、
+    // 10枚(縦長6枚+横長4枚) 8,064。縦横は、撮った大きさ(縮小前)で渡す。
+    // 見積もりは、実測の80%以上100%未満
+    test('写真1枚は、実測1,599の80〜100%', () {
+      expect(plain([photo(1080, 1920)]), inInclusiveRange(1280, 1598));
     });
 
-    test('写真3枚は、実測3,079の80〜100%', () {
-      expect(plain(3), inInclusiveRange(2463, 3078));
+    test('写真3枚は、実測3,126の80〜100%', () {
+      expect(
+        plain([for (var i = 0; i < 3; i++) photo(1080, 1920)]),
+        inInclusiveRange(2501, 3125),
+      );
+    });
+
+    test('写真10枚(縦長6+横長4)は、実測8,064の80〜100%', () {
+      expect(
+        plain([
+          for (var i = 0; i < 6; i++) photo(1080, 1920),
+          for (var i = 0; i < 4; i++) photo(1920, 1080),
+        ]),
+        inInclusiveRange(6452, 8063),
+      );
+    });
+
+    test('縦長と横長は、同じトークンになる', () {
+      expect(plain([photo(1080, 1920)]), plain([photo(1920, 1080)]));
+    });
+
+    test('4:3や正方形の写真は、16:9より多くなる', () {
+      final wide = plain([photo(1920, 1080)]);
+      expect(plain([photo(4000, 3000)]), greaterThan(wide));
+      expect(
+        plain([photo(3000, 3000)]),
+        greaterThan(plain([photo(4000, 3000)])),
+      );
+    });
+
+    test('小さい写真は、拡大せずに計算する', () {
+      expect(plain([photo(320, 320)]), lessThan(plain([photo(1920, 1080)])));
+    });
+
+    test('縦横が分からない写真は、16:9として計算する', () {
+      expect(
+        plain([Photo(id: 'x', createdAt: DateTime(2026, 1, 1))]),
+        plain([photo(1920, 1080)]),
+      );
+    });
+
+    test('Geminiは、縦横に関係なく1枚あたり一定', () {
+      int gemini(Photo p) => TokenEstimator.estimate(
+        note: '',
+        timeline: const [],
+        posts: const [],
+        photoCount: 1,
+        photos: [p],
+        model: AiModel.gemini,
+      );
+      expect(gemini(photo(3000, 3000)), gemini(photo(1920, 1080)));
     });
 
     test('写真1枚あたりは、Geminiより少ない', () {
@@ -316,10 +371,7 @@ void main() {
     test('31件・相談(実測12,932)', () {
       expectBetween(
         12932,
-        TokenEstimator.estimateConsult(
-          diaries(31, 13212),
-          model: AiModel.gpt,
-        ),
+        TokenEstimator.estimateConsult(diaries(31, 13212), model: AiModel.gpt),
       );
     });
 

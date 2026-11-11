@@ -6,6 +6,7 @@ import '../../../location/domain/entities/timeline_item.dart';
 import '../../../memo/domain/entities/memo.dart';
 import '../../../memo/domain/services/memo_text.dart';
 import '../../../share/domain/entities/shared_post.dart';
+import '../entities/photo.dart';
 import '../entities/summary_style.dart';
 import 'summary_text.dart';
 import 'timeline_text.dart';
@@ -48,12 +49,14 @@ class TokenEstimator {
     listOutputTokensPerSecond: 500,
   );
 
-  // GPT(gpt-5-mini)。写真は1枚760。GPTは、送る画像のピクセル数でトークンが変わる
-  // (Geminiは約1,100で一定)。2026-11-11に、長辺1024に縮小した写真で実測した:
-  // 横長1024x576が1枚で入力1,292、横長1枚+縦長(576x1024)2枚で入力2,676(2点から、
-  // 写真1枚あたり約690・写真以外の入力が約600)。4:3(1024x768)は約920、正方形は約1,230と
-  // 見込まれる。見積もりは、実測の8割以上になるよう、少し多めの760にした
-  // (16:9だと実測より少し多くなる)。以前の450は、2026-11-05に、小さい写真で測った値。
+  // GPT(gpt-5-mini)。写真は、縮小後の縦横から計算する(tokensPerPatch)。GPTは、送る画像の
+  // ピクセル数でトークンが変わる(Geminiは約1,100で一定)。縦横を32pxのマス目に分けた数
+  // (1024x576なら32x18=576)に、1マスあたり1.28をかける。
+  // 2026-11-11の実測(長辺1024に縮小): 横長1枚で入力1,292、縦長2枚+横長1枚で入力2,676、
+  // 縦長6枚+横長4枚で入力7,520(写真1枚あたり約690、写真以外の入力が約600)。実測は1マスあたり
+  // 約1.2で、見積もりが実際の総トークンの80%を下回らないよう、少し多めの1.28にした。
+  // 4:3(1024x768)は約980、正方形は約1,310になる。縦横が分からない写真は、16:9として
+  // 計算する(tokensPerPhoto)。以前の450は、2026-11-05に、小さい写真で測った値。
   // (縦長の写真が縮小されずに送られる不具合は、2026-11-11に直した。直す前は縦長が約2,200だった)。
   // 指示文は固定で約480(3件の測定から)、
   // ふつうのAI日記の出力は、写真1枚で約130、3枚で約240。
@@ -65,7 +68,8 @@ class TokenEstimator {
     instruction: 450,
     noteTokensPerChar: 0.82,
     tokensPerChar: 0.9,
-    tokensPerPhoto: 760,
+    tokensPerPhoto: 737,
+    tokensPerPatch: 1.28,
     plainOutput: 100,
     outputTokensPerChar: 0.5,
     diaryTokensPerChar: 0.82,
@@ -88,6 +92,36 @@ class TokenEstimator {
 
   /// AIの種類ごとの、写真1枚あたりのトークン
   static int photoTokens(AiModel model) => _of(model).tokensPerPhoto;
+
+  // 写真を送る前に縮小する、長辺の大きさ(GenerateDiaryUseCaseと同じ)
+  static const _photoMaxSide = 1024;
+  static const _patchSide = 32;
+
+  static int _photoInputTokens(
+    _Coefficients c,
+    int photoCount,
+    List<Photo> photos,
+  ) {
+    final perPatch = c.tokensPerPatch;
+    if (perPatch == null || photos.isEmpty) {
+      return photoCount * c.tokensPerPhoto;
+    }
+
+    var total = 0;
+    for (final p in photos) {
+      final w = p.width;
+      final h = p.height;
+      if (w == null || h == null || w <= 0 || h <= 0) {
+        total += c.tokensPerPhoto;
+        continue;
+      }
+      final scale = math.min(1.0, _photoMaxSide / math.max(w, h));
+      final patches =
+          (w * scale / _patchSide).ceil() * (h * scale / _patchSide).ceil();
+      total += (patches * perPatch).round();
+    }
+    return total;
+  }
 
   // 指示文(日付・形式の指定など、毎回同じ部分)。実測は約210〜265
   static const instructionTokens = 200;
@@ -126,10 +160,8 @@ class TokenEstimator {
     }
 
     return switch (style) {
-      SummaryStyle.reading || SummaryStyle.custom => math.min(
-        (chars * c.readingRatio).round(),
-        5000,
-      ),
+      SummaryStyle.reading ||
+      SummaryStyle.custom => math.min((chars * c.readingRatio).round(), 5000),
       // 日記を連結させるは、AIを使わない
       SummaryStyle.chronicle => 0,
       SummaryStyle.brief => math.min((chars * c.briefRatio).round(), 1000),
@@ -164,6 +196,7 @@ class TokenEstimator {
     required List<SharedPost> posts,
     List<Memo> memos = const [],
     required int photoCount,
+    List<Photo> photos = const [],
     List<Diary> diaries = const [],
     SummaryStyle summaryStyle = SummaryStyle.reading,
     double multiplier = 1,
@@ -179,6 +212,7 @@ class TokenEstimator {
       posts: posts,
       memos: memos,
       photoCount: photoCount,
+      photos: photos,
       diaries: diaries,
       summaryStyle: summaryStyle,
       model: model,
@@ -197,6 +231,7 @@ class TokenEstimator {
     required List<SharedPost> posts,
     List<Memo> memos = const [],
     required int photoCount,
+    List<Photo> photos = const [],
     List<Diary> diaries = const [],
     SummaryStyle summaryStyle = SummaryStyle.reading,
     AiModel model = AiModel.gemini,
@@ -211,6 +246,7 @@ class TokenEstimator {
       posts: posts,
       memos: memos,
       photoCount: photoCount,
+      photos: photos,
       diaries: diaries,
       summaryStyle: summaryStyle,
       model: model,
@@ -235,6 +271,7 @@ class TokenEstimator {
     required List<SharedPost> posts,
     required List<Memo> memos,
     required int photoCount,
+    required List<Photo> photos,
     required List<Diary> diaries,
     required SummaryStyle summaryStyle,
     required AiModel model,
@@ -254,7 +291,7 @@ class TokenEstimator {
         c.instruction +
         note.length * c.noteTokensPerChar +
         chars * c.tokensPerChar +
-        photoCount * c.tokensPerPhoto +
+        _photoInputTokens(c, photoCount, photos) +
         SummaryText.length(diaries) * c.diaryTokensPerChar;
 
     final output = diaries.isEmpty
@@ -280,6 +317,7 @@ class _Coefficients {
     required this.noteTokensPerChar,
     required this.tokensPerChar,
     required this.tokensPerPhoto,
+    this.tokensPerPatch,
     required this.plainOutput,
     required this.outputTokensPerChar,
     required this.diaryTokensPerChar,
@@ -299,6 +337,9 @@ class _Coefficients {
   final double noteTokensPerChar;
   final double tokensPerChar;
   final int tokensPerPhoto;
+
+  /// 写真の縦横から計算するとき、32pxのマス目1つあたりのトークン(nullなら、1枚あたり一定)
+  final double? tokensPerPatch;
 
   /// 日記を1つにする以外(ふつうのAI日記)の出力
   final int plainOutput;

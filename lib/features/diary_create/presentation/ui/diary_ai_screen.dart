@@ -365,6 +365,7 @@ class _DiaryAiScreenState extends ConsumerState<DiaryAiScreen> {
       posts: state.selectedPosts,
       memos: state.selectedMemos,
       photoCount: state.aiPhotos.length,
+      photos: state.aiPhotos,
       model: ref.read(aiModelProvider),
       lengthChars: state.diaryLengthChars,
     );

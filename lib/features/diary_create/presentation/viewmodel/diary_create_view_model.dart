@@ -550,6 +550,7 @@ class DiaryCreateViewModel extends AutoDisposeNotifier<DiaryCreateState> {
         posts: state.selectedPosts,
         memos: state.selectedMemos,
         photoCount: state.aiPhotos.length,
+        photos: state.aiPhotos,
         model: ref.read(aiModelProvider),
         lengthChars: state.diaryLengthChars,
       ),
