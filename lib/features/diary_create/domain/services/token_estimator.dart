@@ -51,11 +51,12 @@ class TokenEstimator {
 
   // GPT(gpt-5-mini)。写真は、縮小後の縦横から計算する(tokensPerPatch)。GPTは、送る画像の
   // ピクセル数でトークンが変わる(Geminiは約1,100で一定)。縦横を32pxのマス目に分けた数
-  // (1024x576なら32x18=576)に、1マスあたり1.28をかける。
+  // (1024x576なら32x18=576)に、1マスあたり1.15をかけて、写真があるときは+200する。
   // 2026-11-11の実測(長辺1024に縮小): 横長1枚で入力1,292、縦長2枚+横長1枚で入力2,676、
   // 縦長6枚+横長4枚で入力7,520(写真1枚あたり約690、写真以外の入力が約600)。実測は1マスあたり
-  // 約1.2で、見積もりが実際の総トークンの80%を下回らないよう、少し多めの1.28にした。
-  // 4:3(1024x768)は約980、正方形は約1,310になる。縦横が分からない写真は、16:9として
+  // 約1.2。写真が100枚あっても実際を超えないよう、1マスあたりは少なめの1.15にし、
+  // 1枚のときの下限(実際の80%)は、写真があるときの固定の+200で保つ。
+  // 4:3(1024x768)は約880、正方形は約1,180になる。縦横が分からない写真は、16:9として
   // 計算する(tokensPerPhoto)。以前の450は、2026-11-05に、小さい写真で測った値。
   // (縦長の写真が縮小されずに送られる不具合は、2026-11-11に直した。直す前は縦長が約2,200だった)。
   // 指示文は固定で約480(3件の測定から)、
@@ -68,8 +69,9 @@ class TokenEstimator {
     instruction: 450,
     noteTokensPerChar: 0.82,
     tokensPerChar: 0.9,
-    tokensPerPhoto: 737,
-    tokensPerPatch: 1.28,
+    tokensPerPhoto: 662,
+    tokensPerPatch: 1.15,
+    photoFixedTokens: 200,
     plainOutput: 100,
     outputTokensPerChar: 0.5,
     diaryTokensPerChar: 0.82,
@@ -107,7 +109,7 @@ class TokenEstimator {
       return photoCount * c.tokensPerPhoto;
     }
 
-    var total = 0;
+    var total = c.photoFixedTokens;
     for (final p in photos) {
       final w = p.width;
       final h = p.height;
@@ -318,6 +320,7 @@ class _Coefficients {
     required this.tokensPerChar,
     required this.tokensPerPhoto,
     this.tokensPerPatch,
+    this.photoFixedTokens = 0,
     required this.plainOutput,
     required this.outputTokensPerChar,
     required this.diaryTokensPerChar,
@@ -340,6 +343,11 @@ class _Coefficients {
 
   /// 写真の縦横から計算するとき、32pxのマス目1つあたりのトークン(nullなら、1枚あたり一定)
   final double? tokensPerPatch;
+
+  /// 写真を1枚以上送るときだけ加える、一定のトークン。写真があると、写真以外の入力と
+  /// 出力が、写真なしの日記より多くなる分(1マスあたりを低くして、枚数が多くても
+  /// 実際を超えないようにした代わりに、1枚のときの下限をここで保つ)
+  final int photoFixedTokens;
 
   /// 日記を1つにする以外(ふつうのAI日記)の出力
   final int plainOutput;
