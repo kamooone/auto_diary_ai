@@ -10,6 +10,7 @@ import '../entities/generated_diary.dart';
 import '../entities/photo.dart';
 import '../repositories/photo_repository.dart';
 import '../services/generated_diary_parser.dart';
+import '../services/jpeg_size.dart';
 import '../entities/diary_style.dart';
 import '../services/prompt_spec.dart';
 import '../services/timeline_text.dart';
@@ -68,6 +69,13 @@ class GenerateDiaryUseCase {
       );
 
       if (bytes != null) {
+        // 送る画像の大きさ(トークンの数と見比べるため)
+        AppLog.add(
+          '写真',
+          '送る画像 ${photo.id}: ${JpegSize.parse(bytes) ?? '不明'} '
+              '${bytes.length}バイト (元 ${photo.width}x${photo.height})',
+        );
+
         sentPhotos.add(photo);
         images.add(AiImage(bytes: bytes, contentType: 'image/jpeg'));
       }
