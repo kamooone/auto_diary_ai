@@ -7,16 +7,26 @@ import '../../features/location/data/services/background_location_service.dart';
 import '../../core/permissions/notification_permission_service.dart';
 
 class AppInitializer {
-  static Future<void> initialize(Isar isar) async {
-    // 通知許可(Android13以上)
-    await NotificationPermissionService.requestPermission();
+  /// 許可は、位置情報 → 身体活動 → 通知の順に求める。
+  /// 位置情報をまだ許可していない(求められる)ときは、先に[explain]で説明を見せる
+  static Future<void> initialize(
+    Isar isar, {
+    required Future<void> Function() explain,
+  }) async {
+    final gps = GpsLocationDataSource();
+
+    if (await gps.canRequestPermission()) {
+      await explain();
+    }
 
     // 位置情報許可
-    final gps = GpsLocationDataSource();
     final locationGranted = await gps.requestPermission();
 
     // 身体活動の許可(記録がオフでも、ほかの許可と同じく起動時に求める)
     await requestActivityPermission();
+
+    // 通知許可(Android13以上)
+    await NotificationPermissionService.requestPermission();
 
     await initializeBackgroundService();
 
