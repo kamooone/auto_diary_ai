@@ -8,6 +8,7 @@ import '../../domain/entities/ai_model.dart';
 import '../../domain/entities/ai_reply.dart';
 import '../../domain/exceptions/ai_exception.dart';
 import '../../domain/repositories/ai_repository.dart';
+import '../services/upload_batcher.dart';
 
 class AwsAiRepositoryImpl implements AiRepository {
   final String baseUrl;
@@ -49,7 +50,8 @@ class AwsAiRepositoryImpl implements AiRepository {
   // API Gateway(REST)の統合タイムアウトを120秒に引き上げたため、少し余裕を持たせる
   static const _timeout = Duration(seconds: 125);
 
-  // Lambda同期呼び出しのペイロード上限(6MB)に収まるよう、Base64後の合計サイズを制限する
+  // Lambda同期呼び出しのペイロード上限(6MB)に収まるよう、1回に送るBase64後の合計サイズを制限する
+  // (写真が多いときは、この大きさごとに分けて送る)
   static const _maxUploadBodyBytes = 5 * 1024 * 1024;
 
   @override
@@ -88,35 +90,42 @@ class AwsAiRepositoryImpl implements AiRepository {
     );
   }
 
+  // 写真は、1回のリクエストが上限に収まるように分けて、順番にアップロードする
   Future<List<dynamic>> _uploadImages(AiMessageRequest request) async {
-    final body = jsonEncode({
-      // 画像のアップロードでは、文章は使わない(空だと断られないよう、短い文字を入れる)
-      'message': 'prompt',
-      'images': [
-        for (final image in request.images)
-          {
-            'data': base64Encode(image.bytes),
-            'contentType': image.contentType,
-          },
-      ],
-    });
-
-    final bodyBytes = utf8.encode(body).length;
-    if (bodyBytes > _maxUploadBodyBytes) {
-      throw AiUploadException('Upload payload too large: $bodyBytes bytes');
-    }
-
-    final data = await _post(
-      _uploadPath,
-      body,
-      onError: AiUploadException.new,
+    final batches = UploadBatcher.split(
+      request.images,
+      maxBytes: _maxUploadBodyBytes,
+      onTooLarge: (bytes) =>
+          throw AiUploadException('Upload payload too large: $bytes bytes'),
     );
 
-    final images = data['images'];
-    if (images is! List || images.length != request.images.length) {
-      throw AiUploadException('images is missing in response');
+    final uploaded = <dynamic>[];
+    for (final batch in batches) {
+      final body = jsonEncode({
+        // 画像のアップロードでは、文章は使わない(空だと断られないよう、短い文字を入れる)
+        'message': 'prompt',
+        'images': [
+          for (final image in batch)
+            {
+              'data': base64Encode(image.bytes),
+              'contentType': image.contentType,
+            },
+        ],
+      });
+
+      final data = await _post(
+        _uploadPath,
+        body,
+        onError: AiUploadException.new,
+      );
+
+      final images = data['images'];
+      if (images is! List || images.length != batch.length) {
+        throw AiUploadException('images is missing in response');
+      }
+      uploaded.addAll(images);
     }
-    return images;
+    return uploaded;
   }
 
   Future<Map<String, dynamic>> _post(
