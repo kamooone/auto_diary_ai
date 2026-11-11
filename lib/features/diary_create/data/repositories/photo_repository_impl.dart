@@ -1,6 +1,6 @@
 import 'dart:async';
 import 'dart:math';
-import 'dart:typed_data';
+import 'package:flutter/foundation.dart';
 import 'package:photo_manager/photo_manager.dart';
 import '../../../../core/logging/app_log.dart';
 import '../../domain/entities/photo.dart';
@@ -118,7 +118,11 @@ class PhotoRepositoryImpl implements PhotoRepository {
       try {
         final bytes = await asset
             .thumbnailDataWithSize(
-              _fitSize(asset, side),
+              fitSize(
+                asset.orientatedWidth,
+                asset.orientatedHeight,
+                side,
+              ),
               format: ThumbnailFormat.jpeg,
               quality: quality,
             )
@@ -141,17 +145,24 @@ class PhotoRepositoryImpl implements PhotoRepository {
     return _assets[id] ?? await AssetEntity.fromId(id);
   }
 
-  // 縦横比を保ったまま、長辺がmaxSide以下になるサイズを返す
-  ThumbnailSize _fitSize(AssetEntity asset, int maxSide) {
-    final longSide = max(asset.width, asset.height);
+  /// 縦横比を保ったまま、長辺が[maxSide]以下になる縮小後の大きさを返す
+  ///
+  /// [width]と[height]は、**向きを直した後**の縦横を渡すこと。縦に撮った写真は、画像の
+  /// データが横長のまま向きの情報だけで縦に見えることがあり、向きを直す前の値だと、
+  /// 縦横が逆の大きさで縮小を頼んでしまう。縮小は、頼んだ大きさ「以上」になる向きに
+  /// 行われるので、縦長の写真が、長辺1024を大きく超える(例: 1024x1820)ままになる。
+  /// 大きさが分からないとき(0以下)は、正方形で頼む。拡大はしない
+  @visibleForTesting
+  static ThumbnailSize fitSize(int width, int height, int maxSide) {
+    final longSide = max(width, height);
     if (longSide <= 0) {
       return ThumbnailSize.square(maxSide);
     }
 
     final scale = min(1.0, maxSide / longSide);
     return ThumbnailSize(
-      max(1, (asset.width * scale).round()),
-      max(1, (asset.height * scale).round()),
+      max(1, (width * scale).round()),
+      max(1, (height * scale).round()),
     );
   }
 }
