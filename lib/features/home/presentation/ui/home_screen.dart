@@ -85,7 +85,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       TutorialStep(
         target: _memoTabKey,
         title: "ひとこと",
-        body: "思いついたことを、短くメモできます。メモは、日記を作るときの材料にもなります。",
+        body: "思いついたことを、短くメモできます。メモは、日記を作成するときの材料にもなります。",
         bubbleAbove: true,
       ),
       TutorialStep(
