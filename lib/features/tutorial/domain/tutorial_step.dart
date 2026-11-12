@@ -6,15 +6,21 @@ import 'package:flutter/widgets.dart';
 /// 今は文字だけ。あとから画像を入れるときは、ここに項目を足す
 class TutorialStep {
   const TutorialStep({
-    required this.target,
+    required GlobalKey this.target,
     required this.title,
     required this.body,
     this.bubbleAbove = false,
     this.circle = false,
   });
 
-  /// 明るくする部品(画面にあるときだけ、場所を取れる)
-  final GlobalKey target;
+  /// 部品を指さずに、画面の中ほどに吹き出しだけを出す(アプリの紹介など)
+  const TutorialStep.intro({required this.title, required this.body})
+    : target = null,
+      bubbleAbove = false,
+      circle = false;
+
+  /// 明るくする部品(画面にあるときだけ、場所を取れる)。nullなら、部品は指さない
+  final GlobalKey? target;
 
   final String title;
   final String body;

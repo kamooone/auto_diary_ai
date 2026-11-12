@@ -61,4 +61,40 @@ void main() {
     expect(finished, isTrue);
     expect(find.text('二つ目'), findsNothing);
   });
+
+  testWidgets('部品を指さない紹介のステップも、1ページとして出せる', (tester) async {
+    final a = GlobalKey();
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: Column(
+            children: [
+              Container(key: a, width: 80, height: 40, color: Colors.red),
+              Builder(
+                builder: (context) => TextButton(
+                  onPressed: () => showTutorial(context, [
+                    const TutorialStep.intro(title: '紹介', body: 'こんなアプリです'),
+                    TutorialStep(target: a, title: '部品', body: '説明'),
+                  ]),
+                  child: const Text('開始'),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    await tester.tap(find.text('開始'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('紹介'), findsOneWidget);
+    expect(find.text('こんなアプリです'), findsOneWidget);
+    expect(find.text('1 / 2'), findsOneWidget);
+
+    await tester.tap(find.text('次へ'));
+    await tester.pumpAndSettle();
+    expect(find.text('部品'), findsOneWidget);
+  });
 }

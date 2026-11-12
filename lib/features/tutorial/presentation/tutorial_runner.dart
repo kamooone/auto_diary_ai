@@ -9,18 +9,20 @@ import '../domain/tutorial_step.dart';
 ///
 /// 画面を暗くして、[TutorialStep.target]の部品だけを明るくし、そばに吹き出しを出す。
 /// 「次へ」(最後は「完了」)と「戻る」で、ページをめくるように読み進める。スキップはない。
-Future<void> showTutorial(
-  BuildContext context,
-  List<TutorialStep> steps,
-) {
+Future<void> showTutorial(BuildContext context, List<TutorialStep> steps) {
   final done = Completer<void>();
   final last = steps.length - 1;
+  final screen = MediaQuery.sizeOf(context);
 
   final targets = [
     for (var i = 0; i < steps.length; i++)
       TargetFocus(
         identify: 'step$i',
         keyTarget: steps[i].target,
+        // 部品を指さないステップは、画面の中央の小さな点を指して、吹き出しを中ほどに出す
+        targetPosition: steps[i].target == null
+            ? TargetPosition(const Size(1, 1), screen.center(Offset.zero))
+            : null,
         shape: steps[i].circle ? ShapeLightFocus.Circle : ShapeLightFocus.RRect,
         radius: 12,
         // 「次へ」の操作だけで進める(暗い部分や、明るい部分をタップしても進まない)
@@ -28,7 +30,18 @@ Future<void> showTutorial(
         enableTargetTab: false,
         contents: [
           TargetContent(
-            align: steps[i].bubbleAbove ? ContentAlign.top : ContentAlign.bottom,
+            align: steps[i].target == null
+                ? ContentAlign.custom
+                : steps[i].bubbleAbove
+                ? ContentAlign.top
+                : ContentAlign.bottom,
+            customPosition: steps[i].target == null
+                ? CustomTargetContentPosition(
+                    top: screen.height * 0.28,
+                    left: 16,
+                    right: 16,
+                  )
+                : null,
             builder: (context, controller) => TutorialBubble(
               title: steps[i].title,
               body: steps[i].body,
@@ -94,7 +107,11 @@ class TutorialBubble extends StatelessWidget {
         borderRadius: BorderRadius.circular(16),
       ),
       child: DefaultTextStyle(
-        style: const TextStyle(color: Colors.black87, fontSize: 14, height: 1.5),
+        style: const TextStyle(
+          color: Colors.black87,
+          fontSize: 14,
+          height: 1.5,
+        ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,

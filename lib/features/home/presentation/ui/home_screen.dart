@@ -63,6 +63,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     if (!mounted) return;
 
     await showTutorial(context, [
+      // 最初に、どんなアプリかを説明する
+      const TutorialStep.intro(
+        title: "サクッと記録・日記・振り返りへ、ようこそ",
+        body: "その日の行動(場所や移動)と、写真、ひとことメモをもとに、AIが日記を書いてくれるアプリです。"
+            "書いた日記は、日付から、あとで見返せます。\n\n"
+            "最初に、画面の使い方を順に説明します。",
+      ),
       TutorialStep(
         target: _diaryTabKey,
         title: "日記",
