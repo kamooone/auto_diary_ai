@@ -71,8 +71,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       ),
       TutorialStep(
         target: _createKey,
-        title: "日記を作る",
-        body: "ここから、日記を作ります。行動の記録、写真、Xの投稿、メモから材料を選ぶと、AIが日記を書きます。",
+        title: "日記を作成するボタン",
+        body: "押すと、日記作成画面に移ります。行動の記録や写真、メモなどを使って、AIが日記を作成してくれます。",
         bubbleAbove: true,
         circle: true,
       ),
