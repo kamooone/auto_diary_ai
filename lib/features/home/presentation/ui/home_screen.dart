@@ -65,10 +65,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     await showTutorial(context, [
       // 最初に、どんなアプリかを説明する
       const TutorialStep.intro(
-        title: "サクッと記録・日記・振り返りへ、ようこそ",
-        body: "その日の行動(場所や移動)と、写真、ひとことメモをもとに、AIが日記を書いてくれるアプリです。"
-            "書いた日記は、日付から、あとで見返せます。\n\n"
-            "最初に、画面の使い方を順に説明します。",
+        title: "アプリをインストールしていただき、ありがとうございます",
+        body: "このアプリでは、行動の記録や写真、メモなど、日記の材料を簡単に集められるので、手軽に日記を作成できます。\n\n"
+            "これから機能を一つ一つ簡単に説明しますのでご覧ください。",
       ),
       TutorialStep(
         target: _diaryTabKey,
