@@ -56,7 +56,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     });
   }
 
-  // 下から、左から順に、部品を1つずつ説明する(初めて表示したときだけ)
+  // 紹介のあと、日記を作る、タブ、画面の上の部品の順に、1つずつ説明する(初めて表示したときだけ)
   Future<void> _showTutorialOnce() async {
     final store = ref.read(tutorialSeenStoreProvider);
     if (await store.hasSeen(_tutorialId)) return;
@@ -70,6 +70,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             "これから機能を一つ一つ簡単に説明しますのでご覧ください。",
       ),
       TutorialStep(
+        target: _createKey,
+        title: "日記を作る",
+        body: "ここから、日記を作ります。行動の記録、写真、Xの投稿、メモから材料を選ぶと、AIが日記を書きます。",
+        bubbleAbove: true,
+        circle: true,
+      ),
+      TutorialStep(
         target: _diaryTabKey,
         title: "日記",
         body: "作った日記が、月ごとに並びます。タップすると、読んだり、直したりできます。",
@@ -80,13 +87,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         title: "ひとこと",
         body: "思いついたことを、短くメモできます。メモは、日記を作るときの材料にもなります。",
         bubbleAbove: true,
-      ),
-      TutorialStep(
-        target: _createKey,
-        title: "日記を作る",
-        body: "ここから、日記を作ります。行動の記録、写真、Xの投稿、メモから材料を選ぶと、AIが日記を書きます。",
-        bubbleAbove: true,
-        circle: true,
       ),
       TutorialStep(
         target: _calendarKey,
