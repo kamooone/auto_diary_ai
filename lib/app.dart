@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'app/router/app_router.dart';
 import 'app/startup/app_initializer.dart';
-import 'app/startup/permission_intro_dialog.dart';
 import 'core/database/isar_provider.dart';
 import 'app/router/app_routes.dart';
 import 'features/x_archive/application/providers/x_archive_providers.dart';
@@ -24,7 +23,7 @@ class _AppState extends ConsumerState<App> {
   void initState() {
     super.initState();
 
-    // 通知・位置情報などの許可と、記録の開始(説明のダイアログを出すため、最初の画面を表示してから行う)
+    // 記録の開始(許可済みのときだけ。許可のダイアログは、ここでは出さない)
     WidgetsBinding.instance.addPostFrameCallback((_) => _startRecording());
 
     // お問い合わせの返信の通知を受ける準備(最初の画面を表示してから行う)
@@ -38,24 +37,9 @@ class _AppState extends ConsumerState<App> {
 
   Future<void> _startRecording() async {
     try {
-      await AppInitializer.initialize(
-        ref.read(isarProvider),
-        explain: _showPermissionIntro,
-      );
+      await AppInitializer.initialize(ref.read(isarProvider));
     } catch (e) {
       debugPrint('記録を始められませんでした: $e');
-    }
-  }
-
-  // 最初の画面が出るのを待って、許可の説明を出す
-  Future<void> _showPermissionIntro() async {
-    for (var i = 0; i < 20; i++) {
-      final context = AppRouter.router.routerDelegate.navigatorKey.currentContext;
-      if (context != null && context.mounted) {
-        await showPermissionIntroDialog(context);
-        return;
-      }
-      await Future<void>.delayed(const Duration(milliseconds: 100));
     }
   }
 

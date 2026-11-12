@@ -5,10 +5,14 @@ import '../../../../common/constants/location_constants.dart';
 
 class GpsLocationDataSource {
 
-  /// これから許可を求められるか(まだ許可も拒否もされていない)
-  Future<bool> canRequestPermission() async {
+  /// すでに許可されているか(許可のダイアログは出さない)
+  Future<bool> hasPermission() async {
     try {
-      return await Geolocator.checkPermission() == LocationPermission.denied;
+      if (!await Geolocator.isLocationServiceEnabled()) return false;
+
+      final permission = await Geolocator.checkPermission();
+      return permission == LocationPermission.whileInUse ||
+          permission == LocationPermission.always;
     } catch (_) {
       return false;
     }
