@@ -14,6 +14,9 @@ import '../../../ads/presentation/banner_ad_view.dart';
 import '../../../inquiry/application/providers/inquiry_providers.dart';
 import '../../../memo/presentation/ui/memo_edit_dialog.dart';
 import '../../../memo/presentation/ui/memo_list_view.dart';
+import '../../../tutorial/application/tutorial_providers.dart';
+import '../../../tutorial/domain/tutorial_step.dart';
+import '../../../tutorial/presentation/tutorial_runner.dart';
 import '../viewmodel/home_view_model.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
@@ -29,15 +32,77 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   // 0: 日記、1: ひとことメモ
   var _tabIndex = 0;
 
+  // チュートリアルで明るくする部品
+  final _diaryTabKey = GlobalKey();
+  final _memoTabKey = GlobalKey();
+  final _createKey = GlobalKey();
+  final _calendarKey = GlobalKey();
+  final _mapKey = GlobalKey();
+  final _menuKey = GlobalKey();
+
+  // この画面のチュートリアルの印(見たかどうかを覚えるときの名前)
+  static const _tutorialId = 'home';
+
   @override
   void initState() {
     super.initState();
 
     pageController = PageController();
 
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _promptRecordingWidget();
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      // 初めて表示したときは、先にチュートリアルを出す(ダイアログは、そのあと)
+      await _showTutorialOnce();
+      await _promptRecordingWidget();
     });
+  }
+
+  // 下から、左から順に、部品を1つずつ説明する(初めて表示したときだけ)
+  Future<void> _showTutorialOnce() async {
+    final store = ref.read(tutorialSeenStoreProvider);
+    if (await store.hasSeen(_tutorialId)) return;
+    if (!mounted) return;
+
+    await showTutorial(context, [
+      TutorialStep(
+        target: _diaryTabKey,
+        title: "日記",
+        body: "作った日記が、月ごとに並びます。タップすると、読んだり、直したりできます。",
+        bubbleAbove: true,
+      ),
+      TutorialStep(
+        target: _memoTabKey,
+        title: "ひとこと",
+        body: "思いついたことを、短くメモできます。メモは、日記を作るときの材料にもなります。",
+        bubbleAbove: true,
+      ),
+      TutorialStep(
+        target: _createKey,
+        title: "日記を作る",
+        body: "ここから、日記を作ります。行動の記録、写真、Xの投稿、メモから材料を選ぶと、AIが日記を書きます。",
+        bubbleAbove: true,
+        circle: true,
+      ),
+      TutorialStep(
+        target: _calendarKey,
+        title: "カレンダー",
+        body: "日付から、その日の日記を探せます。",
+        circle: true,
+      ),
+      TutorialStep(
+        target: _mapKey,
+        title: "地図",
+        body: "記録した行動が、地図に表示されます。",
+        circle: true,
+      ),
+      TutorialStep(
+        target: _menuKey,
+        title: "メニュー",
+        body: "AIの使用量、ポイント・トークン、Xの投稿の取り込み、お問い合わせ、行動履歴のオン・オフなどは、ここからです。",
+        circle: true,
+      ),
+    ]);
+
+    await store.markSeen(_tutorialId);
   }
 
   // 行動履歴のオン・オフを切り替えるボタンを、ホーム画面に置くかどうかを尋ねる(初回のみ)
@@ -113,6 +178,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
       actions: [
         IconButton(
+          key: _calendarKey,
           icon: const Icon(Icons.calendar_month),
           tooltip: "カレンダー",
           onPressed: () {
@@ -120,6 +186,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           },
         ),
         IconButton(
+          key: _mapKey,
           icon: const Icon(Icons.map),
           tooltip: "地図",
           onPressed: () async {
@@ -131,13 +198,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           },
         ),
         IconButton(
+          key: _menuKey,
+          tooltip: "メニュー",
           // お問い合わせに、新しい返信があるときは、印を付ける
           icon: Badge(
             // 小さすぎて気づきにくいので、標準(6)の3倍にする
             smallSize: 18,
             isLabelVisible:
                 ref.watch(hasUnreadReplyProvider).valueOrNull ?? false,
-            child: const Icon(Icons.settings),
+            child: const Icon(Icons.menu),
           ),
           onPressed: () async {
             await context.push(AppRoutes.settings);
@@ -181,13 +250,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       bottomNavigationBar: NavigationBar(
         selectedIndex: _tabIndex,
         onDestinationSelected: (index) => setState(() => _tabIndex = index),
-        destinations: const [
+        destinations: [
           NavigationDestination(
+            key: _diaryTabKey,
             icon: Icon(Icons.menu_book_outlined),
             selectedIcon: Icon(Icons.menu_book),
             label: "日記",
           ),
           NavigationDestination(
+            key: _memoTabKey,
             icon: Icon(Icons.edit_note_outlined),
             selectedIcon: Icon(Icons.edit_note),
             label: "ひとこと",
@@ -236,6 +307,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           right: 16,
           bottom: 8,
           child: FloatingActionButton(
+            key: _createKey,
             heroTag: 'diary',
             tooltip: '日記作成',
             onPressed: () {
