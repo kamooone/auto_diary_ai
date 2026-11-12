@@ -79,7 +79,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       TutorialStep(
         target: _diaryTabKey,
         title: "日記",
-        body: "作った日記が、月ごとに並びます。タップすると、読んだり、直したりできます。",
+        body: "作成した日記が、ここに表示されます。",
         bubbleAbove: true,
       ),
       TutorialStep(
