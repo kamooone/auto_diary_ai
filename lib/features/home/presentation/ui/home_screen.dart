@@ -96,8 +96,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       ),
       TutorialStep(
         target: _mapKey,
-        title: "地図",
-        body: "記録した行動が、地図に表示されます。",
+        title: "行動履歴",
+        body: "地図とタイムラインで、行動の記録を確認できます。",
         circle: true,
       ),
       TutorialStep(
