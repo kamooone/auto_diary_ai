@@ -23,6 +23,7 @@ class DiaryCreateScreen extends ConsumerStatefulWidget {
 
 class _DiaryCreateScreenState extends ConsumerState<DiaryCreateScreen> {
   // チュートリアルで明るくする部品
+  final _dateKey = GlobalKey();
   final _aiKey = GlobalKey();
   final _summaryKey = GlobalKey();
 
@@ -35,19 +36,16 @@ class _DiaryCreateScreenState extends ConsumerState<DiaryCreateScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) => _showTutorialOnce());
   }
 
-  // 紹介、自分で日記を書く、AI、振り返りの順に説明する(初めて表示したときだけ)
+  // 自分で日記を書く、AI、振り返りの順に説明する(初めて表示したときだけ)
   Future<void> _showTutorialOnce() async {
     final store = ref.read(tutorialSeenStoreProvider);
     if (await store.hasSeen(_tutorialId)) return;
     if (!mounted) return;
 
     await showTutorial(context, [
-      const TutorialStep.intro(
-        title: "日記作成画面",
-        body: "ここでは、日記を自分で書いたり、AIに書いてもらったり、振り返りを作成したりできます。",
-      ),
-      // 日付・タイトルと本文・写真・保存は、基本的な操作なので、光らせずに1ページで説明する
-      const TutorialStep.intro(
+      // 日付・タイトルと本文・写真・保存は、基本的な操作なので、一番上の日付だけを光らせて、1ページで説明する
+      TutorialStep(
+        target: _dateKey,
         title: "自分で日記を書く",
         body: "日記の日付を選び、タイトルと本文を書いて、写真を添えて、保存します。",
       ),
@@ -91,6 +89,7 @@ class _DiaryCreateScreenState extends ConsumerState<DiaryCreateScreen> {
         children: [
           // ---------- いつの日記か
           Card(
+            key: _dateKey,
             child: ListTile(
               leading: const Icon(Icons.calendar_today),
               title: const Text("日記の日付"),

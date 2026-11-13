@@ -31,16 +31,16 @@ void main() {
 
     await open();
 
-    expect(find.text('日記作成画面'), findsWidgets);
-    expect(find.text('1 / 4'), findsOneWidget);
+    expect(find.text('自分で日記を書く'), findsWidgets);
+    expect(find.text('1 / 3'), findsOneWidget);
 
     // 最後の「完了」まで、「次へ」で進める(下にある部品も、スクロールして見せる)
-    for (var i = 0; i < 3; i++) {
+    for (var i = 0; i < 2; i++) {
       await tester.tap(find.text('次へ'));
       await tester.pumpAndSettle();
     }
     expect(find.text('振り返りを作成する'), findsWidgets);
-    expect(find.text('4 / 4'), findsOneWidget);
+    expect(find.text('3 / 3'), findsOneWidget);
 
     await tester.tap(find.text('完了'));
     await tester.pumpAndSettle();
@@ -49,6 +49,6 @@ void main() {
 
     // 見たあとは、開き直しても出ない
     await open();
-    expect(find.text('1 / 4'), findsNothing);
+    expect(find.text('1 / 3'), findsNothing);
   });
 }
