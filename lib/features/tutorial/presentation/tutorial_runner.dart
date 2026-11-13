@@ -9,7 +9,14 @@ import '../domain/tutorial_step.dart';
 ///
 /// 画面を暗くして、[TutorialStep.target]の部品だけを明るくし、そばに吹き出しを出す。
 /// 「次へ」(最後は「完了」)と「戻る」で、ページをめくるように読み進める。スキップはない。
-Future<void> showTutorial(BuildContext context, List<TutorialStep> steps) {
+Future<void> showTutorial(BuildContext context, List<TutorialStep> allSteps) {
+  // 条件によって画面に出ない部品(使用量が読み込めていないときなど)の説明は、飛ばす
+  final steps = [
+    for (final step in allSteps)
+      if (step.target == null || step.target!.currentContext != null) step,
+  ];
+  if (steps.isEmpty) return Future.value();
+
   final done = Completer<void>();
   final last = steps.length - 1;
   final screen = MediaQuery.sizeOf(context);
@@ -74,7 +81,9 @@ Future<void> showTutorial(BuildContext context, List<TutorialStep> steps) {
 
       await Scrollable.ensureVisible(
         targetContext,
-        alignment: steps[index].bubbleAbove ? 0.75 : 0.25,
+        alignment:
+            steps[index].scrollAlignment ??
+            (steps[index].bubbleAbove ? 0.75 : 0.25),
         duration: const Duration(milliseconds: 300),
         curve: Curves.easeInOut,
       );

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart' show ScrollCacheExtent;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../diary/application/providers/diary_providers.dart';
 import '../../../diary/domain/entities/diary.dart';
@@ -6,6 +7,9 @@ import '../../../plan/application/providers/plan_provider.dart';
 import '../../../ai/application/providers/ai_model_provider.dart';
 import '../../../ai/presentation/widgets/ai_model_selector.dart';
 import '../../../plan/presentation/widgets/usage_meter.dart';
+import '../../../tutorial/application/tutorial_providers.dart';
+import '../../../tutorial/domain/tutorial_step.dart';
+import '../../../tutorial/presentation/tutorial_runner.dart';
 import '../../domain/entities/summary_style.dart';
 import '../../domain/services/summary_text.dart';
 import '../../domain/services/token_estimator.dart';
@@ -35,11 +39,27 @@ class _SummaryDiaryScreenState extends ConsumerState<SummaryDiaryScreen> {
   // 「自分で指定」の、書き方の指示
   final _customController = TextEditingController();
 
-  late final _viewModel = ref.read(diaryCreateProvider.notifier);
+  // dispose()で使うため、画面を作るときに取っておく(dispose()の中で初めて読むと、すでに破棄されている)
+  late final DiaryCreateViewModel _viewModel;
+
+  // チュートリアルで明るくする部品
+  final _usageKey = GlobalKey();
+  final _modelKey = GlobalKey();
+  final _diariesKey = GlobalKey();
+  final _styleKey = GlobalKey();
+  final _consultKey = GlobalKey();
+  final _lengthKey = GlobalKey();
+  final _noteKey = GlobalKey();
+  final _generateKey = GlobalKey();
+
+  // この画面のチュートリアルの印(見たかどうかを覚えるときの名前)
+  static const _tutorialId = 'summary_diary';
 
   @override
   void initState() {
     super.initState();
+
+    _viewModel = ref.read(diaryCreateProvider.notifier);
 
     Future.microtask(() async {
       // 今月の使用量を取得する
@@ -48,6 +68,64 @@ class _SummaryDiaryScreenState extends ConsumerState<SummaryDiaryScreen> {
       // 前回選んだ書き方を戻す
       await _viewModel.loadSummaryStyle();
     });
+
+    WidgetsBinding.instance.addPostFrameCallback((_) => _showTutorialOnce());
+  }
+
+  // 上から順に、部品を1つずつ説明する(初めて表示したときだけ)
+  Future<void> _showTutorialOnce() async {
+    final store = ref.read(tutorialSeenStoreProvider);
+    if (await store.hasSeen(_tutorialId)) return;
+    if (!mounted) return;
+
+    await showTutorial(context, [
+      TutorialStep(
+        target: _usageKey,
+        title: "今月の使用量",
+        body: "AIを使える量と、今月の残りが表示されます。振り返りを作成すると、減ります。",
+      ),
+      TutorialStep(
+        target: _modelKey,
+        title: "使うAI",
+        body: "振り返りを書くAIを、GeminiとGPTから選べます。",
+      ),
+      TutorialStep(
+        target: _diariesKey,
+        title: "振り返りに使う日記",
+        body: "作成済みの日記から、振り返りに使う日記を選びます。2件以上選ぶと作成できます。1か月分や1年分も選べます。",
+      ),
+      TutorialStep(
+        target: _styleKey,
+        title: "書き方",
+        body: "振り返りの書き方を選びます。「日記を連結させる」は、AIを使わずに日記をつなげるので、トークンを使いません。",
+        // 縦に長いので、上端に置いて、吹き出しを下に出す
+        scrollAlignment: 0,
+      ),
+      TutorialStep(
+        target: _consultKey,
+        title: "構成を相談する",
+        body: "選んだ日記を見て、どんな書き方がよいかを、AIに相談できます。",
+      ),
+      TutorialStep(
+        target: _lengthKey,
+        title: "文字数の目安",
+        body: "振り返りの長さの目安を指定できます。指定しなくても、作成できます。",
+      ),
+      TutorialStep(
+        target: _noteKey,
+        title: "AIに追加で伝えたいこと",
+        body: "「前向きな言葉で締めてほしい」など、書いてほしいことを、AIに伝えられます。",
+        bubbleAbove: true,
+      ),
+      TutorialStep(
+        target: _generateKey,
+        title: "振り返りを作成する",
+        body: "振り返りの作成を始めます。日記を2件以上選ぶまでは、押せません。",
+        bubbleAbove: true,
+      ),
+    ]);
+
+    await store.markSeen(_tutorialId);
   }
 
   @override
@@ -85,6 +163,8 @@ class _SummaryDiaryScreenState extends ConsumerState<SummaryDiaryScreen> {
       appBar: AppBar(title: const Text("振り返り作成")),
       body: ListView(
         padding: const EdgeInsets.all(16),
+        // 画面の外にある部品も、チュートリアルで場所を取れるよう、先に作っておく
+        scrollCacheExtent: const ScrollCacheExtent.pixels(6000),
         children: [
           Text(
             "作成済みの日記を選ぶと、AIが選んだ日記の内容を使って、"
@@ -94,14 +174,16 @@ class _SummaryDiaryScreenState extends ConsumerState<SummaryDiaryScreen> {
           const SizedBox(height: 12),
 
           Card(
+            key: _usageKey,
             child: UsageMeter(usage: usage),
           ),
           const SizedBox(height: 12),
 
           // AIを使わない「日記を連結させる」では、選ぶ必要がない
           if (!isJoin) ...[
-            const Card(
-              child: Padding(
+            Card(
+              key: _modelKey,
+              child: const Padding(
                 padding: EdgeInsets.all(12),
                 child: AiModelSelector(),
               ),
@@ -110,6 +192,7 @@ class _SummaryDiaryScreenState extends ConsumerState<SummaryDiaryScreen> {
           ],
 
           Card(
+            key: _diariesKey,
             child: ListTile(
               leading: const Icon(Icons.menu_book),
               title: const Text("振り返りに使う日記"),
@@ -126,14 +209,20 @@ class _SummaryDiaryScreenState extends ConsumerState<SummaryDiaryScreen> {
           const SizedBox(height: 12),
 
           // ---------- 書き方
-          Text("書き方", style: Theme.of(context).textTheme.titleSmall),
-          const SizedBox(height: 4),
-          StyleChoiceCard<SummaryStyle>(
-            values: SummaryStyle.values,
-            selected: state.summaryStyle,
-            label: (style) => style.label,
-            description: (style) => style.description,
-            onSelected: viewModel.setSummaryStyle,
+          Column(
+            key: _styleKey,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text("書き方", style: Theme.of(context).textTheme.titleSmall),
+              const SizedBox(height: 4),
+              StyleChoiceCard<SummaryStyle>(
+                values: SummaryStyle.values,
+                selected: state.summaryStyle,
+                label: (style) => style.label,
+                description: (style) => style.description,
+                onSelected: viewModel.setSummaryStyle,
+              ),
+            ],
           ),
           if (state.summaryStyle == SummaryStyle.custom) ...[
             const SizedBox(height: 8),
@@ -155,6 +244,7 @@ class _SummaryDiaryScreenState extends ConsumerState<SummaryDiaryScreen> {
 
           // 選んだ日記を見て、書き方をAIに相談する
           OutlinedButton.icon(
+            key: _consultKey,
             // 1つにするには、2件以上必要なので、それまでは相談もできない
             onPressed: selected.length < SummaryText.minCount || isExceeded
                 ? null
@@ -167,15 +257,19 @@ class _SummaryDiaryScreenState extends ConsumerState<SummaryDiaryScreen> {
           // AIを使わない「日記を連結させる」では、伝える相手がいないので出さない
           // 一覧は、1件ずつ短く書く形なので、文字数は指定しない
           if (!isJoin && state.summaryStyle != SummaryStyle.list) ...[
-            LengthField(
-              initialChars: state.summaryLengthChars,
-              onChanged: viewModel.setSummaryLength,
+            KeyedSubtree(
+              key: _lengthKey,
+              child: LengthField(
+                initialChars: state.summaryLengthChars,
+                onChanged: viewModel.setSummaryLength,
+              ),
             ),
             const SizedBox(height: 12),
           ],
 
           if (!isJoin) ...[
             TextField(
+              key: _noteKey,
               controller: _noteController,
               decoration: InputDecoration(
                 labelText: "${model.label}に追加で伝えたいこと",
@@ -228,6 +322,7 @@ class _SummaryDiaryScreenState extends ConsumerState<SummaryDiaryScreen> {
               ),
             ),
           ElevatedButton.icon(
+            key: _generateKey,
             // 2件以上選ぶまでは押せない。使用量の上限に達している場合も、押せない
             onPressed:
                 selected.length < SummaryText.minCount ||
