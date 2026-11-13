@@ -53,7 +53,7 @@ class _DiaryCreateScreenState extends ConsumerState<DiaryCreateScreen> {
       TutorialStep(
         target: _dateKey,
         title: "日記の日付",
-        body: "どの日の日記かを選びます。",
+        body: "作成する日記の日付を選びます。",
       ),
       TutorialStep(
         target: _textKey,
