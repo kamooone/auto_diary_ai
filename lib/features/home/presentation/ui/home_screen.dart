@@ -103,7 +103,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       TutorialStep(
         target: _menuKey,
         title: "メニュー",
-        body: "AIの使用量、ポイント・トークン、Xの投稿の取り込み、お問い合わせ、行動履歴のオン・オフなどは、ここからです。",
+        body: "押すと、設定やお問い合わせなどの画面に移ります。",
         circle: true,
       ),
     ]);
