@@ -91,7 +91,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       TutorialStep(
         target: _calendarKey,
         title: "カレンダー",
-        body: "日付から、その日の日記を探せます。",
+        body: "作成した日記を、カレンダーで確認できます。",
         circle: true,
       ),
       TutorialStep(
