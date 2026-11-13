@@ -74,13 +74,13 @@ class _DiaryCreateScreenState extends ConsumerState<DiaryCreateScreen> {
       TutorialStep(
         target: _aiKey,
         title: "AIに日記を書いてもらう",
-        body: "押すと、AIに日記を書いてもらう画面に移ります。行動履歴や写真、Xの投稿、ひとことなどを選ぶと、AIが日記を作成します。",
+        body: "AIに日記を書いてもらう画面に移ります。行動履歴や写真、Xの投稿、ひとことなどを選ぶと、AIが日記を作成します。",
         bubbleAbove: true,
       ),
       TutorialStep(
         target: _summaryKey,
         title: "作成済みの日記を1つにする",
-        body: "押すと、作成済みの日記をまとめる画面に移ります。複数の日記を、ブログ風や出来事の一覧などの形に、まとめられます。",
+        body: "作成済みの日記をまとめる画面に移ります。複数の日記を、ブログ風や出来事の一覧などの形に、まとめられます。",
         bubbleAbove: true,
       ),
     ]);

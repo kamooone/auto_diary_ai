@@ -72,7 +72,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       TutorialStep(
         target: _createKey,
         title: "作成ボタン",
-        body: "押すと、日記タブでは日記作成画面に、ひとことタブではひとこと作成画面に移ります。",
+        body: "日記タブでは日記作成画面に、ひとことタブではひとこと作成画面に移ります。",
         bubbleAbove: true,
         circle: true,
       ),
@@ -103,7 +103,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       TutorialStep(
         target: _menuKey,
         title: "メニュー",
-        body: "押すと、設定やお問い合わせなどの画面に移ります。",
+        body: "設定やお問い合わせなどの画面に移ります。",
         circle: true,
       ),
     ]);
