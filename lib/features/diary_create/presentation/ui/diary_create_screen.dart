@@ -48,7 +48,7 @@ class _DiaryCreateScreenState extends ConsumerState<DiaryCreateScreen> {
     await showTutorial(context, [
       const TutorialStep.intro(
         title: "日記作成画面",
-        body: "ここでは、日記を自分で書いたり、AIに書いてもらったり、作成済みの日記を1つにまとめたりできます。",
+        body: "ここでは、日記を自分で書いたり、AIに書いてもらったり、振り返りを作成したりできます。",
       ),
       TutorialStep(
         target: _dateKey,
@@ -79,8 +79,8 @@ class _DiaryCreateScreenState extends ConsumerState<DiaryCreateScreen> {
       ),
       TutorialStep(
         target: _summaryKey,
-        title: "作成済みの日記を1つにする",
-        body: "作成済みの日記をまとめる画面に移ります。複数の日記を、ブログ風や出来事の一覧などの形に、まとめられます。",
+        title: "振り返りを作成する",
+        body: "振り返りの作成画面に移ります。作成済みの複数の日記から、ブログ風や出来事の一覧などの形で、振り返りを作成できます。",
         bubbleAbove: true,
       ),
     ]);
@@ -225,7 +225,7 @@ class _DiaryCreateScreenState extends ConsumerState<DiaryCreateScreen> {
             key: _summaryKey,
             onPressed: () => context.push(AppRoutes.summaryDiary),
             icon: const Icon(Icons.auto_stories),
-            label: const Text("作成済みの日記を1つにする"),
+            label: const Text("振り返りを作成する"),
           ),
         ],
       ),

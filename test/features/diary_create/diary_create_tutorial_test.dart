@@ -39,7 +39,7 @@ void main() {
       await tester.tap(find.text('次へ'));
       await tester.pumpAndSettle();
     }
-    expect(find.text('作成済みの日記を1つにする'), findsWidgets);
+    expect(find.text('振り返りを作成する'), findsWidgets);
     expect(find.text('7 / 7'), findsOneWidget);
 
     await tester.tap(find.text('完了'));

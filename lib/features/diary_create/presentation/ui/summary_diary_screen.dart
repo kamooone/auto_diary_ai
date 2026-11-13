@@ -82,13 +82,13 @@ class _SummaryDiaryScreenState extends ConsumerState<SummaryDiaryScreen> {
         state.summaryCustom.trim().isEmpty;
 
     return Scaffold(
-      appBar: AppBar(title: const Text("日記を1つにする")),
+      appBar: AppBar(title: const Text("振り返り作成")),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
           Text(
             "作成済みの日記を選ぶと、AIが選んだ日記の内容を使って、"
-            "1つの日記に書きます。1か月分や1年分の日記を、1つにできます。",
+            "振り返りを作成します。1か月分や1年分の日記からも、振り返りを作成できます。",
             style: Theme.of(context).textTheme.bodySmall,
           ),
           const SizedBox(height: 12),
@@ -112,7 +112,7 @@ class _SummaryDiaryScreenState extends ConsumerState<SummaryDiaryScreen> {
           Card(
             child: ListTile(
               leading: const Icon(Icons.menu_book),
-              title: const Text("1つにする日記"),
+              title: const Text("振り返りに使う日記"),
               subtitle: Text(
                 diaries.isEmpty
                     ? "まだ日記がありません"
@@ -237,7 +237,7 @@ class _SummaryDiaryScreenState extends ConsumerState<SummaryDiaryScreen> {
                 ? null
                 : () => _generate(context),
             icon: const Icon(Icons.auto_awesome),
-            label: Text(isJoin ? "日記を1つにする" : "${model.label}に1つにしてもらう"),
+            label: Text(isJoin ? "振り返りを作成する" : "${model.label}に振り返りを作成してもらう"),
           ),
         ],
       ),
