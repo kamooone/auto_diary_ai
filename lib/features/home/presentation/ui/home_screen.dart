@@ -71,13 +71,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       ),
       TutorialStep(
         target: _diaryTabKey,
-        title: "日記",
+        title: "日記タブ",
         body: "作成した日記が、ここに表示されます。",
         bubbleAbove: true,
       ),
       TutorialStep(
         target: _memoTabKey,
-        title: "ひとこと",
+        title: "ひとことタブ",
         body: "ふと思ったことを、気軽に残せます。日記を作成するときの材料にもなります。",
         bubbleAbove: true,
       ),
