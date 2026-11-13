@@ -64,6 +64,21 @@ Future<void> showTutorial(BuildContext context, List<TutorialStep> steps) {
     paddingFocus: 6,
     hideSkip: true,
     disableBackButton: true,
+    // 画面を縦にスクロールできるときは、部品が見える位置まで動かしてから明るくする
+    // (吹き出しを出す側に余白ができるよう、上に出すときは下寄り、下に出すときは上寄りに置く)
+    beforeFocus: (target) async {
+      final index = targets.indexOf(target);
+      final key = index < 0 ? null : steps[index].target;
+      final targetContext = key?.currentContext;
+      if (targetContext == null || !targetContext.mounted) return;
+
+      await Scrollable.ensureVisible(
+        targetContext,
+        alignment: steps[index].bubbleAbove ? 0.75 : 0.25,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeInOut,
+      );
+    },
     pulseEnable: false,
     onFinish: () {
       if (!done.isCompleted) done.complete();
