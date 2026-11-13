@@ -56,7 +56,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     });
   }
 
-  // 紹介のあと、下のタブ、作成ボタン、画面の上の部品の順に、1つずつ説明する(初めて表示したときだけ)
+  // 紹介のあと、作成ボタン、下のタブ、画面の上の部品の順に、1つずつ説明する(初めて表示したときだけ)
   Future<void> _showTutorialOnce() async {
     final store = ref.read(tutorialSeenStoreProvider);
     if (await store.hasSeen(_tutorialId)) return;
@@ -70,6 +70,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             "これから機能を一つ一つ簡単に説明しますのでご覧ください。",
       ),
       TutorialStep(
+        target: _createKey,
+        title: "作成ボタン",
+        body: "押すと、日記タブでは日記作成画面に、ひとことタブではひとこと作成画面に移ります。",
+        bubbleAbove: true,
+        circle: true,
+      ),
+      TutorialStep(
         target: _diaryTabKey,
         title: "日記タブ",
         body: "作成した日記が、ここに表示されます。",
@@ -80,13 +87,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         title: "ひとことタブ",
         body: "ふと思ったことを、気軽に残せます。日記を作成するときの材料にもなります。",
         bubbleAbove: true,
-      ),
-      TutorialStep(
-        target: _createKey,
-        title: "作成ボタン",
-        body: "押すと、日記タブでは日記作成画面に、ひとことタブではひとこと作成画面に移ります。",
-        bubbleAbove: true,
-        circle: true,
       ),
       TutorialStep(
         target: _calendarKey,
