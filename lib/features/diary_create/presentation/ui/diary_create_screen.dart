@@ -23,10 +23,6 @@ class DiaryCreateScreen extends ConsumerStatefulWidget {
 
 class _DiaryCreateScreenState extends ConsumerState<DiaryCreateScreen> {
   // チュートリアルで明るくする部品
-  final _dateKey = GlobalKey();
-  final _textKey = GlobalKey();
-  final _photoKey = GlobalKey();
-  final _saveKey = GlobalKey();
   final _aiKey = GlobalKey();
   final _summaryKey = GlobalKey();
 
@@ -39,7 +35,7 @@ class _DiaryCreateScreenState extends ConsumerState<DiaryCreateScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) => _showTutorialOnce());
   }
 
-  // 上から順に、部品を1つずつ説明する(初めて表示したときだけ)
+  // 紹介、自分で日記を書く、AI、振り返りの順に説明する(初めて表示したときだけ)
   Future<void> _showTutorialOnce() async {
     final store = ref.read(tutorialSeenStoreProvider);
     if (await store.hasSeen(_tutorialId)) return;
@@ -50,26 +46,10 @@ class _DiaryCreateScreenState extends ConsumerState<DiaryCreateScreen> {
         title: "日記作成画面",
         body: "ここでは、日記を自分で書いたり、AIに書いてもらったり、振り返りを作成したりできます。",
       ),
-      TutorialStep(
-        target: _dateKey,
-        title: "日記の日付",
-        body: "作成する日記の日付を選びます。",
-      ),
-      TutorialStep(
-        target: _textKey,
-        title: "タイトルと本文",
-        body: "自分で日記を書くときは、ここに書きます。",
-      ),
-      TutorialStep(
-        target: _photoKey,
-        title: "写真",
-        body: "日記に、写真を添えられます。撮影した日に関係なく選べます。",
-      ),
-      TutorialStep(
-        target: _saveKey,
-        title: "保存する",
-        body: "自分で書いた日記を保存します。本文が空のときは、保存できません。",
-        bubbleAbove: true,
+      // 日付・タイトルと本文・写真・保存は、基本的な操作なので、光らせずに1ページで説明する
+      const TutorialStep.intro(
+        title: "自分で日記を書く",
+        body: "日記の日付を選び、タイトルと本文を書いて、写真を添えて、保存します。",
       ),
       TutorialStep(
         target: _aiKey,
@@ -111,7 +91,6 @@ class _DiaryCreateScreenState extends ConsumerState<DiaryCreateScreen> {
         children: [
           // ---------- いつの日記か
           Card(
-            key: _dateKey,
             child: ListTile(
               leading: const Icon(Icons.calendar_today),
               title: const Text("日記の日付"),
@@ -143,7 +122,6 @@ class _DiaryCreateScreenState extends ConsumerState<DiaryCreateScreen> {
 
           // ---------- 日記の内容
           Column(
-            key: _textKey,
             children: [
               TextField(
                 decoration: const InputDecoration(
@@ -169,18 +147,14 @@ class _DiaryCreateScreenState extends ConsumerState<DiaryCreateScreen> {
           const SizedBox(height: 12),
 
           // 自分で書く日記には、撮影日に関係なく写真を添えられる
-          KeyedSubtree(
-            key: _photoKey,
-            child: PhotoSelectionCard(
-              photos: state.selectedPhotos,
-              onChanged: viewModel.setSelectedPhotos,
-            ),
+          PhotoSelectionCard(
+            photos: state.selectedPhotos,
+            onChanged: viewModel.setSelectedPhotos,
           ),
           const SizedBox(height: 16),
 
           // ---------- 保存
           ElevatedButton.icon(
-            key: _saveKey,
             // 本文が空の日記は保存できない
             onPressed: state.content.trim().isEmpty
                 ? null
