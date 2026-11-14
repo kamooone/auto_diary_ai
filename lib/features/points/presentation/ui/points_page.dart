@@ -5,6 +5,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../../plan/application/providers/plan_provider.dart';
 import '../../application/providers/device_link_provider.dart';
 import '../../application/providers/pairing_provider.dart';
+import 'points_guide_page.dart';
 
 /// Webのアカウント(ポイント・トークン)との紐づけ
 ///
@@ -31,7 +32,18 @@ class _PointsPageState extends ConsumerState<PointsPage> {
     final isLinked = ref.watch(deviceLinkProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text("ポイント・トークン")),
+      appBar: AppBar(
+        title: const Text("ポイント・トークン"),
+        actions: [
+          IconButton(
+            tooltip: "ポイントとトークンの使い方",
+            icon: const Icon(Icons.help_outline),
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute<void>(builder: (_) => const PointsGuidePage()),
+            ),
+          ),
+        ],
+      ),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
