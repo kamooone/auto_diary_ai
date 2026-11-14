@@ -97,4 +97,53 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('部品'), findsOneWidget);
   });
+
+  testWidgets('画面がスライドして出てくる間は待ち、終わってから明るくする場所を決める', (tester) async {
+    final a = GlobalKey();
+    var started = false;
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Builder(
+          builder: (context) => TextButton(
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute<void>(
+                builder: (context) => Scaffold(
+                  body: Builder(
+                    builder: (context) {
+                      // 画面を開いた直後に、チュートリアルを始める
+                      if (!started) {
+                        started = true;
+                        WidgetsBinding.instance.addPostFrameCallback(
+                          (_) => showTutorial(context, [
+                            TutorialStep(target: a, title: '部品', body: '説明'),
+                          ]),
+                        );
+                      }
+                      return Container(
+                        key: a,
+                        width: 80,
+                        height: 40,
+                        color: Colors.red,
+                      );
+                    },
+                  ),
+                ),
+              ),
+            ),
+            child: const Text('開く'),
+          ),
+        ),
+      ),
+    );
+
+    await tester.tap(find.text('開く'));
+    // 遷移の途中(300msのうちの100ms)では、まだ出ない
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+    expect(find.text('1 / 1'), findsNothing);
+
+    await tester.pumpAndSettle();
+    expect(find.text('1 / 1'), findsOneWidget);
+  });
 }

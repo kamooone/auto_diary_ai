@@ -9,13 +9,20 @@ import '../domain/tutorial_step.dart';
 ///
 /// 画面を暗くして、[TutorialStep.target]の部品だけを明るくし、そばに吹き出しを出す。
 /// 「次へ」(最後は「完了」)と「戻る」で、ページをめくるように読み進める。スキップはない。
-Future<void> showTutorial(BuildContext context, List<TutorialStep> allSteps) {
+Future<void> showTutorial(
+  BuildContext context,
+  List<TutorialStep> allSteps,
+) async {
+  // 画面が横からスライドして出てくる間は、部品の位置が動いているので、終わるのを待つ
+  await _waitForRouteTransition(context);
+  if (!context.mounted) return;
+
   // 条件によって画面に出ない部品(使用量が読み込めていないときなど)の説明は、飛ばす
   final steps = [
     for (final step in allSteps)
       if (step.target == null || step.target!.currentContext != null) step,
   ];
-  if (steps.isEmpty) return Future.value();
+  if (steps.isEmpty) return;
 
   final done = Completer<void>();
   final last = steps.length - 1;
@@ -95,6 +102,29 @@ Future<void> showTutorial(BuildContext context, List<TutorialStep> allSteps) {
   ).show(context: context);
 
   return done.future;
+}
+
+/// この画面を開いたときの、遷移のアニメーションが終わるまで待つ(長くても2秒)
+///
+/// 開いた直後に部品の位置を取ると、スライドの途中の位置になり、明るくする場所がずれる
+Future<void> _waitForRouteTransition(BuildContext context) async {
+  final animation = ModalRoute.of(context)?.animation;
+  if (animation == null || animation.isCompleted) return;
+
+  final done = Completer<void>();
+  void onStatus(AnimationStatus status) {
+    if (status == AnimationStatus.completed ||
+        status == AnimationStatus.dismissed) {
+      if (!done.isCompleted) done.complete();
+    }
+  }
+
+  animation.addStatusListener(onStatus);
+  try {
+    await done.future.timeout(const Duration(seconds: 2), onTimeout: () {});
+  } finally {
+    animation.removeStatusListener(onStatus);
+  }
 }
 
 /// チュートリアルの吹き出し(白い角丸の枠に、タイトル・説明・ページ送りのボタン)
