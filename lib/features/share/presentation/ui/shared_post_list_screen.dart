@@ -10,6 +10,7 @@ import '../../application/providers/share_providers.dart';
 import '../../domain/entities/shared_post.dart';
 import '../formatters/shared_post_format.dart';
 import 'shared_post_edit_screen.dart';
+import 'x_share_guide_page.dart';
 
 /// 保存したXの投稿の一覧(設定画面から開く)
 /// 投稿の削除、内容の修正、日時の変更ができる
@@ -21,7 +22,19 @@ class SharedPostListScreen extends ConsumerWidget {
     final posts = ref.watch(allSharedPostsProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text("Xの投稿")),
+      appBar: AppBar(
+        title: const Text("Xの投稿"),
+        actions: [
+          // 投稿が1件もないときも、保存のしかたを確認できるようにする
+          IconButton(
+            tooltip: "Xから共有する方法",
+            icon: const Icon(Icons.help_outline),
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute<void>(builder: (_) => const XShareGuidePage()),
+            ),
+          ),
+        ],
+      ),
       body: posts.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (error, _) => const Center(child: Text("投稿を読み込めませんでした")),
