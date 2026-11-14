@@ -13,9 +13,9 @@ class XShareGuidePage extends StatelessWidget {
     ),
     GuideStep(
       title: "投稿の「共有」ボタンを押す",
-      body: "投稿の下にある、次のような形のボタンを押します。",
-      // Xの共有ボタンに近い、四角から上向きの矢印が出る形
-      icon: Icons.ios_share,
+      body: "投稿の下に並ぶボタンの、いちばん右にある、次のような形のボタンを押します。",
+      // Xのアプリの共有ボタン(3つの点がつながった形)
+      icon: Icons.share,
     ),
     GuideStep(
       title: "共有先の一覧から、このアプリを選ぶ",
