@@ -167,13 +167,6 @@ class _SummaryDiaryScreenState extends ConsumerState<SummaryDiaryScreen> {
         // 画面の外にある部品も、チュートリアルで場所を取れるよう、先に作っておく
         scrollCacheExtent: const ScrollCacheExtent.pixels(6000),
         children: [
-          Text(
-            "作成済みの日記を選ぶと、AIが選んだ日記の内容を使って、"
-            "振り返りを作成します。1か月分や1年分の日記からも、振り返りを作成できます。",
-            style: Theme.of(context).textTheme.bodySmall,
-          ),
-          const SizedBox(height: 12),
-
           Card(
             key: _usageKey,
             child: UsageMeter(usage: usage),
