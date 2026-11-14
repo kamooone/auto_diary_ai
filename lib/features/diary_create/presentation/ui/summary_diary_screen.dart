@@ -81,13 +81,13 @@ class _SummaryDiaryScreenState extends ConsumerState<SummaryDiaryScreen> {
     await showTutorial(context, [
       TutorialStep(
         target: _usageKey,
-        title: "今月の使用量",
-        body: "AIを使える量と、今月の残りが表示されます。振り返りを作成すると、減ります。",
+        title: "トークン使用量",
+        body: "今月の使用量と、使える上限が表示されます。",
       ),
       TutorialStep(
         target: _modelKey,
-        title: "使うAI",
-        body: "振り返りを書くAIを、GeminiとGPTから選べます。",
+        title: "使用するAI",
+        body: "日記を書いてもらうAIを選択します。「違いを見る」をタップすると、詳細を確認できます。",
       ),
       TutorialStep(
         target: _diariesKey,
@@ -97,7 +97,7 @@ class _SummaryDiaryScreenState extends ConsumerState<SummaryDiaryScreen> {
       TutorialStep(
         target: _styleKey,
         title: "書き方",
-        body: "振り返りの書き方を選びます。「日記を連結させる」は、AIを使わずに日記をつなげるので、トークンを使いません。",
+        body: "AIに日記を書いてもらう際の書き方を選びます。ブログ風や箇条書きなどのほかに、自分で指定することもできます。\n「日記を連結させる」は、AIを使わずに日記をつなげるので、トークンを使いません。",
         // 縦に長いので、上端に置いて、吹き出しを下に出す
         scrollAlignment: 0,
       ),
