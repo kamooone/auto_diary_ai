@@ -205,12 +205,6 @@ class _DiaryAiScreenState extends ConsumerState<DiaryAiScreen> {
             ),
           ),
           const SizedBox(height: 4),
-          Text(
-            "Xの投稿・ひとことメモ・行動履歴は、日記にする期間のものから選べます。"
-            "写真は、年と月を切り替えて、ほかの時期のものも選べます",
-            style: Theme.of(context).textTheme.bodySmall,
-          ),
-          const SizedBox(height: 12),
 
           // 今月の使用量。上限に達している場合は、使えるようになる時期を伝える
           Card(
@@ -410,7 +404,6 @@ class _DiaryAiScreenState extends ConsumerState<DiaryAiScreen> {
             decoration: InputDecoration(
               labelText: "${model.label}に追加で伝えたいこと",
               hintText: "例: 友人の誕生日だった。楽しかった気持ちを中心に書いてほしい",
-              helperText: "文字数は、上の「文字数の目安」で指定してください",
               border: OutlineInputBorder(),
               alignLabelWithHint: true,
             ),
