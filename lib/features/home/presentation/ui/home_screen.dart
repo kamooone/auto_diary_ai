@@ -217,6 +217,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           onPressed: () async {
             await context.push(AppRoutes.settings);
             ref.invalidate(hasUnreadReplyProvider);
+            // 設定で「使い方の説明をもう一度見る」を選んだときは、戻ってすぐに出す
+            if (mounted) await _showTutorialOnce();
           },
         ),
       ],

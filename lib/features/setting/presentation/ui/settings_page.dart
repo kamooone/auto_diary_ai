@@ -188,11 +188,32 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
   }
 
   Future<void> _resetTutorials() async {
-    final messenger = ScaffoldMessenger.of(context);
-    await ref.read(tutorialSeenStoreProvider).clearAll();
-    messenger.showSnackBar(
-      const SnackBar(content: Text("各画面を開くと、説明が表示されます。ホームは、アプリを開き直すと表示されます")),
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text("使い方の説明をもう一度見ますか?"),
+        content: const Text(
+          "ホームに戻ると、説明が始まります。\nほかの画面の説明も、それぞれの画面を開くと、もう一度表示されます。",
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text("キャンセル"),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text("見る"),
+          ),
+        ],
+      ),
     );
+    if (confirmed != true || !mounted) return;
+
+    await ref.read(tutorialSeenStoreProvider).clearAll();
+    if (!mounted) return;
+
+    // ホームに戻ると、ホームの説明がすぐに始まる
+    context.pop();
   }
 
   Future<void> _setEnabled(bool enabled) async {
