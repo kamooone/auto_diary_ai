@@ -150,11 +150,11 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
             ),
             ListTile(
               leading: const Icon(Icons.widgets),
-              title: const Text("ホーム画面のボタン"),
+              title: const Text("ホーム画面に、行動履歴の切り替えボタンを表示"),
               subtitle: Text(
                 recording.isWidgetPinned
-                    ? "表示しています"
-                    : "表示すると、オン・オフをすぐに切り替えられます",
+                    ? "ホーム画面に表示しています"
+                    : "行動履歴の記録のオン・オフを、ホーム画面からすぐに切り替えられます",
               ),
               trailing: Text(recording.isWidgetPinned ? "非表示にする" : "表示する"),
               onTap: () => recording.isWidgetPinned
@@ -243,7 +243,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
       builder: (context) => AlertDialog(
         title: const Text("ホーム画面から追加してください"),
         content: const Text(
-          "ホーム画面の何もないところを長押しして、ウィジェットの一覧からこのアプリのボタンを追加してください。",
+          "ホーム画面の何もないところを長押しして、ウィジェットの一覧から、このアプリの「行動履歴」のボタンを追加してください。",
         ),
         actions: [
           TextButton(
@@ -261,7 +261,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text("ホーム画面から削除してください"),
-        content: const Text("ホーム画面のボタンを長押しして、「削除」を選んでください。"),
+        content: const Text("ホーム画面の行動履歴のオン・オフのボタンを長押しして、「削除」を選んでください。"),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
