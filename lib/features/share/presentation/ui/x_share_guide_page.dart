@@ -11,7 +11,9 @@ class XShareGuidePage extends StatelessWidget {
     ),
     _Step(
       title: "投稿の「共有」ボタンを押す",
-      body: "投稿の下にある、共有のボタンを押します。",
+      body: "投稿の下にある、次のような形のボタンを押します。",
+      // Xの共有ボタンに近い、四角から上向きの矢印が出る形
+      icon: Icons.ios_share,
     ),
     _Step(
       title: "共有先の一覧から、このアプリを選ぶ",
@@ -56,10 +58,13 @@ class XShareGuidePage extends StatelessWidget {
 }
 
 class _Step {
-  const _Step({required this.title, required this.body});
+  const _Step({required this.title, required this.body, this.icon});
 
   final String title;
   final String body;
+
+  /// 手順の中で、押すボタンの見た目を見せるアイコン
+  final IconData? icon;
 }
 
 class _StepTile extends StatelessWidget {
@@ -91,6 +96,17 @@ class _StepTile extends StatelessWidget {
                 Text(step.title, style: theme.textTheme.titleMedium),
                 const SizedBox(height: 4),
                 Text(step.body, style: theme.textTheme.bodyMedium),
+                if (step.icon != null) ...[
+                  const SizedBox(height: 8),
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(color: theme.dividerColor),
+                    ),
+                    child: Icon(step.icon, size: 28),
+                  ),
+                ],
               ],
             ),
           ),
