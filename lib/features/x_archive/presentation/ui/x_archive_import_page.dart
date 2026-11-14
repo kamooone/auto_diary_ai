@@ -6,6 +6,7 @@ import '../../application/providers/x_archive_providers.dart';
 import '../../application/services/x_archive_file_reader.dart';
 import '../../domain/entities/x_archive_post.dart';
 import '../../domain/services/x_archive_summary.dart';
+import 'x_archive_guide_page.dart';
 
 /// Xのアーカイブ(tweets.js)を選んで、年ごとに取り込む画面
 class XArchiveImportPage extends ConsumerStatefulWidget {
@@ -108,7 +109,18 @@ class _XArchiveImportPageState extends ConsumerState<XArchiveImportPage> {
         .fold<int>(0, (sum, y) => sum + (_yearCounts[y] ?? 0));
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Xのアーカイブを取り込む')),
+      appBar: AppBar(
+        title: const Text('Xのアーカイブを取り込む'),
+        actions: [
+          IconButton(
+            tooltip: 'アーカイブの取り込み方',
+            icon: const Icon(Icons.help_outline),
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute<void>(builder: (_) => const XArchiveGuidePage()),
+            ),
+          ),
+        ],
+      ),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
