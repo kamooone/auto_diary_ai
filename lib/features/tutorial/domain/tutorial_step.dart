@@ -12,6 +12,7 @@ class TutorialStep {
     this.bubbleAbove = false,
     this.circle = false,
     this.scrollAlignment,
+    this.bubbleCenter = false,
   });
 
   /// 部品を指さずに、画面の中ほどに吹き出しだけを出す(アプリの紹介など)
@@ -19,7 +20,8 @@ class TutorialStep {
     : target = null,
       bubbleAbove = false,
       circle = false,
-      scrollAlignment = null;
+      scrollAlignment = null,
+      bubbleCenter = false;
 
   /// 明るくする部品(画面にあるときだけ、場所を取れる)。nullなら、部品は指さない
   final GlobalKey? target;
@@ -29,6 +31,9 @@ class TutorialStep {
 
   /// 吹き出しを、部品の上に出すか(falseなら下)。画面の下にある部品は、上に出す
   final bool bubbleAbove;
+
+  /// 部品が画面全体ほど大きいときに、吹き出しを部品の上や下ではなく、画面の中ほどに出す
+  final bool bubbleCenter;
 
   /// 明るくする形を、円にするか(falseなら角丸の四角)
   final bool circle;

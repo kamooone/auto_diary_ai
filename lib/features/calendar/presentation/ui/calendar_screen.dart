@@ -25,7 +25,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
   var _page = 0;
 
   // チュートリアルで明るくする部品
-  final _monthBarKey = GlobalKey();
+  final _calendarKey = GlobalKey();
 
   // この画面のチュートリアルの印(見たかどうかを覚えるときの名前)
   static const _tutorialId = 'calendar';
@@ -46,8 +46,9 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
 
     await showTutorial(context, [
       TutorialStep(
-        target: _monthBarKey,
+        target: _calendarKey,
         title: "カレンダー",
+        bubbleCenter: true,
         body:
             "日記がある日に、日記のタイトルが表示されます。\nタップすると、その日の日記を確認できます。\n同じ日に複数あるときは、「+1」のように件数が表示されます。",
       ),
@@ -92,6 +93,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
         ],
       ),
       body: Column(
+        key: _calendarKey,
         children: [
           _monthBar(month, page, months.length),
           _weekdayRow(context),
@@ -122,7 +124,6 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
 
   Widget _monthBar(DateTime month, int page, int count) {
     return Padding(
-      key: _monthBarKey,
       padding: const EdgeInsets.symmetric(horizontal: 8),
       child: Row(
         children: [

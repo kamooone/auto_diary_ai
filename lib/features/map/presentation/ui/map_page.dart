@@ -30,7 +30,7 @@ class _MapPageState extends ConsumerState<MapPage> {
   bool _showLog = true;
 
   // チュートリアルで明るくする部品
-  final _dateHeaderKey = GlobalKey();
+  final _timelineKey = GlobalKey();
 
   // この画面のチュートリアルの印(見たかどうかを覚えるときの名前)
   static const _tutorialId = 'map';
@@ -102,8 +102,10 @@ class _MapPageState extends ConsumerState<MapPage> {
         title: "行動履歴",
         body: "地図に、現在地と、選んだ日の移動の軌跡が表示されます。\n※行動履歴を取得するには位置情報取得の許可が必要です。",
       ),
-      const TutorialStep.intro(
+      TutorialStep(
+        target: _timelineKey,
         title: "タイムライン",
+        bubbleAbove: true,
         body: "その日の滞在と移動が並びます。\n行動履歴の内容は正確ではないので、鉛筆のボタンで場所の名前や移動手段を直すことができます。\nこのタイムラインの情報はAIに日記を作成してもらうときに使用することができます。",
       ),
     ]);
@@ -271,7 +273,7 @@ class _MapPageState extends ConsumerState<MapPage> {
           ),
           // 記録のない日でも日付を切り替えられるよう、シートは常に表示する
           TimelineSheet(
-            dateHeaderKey: _dateHeaderKey,
+            sheetKey: _timelineKey,
             controller: _sheetController,
             date: state.selectedDate,
             canGoToPreviousDay: selectedDay.isAfter(firstDay),

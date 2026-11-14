@@ -44,12 +44,12 @@ Future<void> showTutorial(
         enableTargetTab: false,
         contents: [
           TargetContent(
-            align: steps[i].target == null
+            align: steps[i].target == null || steps[i].bubbleCenter
                 ? ContentAlign.custom
                 : steps[i].bubbleAbove
                 ? ContentAlign.top
                 : ContentAlign.bottom,
-            customPosition: steps[i].target == null
+            customPosition: steps[i].target == null || steps[i].bubbleCenter
                 ? CustomTargetContentPosition(
                     top: screen.height * 0.28,
                     left: 16,

@@ -24,7 +24,7 @@ class TimelineSheet extends StatelessWidget {
     required this.onPlaceNameChanged,
     required this.onTransportChanged,
     required this.onRetryPlaceSearch,
-    this.dateHeaderKey,
+    this.sheetKey,
   });
 
   /// シートを最も小さくしたときの高さ(画面に対する割合)
@@ -77,8 +77,8 @@ class TimelineSheet extends StatelessWidget {
   /// 取得できなかった訪れた場所を、もう一度取得する
   final VoidCallback onRetryPlaceSearch;
 
-  /// 日付の切り替えの部品の目印(チュートリアルで明るくするため)
-  final GlobalKey? dateHeaderKey;
+  /// シート全体の目印(チュートリアルで明るくするため)
+  final GlobalKey? sheetKey;
 
   @override
   Widget build(BuildContext context) {
@@ -89,6 +89,7 @@ class TimelineSheet extends StatelessWidget {
       maxChildSize: 0.7,
       builder: (context, scrollController) {
         return Material(
+          key: sheetKey,
           elevation: 8,
           borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
           clipBehavior: Clip.antiAlias,
@@ -105,7 +106,6 @@ class TimelineSheet extends StatelessWidget {
                 SliverPersistentHeader(
                   pinned: true,
                   delegate: _DateHeaderDelegate(
-                    headerKey: dateHeaderKey,
                     date: date,
                     canGoToPreviousDay: canGoToPreviousDay,
                     canGoToNextDay: canGoToNextDay,
@@ -764,7 +764,6 @@ class _DaySwipePagerState extends State<_DaySwipePager>
 /// シートの上部に固定する、つまみと日付の切り替え
 class _DateHeaderDelegate extends SliverPersistentHeaderDelegate {
   const _DateHeaderDelegate({
-    this.headerKey,
     required this.date,
     required this.canGoToPreviousDay,
     required this.canGoToNextDay,
@@ -773,7 +772,6 @@ class _DateHeaderDelegate extends SliverPersistentHeaderDelegate {
     required this.onDateTap,
   });
 
-  final GlobalKey? headerKey;
   final DateTime date;
   final bool canGoToPreviousDay;
   final bool canGoToNextDay;
@@ -799,7 +797,6 @@ class _DateHeaderDelegate extends SliverPersistentHeaderDelegate {
     final weekday = _weekdays[date.weekday - 1];
 
     return Material(
-      key: headerKey,
       color: Theme.of(context).colorScheme.surface,
       child: Column(
         children: [
