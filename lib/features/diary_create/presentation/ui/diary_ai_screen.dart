@@ -124,7 +124,7 @@ class _DiaryAiScreenState extends ConsumerState<DiaryAiScreen> {
       TutorialStep(
         target: _photoKey,
         title: "写真",
-        body: "AIに渡す写真を選びます。この写真をもとにAIが日記を書きます。\n選んだ写真は、AIのサービスに送信されます。\n顔や住所、書類など、個人情報が写っているものは、選ばないでください。",
+        body: "AIに渡す写真を選びます。この写真をもとにAIが日記を書きます。\n選んだ写真は、AIのサービスに送信されます。\n住所や書類など、個人情報が写っているものは、選ばないでください。\n詳しくは、プライバシーポリシーをご確認ください。",
       ),
       TutorialStep(
         target: _sourcesKey,
