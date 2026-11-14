@@ -6,6 +6,9 @@ import '../../../../common/constants/map_constants.dart';
 import '../../../../core/app_info/install_date_provider.dart';
 import '../../../../core/logging/app_log_panel.dart';
 import '../../../location/domain/entities/timeline_item.dart';
+import '../../../tutorial/application/tutorial_providers.dart';
+import '../../../tutorial/domain/tutorial_step.dart';
+import '../../../tutorial/presentation/tutorial_runner.dart';
 import '../providers/map_provider.dart';
 import 'widgets/timeline_sheet.dart';
 
@@ -25,6 +28,12 @@ class _MapPageState extends ConsumerState<MapPage> {
 
   // 動作確認用のログを表示するか
   bool _showLog = true;
+
+  // チュートリアルで明るくする部品
+  final _dateHeaderKey = GlobalKey();
+
+  // この画面のチュートリアルの印(見たかどうかを覚えるときの名前)
+  static const _tutorialId = 'map';
 
   bool _isValidLatLng(LatLng loc) {
     return loc.latitude.isFinite &&
@@ -51,6 +60,11 @@ class _MapPageState extends ConsumerState<MapPage> {
       final vm = ref.read(mapProvider.notifier);
 
       await vm.initialize();
+
+      // 初めて表示したときは、先にチュートリアルを出す(位置情報の許可の確認は、そのあと)
+      await _showTutorialOnce();
+      if (!mounted) return;
+
       await vm.start();
     });
 
@@ -75,6 +89,32 @@ class _MapPageState extends ConsumerState<MapPage> {
             );
       },
     );
+  }
+
+  // 初めて表示したときだけ、説明する
+  Future<void> _showTutorialOnce() async {
+    final store = ref.read(tutorialSeenStoreProvider);
+    if (await store.hasSeen(_tutorialId)) return;
+    if (!mounted) return;
+
+    await showTutorial(context, [
+      const TutorialStep.intro(
+        title: "行動履歴",
+        body: "地図に、現在地と、選んだ日の移動の軌跡が表示されます。\n下のタイムラインに、その日の滞在と移動が並びます。",
+      ),
+      TutorialStep(
+        target: _dateHeaderKey,
+        title: "日付の切り替え",
+        body: "「前の日」「次の日」のボタンや、左右のスワイプで、日を切り替えられます。\n日付をタップすると、カレンダーから日を選べます。",
+        bubbleAbove: true,
+      ),
+      const TutorialStep.intro(
+        title: "タイムライン",
+        body: "滞在をタップすると、その場所が地図に表示されます。\n移動をタップすると、経路が地図に表示されます。\n鉛筆のボタンで、場所の名前や移動手段を直せます。\n上にドラッグすると、タイムラインを広げられます。",
+      ),
+    ]);
+
+    await store.markSeen(_tutorialId);
   }
 
   /// タイムラインのシートを最も小さくする
@@ -237,6 +277,7 @@ class _MapPageState extends ConsumerState<MapPage> {
           ),
           // 記録のない日でも日付を切り替えられるよう、シートは常に表示する
           TimelineSheet(
+            dateHeaderKey: _dateHeaderKey,
             controller: _sheetController,
             date: state.selectedDate,
             canGoToPreviousDay: selectedDay.isAfter(firstDay),
