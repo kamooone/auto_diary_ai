@@ -87,17 +87,17 @@ class _SummaryDiaryScreenState extends ConsumerState<SummaryDiaryScreen> {
       TutorialStep(
         target: _modelKey,
         title: "使用するAI",
-        body: "日記を書いてもらうAIを選択します。「違いを見る」をタップすると、詳細を確認できます。",
+        body: "振り返りを書いてもらうAIを選択します。「違いを見る」をタップすると、詳細を確認できます。",
       ),
       TutorialStep(
         target: _diariesKey,
         title: "振り返りに使う日記",
-        body: "作成済みの日記から、振り返りに使う日記を選びます。2件以上選ぶと作成できます。1か月分や1年分も選べます。",
+        body: "作成済みの日記から、振り返りに使う日記を選びます。2件以上選ぶと作成できます。1か月分や1年分も選べます。選んだ日記の内容は、AIのサービスに送信されます(「日記を連結させる」は、AIを使わないので送信されません)。",
       ),
       TutorialStep(
         target: _styleKey,
         title: "書き方",
-        body: "AIに日記を書いてもらう際の書き方を選びます。ブログ風や箇条書きなどのほかに、自分で指定することもできます。\n「日記を連結させる」は、AIを使わずに日記をつなげるので、トークンを使いません。",
+        body: "振り返りの書き方を選びます。ブログ風や箇条書きなどのほかに、自分で指定することもできます。\n「日記を連結させる」は、AIを使わずに日記をつなげるので、トークンを使いません。",
         // 縦に長く、説明も長いので、下端に置いて、吹き出しを上に出す
         bubbleAbove: true,
         scrollAlignment: 1,
@@ -115,7 +115,7 @@ class _SummaryDiaryScreenState extends ConsumerState<SummaryDiaryScreen> {
       TutorialStep(
         target: _noteKey,
         title: "AIに追加で伝えたいこと",
-        body: "その日の出来事や、書き方のこだわりなどを追加でAIに伝えられます。",
+        body: "どんな振り返りにしたいかや、書き方のこだわりなどを、追加でAIに伝えられます。",
         bubbleAbove: true,
       ),
       TutorialStep(
