@@ -88,7 +88,7 @@ void main() {
 
     await open();
 
-    expect(find.text('今月の使用量'), findsWidgets);
+    expect(find.text('トークン使用量'), findsWidgets);
     expect(find.text('1 / 8'), findsOneWidget);
 
     // 最後の「完了」まで、「次へ」で進める(下にある部品も、スクロールして見せる)

@@ -98,13 +98,14 @@ class _SummaryDiaryScreenState extends ConsumerState<SummaryDiaryScreen> {
         target: _styleKey,
         title: "書き方",
         body: "AIに日記を書いてもらう際の書き方を選びます。ブログ風や箇条書きなどのほかに、自分で指定することもできます。\n「日記を連結させる」は、AIを使わずに日記をつなげるので、トークンを使いません。",
-        // 縦に長いので、上端に置いて、吹き出しを下に出す
-        scrollAlignment: 0,
+        // 縦に長く、説明も長いので、下端に置いて、吹き出しを上に出す
+        bubbleAbove: true,
+        scrollAlignment: 1,
       ),
       TutorialStep(
         target: _consultKey,
         title: "構成を相談する",
-        body: "選んだ日記を見て、どんな書き方がよいかを、AIに相談できます。",
+        body: "選んだ日記から、どんな書き方がよいかをAIに相談できます。",
       ),
       TutorialStep(
         target: _lengthKey,
@@ -114,13 +115,13 @@ class _SummaryDiaryScreenState extends ConsumerState<SummaryDiaryScreen> {
       TutorialStep(
         target: _noteKey,
         title: "AIに追加で伝えたいこと",
-        body: "「前向きな言葉で締めてほしい」など、書いてほしいことを、AIに伝えられます。",
+        body: "その日の出来事や、書き方のこだわりなどを追加でAIに伝えられます。",
         bubbleAbove: true,
       ),
       TutorialStep(
         target: _generateKey,
         title: "振り返りを作成する",
-        body: "振り返りの作成を始めます。日記を2件以上選ぶまでは、押せません。",
+        body: "AIが振り返りの作成を開始します。消費トークンの目安が残り使用可能トークン数を上回っている場合は作成は出来ません。",
         bubbleAbove: true,
       ),
     ]);
