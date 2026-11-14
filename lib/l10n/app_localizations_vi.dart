@@ -9,5 +9,5 @@ class AppLocalizationsVi extends AppLocalizations {
   AppLocalizationsVi([String locale = 'vi']) : super(locale);
 
   @override
-  String get appTitle => 'Ghi nhanh, nhật ký & ôn lại';
+  String get appTitle => 'Hành trình của bạn';
 }

@@ -34,7 +34,7 @@
         android:maxSdkVersion="28"/>
 
     <application
-        android:label="サクッと記録・日記・振り返り"
+        android:label="あなたの軌跡"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <!-- AdMobのアプリID(いまはGoogleのテスト用。本番のIDを作成したら差し替える) -->
