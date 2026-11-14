@@ -109,32 +109,32 @@ class _DiaryAiScreenState extends ConsumerState<DiaryAiScreen> {
       TutorialStep(
         target: _periodKey,
         title: "日記にする期間",
-        body: "いつからいつまでの出来事を日記にするかを選びます。この期間の行動履歴やXの投稿などから、日記の材料を選べます。初めは、日記の日付と同じ1日です。",
+        body: "いつからいつまでの出来事を日記にするかを選びます。",
       ),
       TutorialStep(
         target: _usageKey,
-        title: "今月の使用量",
-        body: "AIを使える量と、今月の残りが表示されます。日記を作成すると、減ります。",
+        title: "トークン使用量",
+        body: "今月の使用量と、使える上限が表示されます。",
       ),
       TutorialStep(
         target: _modelKey,
-        title: "使うAI",
-        body: "日記を書くAIを、GeminiとGPTから選べます。",
+        title: "使用するAI",
+        body: "日記を書いてもらうAIを選択します。「違いを見る」をタップすると、詳細を確認できます。",
       ),
       TutorialStep(
         target: _photoKey,
         title: "写真",
-        body: "AIに渡す写真を選びます。年と月を切り替えると、ほかの時期の写真も選べます。",
+        body: "AIに渡す写真を選びます。この写真をもとにAIが日記を書きます。選んだ写真は、AIのサービスに送信されます。顔や住所、書類など、個人情報が写っているものは、選ばないでください。",
       ),
       TutorialStep(
         target: _sourcesKey,
         title: "Xの投稿・ひとこと・行動履歴",
-        body: "日記にする期間のものから、日記の材料にするものを選びます。選んだものだけが、AIに渡されます。",
+        body: "AIに日記を書いてもらう際に渡すデータを選びます。選んだものは、AIのサービスに送信されます。行動履歴には、自宅など場所の情報が含まれます。個人情報などが載っているものは、選ばないでください。",
       ),
       TutorialStep(
         target: _styleKey,
         title: "書き方",
-        body: "日記の書き方を選びます。ブログ風や箇条書きなどのほかに、自分で指定することもできます。",
+        body: "AIに日記を書いてもらう際の書き方を選びます。ブログ風や箇条書きなどのほかに、自分で指定することもできます。",
         // 縦に長いので、上端に置いて、吹き出しを下に出す
         scrollAlignment: 0,
       ),
@@ -146,13 +146,13 @@ class _DiaryAiScreenState extends ConsumerState<DiaryAiScreen> {
       TutorialStep(
         target: _noteKey,
         title: "AIに追加で伝えたいこと",
-        body: "その日の出来事や、書いてほしい気持ちなどを、AIに伝えられます。",
+        body: "その日の出来事や、書き方のこだわりなどを追加でAIに伝えられます。",
         bubbleAbove: true,
       ),
       TutorialStep(
         target: _generateKey,
         title: "日記を書いてもらう",
-        body: "AIに日記の作成を頼みます。使う量の目安は、ボタンの上の「消費トークンの目安」で確認できます。",
+        body: "AIが日記の作成を開始します。消費トークンの目安が残り使用可能トークン数を上回っている場合は作成は出来ません。",
         bubbleAbove: true,
       ),
     ]);
