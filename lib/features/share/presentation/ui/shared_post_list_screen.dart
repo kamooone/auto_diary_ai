@@ -23,7 +23,7 @@ class SharedPostListScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Xの投稿"),
+        title: const Text("Xの投稿一覧"),
         actions: [
           // 投稿が1件もないときも、保存のしかたを確認できるようにする
           IconButton(

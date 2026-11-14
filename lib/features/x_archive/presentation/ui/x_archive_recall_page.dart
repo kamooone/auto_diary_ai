@@ -33,7 +33,7 @@ class XArchiveRecallPage extends ConsumerWidget {
               child: Padding(
                 padding: EdgeInsets.all(24),
                 child: Text(
-                  '紹介できるポスト(ツイート)がありません\n設定の「取り込んだXの投稿」から、Xのアーカイブを取り込んでください',
+                  '紹介できるポスト(ツイート)がありません\n設定の「Xのアーカイブを取り込む」から、取り込んでください',
                   textAlign: TextAlign.center,
                 ),
               ),

@@ -2,9 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 
-import '../../../../app/router/app_routes.dart';
 import '../../application/providers/x_archive_providers.dart';
 import '../../domain/entities/x_archive_post.dart';
 import '../../domain/entities/x_archive_post_filter.dart';
@@ -153,20 +151,15 @@ class _XArchivePostListPageState extends ConsumerState<XArchivePostListPage> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('取り込んだXの投稿'),
+        title: const Text('取り込んだXの投稿一覧'),
         actions: [
           PopupMenuButton<String>(
             onSelected: (value) {
-              if (value == 'import') {
-                context
-                    .push(AppRoutes.xArchiveImport)
-                    .then((_) => _reload(refreshYears: true));
-              } else if (value == 'delete') {
+              if (value == 'delete') {
                 _deleteAll();
               }
             },
             itemBuilder: (context) => const [
-              PopupMenuItem(value: 'import', child: Text('アーカイブを取り込む')),
               PopupMenuItem(value: 'delete', child: Text('すべて消す')),
             ],
           ),

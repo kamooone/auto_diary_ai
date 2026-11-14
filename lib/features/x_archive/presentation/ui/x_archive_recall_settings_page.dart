@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 
-import '../../../../app/router/app_routes.dart';
 import '../../application/providers/x_archive_recall_providers.dart';
 import '../../domain/entities/x_archive_recall_settings.dart';
 
@@ -49,14 +47,6 @@ class XArchiveRecallSettingsPage extends ConsumerWidget {
                 trailing: const Icon(Icons.chevron_right),
                 onTap: canUse ? () => _pickTime(context, ref, settings) : null,
               ),
-              if (!canUse)
-                ListTile(
-                  leading: const Icon(Icons.upload_file),
-                  title: const Text('Xのアーカイブを取り込む'),
-                  onTap: () => context
-                      .push(AppRoutes.xArchiveImport)
-                      .then((_) => ref.invalidate(xArchiveRecallAvailableProvider)),
-                ),
             ],
           );
         },
