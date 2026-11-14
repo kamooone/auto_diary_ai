@@ -24,14 +24,15 @@ class XArchiveGuidePage extends StatelessWidget {
           "投稿が多いと、ファイルが大きくなります。通信量や、空き容量に気をつけてください。",
     ),
     GuideStep(
-      title: "ZIPファイルを開く",
-      body: "ダウンロードしたZIPファイルを、端末のファイルのアプリなどで、解凍します。\n"
-          "中の「data」フォルダに、「tweets.js」があります。",
+      title: "ZIPファイルから、tweets.js だけを取り出す",
+      body: "端末のファイルのアプリなどで、ダウンロードしたZIPファイルを開いて、"
+          "中の「data」フォルダにある「tweets.js」だけを取り出します。\n"
+          "ほかのファイルは、使いません。全部を解凍すると、かなり時間がかかることがあるので、"
+          "「tweets.js」だけを取り出すことをお勧めします。",
     ),
     GuideStep(
       title: "このアプリで、tweets.js を選ぶ",
-      body: "「Xのアーカイブを取り込む」の画面で、「tweets.js を選ぶ」を押して、解凍した「tweets.js」を選びます。\n"
-          "ほかのファイルは、使いません。",
+      body: "「Xのアーカイブを取り込む」の画面で、「tweets.js を選ぶ」を押して、取り出した「tweets.js」を選びます。",
     ),
     GuideStep(
       title: "取り込む年を選ぶ",
