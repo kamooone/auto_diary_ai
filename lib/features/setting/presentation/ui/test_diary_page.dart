@@ -166,8 +166,8 @@ class _TestDiaryPageState extends ConsumerState<TestDiaryPage> {
           Text("テスト用の通知", style: Theme.of(context).textTheme.titleMedium),
           const SizedBox(height: 8),
           const Text(
-            "「過去のツイートの通知」を、今すぐ20件出します(毎日の予約とは別です)。"
-            "通知の見た目と、タップすると「過去のツイート」の画面が開くことを確かめられます。",
+            "「過去のポスト(ツイート)の通知」を、今すぐ20件出します(毎日の予約とは別です)。"
+            "通知の見た目と、タップすると「過去のポスト(ツイート)」の画面が開くことを確かめられます。",
           ),
           const SizedBox(height: 8),
           ElevatedButton(

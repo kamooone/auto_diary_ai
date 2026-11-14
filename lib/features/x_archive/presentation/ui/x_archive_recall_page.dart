@@ -9,7 +9,7 @@ import 'x_archive_post_detail_page.dart';
 import 'x_archive_post_tile.dart';
 
 /// 「過去のツイート紹介」(N年前の今日のツイートと、ランダムなツイート)
-const _randomHeading = '他にもこんなツイートが過去にありました';
+const _randomHeading = '他にもこんなポスト(ツイート)が過去にありました';
 const _noTodayMessage = Object();
 
 class XArchiveRecallPage extends ConsumerWidget {
@@ -23,7 +23,7 @@ class XArchiveRecallPage extends ConsumerWidget {
     final recall = ref.watch(xArchiveRecallProvider(date));
 
     return Scaffold(
-      appBar: AppBar(title: const Text('過去のツイート')),
+      appBar: AppBar(title: const Text('過去のポスト(ツイート)')),
       body: recall.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (_, __) => const Center(child: Text('読み込めませんでした')),
@@ -33,7 +33,7 @@ class XArchiveRecallPage extends ConsumerWidget {
               child: Padding(
                 padding: EdgeInsets.all(24),
                 child: Text(
-                  '紹介できるツイートがありません\n設定の「取り込んだXの投稿」から、Xのアーカイブを取り込んでください',
+                  '紹介できるポスト(ツイート)がありません\n設定の「取り込んだXの投稿」から、Xのアーカイブを取り込んでください',
                   textAlign: TextAlign.center,
                 ),
               ),
@@ -63,7 +63,7 @@ class XArchiveRecallPage extends ConsumerWidget {
               if (identical(row, _noTodayMessage)) {
                 return const Padding(
                   padding: EdgeInsets.all(16),
-                  child: Text('この日と同じ月日のツイートは、見つかりませんでした'),
+                  child: Text('この日と同じ月日のポスト(ツイート)は、見つかりませんでした'),
                 );
               }
               final String label;

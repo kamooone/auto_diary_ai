@@ -115,8 +115,8 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
 
           ListTile(
             leading: const Icon(Icons.notifications_active_outlined),
-            title: const Text("過去のツイートの通知"),
-            subtitle: const Text("取り込んだ過去のツイートを、毎日お知らせします"),
+            title: const Text("過去のポスト(ツイート)の通知"),
+            subtitle: const Text("取り込んだ過去のポスト(ツイート)を、毎日お知らせします"),
             onTap: () => context.push(AppRoutes.xArchiveRecallSettings),
           ),
 
