@@ -108,8 +108,8 @@ class _DiaryAiScreenState extends ConsumerState<DiaryAiScreen> {
       ),
       TutorialStep(
         target: _periodKey,
-        title: "AIに渡す情報の期間",
-        body: "日記の材料にする、行動履歴やXの投稿などの期間を選びます。初めは、日記の日付と同じ1日です。複数日も選べます。",
+        title: "日記にする期間",
+        body: "いつからいつまでの出来事を日記にするかを選びます。この期間の行動履歴やXの投稿などから、日記の材料を選べます。初めは、日記の日付と同じ1日です。",
       ),
       TutorialStep(
         target: _usageKey,
@@ -129,7 +129,7 @@ class _DiaryAiScreenState extends ConsumerState<DiaryAiScreen> {
       TutorialStep(
         target: _sourcesKey,
         title: "Xの投稿・ひとこと・行動履歴",
-        body: "選んだ期間のものから、日記の材料にするものを選びます。選んだものだけが、AIに渡されます。",
+        body: "日記にする期間のものから、日記の材料にするものを選びます。選んだものだけが、AIに渡されます。",
       ),
       TutorialStep(
         target: _styleKey,
@@ -196,7 +196,7 @@ class _DiaryAiScreenState extends ConsumerState<DiaryAiScreen> {
             key: _periodKey,
             child: ListTile(
               leading: const Icon(Icons.date_range),
-              title: const Text("AIに渡す情報の期間"),
+              title: const Text("日記にする期間"),
               subtitle: Text(
                 DiaryPeriodText.format(state.aiStartDate, state.aiEndDate),
               ),
@@ -206,7 +206,7 @@ class _DiaryAiScreenState extends ConsumerState<DiaryAiScreen> {
           ),
           const SizedBox(height: 4),
           Text(
-            "Xの投稿・ひとことメモ・行動履歴は、選んだ期間のものから選べます。"
+            "Xの投稿・ひとことメモ・行動履歴は、日記にする期間のものから選べます。"
             "写真は、年と月を切り替えて、ほかの時期のものも選べます",
             style: Theme.of(context).textTheme.bodySmall,
           ),
@@ -530,7 +530,7 @@ class _DiaryAiScreenState extends ConsumerState<DiaryAiScreen> {
       ),
       firstDate: dates.first,
       lastDate: dates.last,
-      helpText: "AIに渡す情報の期間",
+      helpText: "日記にする期間",
     );
 
     if (range != null) {
