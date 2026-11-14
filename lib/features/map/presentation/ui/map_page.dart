@@ -100,17 +100,11 @@ class _MapPageState extends ConsumerState<MapPage> {
     await showTutorial(context, [
       const TutorialStep.intro(
         title: "行動履歴",
-        body: "地図に、現在地と、選んだ日の移動の軌跡が表示されます。\n下のタイムラインに、その日の滞在と移動が並びます。",
-      ),
-      TutorialStep(
-        target: _dateHeaderKey,
-        title: "日付の切り替え",
-        body: "「前の日」「次の日」のボタンや、左右のスワイプで、日を切り替えられます。\n日付をタップすると、カレンダーから日を選べます。",
-        bubbleAbove: true,
+        body: "地図に、現在地と、選んだ日の移動の軌跡が表示されます。\n※行動履歴を取得するには位置情報取得の許可が必要です。",
       ),
       const TutorialStep.intro(
         title: "タイムライン",
-        body: "滞在をタップすると、その場所が地図に表示されます。\n移動をタップすると、経路が地図に表示されます。\n鉛筆のボタンで、場所の名前や移動手段を直せます。\n上にドラッグすると、タイムラインを広げられます。",
+        body: "その日の滞在と移動が並びます。\n行動履歴の内容は正確ではないので、鉛筆のボタンで場所の名前や移動手段を直すことができます。\nこのタイムラインの情報はAIに日記を作成してもらうときに使用することができます。",
       ),
     ]);
 
