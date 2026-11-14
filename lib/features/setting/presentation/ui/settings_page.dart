@@ -8,6 +8,7 @@ import '../../../inquiry/application/providers/inquiry_providers.dart';
 import '../../../plan/application/providers/plan_provider.dart';
 import '../../../plan/domain/entities/plan_availability.dart';
 import '../../../plan/presentation/widgets/usage_meter.dart';
+import '../../../tutorial/application/tutorial_providers.dart';
 import 'test_diary_page.dart';
 import '../providers/recording_settings_provider.dart';
 
@@ -69,9 +70,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
             trailing: paidPlanEnabled ? Text(plan.label) : null,
             // 有料プランがない間は、使用量はこのタイルで見えるので、画面は開かない
             // (有料プランを有効にしたときだけ、プランの画面を開く)
-            onTap: paidPlanEnabled
-                ? () => context.push(AppRoutes.plan)
-                : null,
+            onTap: paidPlanEnabled ? () => context.push(AppRoutes.plan) : null,
           ),
 
           // 日記を書くAIの種類(Gemini / GPT)
@@ -165,6 +164,13 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
             const Divider(),
           ],
 
+          ListTile(
+            leading: const Icon(Icons.lightbulb_outline),
+            title: const Text("使い方の説明をもう一度見る"),
+            subtitle: const Text("各画面の説明を、もう一度表示します"),
+            onTap: _resetTutorials,
+          ),
+
           // まとめ日記などを試すための、日記・Xの投稿・行動履歴を、まとめて追加・削除できるようにする
           ListTile(
             leading: const Icon(Icons.bug_report),
@@ -178,6 +184,14 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
           ),
         ],
       ),
+    );
+  }
+
+  Future<void> _resetTutorials() async {
+    final messenger = ScaffoldMessenger.of(context);
+    await ref.read(tutorialSeenStoreProvider).clearAll();
+    messenger.showSnackBar(
+      const SnackBar(content: Text("各画面を開くと、説明が表示されます。ホームは、アプリを開き直すと表示されます")),
     );
   }
 

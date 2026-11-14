@@ -8,6 +8,9 @@ abstract class TutorialSeenStore {
   Future<bool> hasSeen(String id);
 
   Future<void> markSeen(String id);
+
+  /// 見たことを全部忘れる(設定の「チュートリアルをもう一度見る」用)
+  Future<void> clearAll();
 }
 
 /// 見たチュートリアルの[id]の一覧を、端末内のJSONファイルに保存する
@@ -30,6 +33,16 @@ class FileTutorialSeenStore implements TutorialSeenStore {
       await file.writeAsString(jsonEncode(seen.toList()));
     } catch (_) {
       // 保存できなくても、アプリは使えるようにする(次の起動で、もう一度出るだけ)
+    }
+  }
+
+  @override
+  Future<void> clearAll() async {
+    try {
+      final file = await _resolveFile();
+      if (await file.exists()) await file.delete();
+    } catch (_) {
+      // 消せなかったときは、今のまま(見たことになっている)
     }
   }
 

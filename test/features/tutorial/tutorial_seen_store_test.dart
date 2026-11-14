@@ -37,4 +37,16 @@ void main() {
     await store.markSeen('home');
     expect(await store.hasSeen('home'), isTrue);
   });
+
+  test('全部忘れると、どれも見ていないことになる', () async {
+    await store.markSeen('home');
+    await store.markSeen('calendar');
+
+    await store.clearAll();
+
+    expect(await store.hasSeen('home'), isFalse);
+    expect(await store.hasSeen('calendar'), isFalse);
+    // ファイルがなくても、エラーにならない
+    await store.clearAll();
+  });
 }

@@ -15,6 +15,9 @@ class _FakeStore implements TutorialSeenStore {
 
   @override
   Future<void> markSeen(String id) async => seen.add(id);
+
+  @override
+  Future<void> clearAll() async => seen.clear();
 }
 
 void main() {
@@ -39,7 +42,7 @@ void main() {
     await open();
 
     expect(find.text('1 / 1'), findsOneWidget);
-    expect(find.textContaining('月を切り替えられます'), findsOneWidget);
+    expect(find.textContaining('「+1」のように件数が表示されます'), findsOneWidget);
 
     await tester.tap(find.text('完了'));
     await tester.pumpAndSettle();

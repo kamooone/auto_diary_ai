@@ -13,6 +13,9 @@ class _FakeStore implements TutorialSeenStore {
 
   @override
   Future<void> markSeen(String id) async => seen.add(id);
+
+  @override
+  Future<void> clearAll() async => seen.clear();
 }
 
 void main() {
