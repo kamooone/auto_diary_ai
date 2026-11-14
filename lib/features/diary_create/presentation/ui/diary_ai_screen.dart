@@ -119,22 +119,22 @@ class _DiaryAiScreenState extends ConsumerState<DiaryAiScreen> {
       TutorialStep(
         target: _modelKey,
         title: "使用するAI",
-        body: "日記を書いてもらうAIを選択します。「違いを見る」をタップすると、詳細を確認できます。",
+        body: "日記を書いてもらうAIを選択します。\n「違いを見る」をタップすると、詳細を確認できます。",
       ),
       TutorialStep(
         target: _photoKey,
         title: "写真",
-        body: "AIに渡す写真を選びます。この写真をもとにAIが日記を書きます。選んだ写真は、AIのサービスに送信されます。顔や住所、書類など、個人情報が写っているものは、選ばないでください。",
+        body: "AIに渡す写真を選びます。この写真をもとにAIが日記を書きます。\n選んだ写真は、AIのサービスに送信されます。\n顔や住所、書類など、個人情報が写っているものは、選ばないでください。",
       ),
       TutorialStep(
         target: _sourcesKey,
         title: "Xの投稿・ひとこと・行動履歴",
-        body: "AIに日記を書いてもらう際に渡すデータを選びます。選んだものは、AIのサービスに送信されます。行動履歴には、自宅など場所の情報が含まれます。個人情報などが載っているものは、選ばないでください。",
+        body: "AIに日記を書いてもらう際に渡すデータを選びます。\n選んだものは、AIのサービスに送信されます。\n行動履歴には、自宅など場所の情報が含まれます。\n個人情報などが載っているものは、選ばないでください。",
       ),
       TutorialStep(
         target: _styleKey,
         title: "書き方",
-        body: "AIに日記を書いてもらう際の書き方を選びます。ブログ風や箇条書きなどのほかに、自分で指定することもできます。",
+        body: "AIに日記を書いてもらう際の書き方を選びます。\nブログ風や箇条書きなどのほかに、自分で指定することもできます。",
         // 縦に長いので、上端に置いて、吹き出しを下に出す
         scrollAlignment: 0,
       ),
@@ -152,7 +152,7 @@ class _DiaryAiScreenState extends ConsumerState<DiaryAiScreen> {
       TutorialStep(
         target: _generateKey,
         title: "日記を書いてもらう",
-        body: "AIが日記の作成を開始します。消費トークンの目安が残り使用可能トークン数を上回っている場合は作成は出来ません。",
+        body: "AIが日記の作成を開始します。\n消費トークンの目安が残り使用可能トークン数を上回っている場合は作成は出来ません。",
         bubbleAbove: true,
       ),
     ]);

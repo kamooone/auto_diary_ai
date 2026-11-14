@@ -87,17 +87,17 @@ class _SummaryDiaryScreenState extends ConsumerState<SummaryDiaryScreen> {
       TutorialStep(
         target: _modelKey,
         title: "使用するAI",
-        body: "振り返りを書いてもらうAIを選択します。「違いを見る」をタップすると、詳細を確認できます。",
+        body: "振り返りを書いてもらうAIを選択します。\n「違いを見る」をタップすると、詳細を確認できます。",
       ),
       TutorialStep(
         target: _diariesKey,
         title: "振り返りに使う日記",
-        body: "作成済みの日記から、振り返りに使う日記を選びます。2件以上選ぶと作成できます。1か月分や1年分も選べます。選んだ日記の内容は、AIのサービスに送信されます(「日記を連結させる」は、AIを使わないので送信されません)。",
+        body: "作成済みの日記から、振り返りに使う日記を選びます。\n2件以上選ぶと作成できます。1か月分や1年分も選べます。\n選んだ日記の内容は、AIのサービスに送信されます(「日記を連結させる」は、AIを使わないので送信されません)。",
       ),
       TutorialStep(
         target: _styleKey,
         title: "書き方",
-        body: "振り返りの書き方を選びます。ブログ風や箇条書きなどのほかに、自分で指定することもできます。\n「日記を連結させる」は、AIを使わずに日記をつなげるので、トークンを使いません。",
+        body: "振り返りの書き方を選びます。\nブログ風や箇条書きなどのほかに、自分で指定することもできます。\n「日記を連結させる」は、AIを使わずに日記をつなげるので、トークンを使いません。",
         // 縦に長く、説明も長いので、下端に置いて、吹き出しを上に出す
         bubbleAbove: true,
         scrollAlignment: 1,
@@ -121,7 +121,7 @@ class _SummaryDiaryScreenState extends ConsumerState<SummaryDiaryScreen> {
       TutorialStep(
         target: _generateKey,
         title: "振り返りを作成する",
-        body: "AIが振り返りの作成を開始します。消費トークンの目安が残り使用可能トークン数を上回っている場合は作成は出来ません。",
+        body: "AIが振り返りの作成を開始します。\n消費トークンの目安が残り使用可能トークン数を上回っている場合は作成は出来ません。",
         bubbleAbove: true,
       ),
     ]);
