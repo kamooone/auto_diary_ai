@@ -35,3 +35,11 @@
    - プロジェクトの依存には入れない(`archive` のバージョンが合わず、ビルドできないため)。
    - `adaptive_icon_foreground_inset: 0` にしている。ツールの初めの値(16%)だと、安全な範囲に収めた前景が、さらに縮む。
    - ツールが `ios/Runner.xcodeproj/project.pbxproj` を、おかしな値に書き換える(`ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = AppIcon`)。実行後に `git checkout ios/Runner.xcodeproj/project.pbxproj` で戻す。
+
+## 通知の小さいアイコン(Android)
+
+- Androidの通知の小さいアイコンは、色を使えず、不透明な部分の形だけが、白く表示される。アプリのアイコン(カラー)は、そのままでは使えない。
+- 専用の単色アイコン `assets/icon/notification_icon.svg`(ピンに、スマイルの穴)から、`android/app/src/main/res/drawable-*/ic_notification.png`(24〜96px)を作った。作り方は、アイコンのPNGと同じ(`qlmanage` で変換して、黒=不透明、白=透明にする)。
+- 使っている場所: ローカルの通知(`notification_permission_service.dart`、`x_archive_recall_notifier.dart`)と、お問い合わせの返信のプッシュ通知(`AndroidManifest.xml` の `default_notification_icon`)。
+- 通知を広げたときの色は、アプリの紺(`#3F5879`、`res/values/colors.xml` の `notification_accent`)。
+- iOSの通知は、アプリのアイコン(カラー)が、自動で使われる。

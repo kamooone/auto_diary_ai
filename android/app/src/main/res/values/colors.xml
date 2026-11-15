@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 通知を広げたときの、アイコンの色(アプリの紺) -->
+    <color name="notification_accent">#3F5879</color>
+</resources>

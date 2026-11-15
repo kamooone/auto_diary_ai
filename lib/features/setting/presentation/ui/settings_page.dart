@@ -24,6 +24,9 @@ class SettingsPage extends ConsumerStatefulWidget {
 }
 
 class _SettingsPageState extends ConsumerState<SettingsPage> {
+  // 【リリース前に、falseに戻す】ストアに出すビルドでも、「テストデータ」を出すか
+  static const _showTestDataInRelease = true;
+
   // ウィジェットで切り替えたり、ホーム画面に追加したりした結果を、戻ってきたときに反映する
   late final AppLifecycleListener _lifecycleListener;
 
@@ -198,7 +201,8 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
 
           // まとめ日記などを試すための、日記・Xの投稿・行動履歴を、まとめて追加・削除できるようにする
           // (開発のとき(デバッグ実行)だけ表示する。ストアに出すビルドでは出ない)
-          if (kDebugMode)
+          // 今は、内部テストで通知の見た目を確かめるため、出している(リリース前に、falseに戻す)
+          if (kDebugMode || _showTestDataInRelease)
             ListTile(
               leading: const Icon(Icons.bug_report),
               title: const Text("テストデータ"),

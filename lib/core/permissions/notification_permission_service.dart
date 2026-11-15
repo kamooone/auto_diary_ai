@@ -6,7 +6,7 @@ class NotificationPermissionService {
 
   static Future<void> requestPermission() async {
     const settings = InitializationSettings(
-      android: AndroidInitializationSettings('@mipmap/ic_launcher'),
+      android: AndroidInitializationSettings('@drawable/ic_notification'),
       iOS: DarwinInitializationSettings(),
     );
 

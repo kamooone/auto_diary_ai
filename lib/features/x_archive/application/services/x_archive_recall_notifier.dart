@@ -1,3 +1,5 @@
+import 'dart:ui' show Color;
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:timezone/data/latest.dart' as tzdata;
@@ -32,7 +34,7 @@ class XArchiveRecallNotifier {
 
     await _plugin.initialize(
       const InitializationSettings(
-        android: AndroidInitializationSettings('@mipmap/ic_launcher'),
+        android: AndroidInitializationSettings('@drawable/ic_notification'),
         iOS: DarwinInitializationSettings(),
       ),
       onDidReceiveNotificationResponse: (response) => onTap(response.payload),
@@ -84,6 +86,7 @@ class XArchiveRecallNotifier {
           channelDescription: '過去のポスト(ツイート)を、毎日お知らせします',
           importance: Importance.defaultImportance,
           priority: Priority.defaultPriority,
+          color: Color(0xFF3F5879),
         ),
         iOS: DarwinNotificationDetails(),
       ),
@@ -129,6 +132,7 @@ class XArchiveRecallNotifier {
             channelDescription: '過去のポスト(ツイート)を、毎日お知らせします',
             importance: Importance.defaultImportance,
             priority: Priority.defaultPriority,
+            color: Color(0xFF3F5879),
           ),
           iOS: DarwinNotificationDetails(),
         ),

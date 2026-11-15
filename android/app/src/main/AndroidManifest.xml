@@ -37,6 +37,14 @@
         android:label="あなたの軌跡"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
+
+        <!-- 通知の小さいアイコンと色(お問い合わせの返信のプッシュ通知で、使われる) -->
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_icon"
+            android:resource="@drawable/ic_notification" />
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_color"
+            android:resource="@color/notification_accent" />
         <!-- AdMobのアプリID(いまはGoogleのテスト用。本番のIDを作成したら差し替える) -->
         <meta-data
             android:name="com.google.android.gms.ads.APPLICATION_ID"
