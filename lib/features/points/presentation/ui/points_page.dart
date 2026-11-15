@@ -62,10 +62,7 @@ class _Description extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Text(
-      "ポイントは、Webのアカウントで、トークンに交換できます。"
-      "トークンは、AIが日記を書くときに使う、使用量の単位です。"
-      "アカウントの作成と、ポイントの交換は、Webで行います。"
-      "アカウントがなくても、アプリは毎月の無料枠の中で使えます。",
+      "アカウントの作成と、ポイントの交換は、Webで行います。",
       style: Theme.of(context).textTheme.bodyMedium,
     );
   }

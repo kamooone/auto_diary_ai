@@ -125,8 +125,7 @@ class _XArchiveImportPageState extends ConsumerState<XArchiveImportPage> {
         padding: const EdgeInsets.all(16),
         children: [
           const Text(
-            'Xからダウンロードしたアーカイブの中の「data/tweets.js」を選んでください。'
-            '年を選んで取り込めます。同じ投稿は、何度取り込んでも増えません。',
+            'Xからダウンロードしたアーカイブの中の「data/tweets.js」を選んでください。',
           ),
           const SizedBox(height: 16),
           FilledButton.icon(

@@ -20,8 +20,7 @@ class PointsGuidePage extends StatelessWidget {
     ),
     GuideStep(
       title: "ポイントを、トークンに交換する",
-      body: "貯めたポイントは、Webページで、トークンに交換できます。\n"
-          "トークンは、AIが日記を書くときに使う、使用量の単位です。",
+      body: "貯めたポイントは、Webページで、トークンに交換できます。",
     ),
     GuideStep(
       title: "アプリで、コードを発行する",
@@ -44,8 +43,7 @@ class PointsGuidePage extends StatelessWidget {
     return const StepGuidePage(
       title: "ポイントとトークンの使い方",
       intro: "このアプリの開発者が作ったゲームで貯めたポイントは、トークンに交換できます。\n"
-          "トークンは、AIが日記を書くときに使う、使用量の単位です。\n"
-          "アカウントがなくても、アプリは、毎月の無料枠の中で使えます。",
+          "トークンは、AIが日記を書くときに使う、使用量の単位です。",
       steps: _steps,
     );
   }
