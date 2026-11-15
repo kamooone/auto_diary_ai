@@ -85,6 +85,7 @@ flutter:
 
   assets:
     - .env
+    - assets/privacy_policy.md
 
 flutter_gen:
   l10n:

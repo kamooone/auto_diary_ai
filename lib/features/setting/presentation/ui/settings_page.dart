@@ -11,6 +11,7 @@ import '../../../inquiry/application/providers/inquiry_providers.dart';
 import '../../../plan/application/providers/plan_provider.dart';
 import '../../../plan/domain/entities/plan_availability.dart';
 import '../../../plan/presentation/widgets/usage_meter.dart';
+import '../../../privacy/presentation/ui/privacy_policy_page.dart';
 import '../../../tutorial/application/tutorial_providers.dart';
 import 'test_diary_page.dart';
 import '../providers/recording_settings_provider.dart';
@@ -176,6 +177,17 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
             ),
             const Divider(),
           ],
+
+          ListTile(
+            leading: const Icon(Icons.privacy_tip_outlined),
+            title: const Text("プライバシーポリシー"),
+            subtitle: const Text("取得する情報と、使いみちについて"),
+            onTap: () => Navigator.of(context).push(
+              MaterialPageRoute<void>(
+                builder: (_) => const PrivacyPolicyPage(),
+              ),
+            ),
+          ),
 
           ListTile(
             leading: const Icon(Icons.lightbulb_outline),
