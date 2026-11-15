@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../app/router/app_routes.dart';
+import '../../../ai/application/providers/ai_model_provider.dart';
 import '../../../ai/application/providers/gemini_fallback_provider.dart';
+import '../../../ai/domain/entities/ai_model.dart';
 import '../../../ai/presentation/widgets/ai_model_selector.dart';
 import '../../../inquiry/application/providers/inquiry_providers.dart';
 import '../../../plan/application/providers/plan_provider.dart';
@@ -79,19 +81,21 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
             child: AiModelSelector(),
           ),
 
-          // Geminiが混んでいるときの、1つ性能が低いモデルの使用
-          SwitchListTile(
-            secondary: const Icon(Icons.shield_outlined),
-            title: const Text("書けないときは、別のモデルで書き直す"),
-            subtitle: const Text(
-              "Geminiが、利用者が多いときなどに一時的に使えず、日記を書けなかったとき、"
-              "少し性能が低い別のモデルで、自動で書き直します。\n"
-              "日記を書けないことは減りますが、文章の質が下がることがあります",
+          // Geminiが使えないときの、1つ性能が低いモデルの使用
+          // (サーバーの予備のモデルはGeminiだけなので、GPTを選んでいるときは出さない)
+          if (ref.watch(aiModelProvider) == AiModel.gemini)
+            SwitchListTile(
+              secondary: const Icon(Icons.shield_outlined),
+              title: const Text("書けないときは、別のモデルで書き直す"),
+              subtitle: const Text(
+                "Geminiが、利用者が多いときなどに一時的に使えず、日記を書けなかったとき、"
+                "少し性能が低い別のモデルで、自動で書き直します。\n"
+                "日記を書けないことは減りますが、文章の質が下がることがあります",
+              ),
+              value: ref.watch(geminiFallbackProvider),
+              onChanged: (value) =>
+                  ref.read(geminiFallbackProvider.notifier).set(value),
             ),
-            value: ref.watch(geminiFallbackProvider),
-            onChanged: (value) =>
-                ref.read(geminiFallbackProvider.notifier).set(value),
-          ),
 
           ListTile(
             leading: const Icon(Icons.savings),
