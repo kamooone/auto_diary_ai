@@ -65,7 +65,7 @@ class _Description extends StatelessWidget {
       "ポイントは、Webのアカウントで、トークンに交換できます。"
       "トークンは、AIが日記を書くときに使う、使用量の単位です。"
       "アカウントの作成と、ポイントの交換は、Webで行います。"
-      "アカウントがなくても、アプリは毎月の枠の中で使えます。",
+      "アカウントがなくても、アプリは毎月の無料枠の中で使えます。",
       style: Theme.of(context).textTheme.bodyMedium,
     );
   }
