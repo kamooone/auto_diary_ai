@@ -39,10 +39,10 @@
 ## 通知の小さいアイコン(Android)
 
 - Androidの通知の小さいアイコンは、色を使えず、不透明な部分の形だけが、白く表示される。アプリのアイコン(カラー)は、そのままでは使えない。
-- 専用の単色アイコン `assets/icon/notification_icon.svg`(ピンに、スマイルの穴)から、`android/app/src/main/res/drawable-*/ic_notification.png`(24〜96px)を作った。
+- 専用の単色アイコン `assets/icon/notification_icon.svg`(顔のピン(髪、目、笑顔)と、右下の小さなノートのピン。点線は、小さくてつぶれるので外した)から、`android/app/src/main/res/drawable-*/ic_notification.png`(24〜96px)を作った。
   - 作り方: `qlmanage -t -s 512` でPNGにして、黒=不透明、白=透明にする(アイコンのPNGと同じ)。そのあと、絵の余白を切り詰めて(`-trim`)、高さ約92%に広げてから、各サイズに縮小する。
   - **SVGの `width` と `height` は、512にしておく。** 小さい値(96など)だと、`qlmanage` が、その大きさのまま、512の画像の中に置くので、絵が、画像の3割ほどに縮んでしまう(最初に作ったとき、これで、通知の中で、点のようにしか見えなかった)。
-  - Android 12以降は、通知の小さいアイコンを、色つきの丸の中に、小さく表示する。細かい絵(顔の線、小さいピン、点線)は、つぶれる。太い1つの形にする。モノクロのアイコン(`icon_monochrome.svg`)は、細かすぎて、使えなかった。
+  - Android 12以降は、通知の小さいアイコンを、色つきの丸の中に、小さく表示する。細かい絵は、つぶれる。モノクロのアイコン(`icon_monochrome.svg`)は、線が細くて、使えなかったので、線を太く、部品を減らした専用の版を作った。それでも、古い端末(小さい表示)では、髪やノートが、つぶれる可能性がある。つぶれる場合は、スマイルのピンだけの版に戻す。
 - 使っている場所: ローカルの通知(`notification_permission_service.dart`、`x_archive_recall_notifier.dart`)と、お問い合わせの返信のプッシュ通知(`AndroidManifest.xml` の `default_notification_icon`)。
 - 通知を広げたときの色は、アプリの紺(`#3F5879`、`res/values/colors.xml` の `notification_accent`)。
 - iOSの通知は、アプリのアイコン(カラー)が、自動で使われる。
