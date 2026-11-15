@@ -62,7 +62,8 @@ class _Description extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Text(
-      "Webのアカウントでポイントをトークンに交換すると、AIに日記を書いてもらえる量が増えます。"
+      "ポイントは、Webのアカウントで、トークンに交換できます。"
+      "トークンは、AIが日記を書くときに使う、使用量の単位です。"
       "アカウントの作成と、ポイントの交換は、Webで行います。"
       "アカウントがなくても、アプリは毎月の枠の中で使えます。",
       style: Theme.of(context).textTheme.bodyMedium,
@@ -117,11 +118,6 @@ class _LinkedCard extends ConsumerWidget {
                   ? "トークン残高を取得できていません"
                   : "トークン残高: ${_number(usage.tokenBalance)}",
               style: theme.textTheme.headlineSmall,
-            ),
-            const SizedBox(height: 4),
-            Text(
-              "毎月の枠を使い切ったあとに、残高から使われます。",
-              style: theme.textTheme.bodySmall,
             ),
             const SizedBox(height: 16),
             FilledButton.icon(
