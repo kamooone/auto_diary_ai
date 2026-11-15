@@ -10,6 +10,6 @@ void main() {
 
     await tester.drag(find.byType(ListView), const Offset(0, -3000));
     await tester.pumpAndSettle();
-    expect(find.text('トークンが使えるようになる'), findsOneWidget);
+    expect(find.text('トークンが使えるようになります'), findsOneWidget);
   });
 }
