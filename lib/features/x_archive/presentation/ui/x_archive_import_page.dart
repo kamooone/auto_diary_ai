@@ -2,6 +2,8 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/app_info/install_date_provider.dart';
+import '../../../../core/database/isar_provider.dart';
 import '../../application/providers/x_archive_providers.dart';
 import '../../application/services/x_archive_file_reader.dart';
 import '../../domain/entities/x_archive_post.dart';
@@ -87,6 +89,16 @@ class _XArchiveImportPageState extends ConsumerState<XArchiveImportPage> {
           if (mounted) setState(() => _progress = done);
         },
       );
+      // 取り込んだ投稿の、いちばん古い日まで、日記にする期間などで選べるようにする
+      // (アプリを使い始めた日より前の投稿も、選べるようにするため)
+      final oldest = oldestPostDayJst(target);
+      if (oldest != null) {
+        await moveInstallDateEarlier(
+          ref.read(isarProvider),
+          ref.read(installDateProvider.notifier),
+          oldest,
+        );
+      }
       if (!mounted) return;
       setState(() {
         _resultMessage = '${result.added}件を取り込みました'
