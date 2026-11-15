@@ -82,10 +82,11 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
           // Geminiが混んでいるときの、1つ性能が低いモデルの使用
           SwitchListTile(
             secondary: const Icon(Icons.shield_outlined),
-            title: const Text("混んでいるときは、別のモデルを使う"),
+            title: const Text("書けないときは、別のモデルで書き直す"),
             subtitle: const Text(
-              "Geminiが混んでいて失敗したとき、1つ性能が低いモデルで書きます。"
-              "文章の質が下がることがあります",
+              "Geminiが、利用者が多いときなどに一時的に使えず、日記を書けなかったとき、"
+              "少し性能が低い別のモデルで、自動で書き直します。\n"
+              "日記を書けないことは減りますが、文章の質が下がることがあります",
             ),
             value: ref.watch(geminiFallbackProvider),
             onChanged: (value) =>
