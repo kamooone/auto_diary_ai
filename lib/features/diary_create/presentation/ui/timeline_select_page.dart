@@ -157,9 +157,9 @@ class _TimelineSelectPageState extends State<TimelineSelectPage> {
             color: Theme.of(context).colorScheme.surfaceContainerHighest,
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
             child: Text(
-              "住所は、初めは、AIに送りません。\n"
-              "住所が必要な滞在だけ、選んだあとに出る「住所も送る」を、オンにしてください。"
-              "自宅など、個人情報にあたる住所は、送らないでください。",
+              "住所が必要な滞在だけ、選んだあとに出る「住所も送る」を、オンにしてください。\n"
+              "送ってよい住所: 旅行先や、お出かけ先など、個人情報に関係しない場所\n"
+              "送らない方がよい住所: 自宅、職場、学校など、あなたの個人情報にあたる場所",
               style: Theme.of(context).textTheme.bodySmall,
             ),
           ),
