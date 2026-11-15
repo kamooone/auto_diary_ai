@@ -76,7 +76,7 @@ class _TestDiaryPageState extends ConsumerState<TestDiaryPage> {
           Text("テスト用の日記", style: Theme.of(context).textTheme.titleMedium),
           const SizedBox(height: 8),
           const Text(
-            "日記を1つにする機能を試すための日記を、2026年1月1日から10月27日まで、"
+            "振り返りを作成する機能を試すための日記を、2026年1月1日から10月27日まで、"
             "1日1件(各400文字前後。仕事・趣味・旅行・家族や友人の出来事が混ざっています)追加します。\n"
             "タイトルが「${TestDiaryGenerator.titlePrefix}」で始まる日記が、テスト用です。",
           ),
@@ -166,8 +166,8 @@ class _TestDiaryPageState extends ConsumerState<TestDiaryPage> {
           Text("テスト用の通知", style: Theme.of(context).textTheme.titleMedium),
           const SizedBox(height: 8),
           const Text(
-            "「過去のツイートの通知」を、今すぐ20件出します(毎日の予約とは別です)。"
-            "通知の見た目と、タップすると「過去のツイート」の画面が開くことを確かめられます。",
+            "「過去のポスト(ツイート)の通知」を、今すぐ20件出します(毎日の予約とは別です)。"
+            "通知の見た目と、タップすると「過去のポスト(ツイート)」の画面が開くことを確かめられます。",
           ),
           const SizedBox(height: 8),
           ElevatedButton(

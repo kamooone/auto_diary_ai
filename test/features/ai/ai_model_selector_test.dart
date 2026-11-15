@@ -1,5 +1,6 @@
 import 'package:auto_diary_ai/features/ai/domain/entities/ai_model.dart';
 import 'package:auto_diary_ai/features/ai/presentation/widgets/ai_model_selector.dart';
+import 'package:auto_diary_ai/features/privacy/presentation/ui/privacy_policy_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -24,5 +25,22 @@ void main() {
   test('Geminiの説明は、予備のモデルへの自動切り替えを約束しない', () {
     expect(AiModel.gemini.feature, isNot(contains('別のGeminiのモデルに自動')));
     expect(AiModel.gemini.feature, contains('やり直します'));
+  });
+
+  testWidgets('「違いを見る」の、プライバシーポリシーの案内を押すと、その画面を開く', (tester) async {
+    await tester.pumpWidget(
+      const ProviderScope(
+        child: MaterialApp(home: Scaffold(body: AiModelSelector())),
+      ),
+    );
+
+    await tester.tap(find.text('違いを見る'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('詳しくは、プライバシーポリシーをご確認ください。'));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(PrivacyPolicyPage), findsOneWidget);
+    expect(find.text('1. 基本的な考え方'), findsOneWidget);
   });
 }

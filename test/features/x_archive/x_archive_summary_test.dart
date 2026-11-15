@@ -32,4 +32,15 @@ void main() {
     expect(filterByYears(posts, {2025}).map((p) => p.tweetId), ['2']);
     expect(filterByYears(posts, {}), isEmpty);
   });
+
+  test('いちばん古い投稿の日を、日本時間で返す(UTCの前日15時は、日本では当日)', () {
+    final posts = [
+      _post('1', DateTime.utc(2024, 5, 1)),
+      _post('2', DateTime.utc(2019, 12, 31, 15, 0)),
+      _post('3', DateTime.utc(2025, 1, 10)),
+    ];
+
+    expect(oldestPostDayJst(posts), DateTime(2020, 1, 1));
+    expect(oldestPostDayJst(const []), isNull);
+  });
 }

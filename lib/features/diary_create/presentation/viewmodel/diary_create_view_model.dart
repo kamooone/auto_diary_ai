@@ -12,11 +12,13 @@ import '../../../share/application/providers/share_providers.dart';
 import '../../../memo/application/providers/memo_providers.dart';
 import '../../../memo/domain/entities/memo.dart';
 import '../../../share/domain/entities/shared_post.dart';
+import '../../../x_archive/application/providers/x_archive_providers.dart';
 import '../../application/providers/diary_usecase_providers.dart';
 import '../../domain/entities/diary_style.dart';
 import '../../domain/entities/generated_diary.dart';
 import '../../domain/entities/summary_style.dart';
 import '../../../ai/application/providers/ai_model_provider.dart';
+import '../../domain/services/archive_post_source.dart';
 import '../../domain/services/summary_join.dart';
 import '../../domain/services/token_estimator.dart';
 import '../../domain/entities/photo.dart';
@@ -72,6 +74,9 @@ class DiaryCreateState {
   final List<TimelineItem> timeline;
   final List<TimelineItem> selectedTimeline;
 
+  /// 選んだ行動履歴のうち、住所(座標)も、AIに送ると決めた滞在
+  final Set<TimelineItem> timelineAddressStays;
+
   /// Xの投稿と行動履歴を読み込み中かどうか
   final bool isLoadingSources;
 
@@ -113,6 +118,7 @@ class DiaryCreateState {
     this.selectedMemos = const [],
     this.timeline = const [],
     this.selectedTimeline = const [],
+    this.timelineAddressStays = const {},
     this.isLoadingSources = false,
     this.diaryStyle = DiaryStyle.diary,
     this.diaryCustom = '',
@@ -147,6 +153,7 @@ class DiaryCreateState {
     List<Memo>? selectedMemos,
     List<TimelineItem>? timeline,
     List<TimelineItem>? selectedTimeline,
+    Set<TimelineItem>? timelineAddressStays,
     bool? isLoadingSources,
     DiaryStyle? diaryStyle,
     String? diaryCustom,
@@ -179,6 +186,7 @@ class DiaryCreateState {
       selectedMemos: selectedMemos ?? this.selectedMemos,
       timeline: timeline ?? this.timeline,
       selectedTimeline: selectedTimeline ?? this.selectedTimeline,
+      timelineAddressStays: timelineAddressStays ?? this.timelineAddressStays,
       isLoadingSources: isLoadingSources ?? this.isLoadingSources,
       diaryStyle: diaryStyle ?? this.diaryStyle,
       diaryCustom: diaryCustom ?? this.diaryCustom,
@@ -239,6 +247,7 @@ class DiaryCreateViewModel extends AutoDisposeNotifier<DiaryCreateState> {
       selectedMemos: const [],
       timeline: const [],
       selectedTimeline: const [],
+      timelineAddressStays: const {},
     );
 
     _loadedStart = null;
@@ -263,6 +272,7 @@ class DiaryCreateViewModel extends AutoDisposeNotifier<DiaryCreateState> {
       selectedMemos: const [],
       timeline: const [],
       selectedTimeline: const [],
+      timelineAddressStays: const {},
     );
 
     _loadedStart = null;
@@ -419,8 +429,14 @@ class DiaryCreateViewModel extends AutoDisposeNotifier<DiaryCreateState> {
   }
 
   // AIに渡す行動履歴をセット
-  void setSelectedTimeline(List<TimelineItem> items) {
-    state = state.copyWith(selectedTimeline: List.unmodifiable(items));
+  void setSelectedTimeline(
+    List<TimelineItem> items, {
+    Set<TimelineItem> addressStays = const {},
+  }) {
+    state = state.copyWith(
+      selectedTimeline: List.unmodifiable(items),
+      timelineAddressStays: Set.unmodifiable(addressStays),
+    );
   }
 
   /// 対象期間のXの投稿・ひとことメモ・行動履歴を読み込む(最初はすべて未選択にする)
@@ -454,6 +470,27 @@ class DiaryCreateViewModel extends AutoDisposeNotifier<DiaryCreateState> {
         );
       }
 
+      // 取り込んだXの投稿(アーカイブ)も、同じ期間のものを選べるようにする
+      // (取り込んでいない、または読めないときも、ほかの材料は読み込む)
+      try {
+        final range = ArchivePostSource.rangeJst(start, end);
+        final archived = await ref
+            .read(xArchiveRepositoryProvider)
+            .findBetween(range.from, range.to);
+        // 同じ投稿を、Xから共有して保存してあるときは、重ねて出さない
+        final shared = [...posts];
+        posts.addAll(
+          archived
+              .where(
+                (a) => !shared.any((s) => s.url.contains('/status/${a.tweetId}')),
+              )
+              .map(ArchivePostSource.toPost),
+        );
+      } catch (e, stackTrace) {
+        debugPrint(e.toString());
+        debugPrintStack(stackTrace: stackTrace);
+      }
+
       posts.sort((a, b) => a.receivedAt.compareTo(b.receivedAt));
 
       // ひとことメモは、期間の最終日の終わりまで
@@ -485,6 +522,7 @@ class DiaryCreateViewModel extends AutoDisposeNotifier<DiaryCreateState> {
       selectedMemos: const [],
       timeline: List.unmodifiable(timeline),
       selectedTimeline: const [],
+      timelineAddressStays: const {},
       isLoadingSources: false,
     );
   }
@@ -547,9 +585,11 @@ class DiaryCreateViewModel extends AutoDisposeNotifier<DiaryCreateState> {
       TokenEstimator.estimateSeconds(
         note: state.aiNote,
         timeline: state.selectedTimeline,
+        timelineAddressStays: state.timelineAddressStays,
         posts: state.selectedPosts,
         memos: state.selectedMemos,
         photoCount: state.aiPhotos.length,
+        photos: state.aiPhotos,
         model: ref.read(aiModelProvider),
         lengthChars: state.diaryLengthChars,
       ),
@@ -561,6 +601,7 @@ class DiaryCreateViewModel extends AutoDisposeNotifier<DiaryCreateState> {
         endDate: state.aiEndDate,
         photos: state.aiPhotos,
         timeline: state.selectedTimeline,
+        timelineAddressStays: state.timelineAddressStays,
         posts: state.selectedPosts,
         memos: state.selectedMemos,
         style: state.diaryStyle,

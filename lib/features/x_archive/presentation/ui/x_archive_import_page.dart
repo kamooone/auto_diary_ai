@@ -2,10 +2,13 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/app_info/install_date_provider.dart';
+import '../../../../core/database/isar_provider.dart';
 import '../../application/providers/x_archive_providers.dart';
 import '../../application/services/x_archive_file_reader.dart';
 import '../../domain/entities/x_archive_post.dart';
 import '../../domain/services/x_archive_summary.dart';
+import 'x_archive_guide_page.dart';
 
 /// Xのアーカイブ(tweets.js)を選んで、年ごとに取り込む画面
 class XArchiveImportPage extends ConsumerStatefulWidget {
@@ -86,10 +89,22 @@ class _XArchiveImportPageState extends ConsumerState<XArchiveImportPage> {
           if (mounted) setState(() => _progress = done);
         },
       );
+      // 取り込んだ投稿の、いちばん古い日まで、日記にする期間などで選べるようにする
+      // (アプリを使い始めた日より前の投稿も、選べるようにするため)
+      final oldest = oldestPostDayJst(target);
+      if (oldest != null) {
+        await moveInstallDateEarlier(
+          ref.read(isarProvider),
+          ref.read(installDateProvider.notifier),
+          oldest,
+        );
+      }
       if (!mounted) return;
+      final first = ref.read(installDateProvider);
       setState(() {
         _resultMessage = '${result.added}件を取り込みました'
-            '(取り込み済みで飛ばした分: ${result.skipped}件)';
+            '(取り込み済みで飛ばした分: ${result.skipped}件)\n'
+            '日記にする期間などは、${first.year}年${first.month}月${first.day}日から選べます';
       });
     } catch (e) {
       if (!mounted) return;
@@ -108,13 +123,23 @@ class _XArchiveImportPageState extends ConsumerState<XArchiveImportPage> {
         .fold<int>(0, (sum, y) => sum + (_yearCounts[y] ?? 0));
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Xのアーカイブを取り込む')),
+      appBar: AppBar(
+        title: const Text('Xのアーカイブを取り込む'),
+        actions: [
+          IconButton(
+            tooltip: 'アーカイブの取り込み方',
+            icon: const Icon(Icons.help_outline),
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute<void>(builder: (_) => const XArchiveGuidePage()),
+            ),
+          ),
+        ],
+      ),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
           const Text(
-            'Xからダウンロードしたアーカイブの中の「data/tweets.js」を選んでください。'
-            '年を選んで取り込めます。同じ投稿は、何度取り込んでも増えません。',
+            'Xからダウンロードしたアーカイブの中の「data/tweets.js」を選んでください。',
           ),
           const SizedBox(height: 16),
           FilledButton.icon(

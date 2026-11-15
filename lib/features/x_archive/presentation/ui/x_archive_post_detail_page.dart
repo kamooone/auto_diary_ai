@@ -9,6 +9,7 @@ import '../../application/providers/x_archive_providers.dart';
 import '../../application/services/x_archive_photo_loader.dart';
 import '../../domain/entities/x_archive_post.dart';
 import '../../domain/services/x_archive_photo_matcher.dart';
+import 'x_archive_post_edit_page.dart';
 import 'x_archive_post_formatter.dart';
 
 /// 取り込んだ投稿の全文と、結びつけた写真を見る・変える画面
@@ -54,6 +55,41 @@ class _XArchivePostDetailPageState
     await _loadPhotos();
   }
 
+  Future<void> _edit() async {
+    final saved = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(builder: (_) => XArchivePostEditPage(post: _post)),
+    );
+    if (saved != true || !mounted) return;
+    final updated =
+        await ref.read(xArchiveRepositoryProvider).find(_post.tweetId);
+    if (!mounted || updated == null) return;
+    setState(() => _post = updated);
+  }
+
+  Future<void> _delete() async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('この投稿を削除しますか?'),
+        content: const Text('アプリに取り込んだ分だけが消えます。Xの投稿は消えません。'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('やめる'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('削除'),
+          ),
+        ],
+      ),
+    );
+    if (ok != true || !mounted) return;
+    final navigator = Navigator.of(context);
+    await ref.read(xArchiveRepositoryProvider).delete(_post.tweetId);
+    navigator.pop();
+  }
+
   @override
   Widget build(BuildContext context) {
     final range = const XArchivePhotoMatcher().window(_post.createdAt);
@@ -61,7 +97,21 @@ class _XArchivePostDetailPageState
     final notes = XArchivePostFormatter.notes(_post);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('投稿')),
+      appBar: AppBar(
+        title: const Text('投稿'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.edit_outlined),
+            tooltip: '編集',
+            onPressed: _edit,
+          ),
+          IconButton(
+            icon: const Icon(Icons.delete_outline),
+            tooltip: '削除',
+            onPressed: _delete,
+          ),
+        ],
+      ),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [

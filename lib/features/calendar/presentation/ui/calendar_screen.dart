@@ -3,6 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../diary/application/providers/diary_providers.dart';
 import '../../../diary/domain/entities/diary.dart';
 import '../../../diary/presentation/ui/diary_detail_screen.dart';
+import '../../../tutorial/application/tutorial_providers.dart';
+import '../../../tutorial/domain/tutorial_step.dart';
+import '../../../tutorial/presentation/tutorial_runner.dart';
 import '../../domain/services/month_grid.dart';
 
 /// 日記を書いた日が分かるカレンダー
@@ -21,7 +24,38 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
   final _controller = PageController();
   var _page = 0;
 
+  // チュートリアルで明るくする部品
+  final _calendarKey = GlobalKey();
+
+  // この画面のチュートリアルの印(見たかどうかを覚えるときの名前)
+  static const _tutorialId = 'calendar';
+
   static const _weekdays = ['日', '月', '火', '水', '木', '金', '土'];
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _showTutorialOnce());
+  }
+
+  // 初めて表示したときだけ、1ページで説明する
+  Future<void> _showTutorialOnce() async {
+    final store = ref.read(tutorialSeenStoreProvider);
+    if (await store.hasSeen(_tutorialId)) return;
+    if (!mounted) return;
+
+    await showTutorial(context, [
+      TutorialStep(
+        target: _calendarKey,
+        title: "カレンダー",
+        bubbleCenter: true,
+        body:
+            "日記がある日に、日記のタイトルが表示されます。\nタップすると、その日の日記を確認できます。\n同じ日に複数あるときは、「+1」のように件数が表示されます。",
+      ),
+    ]);
+
+    await store.markSeen(_tutorialId);
+  }
 
   @override
   void dispose() {
@@ -59,6 +93,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
         ],
       ),
       body: Column(
+        key: _calendarKey,
         children: [
           _monthBar(month, page, months.length),
           _weekdayRow(context),

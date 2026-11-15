@@ -19,8 +19,8 @@ class XArchiveRecallNotifier {
   static const _notificationId = 7001;
   static const _channelId = 'x_archive_recall';
 
-  static const title = '過去のあなたのツイート';
-  static const body = '過去にこんなツイートをしていました。タップして見てみましょう';
+  static const title = '過去のあなたのポスト(ツイート)';
+  static const body = '過去にこんなポスト(ツイート)をしていました。タップして見てみましょう';
 
   bool _initialized = false;
 
@@ -80,8 +80,8 @@ class XArchiveRecallNotifier {
       const NotificationDetails(
         android: AndroidNotificationDetails(
           _channelId,
-          '過去のツイート',
-          channelDescription: '過去のツイートを、毎日お知らせします',
+          '過去のポスト(ツイート)',
+          channelDescription: '過去のポスト(ツイート)を、毎日お知らせします',
           importance: Importance.defaultImportance,
           priority: Priority.defaultPriority,
         ),
@@ -125,8 +125,8 @@ class XArchiveRecallNotifier {
         const NotificationDetails(
           android: AndroidNotificationDetails(
             _channelId,
-            '過去のツイート',
-            channelDescription: '過去のツイートを、毎日お知らせします',
+            '過去のポスト(ツイート)',
+            channelDescription: '過去のポスト(ツイート)を、毎日お知らせします',
             importance: Importance.defaultImportance,
             priority: Priority.defaultPriority,
           ),

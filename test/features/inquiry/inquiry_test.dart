@@ -327,12 +327,12 @@ void main() {
       child: const MaterialApp(home: InquiryPage()),
     );
 
-    testWidgets('やり取りがないときは、案内と注意書きを出す', (tester) async {
+    testWidgets('やり取りがないときは、案内を出す', (tester) async {
       await tester.pumpWidget(app());
       await tester.pumpAndSettle();
 
       expect(find.textContaining('不具合のご報告や、ご要望'), findsOneWidget);
-      expect(find.textContaining('個人情報や、日記の内容は、書かないでください'), findsWidgets);
+      expect(find.textContaining('返信がある場合は、この画面に表示されます'), findsOneWidget);
     });
 
     testWidgets('書くまでは送れず、種類を選んで送ると、一覧に出る', (tester) async {

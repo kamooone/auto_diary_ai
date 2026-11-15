@@ -2,9 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 
-import '../../../../app/router/app_routes.dart';
 import '../../application/providers/x_archive_providers.dart';
 import '../../domain/entities/x_archive_post.dart';
 import '../../domain/entities/x_archive_post_filter.dart';
@@ -117,10 +115,16 @@ class _XArchivePostListPageState extends ConsumerState<XArchivePostListPage> {
       MaterialPageRoute(builder: (_) => XArchivePostDetailPage(post: post)),
     );
     if (!mounted) return;
-    // 写真を変えたかもしれないので、その1件を読み直す
+    // 写真・本文・日時を変えたり、削除したりしたかもしれないので、その1件を読み直す
     final updated =
         await ref.read(xArchiveRepositoryProvider).find(post.tweetId);
-    if (!mounted || updated == null || index >= _posts.length) return;
+    if (!mounted) return;
+    if (updated == null || updated.createdAt != post.createdAt) {
+      // 削除したときや、日時を変えたときは、件数・年・並びが変わるので、読み直す
+      await _reload(refreshYears: true);
+      return;
+    }
+    if (index >= _posts.length) return;
     setState(() => _posts[index] = updated);
   }
 
@@ -153,20 +157,15 @@ class _XArchivePostListPageState extends ConsumerState<XArchivePostListPage> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('取り込んだXの投稿'),
+        title: const Text('取り込んだXの投稿一覧'),
         actions: [
           PopupMenuButton<String>(
             onSelected: (value) {
-              if (value == 'import') {
-                context
-                    .push(AppRoutes.xArchiveImport)
-                    .then((_) => _reload(refreshYears: true));
-              } else if (value == 'delete') {
+              if (value == 'delete') {
                 _deleteAll();
               }
             },
             itemBuilder: (context) => const [
-              PopupMenuItem(value: 'import', child: Text('アーカイブを取り込む')),
               PopupMenuItem(value: 'delete', child: Text('すべて消す')),
             ],
           ),

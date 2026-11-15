@@ -131,8 +131,7 @@ class _MessageList extends StatelessWidget {
             "不具合のご報告や、ご要望をお送りください。\n\n"
             "いただいた内容は、改善に役立てます。\n"
             "返信がある場合は、この画面に表示されます"
-            "(アプリを削除すると、やり取りは見られなくなります)。\n\n"
-            "個人情報や、日記の内容は、書かないでください。",
+            "(アプリを削除すると、やり取りは見られなくなります)。",
           ),
         ),
       );
@@ -249,7 +248,7 @@ class _Form extends StatelessWidget {
             maxLength: InquiryLimits.maxLength,
             onChanged: (_) => onTextChanged(),
             decoration: const InputDecoration(
-              hintText: "内容を書いてください(個人情報や日記の内容は書かないでください)",
+              hintText: "内容を書いてください",
               border: OutlineInputBorder(),
             ),
           ),

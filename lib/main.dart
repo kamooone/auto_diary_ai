@@ -13,7 +13,6 @@ import 'features/ads/application/ads_provider.dart';
 import 'features/ads/data/admob_ad_gateway.dart';
 import 'features/location/data/datasources/isar_location_datasource.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
-import '../../app/startup/app_initializer.dart';
 
 void main() async {
 
@@ -49,9 +48,6 @@ void main() async {
             await Firebase.initializeApp();
         } catch (_) {}
     }
-
-    // 通知・位置情報の許可と、位置情報の記録開始
-    await AppInitializer.initialize(isar);
 
     // 広告を使えるように準備する(準備が終わるのを待たずに、アプリを開く)
     final ads = AdMobAdGateway();

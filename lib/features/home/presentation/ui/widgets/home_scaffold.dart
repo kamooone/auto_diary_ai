@@ -23,7 +23,7 @@ class HomeScaffold extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: Text(title),
-        centerTitle: true,
+        centerTitle: false,
         actions: actions,
       ),
       body: SafeArea(child: body),

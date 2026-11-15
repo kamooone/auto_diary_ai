@@ -14,6 +14,9 @@ import '../../../ads/presentation/banner_ad_view.dart';
 import '../../../inquiry/application/providers/inquiry_providers.dart';
 import '../../../memo/presentation/ui/memo_edit_dialog.dart';
 import '../../../memo/presentation/ui/memo_list_view.dart';
+import '../../../tutorial/application/tutorial_providers.dart';
+import '../../../tutorial/domain/tutorial_step.dart';
+import '../../../tutorial/presentation/tutorial_runner.dart';
 import '../viewmodel/home_view_model.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
@@ -29,15 +32,83 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   // 0: 日記、1: ひとことメモ
   var _tabIndex = 0;
 
+  // チュートリアルで明るくする部品
+  final _diaryTabKey = GlobalKey();
+  final _memoTabKey = GlobalKey();
+  final _createKey = GlobalKey();
+  final _calendarKey = GlobalKey();
+  final _mapKey = GlobalKey();
+  final _menuKey = GlobalKey();
+
+  // この画面のチュートリアルの印(見たかどうかを覚えるときの名前)
+  static const _tutorialId = 'home';
+
   @override
   void initState() {
     super.initState();
 
     pageController = PageController();
 
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _promptRecordingWidget();
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      // 初めて表示したときは、先にチュートリアルを出す(ダイアログは、そのあと)
+      await _showTutorialOnce();
+      await _promptRecordingWidget();
     });
+  }
+
+  // 紹介のあと、作成ボタン、下のタブ、画面の上の部品の順に、1つずつ説明する(初めて表示したときだけ)
+  Future<void> _showTutorialOnce() async {
+    final store = ref.read(tutorialSeenStoreProvider);
+    if (await store.hasSeen(_tutorialId)) return;
+    if (!mounted) return;
+
+    await showTutorial(context, [
+      // 最初に、どんなアプリかを説明する
+      const TutorialStep.intro(
+        title: "アプリをインストールしていただき、ありがとうございます",
+        body: "このアプリでは、行動の記録や写真、メモなど、日記の材料を簡単に集められるので、手軽に日記を作成できます。\n\n"
+            "これから機能を一つ一つ簡単に説明しますのでご覧ください。",
+      ),
+      TutorialStep(
+        target: _createKey,
+        title: "作成ボタン",
+        body: "日記タブでは日記作成画面に、ひとことタブではひとこと作成画面に移ります。",
+        bubbleAbove: true,
+        circle: true,
+      ),
+      TutorialStep(
+        target: _diaryTabKey,
+        title: "日記タブ",
+        body: "作成した日記が、ここに表示されます。",
+        bubbleAbove: true,
+      ),
+      TutorialStep(
+        target: _memoTabKey,
+        title: "ひとことタブ",
+        body: "ふと思ったことを、気軽に残せます。日記を作成するときの材料にもなります。",
+        bubbleAbove: true,
+      ),
+      TutorialStep(
+        target: _calendarKey,
+        title: "カレンダー",
+        body: "作成した日記を、カレンダーで確認できます。",
+        circle: true,
+      ),
+      TutorialStep(
+        target: _mapKey,
+        title: "行動履歴",
+        body: "地図とタイムラインで、行動の記録を確認できます。",
+        circle: true,
+      ),
+      TutorialStep(
+        target: _menuKey,
+        title: "メニュー",
+        body: "設定やお問い合わせなどの画面に移ります。",
+        circle: true,
+      ),
+    ]);
+
+    await store.markSeen(_tutorialId);
   }
 
   // 行動履歴のオン・オフを切り替えるボタンを、ホーム画面に置くかどうかを尋ねる(初回のみ)
@@ -113,6 +184,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
       actions: [
         IconButton(
+          key: _calendarKey,
           icon: const Icon(Icons.calendar_month),
           tooltip: "カレンダー",
           onPressed: () {
@@ -120,6 +192,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           },
         ),
         IconButton(
+          key: _mapKey,
           icon: const Icon(Icons.map),
           tooltip: "地図",
           onPressed: () async {
@@ -131,17 +204,21 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           },
         ),
         IconButton(
+          key: _menuKey,
+          tooltip: "メニュー",
           // お問い合わせに、新しい返信があるときは、印を付ける
           icon: Badge(
             // 小さすぎて気づきにくいので、標準(6)の3倍にする
             smallSize: 18,
             isLabelVisible:
                 ref.watch(hasUnreadReplyProvider).valueOrNull ?? false,
-            child: const Icon(Icons.settings),
+            child: const Icon(Icons.menu),
           ),
           onPressed: () async {
             await context.push(AppRoutes.settings);
             ref.invalidate(hasUnreadReplyProvider);
+            // 設定で「使い方の説明をもう一度見る」を選んだときは、戻ってすぐに出す
+            if (mounted) await _showTutorialOnce();
           },
         ),
       ],
@@ -181,13 +258,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       bottomNavigationBar: NavigationBar(
         selectedIndex: _tabIndex,
         onDestinationSelected: (index) => setState(() => _tabIndex = index),
-        destinations: const [
+        destinations: [
           NavigationDestination(
+            key: _diaryTabKey,
             icon: Icon(Icons.menu_book_outlined),
             selectedIcon: Icon(Icons.menu_book),
             label: "日記",
           ),
           NavigationDestination(
+            key: _memoTabKey,
             icon: Icon(Icons.edit_note_outlined),
             selectedIcon: Icon(Icons.edit_note),
             label: "ひとこと",
@@ -236,6 +315,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           right: 16,
           bottom: 8,
           child: FloatingActionButton(
+            key: _createKey,
             heroTag: 'diary',
             tooltip: '日記作成',
             onPressed: () {

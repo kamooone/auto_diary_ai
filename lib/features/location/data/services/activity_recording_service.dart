@@ -27,17 +27,17 @@ Future<void> requestActivityPermission() async {
 
 /// 行動認識(徒歩・自転車・乗り物など)の記録を開始する
 ///
-/// Android: 身体活動の許可を求め、行動の変化の通知を登録する
-/// iOS: 履歴を後から取得するため登録は不要。最初の取り込みで許可ダイアログが
-///      表示されるので、他の許可と同じく起動時に求めるよう、ここで取り込みを行う
+/// 許可のダイアログは出さない。許可済みのときだけ開始する
+///
+/// Android: 身体活動が許可されていれば、行動の変化の通知を登録する
+/// iOS: 履歴を後から取得するため登録は不要。最初の取り込みで許可のダイアログが
+///      表示されるので、ここでは何もしない(取り込みは、行動を表示するときに行う)
 Future<void> startActivityRecording(Isar isar) async {
-  if (!_isSupported) return;
+  if (!Platform.isAndroid) return;
 
   try {
-    if (Platform.isAndroid) {
-      final status = await Permission.activityRecognition.request();
-      if (!status.isGranted) return;
-    }
+    final status = await Permission.activityRecognition.status;
+    if (!status.isGranted) return;
 
     await _recorder.start();
   } catch (e) {

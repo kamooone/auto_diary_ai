@@ -84,7 +84,7 @@ class XArchiveFilterBar extends StatelessWidget {
           TextField(
             key: const Key('xSearch'),
             decoration: const InputDecoration(
-              hintText: '投稿を検索(空白で区切ると、すべての語を含むもの)',
+              hintText: '投稿を検索',
               prefixIcon: Icon(Icons.search),
               isDense: true,
               border: OutlineInputBorder(),

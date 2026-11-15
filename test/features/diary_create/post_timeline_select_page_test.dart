@@ -1,3 +1,4 @@
+import 'package:auto_diary_ai/features/diary_create/domain/entities/timeline_selection.dart';
 import 'package:auto_diary_ai/features/diary_create/presentation/ui/memo_select_page.dart';
 import 'package:auto_diary_ai/features/diary_create/presentation/ui/post_select_page.dart';
 import 'package:auto_diary_ai/features/diary_create/presentation/ui/timeline_select_page.dart';
@@ -85,6 +86,55 @@ void main() {
       await tester.pump();
 
       expect(find.text('行動履歴 (0/3)'), findsOneWidget);
+    });
+
+    testWidgets('住所は初めは送らない。選んだ滞在でスイッチをオンにした分だけ、返す', (tester) async {
+      TimelineSelection? result;
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Builder(
+            builder: (context) => TextButton(
+              onPressed: () async {
+                result = await Navigator.of(context).push<TimelineSelection>(
+                  MaterialPageRoute(
+                    builder: (_) => TimelineSelectPage(
+                      items: items,
+                      initialSelection: const [],
+                    ),
+                  ),
+                );
+              },
+              child: const Text('開く'),
+            ),
+          ),
+        ),
+      );
+      await tester.tap(find.text('開く'));
+      await tester.pumpAndSettle();
+
+      // 選ぶまでは、スイッチは出ない
+      expect(find.text('住所も送る'), findsNothing);
+
+      // 1月をすべて選ぶ(2件)。月を開いて、1件目のスイッチだけをオンにする
+      await tester.tap(find.text('この月をすべて選択').first);
+      await tester.pump();
+      await tester.tap(find.text('2026年1月  2/2'));
+      await tester.pump();
+
+      expect(find.text('住所も送る'), findsNWidgets(2));
+      expect(find.textContaining('送らない(場所は'), findsNWidgets(2));
+
+      await tester.tap(find.byType(Switch).at(1));
+      await tester.pump();
+      expect(find.textContaining('送る内容: 場所1/1'), findsOneWidget);
+
+      await tester.tap(find.textContaining('確定'));
+      await tester.pumpAndSettle();
+
+      expect(result!.items, hasLength(2));
+      expect(result!.addressStays.map((e) => (e as Stay).placeName), [
+        '場所1/1',
+      ]);
     });
 
     testWidgets('見出しを押すと、その月の行動履歴が開く', (tester) async {

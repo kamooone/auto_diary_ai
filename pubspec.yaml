@@ -2,7 +2,7 @@ name: auto_diary_ai
 description: "AIで自動的に日記を生成するFlutterアプリ"
 publish_to: 'none'
 
-version: 1.0.0+123
+version: 1.0.0+160
 
 environment:
   sdk: ^3.9.0
@@ -67,6 +67,7 @@ dependencies:
   firebase_messaging: ^17.0.1
   file_picker: ^13.3.3
   timezone: ^0.9.4
+  tutorial_coach_mark: ^1.3.4
 
 dev_dependencies:
   flutter_test:
@@ -84,6 +85,7 @@ flutter:
 
   assets:
     - .env
+    - assets/privacy_policy.md
 
 flutter_gen:
   l10n:

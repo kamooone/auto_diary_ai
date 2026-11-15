@@ -1,13 +1,18 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../app/router/app_routes.dart';
+import '../../../ai/application/providers/ai_model_provider.dart';
 import '../../../ai/application/providers/gemini_fallback_provider.dart';
+import '../../../ai/domain/entities/ai_model.dart';
 import '../../../ai/presentation/widgets/ai_model_selector.dart';
 import '../../../inquiry/application/providers/inquiry_providers.dart';
 import '../../../plan/application/providers/plan_provider.dart';
 import '../../../plan/domain/entities/plan_availability.dart';
 import '../../../plan/presentation/widgets/usage_meter.dart';
+import '../../../privacy/presentation/ui/privacy_policy_page.dart';
+import '../../../tutorial/application/tutorial_providers.dart';
 import 'test_diary_page.dart';
 import '../providers/recording_settings_provider.dart';
 
@@ -50,7 +55,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     final usage = ref.watch(usageProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text("Settings")),
+      appBar: AppBar(title: const Text("設定")),
       body: ListView(
         children: [
           ListTile(
@@ -69,9 +74,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
             trailing: paidPlanEnabled ? Text(plan.label) : null,
             // 有料プランがない間は、使用量はこのタイルで見えるので、画面は開かない
             // (有料プランを有効にしたときだけ、プランの画面を開く)
-            onTap: paidPlanEnabled
-                ? () => context.push(AppRoutes.plan)
-                : null,
+            onTap: paidPlanEnabled ? () => context.push(AppRoutes.plan) : null,
           ),
 
           // 日記を書くAIの種類(Gemini / GPT)
@@ -80,18 +83,21 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
             child: AiModelSelector(),
           ),
 
-          // Geminiが混んでいるときの、1つ性能が低いモデルの使用
-          SwitchListTile(
-            secondary: const Icon(Icons.shield_outlined),
-            title: const Text("混んでいるときは、別のモデルを使う"),
-            subtitle: const Text(
-              "Geminiが混んでいて失敗したとき、1つ性能が低いモデルで書きます。"
-              "文章の質が下がることがあります",
+          // Geminiが使えないときの、1つ性能が低いモデルの使用
+          // (サーバーの予備のモデルはGeminiだけなので、GPTを選んでいるときは出さない)
+          if (ref.watch(aiModelProvider) == AiModel.gemini)
+            SwitchListTile(
+              secondary: const Icon(Icons.shield_outlined),
+              title: const Text("書けないときは、別のモデルで書き直す"),
+              subtitle: const Text(
+                "Geminiが、利用者が多いときなどに一時的に使えず、日記を書けなかったとき、"
+                "少し性能が低い別のモデルで、自動で書き直します。\n"
+                "日記を書けないことは減りますが、文章の質が下がることがあります",
+              ),
+              value: ref.watch(geminiFallbackProvider),
+              onChanged: (value) =>
+                  ref.read(geminiFallbackProvider.notifier).set(value),
             ),
-            value: ref.watch(geminiFallbackProvider),
-            onChanged: (value) =>
-                ref.read(geminiFallbackProvider.notifier).set(value),
-          ),
 
           ListTile(
             leading: const Icon(Icons.savings),
@@ -102,22 +108,29 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
 
           ListTile(
             leading: const Icon(Icons.share),
-            title: const Text("Xの投稿"),
-            subtitle: const Text("保存した投稿の削除、内容の修正、日時の変更ができます"),
+            title: const Text("Xの投稿一覧"),
+            subtitle: const Text("保存した投稿の確認、削除、内容の修正、日時の変更ができます"),
             onTap: () => context.push(AppRoutes.sharedPosts),
           ),
 
           ListTile(
+            leading: const Icon(Icons.upload_file),
+            title: const Text("Xのアーカイブを取り込む"),
+            subtitle: const Text("Xからダウンロードしたアーカイブから、過去の投稿を取り込みます"),
+            onTap: () => context.push(AppRoutes.xArchiveImport),
+          ),
+
+          ListTile(
             leading: const Icon(Icons.history),
-            title: const Text("取り込んだXの投稿"),
-            subtitle: const Text("Xのアーカイブから取り込んだ過去の投稿を見ます。ここから取り込みもできます"),
+            title: const Text("取り込んだXの投稿一覧"),
+            subtitle: const Text("取り込んだ過去の投稿の確認、削除、内容の修正、日時の変更ができます"),
             onTap: () => context.push(AppRoutes.xArchivePosts),
           ),
 
           ListTile(
             leading: const Icon(Icons.notifications_active_outlined),
-            title: const Text("過去のツイートの通知"),
-            subtitle: const Text("取り込んだ過去のツイートを、毎日お知らせします"),
+            title: const Text("過去のポスト(ツイート)の通知"),
+            subtitle: const Text("取り込んだ過去のポスト(ツイート)を、毎日お知らせします"),
             onTap: () => context.push(AppRoutes.xArchiveRecallSettings),
           ),
 
@@ -151,11 +164,11 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
             ),
             ListTile(
               leading: const Icon(Icons.widgets),
-              title: const Text("ホーム画面のボタン"),
+              title: const Text("ホーム画面に、行動履歴の切り替えボタンを表示"),
               subtitle: Text(
                 recording.isWidgetPinned
-                    ? "表示しています"
-                    : "表示すると、オン・オフをすぐに切り替えられます",
+                    ? "ホーム画面に表示しています"
+                    : "行動履歴の記録のオン・オフを、ホーム画面からすぐに切り替えられます",
               ),
               trailing: Text(recording.isWidgetPinned ? "非表示にする" : "表示する"),
               onTap: () => recording.isWidgetPinned
@@ -165,20 +178,69 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
             const Divider(),
           ],
 
-          // まとめ日記などを試すための、日記・Xの投稿・行動履歴を、まとめて追加・削除できるようにする
           ListTile(
-            leading: const Icon(Icons.bug_report),
-            title: const Text("テストデータ"),
-            subtitle: const Text("日記・Xの投稿・ひとことメモ・行動履歴のテスト用のデータを、まとめて追加・削除します"),
-            onTap: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(builder: (context) => const TestDiaryPage()),
-              );
-            },
+            leading: const Icon(Icons.privacy_tip_outlined),
+            title: const Text("プライバシーポリシー"),
+            subtitle: const Text("取得する情報と、使いみちについて"),
+            onTap: () => Navigator.of(context).push(
+              MaterialPageRoute<void>(
+                builder: (_) => const PrivacyPolicyPage(),
+              ),
+            ),
+          ),
+
+          ListTile(
+            leading: const Icon(Icons.lightbulb_outline),
+            title: const Text("使い方の説明をもう一度見る"),
+            subtitle: const Text("各画面の説明を、もう一度表示します"),
+            onTap: _resetTutorials,
+          ),
+
+          // まとめ日記などを試すための、日記・Xの投稿・行動履歴を、まとめて追加・削除できるようにする
+          // (開発のとき(デバッグ実行)だけ表示する。ストアに出すビルドでは出ない)
+          if (kDebugMode)
+            ListTile(
+              leading: const Icon(Icons.bug_report),
+              title: const Text("テストデータ"),
+              subtitle: const Text("日記・Xの投稿・ひとことメモ・行動履歴のテスト用のデータを、まとめて追加・削除します"),
+              onTap: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(builder: (context) => const TestDiaryPage()),
+                );
+              },
+            ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _resetTutorials() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text("使い方の説明をもう一度見ますか?"),
+        content: const Text(
+          "ホームに戻ると、説明が始まります。\nほかの画面の説明も、それぞれの画面を開くと、もう一度表示されます。",
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text("キャンセル"),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text("見る"),
           ),
         ],
       ),
     );
+    if (confirmed != true || !mounted) return;
+
+    await ref.read(tutorialSeenStoreProvider).clearAll();
+    if (!mounted) return;
+
+    // ホームに戻ると、ホームの説明がすぐに始まる
+    context.pop();
   }
 
   Future<void> _setEnabled(bool enabled) async {
@@ -208,7 +270,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
       builder: (context) => AlertDialog(
         title: const Text("ホーム画面から追加してください"),
         content: const Text(
-          "ホーム画面の何もないところを長押しして、ウィジェットの一覧からこのアプリのボタンを追加してください。",
+          "ホーム画面の何もないところを長押しして、ウィジェットの一覧から、このアプリの「行動履歴」のボタンを追加してください。",
         ),
         actions: [
           TextButton(
@@ -226,7 +288,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text("ホーム画面から削除してください"),
-        content: const Text("ホーム画面のボタンを長押しして、「削除」を選んでください。"),
+        content: const Text("ホーム画面の行動履歴のオン・オフのボタンを長押しして、「削除」を選んでください。"),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),

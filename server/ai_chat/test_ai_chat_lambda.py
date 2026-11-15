@@ -1067,6 +1067,80 @@ class GeminiApiKeyTest(unittest.TestCase):
         self.ssm.get_parameter.assert_not_called()
 
 
+class ImageSizeTest(unittest.TestCase):
+    @staticmethod
+    def jpeg(width, height, sof=0xC0, with_app0=True, fill=0):
+        data = bytearray([0xFF, 0xD8])
+        if with_app0:
+            data += bytes([0xFF, 0xE0, 0x00, 0x10]) + b"JFIF\x00\x01\x01\x00"
+            data += bytes([0x00, 0x01, 0x00, 0x01, 0x00, 0x00])
+        # DHT(縦横ではないので、読み飛ばされる)
+        data += bytes([0xFF, 0xC4, 0x00, 0x04, 0x00, 0x00])
+        data += bytes([0xFF] * fill)
+        data += bytes([0xFF, sof, 0x00, 0x0B, 0x08])
+        data += bytes([height >> 8, height & 0xFF, width >> 8, width & 0xFF])
+        data += bytes([0x01, 0x01, 0x11, 0x00])
+        return bytes(data)
+
+    def test_JPEGの縦横を読む(self):
+        self.assertEqual(m.image_size(self.jpeg(1024, 576)), (1024, 576))
+        self.assertEqual(m.image_size(self.jpeg(576, 1024)), (576, 1024))
+
+    def test_プログレッシブや詰め物があっても読める(self):
+        self.assertEqual(m.image_size(self.jpeg(800, 600, sof=0xC2)), (800, 600))
+        self.assertEqual(m.image_size(self.jpeg(640, 480, fill=3)), (640, 480))
+        self.assertEqual(m.image_size(self.jpeg(300, 200, with_app0=False)), (300, 200))
+
+    def test_PNGの縦横を読む(self):
+        png = (
+            b"\x89PNG\r\n\x1a\n" + b"\x00\x00\x00\x0dIHDR"
+            + (320).to_bytes(4, "big") + (240).to_bytes(4, "big")
+        )
+        self.assertEqual(m.image_size(png), (320, 240))
+
+    def test_読めないときは_None(self):
+        self.assertIsNone(m.image_size(b""))
+        self.assertIsNone(m.image_size(b"image"))
+        broken = self.jpeg(100, 100)
+        self.assertIsNone(m.image_size(broken[:-8]))
+
+    def test_画像を渡すと_縦横とバイト数をログに出す(self):
+        prompt = {
+            "kind": "diary", "style": "diary", "diaryDate": "2026-01-01",
+            "startDate": "2026-01-01", "endDate": "2026-01-01",
+        }
+        jpeg = self.jpeg(576, 1024)
+        fake_s3 = mock.MagicMock()
+        fake_s3.get_object.side_effect = [
+            {"Body": io.BytesIO(jpeg)},
+            {"Body": io.BytesIO(b"image")},
+        ]
+        event = chat_event()
+        body = json.loads(event["body"])
+        body["prompt"] = prompt
+        body["images"] = [
+            {"s3_key": "a", "content_type": "image/jpeg"},
+            {"s3_key": "b", "content_type": "image/jpeg"},
+        ]
+        event["body"] = json.dumps(body)
+
+        printed = io.StringIO()
+        with mock.patch.object(m, "s3", fake_s3), \
+                mock.patch.object(m, "ask_gemini", return_value=("ok", 10)), \
+                mock.patch("sys.stdout", printed):
+            call(event)
+
+        logged = [
+            json.loads(line) for line in printed.getvalue().splitlines()
+            if line.startswith("{") and "imageCount" in line
+        ]
+        self.assertEqual(len(logged), 1)
+        self.assertEqual(logged[0]["imageCount"], 2)
+        self.assertEqual(
+            logged[0]["images"], [f"576x1024:{len(jpeg)}", "?:5"]
+        )
+
+
 class UnfilledLimitTest(unittest.TestCase):
     def test_上限を入力せずに貼ると_構文エラーになる(self):
         with open(LAMBDA_PATH, encoding="utf-8") as f:

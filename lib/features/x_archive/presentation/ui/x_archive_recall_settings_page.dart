@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 
-import '../../../../app/router/app_routes.dart';
 import '../../application/providers/x_archive_recall_providers.dart';
 import '../../domain/entities/x_archive_recall_settings.dart';
 
@@ -16,7 +14,7 @@ class XArchiveRecallSettingsPage extends ConsumerWidget {
     final available = ref.watch(xArchiveRecallAvailableProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('過去のツイートの通知')),
+      appBar: AppBar(title: const Text('過去のポスト(ツイート)の通知')),
       body: settings.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (_, __) => const Center(child: Text('読み込めませんでした')),
@@ -27,9 +25,9 @@ class XArchiveRecallSettingsPage extends ConsumerWidget {
               const Padding(
                 padding: EdgeInsets.fromLTRB(16, 16, 16, 8),
                 child: Text(
-                  'Xのアーカイブから取り込んだツイートを、毎日お知らせします。'
-                  '通知をタップすると、1年前・2年前…の今日のツイートと、'
-                  'ランダムなツイートが見られます。',
+                  'Xのアーカイブから取り込んだポスト(ツイート)を、毎日お知らせします。\n'
+                  '通知をタップすると、1年前・2年前…の今日のポスト(ツイート)と、'
+                  'ランダムなポスト(ツイート)が見られます。',
                 ),
               ),
               SwitchListTile(
@@ -49,21 +47,6 @@ class XArchiveRecallSettingsPage extends ConsumerWidget {
                 trailing: const Icon(Icons.chevron_right),
                 onTap: canUse ? () => _pickTime(context, ref, settings) : null,
               ),
-              const Divider(),
-              ListTile(
-                leading: const Icon(Icons.history),
-                title: const Text('今日のツイートを見る'),
-                subtitle: const Text('通知を待たずに、今すぐ開きます'),
-                onTap: () => context.push(AppRoutes.xArchiveRecall),
-              ),
-              if (!canUse)
-                ListTile(
-                  leading: const Icon(Icons.upload_file),
-                  title: const Text('Xのアーカイブを取り込む'),
-                  onTap: () => context
-                      .push(AppRoutes.xArchiveImport)
-                      .then((_) => ref.invalidate(xArchiveRecallAvailableProvider)),
-                ),
             ],
           );
         },

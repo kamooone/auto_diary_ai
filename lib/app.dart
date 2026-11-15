@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'app/router/app_router.dart';
+import 'app/startup/app_initializer.dart';
+import 'core/database/isar_provider.dart';
 import 'app/router/app_routes.dart';
 import 'features/x_archive/application/providers/x_archive_providers.dart';
 import 'features/x_archive/application/providers/x_archive_recall_providers.dart';
@@ -21,6 +23,9 @@ class _AppState extends ConsumerState<App> {
   void initState() {
     super.initState();
 
+    // 記録の開始(許可済みのときだけ。許可のダイアログは、ここでは出さない)
+    WidgetsBinding.instance.addPostFrameCallback((_) => _startRecording());
+
     // お問い合わせの返信の通知を受ける準備(最初の画面を表示してから行う)
     WidgetsBinding.instance.addPostFrameCallback((_) => _startPush());
 
@@ -28,6 +33,14 @@ class _AppState extends ConsumerState<App> {
     WidgetsBinding.instance.addPostFrameCallback(
       (_) => _startRecallNotification(),
     );
+  }
+
+  Future<void> _startRecording() async {
+    try {
+      await AppInitializer.initialize(ref.read(isarProvider));
+    } catch (e) {
+      debugPrint('記録を始められませんでした: $e');
+    }
   }
 
   Future<void> _startRecallNotification() async {

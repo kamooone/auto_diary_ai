@@ -10,6 +10,7 @@ import '../entities/generated_diary.dart';
 import '../entities/photo.dart';
 import '../repositories/photo_repository.dart';
 import '../services/generated_diary_parser.dart';
+import '../services/jpeg_size.dart';
 import '../entities/diary_style.dart';
 import '../services/prompt_spec.dart';
 import '../services/timeline_text.dart';
@@ -42,6 +43,7 @@ class GenerateDiaryUseCase {
     required DateTime endDate,
     required List<Photo> photos,
     required List<TimelineItem> timeline,
+    Set<TimelineItem> timelineAddressStays = const {},
     required List<SharedPost> posts,
     List<Memo> memos = const [],
     PlanType plan = PlanType.free,
@@ -68,13 +70,23 @@ class GenerateDiaryUseCase {
       );
 
       if (bytes != null) {
+        // 送る画像の大きさ(トークンの数と見比べるため)
+        AppLog.add(
+          '写真',
+          '送る画像 ${photo.id}: ${JpegSize.parse(bytes) ?? '不明'} '
+              '${bytes.length}バイト (元 ${photo.width}x${photo.height})',
+        );
+
         sentPhotos.add(photo);
         images.add(AiImage(bytes: bytes, contentType: 'image/jpeg'));
       }
     }
 
     // 位置情報は「滞在した場所」と「移動」に要約して渡す
-    final timelineText = TimelineText.format(timeline);
+    final timelineText = TimelineText.format(
+      timeline,
+      addressStays: timelineAddressStays,
+    );
 
     final postText = posts
         .map((e) => "${e.receivedAt}\n${e.text}\n${e.url}")

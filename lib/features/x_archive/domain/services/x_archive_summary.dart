@@ -24,3 +24,17 @@ List<XArchivePost> filterByYears(
       .where((p) => years.contains(xArchiveYearJst(p.createdAt)))
       .toList();
 }
+
+/// 投稿のうち、いちばん古いものの日(日本時間の0時)。投稿がなければnull
+DateTime? oldestPostDayJst(Iterable<XArchivePost> posts) {
+  DateTime? oldest;
+  for (final post in posts) {
+    if (oldest == null || post.createdAt.isBefore(oldest)) {
+      oldest = post.createdAt;
+    }
+  }
+  if (oldest == null) return null;
+
+  final jst = oldest.add(const Duration(hours: 9));
+  return DateTime(jst.year, jst.month, jst.day);
+}

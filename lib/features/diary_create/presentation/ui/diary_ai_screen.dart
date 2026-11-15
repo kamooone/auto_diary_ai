@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart' show ScrollCacheExtent;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/app_info/install_date_provider.dart';
 import '../../../ai/application/providers/ai_model_provider.dart';
@@ -7,9 +8,11 @@ import '../../../plan/application/providers/plan_provider.dart';
 import '../viewmodel/diary_create_view_model.dart';
 import '../../../plan/presentation/widgets/usage_limit_guidance.dart';
 import '../../../plan/presentation/widgets/usage_meter.dart';
-import '../../../location/domain/entities/timeline_item.dart';
 import '../../../memo/domain/entities/memo.dart';
 import '../../../share/domain/entities/shared_post.dart';
+import '../../../tutorial/application/tutorial_providers.dart';
+import '../../../tutorial/domain/tutorial_step.dart';
+import '../../../tutorial/presentation/tutorial_runner.dart';
 import '../providers/diary_create_provider.dart';
 import 'diary_result_screen.dart';
 import 'generate_flow.dart';
@@ -21,6 +24,7 @@ import 'widgets/photo_selection_card.dart';
 import 'widgets/style_choice_card.dart';
 import 'widgets/token_shortage_dialog.dart';
 import '../../domain/entities/diary_style.dart';
+import '../../domain/entities/timeline_selection.dart';
 import 'widgets/length_field.dart';
 import '../../domain/services/token_estimator.dart';
 
@@ -41,7 +45,23 @@ class _DiaryAiScreenState extends ConsumerState<DiaryAiScreen> {
   // 「自分で指定」の、書き方の指示
   final _customController = TextEditingController();
 
-  late final _viewModel = ref.read(diaryCreateProvider.notifier);
+  // dispose()で使うため、画面を作るときに取っておく(dispose()の中で初めて読むと、すでに破棄されている)
+  late final DiaryCreateViewModel _viewModel;
+
+  // チュートリアルで明るくする部品
+  final _dateKey = GlobalKey();
+  final _periodKey = GlobalKey();
+  final _usageKey = GlobalKey();
+  final _modelKey = GlobalKey();
+  final _photoKey = GlobalKey();
+  final _sourcesKey = GlobalKey();
+  final _styleKey = GlobalKey();
+  final _lengthKey = GlobalKey();
+  final _noteKey = GlobalKey();
+  final _generateKey = GlobalKey();
+
+  // この画面のチュートリアルの印(見たかどうかを覚えるときの名前)
+  static const _tutorialId = 'diary_ai';
 
   @override
   void dispose() {
@@ -58,6 +78,8 @@ class _DiaryAiScreenState extends ConsumerState<DiaryAiScreen> {
   void initState() {
     super.initState();
 
+    _viewModel = ref.read(diaryCreateProvider.notifier);
+
     // この画面を開いたときに、選んだ日のXの投稿と行動履歴を読み込む
     Future.microtask(() {
       ref.read(diaryCreateProvider.notifier).loadSources();
@@ -68,6 +90,75 @@ class _DiaryAiScreenState extends ConsumerState<DiaryAiScreen> {
       // 今月の使用量を取得する
       ref.read(usageProvider.notifier).refresh();
     });
+
+    WidgetsBinding.instance.addPostFrameCallback((_) => _showTutorialOnce());
+  }
+
+  // 上から順に、部品を1つずつ説明する(初めて表示したときだけ)
+  Future<void> _showTutorialOnce() async {
+    final store = ref.read(tutorialSeenStoreProvider);
+    if (await store.hasSeen(_tutorialId)) return;
+    if (!mounted) return;
+
+    await showTutorial(context, [
+      TutorialStep(
+        target: _dateKey,
+        title: "日記の日付",
+        body: "作成する日記の日付を選びます。",
+      ),
+      TutorialStep(
+        target: _periodKey,
+        title: "日記にする期間",
+        body: "いつからいつまでの出来事を日記にするかを選びます。",
+      ),
+      TutorialStep(
+        target: _usageKey,
+        title: "トークン使用量",
+        body: "今月の使用量と、使える上限が表示されます。\n"
+            "毎月の無料枠が足りなくなったときは、設定の「ポイント・トークン」から、続けて使う方法を確認できます。",
+      ),
+      TutorialStep(
+        target: _modelKey,
+        title: "使用するAI",
+        body: "日記を書いてもらうAIを選択します。\n「違いを見る」をタップすると、詳細を確認できます。",
+      ),
+      TutorialStep(
+        target: _photoKey,
+        title: "写真",
+        body: "AIに渡す写真を選びます。この写真をもとにAIが日記を書きます。\n選んだ写真は、AIのサービスに送信されます。\n住所や書類など、個人情報が写っているものは、選ばないでください。\n詳しくは、プライバシーポリシーをご確認ください。",
+      ),
+      TutorialStep(
+        target: _sourcesKey,
+        title: "Xの投稿・ひとこと・行動履歴",
+        body: "AIに日記を書いてもらう際に渡すデータを選びます。\n選んだものは、AIのサービスに送信されます。\n行動履歴には、自宅など場所の情報が含まれます。\n個人情報などが載っているものは、選ばないでください。",
+      ),
+      TutorialStep(
+        target: _styleKey,
+        title: "書き方",
+        body: "AIに日記を書いてもらう際の書き方を選びます。\nブログ風や箇条書きなどのほかに、自分で指定することもできます。",
+        // 縦に長いので、上端に置いて、吹き出しを下に出す
+        scrollAlignment: 0,
+      ),
+      TutorialStep(
+        target: _lengthKey,
+        title: "文字数の目安",
+        body: "日記の長さの目安を指定できます。指定しなくても、作成できます。",
+      ),
+      TutorialStep(
+        target: _noteKey,
+        title: "AIに追加で伝えたいこと",
+        body: "その日の出来事や、書き方のこだわりなどを追加でAIに伝えられます。",
+        bubbleAbove: true,
+      ),
+      TutorialStep(
+        target: _generateKey,
+        title: "日記を書いてもらう",
+        body: "AIが日記の作成を開始します。\n消費トークンの目安が残り使用可能トークン数を上回っている場合は作成は出来ません。",
+        bubbleAbove: true,
+      ),
+    ]);
+
+    await store.markSeen(_tutorialId);
   }
 
   @override
@@ -83,9 +174,12 @@ class _DiaryAiScreenState extends ConsumerState<DiaryAiScreen> {
       appBar: AppBar(title: Text("${model.label}に書いてもらう")),
       body: ListView(
         padding: const EdgeInsets.all(16),
+        // 画面の外にある部品も、チュートリアルで場所を取れるよう、先に作っておく
+        scrollCacheExtent: const ScrollCacheExtent.pixels(6000),
         children: [
           // 何月何日の日記を書くか(1日だけ)
           Card(
+            key: _dateKey,
             child: ListTile(
               leading: const Icon(Icons.calendar_today),
               title: const Text("日記の日付"),
@@ -100,9 +194,10 @@ class _DiaryAiScreenState extends ConsumerState<DiaryAiScreen> {
           // AIに渡す情報の期間(プランに関わらず、複数日を選べる。初めは、日記の日付と同じ1日)
           const SizedBox(height: 4),
           Card(
+            key: _periodKey,
             child: ListTile(
               leading: const Icon(Icons.date_range),
-              title: const Text("AIに渡す情報の期間"),
+              title: const Text("日記にする期間"),
               subtitle: Text(
                 DiaryPeriodText.format(state.aiStartDate, state.aiEndDate),
               ),
@@ -111,15 +206,10 @@ class _DiaryAiScreenState extends ConsumerState<DiaryAiScreen> {
             ),
           ),
           const SizedBox(height: 4),
-          Text(
-            "Xの投稿・ひとことメモ・行動履歴は、選んだ期間のものから選べます。"
-            "写真は、年と月を切り替えて、ほかの時期のものも選べます",
-            style: Theme.of(context).textTheme.bodySmall,
-          ),
-          const SizedBox(height: 12),
 
           // 今月の使用量。上限に達している場合は、使えるようになる時期を伝える
           Card(
+            key: _usageKey,
             child: Padding(
               padding: const EdgeInsets.all(12),
               child: Column(
@@ -137,8 +227,9 @@ class _DiaryAiScreenState extends ConsumerState<DiaryAiScreen> {
           const SizedBox(height: 12),
 
           // 日記を書くAIの種類(Gemini / GPT)
-          const Card(
-            child: Padding(
+          Card(
+            key: _modelKey,
+            child: const Padding(
               padding: EdgeInsets.all(12),
               child: AiModelSelector(),
             ),
@@ -146,20 +237,24 @@ class _DiaryAiScreenState extends ConsumerState<DiaryAiScreen> {
           const SizedBox(height: 12),
 
           // AIに渡す写真。初めは日記の日付の月の写真を表示し、年と月を変えて、ほかの写真も選べる
-          PhotoSelectionCard(
-            photos: state.aiPhotos,
-            from: state.aiStartDate,
-            // 対象期間の最終日の終わりまで
-            to: DateTime(
-              state.aiEndDate.year,
-              state.aiEndDate.month,
-              state.aiEndDate.day + 1,
+          KeyedSubtree(
+            key: _photoKey,
+            child: PhotoSelectionCard(
+              photos: state.aiPhotos,
+              from: state.aiStartDate,
+              // 対象期間の最終日の終わりまで
+              to: DateTime(
+                state.aiEndDate.year,
+                state.aiEndDate.month,
+                state.aiEndDate.day + 1,
+              ),
+              onChanged: viewModel.setAiPhotos,
             ),
-            onChanged: viewModel.setAiPhotos,
           ),
           const SizedBox(height: 4),
 
           Card(
+            key: _sourcesKey,
             child: Column(
               children: [
                 ListTile(
@@ -229,28 +324,36 @@ class _DiaryAiScreenState extends ConsumerState<DiaryAiScreen> {
                   title: const Text("行動履歴"),
                   subtitle: Text(
                     _selectionText(
-                      isLoading: state.isLoadingSources,
-                      total: state.timeline.length,
-                      selected: state.selectedTimeline.length,
-                      emptyText: "この日の行動履歴はありません",
-                    ),
+                          isLoading: state.isLoadingSources,
+                          total: state.timeline.length,
+                          selected: state.selectedTimeline.length,
+                          emptyText: "この日の行動履歴はありません",
+                        ) +
+                        // 住所を送るときは、一覧でも分かるようにする
+                        (state.timelineAddressStays.isEmpty
+                            ? ""
+                            : "\n住所も送る: ${state.timelineAddressStays.length}件"),
                   ),
                   trailing: _trailing(state.isLoadingSources),
                   enabled: state.timeline.isNotEmpty,
                   onTap: () async {
-                    final items = await Navigator.of(context)
-                        .push<List<TimelineItem>>(
+                    final selection = await Navigator.of(context)
+                        .push<TimelineSelection>(
                           MaterialPageRoute(
                             fullscreenDialog: true,
                             builder: (context) => TimelineSelectPage(
                               items: state.timeline,
                               initialSelection: state.selectedTimeline,
+                              initialAddressStays: state.timelineAddressStays,
                             ),
                           ),
                         );
 
-                    if (items != null) {
-                      viewModel.setSelectedTimeline(items);
+                    if (selection != null) {
+                      viewModel.setSelectedTimeline(
+                        selection.items,
+                        addressStays: selection.addressStays,
+                      );
                     }
                   },
                 ),
@@ -260,14 +363,20 @@ class _DiaryAiScreenState extends ConsumerState<DiaryAiScreen> {
           const SizedBox(height: 12),
 
           // ---------- 書き方(日記の期間に関わらず、同じ選択肢)
-          Text("書き方", style: Theme.of(context).textTheme.titleSmall),
-          const SizedBox(height: 4),
-          StyleChoiceCard<DiaryStyle>(
-            values: DiaryStyle.values,
-            selected: state.diaryStyle,
-            label: (style) => style.label,
-            description: (style) => style.description,
-            onSelected: viewModel.setDiaryStyle,
+          Column(
+            key: _styleKey,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text("書き方", style: Theme.of(context).textTheme.titleSmall),
+              const SizedBox(height: 4),
+              StyleChoiceCard<DiaryStyle>(
+                values: DiaryStyle.values,
+                selected: state.diaryStyle,
+                label: (style) => style.label,
+                description: (style) => style.description,
+                onSelected: viewModel.setDiaryStyle,
+              ),
+            ],
           ),
           if (state.diaryStyle == DiaryStyle.custom) ...[
             const SizedBox(height: 8),
@@ -288,19 +397,22 @@ class _DiaryAiScreenState extends ConsumerState<DiaryAiScreen> {
           const SizedBox(height: 12),
 
           // ---------- 文字数の目安(任意)
-          LengthField(
-            initialChars: state.diaryLengthChars,
-            onChanged: viewModel.setDiaryLength,
+          KeyedSubtree(
+            key: _lengthKey,
+            child: LengthField(
+              initialChars: state.diaryLengthChars,
+              onChanged: viewModel.setDiaryLength,
+            ),
           ),
           const SizedBox(height: 12),
 
           // ---------- AIに追加で伝えたいこと
           TextField(
+            key: _noteKey,
             controller: _noteController,
             decoration: InputDecoration(
               labelText: "${model.label}に追加で伝えたいこと",
               hintText: "例: 友人の誕生日だった。楽しかった気持ちを中心に書いてほしい",
-              helperText: "文字数は、上の「文字数の目安」で指定してください",
               border: OutlineInputBorder(),
               alignLabelWithHint: true,
             ),
@@ -322,6 +434,7 @@ class _DiaryAiScreenState extends ConsumerState<DiaryAiScreen> {
               ),
             ),
           ElevatedButton.icon(
+            key: _generateKey,
             // 読み込みが終わるまでは、選択内容が確定しないため押せないようにする
             // 今月の使用量の上限に達している場合も、押せない
             // 「自分で指定」は、書き方を書くまでは押せない
@@ -362,9 +475,11 @@ class _DiaryAiScreenState extends ConsumerState<DiaryAiScreen> {
     return TokenEstimator.estimate(
       note: state.aiNote,
       timeline: state.selectedTimeline,
+      timelineAddressStays: state.timelineAddressStays,
       posts: state.selectedPosts,
       memos: state.selectedMemos,
       photoCount: state.aiPhotos.length,
+      photos: state.aiPhotos,
       model: ref.read(aiModelProvider),
       lengthChars: state.diaryLengthChars,
     );
@@ -418,7 +533,7 @@ class _DiaryAiScreenState extends ConsumerState<DiaryAiScreen> {
       ),
       firstDate: dates.first,
       lastDate: dates.last,
-      helpText: "AIに渡す情報の期間",
+      helpText: "日記にする期間",
     );
 
     if (range != null) {

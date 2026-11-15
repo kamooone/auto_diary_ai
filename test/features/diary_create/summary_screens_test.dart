@@ -74,7 +74,7 @@ bool isEnabled(WidgetTester tester, String label) =>
     tester.widget<ButtonStyleButton>(button(label)).onPressed != null;
 
 void main() {
-  group('日記を1つにする画面', () {
+  group('振り返り作成画面', () {
     Future<void> open(WidgetTester tester) async {
       // スクロールしなくても全部見える大きさにする
       tester.view.physicalSize = const Size(800, 3000);
@@ -103,7 +103,7 @@ void main() {
       await open(tester);
 
       expect(isEnabled(tester, 'Geminiに構成を相談する'), isFalse);
-      expect(isEnabled(tester, 'Geminiに1つにしてもらう'), isFalse);
+      expect(isEnabled(tester, 'Geminiに振り返りを作成してもらう'), isFalse);
     });
 
     testWidgets('日記を連結させる(AIを使わない)を選ぶと、AIに伝えたいことの欄が消える', (tester) async {
@@ -115,7 +115,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Geminiに追加で伝えたいこと'), findsNothing);
-      expect(find.text('日記を1つにする'), findsWidgets);
+      expect(find.text('振り返りを作成する'), findsWidgets);
 
       await tester.tap(find.text('読み物(ブログ風)'));
       await tester.pumpAndSettle();
@@ -130,7 +130,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('どんな書き方にしたいか'), findsOneWidget);
-      expect(isEnabled(tester, 'Geminiに1つにしてもらう'), isFalse);
+      expect(isEnabled(tester, 'Geminiに振り返りを作成してもらう'), isFalse);
     });
   });
 

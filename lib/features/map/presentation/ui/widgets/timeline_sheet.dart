@@ -24,6 +24,7 @@ class TimelineSheet extends StatelessWidget {
     required this.onPlaceNameChanged,
     required this.onTransportChanged,
     required this.onRetryPlaceSearch,
+    this.sheetKey,
   });
 
   /// シートを最も小さくしたときの高さ(画面に対する割合)
@@ -76,6 +77,9 @@ class TimelineSheet extends StatelessWidget {
   /// 取得できなかった訪れた場所を、もう一度取得する
   final VoidCallback onRetryPlaceSearch;
 
+  /// シート全体の目印(チュートリアルで明るくするため)
+  final GlobalKey? sheetKey;
+
   @override
   Widget build(BuildContext context) {
     return DraggableScrollableSheet(
@@ -85,6 +89,7 @@ class TimelineSheet extends StatelessWidget {
       maxChildSize: 0.7,
       builder: (context, scrollController) {
         return Material(
+          key: sheetKey,
           elevation: 8,
           borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
           clipBehavior: Clip.antiAlias,

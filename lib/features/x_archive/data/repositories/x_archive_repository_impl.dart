@@ -131,11 +131,47 @@ class XArchiveRepositoryImpl implements XArchiveRepository {
   }
 
   @override
+  Future<List<XArchivePost>> findBetween(DateTime from, DateTime to) async {
+    final models = await isar.xArchivePostModels
+        .filter()
+        .createdAtBetween(from, to, includeUpper: false)
+        .not()
+        .kindEqualTo(XArchivePostKind.retweet.name)
+        .sortByCreatedAt()
+        .findAll();
+    return models.map(_toPost).toList();
+  }
+
+  @override
   Future<void> updatePhotoIds(String tweetId, List<String>? photoIds) async {
     final model =
         await isar.xArchivePostModels.where().tweetIdEqualTo(tweetId).findFirst();
     if (model == null) return;
     model.photoIds = photoIds;
+    await isar.writeTxn(() async {
+      await isar.xArchivePostModels.put(model);
+    });
+  }
+
+  @override
+  Future<void> delete(String tweetId) async {
+    await isar.writeTxn(() async {
+      await isar.xArchivePostModels.where().tweetIdEqualTo(tweetId).deleteAll();
+    });
+  }
+
+  @override
+  Future<void> updateContent(
+    String tweetId, {
+    required String text,
+    required DateTime createdAt,
+  }) async {
+    final model =
+        await isar.xArchivePostModels.where().tweetIdEqualTo(tweetId).findFirst();
+    if (model == null) return;
+    model
+      ..text = text
+      ..createdAt = createdAt;
     await isar.writeTxn(() async {
       await isar.xArchivePostModels.put(model);
     });

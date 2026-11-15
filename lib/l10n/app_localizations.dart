@@ -103,7 +103,7 @@ abstract class AppLocalizations {
   /// No description provided for @appTitle.
   ///
   /// In en, this message translates to:
-  /// **'AI Photo Diary'**
+  /// **'Your Trail'**
   String get appTitle;
 }
 
