@@ -195,6 +195,7 @@ class TokenEstimator {
   static int estimate({
     required String note,
     required List<TimelineItem> timeline,
+    Set<TimelineItem> timelineAddressStays = const {},
     required List<SharedPost> posts,
     List<Memo> memos = const [],
     required int photoCount,
@@ -211,6 +212,7 @@ class TokenEstimator {
     final parts = _parts(
       note: note,
       timeline: timeline,
+      timelineAddressStays: timelineAddressStays,
       posts: posts,
       memos: memos,
       photoCount: photoCount,
@@ -230,6 +232,7 @@ class TokenEstimator {
   static int estimateSeconds({
     required String note,
     required List<TimelineItem> timeline,
+    Set<TimelineItem> timelineAddressStays = const {},
     required List<SharedPost> posts,
     List<Memo> memos = const [],
     required int photoCount,
@@ -245,6 +248,7 @@ class TokenEstimator {
     final parts = _parts(
       note: note,
       timeline: timeline,
+      timelineAddressStays: timelineAddressStays,
       posts: posts,
       memos: memos,
       photoCount: photoCount,
@@ -270,6 +274,7 @@ class TokenEstimator {
   static ({double input, int output}) _parts({
     required String note,
     required List<TimelineItem> timeline,
+    required Set<TimelineItem> timelineAddressStays,
     required List<SharedPost> posts,
     required List<Memo> memos,
     required int photoCount,
@@ -282,7 +287,10 @@ class TokenEstimator {
     final c = _of(model);
 
     final chars =
-        TimelineText.format(timeline).length +
+        TimelineText.format(
+          timeline,
+          addressStays: timelineAddressStays,
+        ).length +
         MemoText.format(memos).length +
         posts.fold<int>(
           0,

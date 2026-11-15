@@ -43,6 +43,7 @@ class GenerateDiaryUseCase {
     required DateTime endDate,
     required List<Photo> photos,
     required List<TimelineItem> timeline,
+    Set<TimelineItem> timelineAddressStays = const {},
     required List<SharedPost> posts,
     List<Memo> memos = const [],
     PlanType plan = PlanType.free,
@@ -82,7 +83,10 @@ class GenerateDiaryUseCase {
     }
 
     // 位置情報は「滞在した場所」と「移動」に要約して渡す
-    final timelineText = TimelineText.format(timeline);
+    final timelineText = TimelineText.format(
+      timeline,
+      addressStays: timelineAddressStays,
+    );
 
     final postText = posts
         .map((e) => "${e.receivedAt}\n${e.text}\n${e.url}")

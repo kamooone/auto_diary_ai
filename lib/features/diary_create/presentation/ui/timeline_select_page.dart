@@ -1,23 +1,29 @@
 import 'package:flutter/material.dart';
 import '../../../location/domain/entities/timeline_item.dart';
 import '../../../location/presentation/formatters/timeline_formatter.dart';
+import '../../domain/entities/timeline_selection.dart';
 import '../../domain/services/day_grouper.dart';
+import '../../domain/services/timeline_text.dart';
 import '../../domain/services/month_filter.dart';
 import 'widgets/day_header.dart';
 import 'widgets/month_header.dart';
 import 'widgets/month_filter_bar.dart';
 
 /// AIに渡す行動履歴(滞在と移動)を選択する画面
-/// 「確定」で選択した行動履歴の一覧を返す
+/// 「確定」で、選択した行動履歴の一覧と、住所も送ると決めた滞在を返す([TimelineSelection])
+///
+/// 住所(分からないときは座標)は、初めは送らない。滞在ごとに、送るかを選ぶ
 class TimelineSelectPage extends StatefulWidget {
   const TimelineSelectPage({
     super.key,
     required this.items,
     required this.initialSelection,
+    this.initialAddressStays = const {},
   });
 
   final List<TimelineItem> items;
   final List<TimelineItem> initialSelection;
+  final Set<TimelineItem> initialAddressStays;
 
   @override
   State<TimelineSelectPage> createState() => _TimelineSelectPageState();
@@ -25,6 +31,9 @@ class TimelineSelectPage extends StatefulWidget {
 
 class _TimelineSelectPageState extends State<TimelineSelectPage> {
   late final _selected = {...widget.initialSelection};
+
+  // 住所(座標)も送ると決めた滞在。初めは、どれも送らない
+  late final _addressStays = {...widget.initialAddressStays};
 
   // 年と月による絞り込み
   var _filter = MonthFilter.none;
@@ -68,9 +77,43 @@ class _TimelineSelectPageState extends State<TimelineSelectPage> {
     });
   }
 
+  // 住所を送るかを選べる滞在(表示中のもの)
+  List<Stay> get _addressChoices =>
+      _visible.whereType<Stay>().where((e) => e.canChooseAddress).toList();
+
+  // 表示中の、住所を選べる滞在を、すべて送る・すべて送らない
+  void _toggleAllAddresses(bool send) {
+    setState(() {
+      final stays = _addressChoices;
+      send ? _addressStays.addAll(stays) : _addressStays.removeAll(stays);
+    });
+  }
+
+  // 住所を送る滞在は、行の下に、送る内容を見せる
+  Widget _addressSwitch(Stay stay) {
+    final send = _addressStays.contains(stay);
+    final isEstimated = stay.isPlaceEstimated;
+
+    return SwitchListTile(
+      dense: true,
+      contentPadding: const EdgeInsets.only(left: 72, right: 16),
+      title: const Text("住所も送る"),
+      subtitle: Text(
+        send
+            ? "送る内容: ${TimelineText.addressOf(stay)}"
+            : (isEstimated ? "送らない(施設名だけを送ります)" : "送らない(場所は、AIに伝わりません)"),
+      ),
+      value: send,
+      onChanged: (value) => setState(() {
+        value ? _addressStays.add(stay) : _addressStays.remove(stay);
+      }),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final visible = _visible;
+    final addressChoices = _addressChoices;
     final isAllSelected = visible.every(_selected.contains);
 
     // 月ごとの見出し、日付ごとの見出し、行動履歴を、1列に並べたもの
@@ -108,6 +151,25 @@ class _TimelineSelectPageState extends State<TimelineSelectPage> {
             value: _filter,
             onChanged: (filter) => setState(() => _filter = filter),
           ),
+          // 住所は、初めは送らない。送るかどうかを、利用者が決める
+          Container(
+            width: double.infinity,
+            color: Theme.of(context).colorScheme.surfaceContainerHighest,
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+            child: Text(
+              "住所は、初めは、AIに送りません。\n"
+              "住所が必要な滞在だけ、選んだあとに出る「住所も送る」を、オンにしてください。"
+              "自宅など、個人情報にあたる住所は、送らないでください。",
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+          ),
+          if (addressChoices.isNotEmpty)
+            SwitchListTile(
+              dense: true,
+              title: const Text("表示中の滞在の住所を、すべて送る"),
+              value: addressChoices.every(_addressStays.contains),
+              onChanged: _toggleAllAddresses,
+            ),
           Expanded(
             child: ListView.builder(
               itemCount: rows.length,
@@ -139,7 +201,7 @@ class _TimelineSelectPageState extends State<TimelineSelectPage> {
                 final item = row as TimelineItem;
                 final time = TimelineFormatter.timeRange(item);
 
-                return CheckboxListTile(
+                final tile = CheckboxListTile(
                   dense: true,
                   value: _selected.contains(item),
                   secondary: Icon(switch (item) {
@@ -167,6 +229,14 @@ class _TimelineSelectPageState extends State<TimelineSelectPage> {
                     });
                   },
                 );
+
+                // 選んだ滞在で、住所を送るかを選べるものは、下にスイッチを出す
+                if (item is Stay &&
+                    item.canChooseAddress &&
+                    _selected.contains(item)) {
+                  return Column(children: [tile, _addressSwitch(item)]);
+                }
+                return tile;
               },
             ),
           ),
@@ -177,9 +247,19 @@ class _TimelineSelectPageState extends State<TimelineSelectPage> {
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
           child: ElevatedButton(
             // 時系列の並び順のまま返す
-            onPressed: () => Navigator.of(
-              context,
-            ).pop(widget.items.where(_selected.contains).toList()),
+            onPressed: () {
+              final items = widget.items.where(_selected.contains).toList();
+              Navigator.of(context).pop(
+                TimelineSelection(
+                  items: items,
+                  // 選んだ滞在のうち、住所も送ると決めたものだけ
+                  addressStays: {
+                    for (final item in items)
+                      if (_addressStays.contains(item)) item,
+                  },
+                ),
+              );
+            },
             child: Text("確定（${_selected.length}件）"),
           ),
         ),

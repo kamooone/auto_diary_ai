@@ -8,7 +8,6 @@ import '../../../plan/application/providers/plan_provider.dart';
 import '../viewmodel/diary_create_view_model.dart';
 import '../../../plan/presentation/widgets/usage_limit_guidance.dart';
 import '../../../plan/presentation/widgets/usage_meter.dart';
-import '../../../location/domain/entities/timeline_item.dart';
 import '../../../memo/domain/entities/memo.dart';
 import '../../../share/domain/entities/shared_post.dart';
 import '../../../tutorial/application/tutorial_providers.dart';
@@ -25,6 +24,7 @@ import 'widgets/photo_selection_card.dart';
 import 'widgets/style_choice_card.dart';
 import 'widgets/token_shortage_dialog.dart';
 import '../../domain/entities/diary_style.dart';
+import '../../domain/entities/timeline_selection.dart';
 import 'widgets/length_field.dart';
 import '../../domain/services/token_estimator.dart';
 
@@ -324,28 +324,36 @@ class _DiaryAiScreenState extends ConsumerState<DiaryAiScreen> {
                   title: const Text("行動履歴"),
                   subtitle: Text(
                     _selectionText(
-                      isLoading: state.isLoadingSources,
-                      total: state.timeline.length,
-                      selected: state.selectedTimeline.length,
-                      emptyText: "この日の行動履歴はありません",
-                    ),
+                          isLoading: state.isLoadingSources,
+                          total: state.timeline.length,
+                          selected: state.selectedTimeline.length,
+                          emptyText: "この日の行動履歴はありません",
+                        ) +
+                        // 住所を送るときは、一覧でも分かるようにする
+                        (state.timelineAddressStays.isEmpty
+                            ? ""
+                            : "\n住所も送る: ${state.timelineAddressStays.length}件"),
                   ),
                   trailing: _trailing(state.isLoadingSources),
                   enabled: state.timeline.isNotEmpty,
                   onTap: () async {
-                    final items = await Navigator.of(context)
-                        .push<List<TimelineItem>>(
+                    final selection = await Navigator.of(context)
+                        .push<TimelineSelection>(
                           MaterialPageRoute(
                             fullscreenDialog: true,
                             builder: (context) => TimelineSelectPage(
                               items: state.timeline,
                               initialSelection: state.selectedTimeline,
+                              initialAddressStays: state.timelineAddressStays,
                             ),
                           ),
                         );
 
-                    if (items != null) {
-                      viewModel.setSelectedTimeline(items);
+                    if (selection != null) {
+                      viewModel.setSelectedTimeline(
+                        selection.items,
+                        addressStays: selection.addressStays,
+                      );
                     }
                   },
                 ),
@@ -467,6 +475,7 @@ class _DiaryAiScreenState extends ConsumerState<DiaryAiScreen> {
     return TokenEstimator.estimate(
       note: state.aiNote,
       timeline: state.selectedTimeline,
+      timelineAddressStays: state.timelineAddressStays,
       posts: state.selectedPosts,
       memos: state.selectedMemos,
       photoCount: state.aiPhotos.length,

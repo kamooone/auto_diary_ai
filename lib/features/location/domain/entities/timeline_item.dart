@@ -51,6 +51,10 @@ class Stay extends TimelineItem {
   /// ユーザーが確認していない滞在で、施設を推定で当てはめているかどうか
   bool get isPlaceEstimated => !isPlaceNameEdited && estimatedPlaceName != null;
 
+  /// 住所や座標を、AIに送るかどうかを選べる滞在か
+  /// (名前を書き換えた・登録した場所は、その名前だけを送るので、選べない)
+  bool get canChooseAddress => !isPlaceNameEdited;
+
   /// 表示する場所名
   /// ユーザーが入力したもの、推定した施設、住所の順に優先する
   String? get displayName {

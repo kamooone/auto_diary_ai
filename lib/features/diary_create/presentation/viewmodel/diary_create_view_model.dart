@@ -72,6 +72,9 @@ class DiaryCreateState {
   final List<TimelineItem> timeline;
   final List<TimelineItem> selectedTimeline;
 
+  /// 選んだ行動履歴のうち、住所(座標)も、AIに送ると決めた滞在
+  final Set<TimelineItem> timelineAddressStays;
+
   /// Xの投稿と行動履歴を読み込み中かどうか
   final bool isLoadingSources;
 
@@ -113,6 +116,7 @@ class DiaryCreateState {
     this.selectedMemos = const [],
     this.timeline = const [],
     this.selectedTimeline = const [],
+    this.timelineAddressStays = const {},
     this.isLoadingSources = false,
     this.diaryStyle = DiaryStyle.diary,
     this.diaryCustom = '',
@@ -147,6 +151,7 @@ class DiaryCreateState {
     List<Memo>? selectedMemos,
     List<TimelineItem>? timeline,
     List<TimelineItem>? selectedTimeline,
+    Set<TimelineItem>? timelineAddressStays,
     bool? isLoadingSources,
     DiaryStyle? diaryStyle,
     String? diaryCustom,
@@ -179,6 +184,7 @@ class DiaryCreateState {
       selectedMemos: selectedMemos ?? this.selectedMemos,
       timeline: timeline ?? this.timeline,
       selectedTimeline: selectedTimeline ?? this.selectedTimeline,
+      timelineAddressStays: timelineAddressStays ?? this.timelineAddressStays,
       isLoadingSources: isLoadingSources ?? this.isLoadingSources,
       diaryStyle: diaryStyle ?? this.diaryStyle,
       diaryCustom: diaryCustom ?? this.diaryCustom,
@@ -239,6 +245,7 @@ class DiaryCreateViewModel extends AutoDisposeNotifier<DiaryCreateState> {
       selectedMemos: const [],
       timeline: const [],
       selectedTimeline: const [],
+      timelineAddressStays: const {},
     );
 
     _loadedStart = null;
@@ -263,6 +270,7 @@ class DiaryCreateViewModel extends AutoDisposeNotifier<DiaryCreateState> {
       selectedMemos: const [],
       timeline: const [],
       selectedTimeline: const [],
+      timelineAddressStays: const {},
     );
 
     _loadedStart = null;
@@ -419,8 +427,14 @@ class DiaryCreateViewModel extends AutoDisposeNotifier<DiaryCreateState> {
   }
 
   // AIに渡す行動履歴をセット
-  void setSelectedTimeline(List<TimelineItem> items) {
-    state = state.copyWith(selectedTimeline: List.unmodifiable(items));
+  void setSelectedTimeline(
+    List<TimelineItem> items, {
+    Set<TimelineItem> addressStays = const {},
+  }) {
+    state = state.copyWith(
+      selectedTimeline: List.unmodifiable(items),
+      timelineAddressStays: Set.unmodifiable(addressStays),
+    );
   }
 
   /// 対象期間のXの投稿・ひとことメモ・行動履歴を読み込む(最初はすべて未選択にする)
@@ -485,6 +499,7 @@ class DiaryCreateViewModel extends AutoDisposeNotifier<DiaryCreateState> {
       selectedMemos: const [],
       timeline: List.unmodifiable(timeline),
       selectedTimeline: const [],
+      timelineAddressStays: const {},
       isLoadingSources: false,
     );
   }
@@ -547,6 +562,7 @@ class DiaryCreateViewModel extends AutoDisposeNotifier<DiaryCreateState> {
       TokenEstimator.estimateSeconds(
         note: state.aiNote,
         timeline: state.selectedTimeline,
+        timelineAddressStays: state.timelineAddressStays,
         posts: state.selectedPosts,
         memos: state.selectedMemos,
         photoCount: state.aiPhotos.length,
@@ -562,6 +578,7 @@ class DiaryCreateViewModel extends AutoDisposeNotifier<DiaryCreateState> {
         endDate: state.aiEndDate,
         photos: state.aiPhotos,
         timeline: state.selectedTimeline,
+        timelineAddressStays: state.timelineAddressStays,
         posts: state.selectedPosts,
         memos: state.selectedMemos,
         style: state.diaryStyle,
