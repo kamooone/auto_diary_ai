@@ -142,6 +142,30 @@ class XArchiveRepositoryImpl implements XArchiveRepository {
   }
 
   @override
+  Future<void> delete(String tweetId) async {
+    await isar.writeTxn(() async {
+      await isar.xArchivePostModels.where().tweetIdEqualTo(tweetId).deleteAll();
+    });
+  }
+
+  @override
+  Future<void> updateContent(
+    String tweetId, {
+    required String text,
+    required DateTime createdAt,
+  }) async {
+    final model =
+        await isar.xArchivePostModels.where().tweetIdEqualTo(tweetId).findFirst();
+    if (model == null) return;
+    model
+      ..text = text
+      ..createdAt = createdAt;
+    await isar.writeTxn(() async {
+      await isar.xArchivePostModels.put(model);
+    });
+  }
+
+  @override
   Future<Map<int, int>> countByYear() async {
     final dates = await isar.xArchivePostModels
         .where()

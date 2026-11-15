@@ -48,6 +48,16 @@ abstract class XArchiveRepository {
   /// 投稿に結びつける端末の写真を、利用者が選んだものにする。nullで、自動の候補に戻す
   Future<void> updatePhotoIds(String tweetId, List<String>? photoIds);
 
+  /// 投稿を1件消す(取り込んだ分だけ。Xの投稿は消えない)
+  Future<void> delete(String tweetId);
+
+  /// 投稿の本文と日時を、利用者が直したものにする
+  Future<void> updateContent(
+    String tweetId, {
+    required String text,
+    required DateTime createdAt,
+  });
+
   /// 保存した投稿の、年(日本時間)ごとの件数
   Future<Map<int, int>> countByYear();
 

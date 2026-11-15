@@ -121,7 +121,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
           ListTile(
             leading: const Icon(Icons.history),
             title: const Text("取り込んだXの投稿一覧"),
-            subtitle: const Text("Xのアーカイブから取り込んだ過去の投稿を見ます"),
+            subtitle: const Text("取り込んだ過去の投稿の確認、削除、内容の修正、日時の変更ができます"),
             onTap: () => context.push(AppRoutes.xArchivePosts),
           ),
 

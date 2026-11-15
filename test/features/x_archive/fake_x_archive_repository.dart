@@ -68,6 +68,32 @@ class FakeXArchiveRepository implements XArchiveRepository {
   Future<void> updatePhotoIds(String tweetId, List<String>? photoIds) async {}
 
   @override
+  Future<void> delete(String tweetId) async =>
+      posts.removeWhere((p) => p.tweetId == tweetId);
+
+  @override
+  Future<void> updateContent(
+    String tweetId, {
+    required String text,
+    required DateTime createdAt,
+  }) async {
+    final i = posts.indexWhere((p) => p.tweetId == tweetId);
+    if (i < 0) return;
+    final p = posts[i];
+    posts[i] = XArchivePost(
+      tweetId: p.tweetId,
+      text: text,
+      createdAt: createdAt,
+      kind: p.kind,
+      replyToScreenName: p.replyToScreenName,
+      imageFileNames: p.imageFileNames,
+      imageAspectRatios: p.imageAspectRatios,
+      hasVideo: p.hasVideo,
+      photoIds: p.photoIds,
+    );
+  }
+
+  @override
   Future<Map<int, int>> countByYear() async => {...countByYearOf(posts)};
 
   @override

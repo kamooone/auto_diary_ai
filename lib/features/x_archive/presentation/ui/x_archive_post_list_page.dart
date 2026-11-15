@@ -115,10 +115,16 @@ class _XArchivePostListPageState extends ConsumerState<XArchivePostListPage> {
       MaterialPageRoute(builder: (_) => XArchivePostDetailPage(post: post)),
     );
     if (!mounted) return;
-    // 写真を変えたかもしれないので、その1件を読み直す
+    // 写真・本文・日時を変えたり、削除したりしたかもしれないので、その1件を読み直す
     final updated =
         await ref.read(xArchiveRepositoryProvider).find(post.tweetId);
-    if (!mounted || updated == null || index >= _posts.length) return;
+    if (!mounted) return;
+    if (updated == null || updated.createdAt != post.createdAt) {
+      // 削除したときや、日時を変えたときは、件数・年・並びが変わるので、読み直す
+      await _reload(refreshYears: true);
+      return;
+    }
+    if (index >= _posts.length) return;
     setState(() => _posts[index] = updated);
   }
 
