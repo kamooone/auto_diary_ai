@@ -65,6 +65,17 @@ class FakeXArchiveRepository implements XArchiveRepository {
   }
 
   @override
+  Future<List<XArchivePost>> findBetween(DateTime from, DateTime to) async {
+    return [
+      for (final p in _sorted().reversed)
+        if (p.kind != XArchivePostKind.retweet &&
+            !p.createdAt.isBefore(from) &&
+            p.createdAt.isBefore(to))
+          p,
+    ];
+  }
+
+  @override
   Future<void> updatePhotoIds(String tweetId, List<String>? photoIds) async {}
 
   @override

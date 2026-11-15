@@ -45,6 +45,10 @@ abstract class XArchiveRepository {
 
   Future<XArchivePost?> find(String tweetId);
 
+  /// [from]以上、[to]より前(UTC)の投稿を、古い順に取得する。リツイートは含めない
+  /// (リツイートは他の人の言葉で、本文も前半しかないため、日記の材料にしない)
+  Future<List<XArchivePost>> findBetween(DateTime from, DateTime to);
+
   /// 投稿に結びつける端末の写真を、利用者が選んだものにする。nullで、自動の候補に戻す
   Future<void> updatePhotoIds(String tweetId, List<String>? photoIds);
 

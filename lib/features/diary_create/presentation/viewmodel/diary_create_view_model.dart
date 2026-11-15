@@ -12,11 +12,13 @@ import '../../../share/application/providers/share_providers.dart';
 import '../../../memo/application/providers/memo_providers.dart';
 import '../../../memo/domain/entities/memo.dart';
 import '../../../share/domain/entities/shared_post.dart';
+import '../../../x_archive/application/providers/x_archive_providers.dart';
 import '../../application/providers/diary_usecase_providers.dart';
 import '../../domain/entities/diary_style.dart';
 import '../../domain/entities/generated_diary.dart';
 import '../../domain/entities/summary_style.dart';
 import '../../../ai/application/providers/ai_model_provider.dart';
+import '../../domain/services/archive_post_source.dart';
 import '../../domain/services/summary_join.dart';
 import '../../domain/services/token_estimator.dart';
 import '../../domain/entities/photo.dart';
@@ -466,6 +468,27 @@ class DiaryCreateViewModel extends AutoDisposeNotifier<DiaryCreateState> {
         timeline.addAll(
           (await getTimeline.execute(day)).where((e) => e is! RecordingOff),
         );
+      }
+
+      // 取り込んだXの投稿(アーカイブ)も、同じ期間のものを選べるようにする
+      // (取り込んでいない、または読めないときも、ほかの材料は読み込む)
+      try {
+        final range = ArchivePostSource.rangeJst(start, end);
+        final archived = await ref
+            .read(xArchiveRepositoryProvider)
+            .findBetween(range.from, range.to);
+        // 同じ投稿を、Xから共有して保存してあるときは、重ねて出さない
+        final shared = [...posts];
+        posts.addAll(
+          archived
+              .where(
+                (a) => !shared.any((s) => s.url.contains('/status/${a.tweetId}')),
+              )
+              .map(ArchivePostSource.toPost),
+        );
+      } catch (e, stackTrace) {
+        debugPrint(e.toString());
+        debugPrintStack(stackTrace: stackTrace);
       }
 
       posts.sort((a, b) => a.receivedAt.compareTo(b.receivedAt));
