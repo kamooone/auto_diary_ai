@@ -100,9 +100,11 @@ class _XArchiveImportPageState extends ConsumerState<XArchiveImportPage> {
         );
       }
       if (!mounted) return;
+      final first = ref.read(installDateProvider);
       setState(() {
         _resultMessage = '${result.added}件を取り込みました'
-            '(取り込み済みで飛ばした分: ${result.skipped}件)';
+            '(取り込み済みで飛ばした分: ${result.skipped}件)\n'
+            '日記にする期間などは、${first.year}年${first.month}月${first.day}日から選べます';
       });
     } catch (e) {
       if (!mounted) return;
