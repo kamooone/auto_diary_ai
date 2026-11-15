@@ -159,8 +159,7 @@ class _TimelineSelectPageState extends State<TimelineSelectPage> {
             child: Text(
               "住所が必要な滞在だけ、選んだあとに出る「住所も送る」を、オンにしてください。\n"
               "旅行に行ったときなどは、住所も送ると、AIがより詳しく日記を書いてくれます。\n"
-              "送ってよい住所: 旅行先や、お出かけ先など、個人情報に関係しない場所\n"
-              "送らない方がよい住所: 自宅、職場、学校など、あなたの個人情報にあたる場所",
+              "自宅、職場、学校など、あなたの個人情報にあたる住所は送らないようにしてください。",
               style: Theme.of(context).textTheme.bodySmall,
             ),
           ),
