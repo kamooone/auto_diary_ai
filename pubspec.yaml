@@ -94,3 +94,16 @@ flutter_gen:
     output-localization-file: app_localizations.dart
     output-class: AppLocalizations
     untranslated-messages-file: lib/l10n/untranslated_messages.txt
+
+# アプリアイコン(`dart run flutter_launcher_icons` で、各サイズの画像を作る)
+# 元の画像は assets/icon/ にある(SVGが元。PNGは、SVGから作った)
+flutter_launcher_icons:
+  android: "ic_launcher"
+  ios: true
+  image_path: "assets/icon/png/full.png"
+  remove_alpha_ios: true
+  adaptive_icon_background: "assets/icon/png/background.png"
+  adaptive_icon_foreground: "assets/icon/png/foreground.png"
+  # 前景の画像は、安全な範囲(中央60%)に、収めて作ってあるので、余白は足さない
+  adaptive_icon_foreground_inset: 0
+  adaptive_icon_monochrome: "assets/icon/png/monochrome.png"

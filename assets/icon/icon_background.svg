@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+<g transform="scale(9.481481)">
+<defs><radialGradient id="bgEdge" cx="54" cy="54" r="76" gradientUnits="userSpaceOnUse"><stop offset="0.45" stop-color="#FFE4E1"/><stop offset="1" stop-color="#F4C6BF"/></radialGradient></defs>
+<rect width="108" height="108" fill="url(#bgEdge)"/>
+<g fill="none" stroke="#F6CEC8" stroke-width="3.2" stroke-linecap="round">
+<path d="M-4 30 L112 50"/>
+<path d="M27 -4 L22 112"/>
+<path d="M74 -4 L58 112"/>
+<path d="M-4 90 L40 90 Q48 90 52 84 L70 60 Q74 55 82 55 L112 55"/>
+</g>
+</g>
+</svg>
