@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../application/providers/ai_model_provider.dart';
+import '../../../privacy/presentation/ui/privacy_policy_page.dart';
 import '../../domain/entities/ai_model.dart';
 
 /// 日記を書くAIの種類(Gemini / GPT)を選ぶ
@@ -87,9 +88,23 @@ class AiModelSelector extends ConsumerWidget {
               mainAxisSize: MainAxisSize.min,
               children: [
                 for (final model in AiModel.values) item(model),
-                Text(
-                  "詳しくは、プライバシーポリシーをご確認ください。",
-                  style: theme.textTheme.bodySmall,
+                // タップすると、プライバシーポリシーの画面を開く
+                InkWell(
+                  onTap: () => Navigator.of(context).push(
+                    MaterialPageRoute<void>(
+                      builder: (_) => const PrivacyPolicyPage(),
+                    ),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 4),
+                    child: Text(
+                      "詳しくは、プライバシーポリシーをご確認ください。",
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.primary,
+                        decoration: TextDecoration.underline,
+                      ),
+                    ),
+                  ),
                 ),
               ],
             ),
