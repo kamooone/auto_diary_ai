@@ -107,7 +107,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
           ListTile(
             leading: const Icon(Icons.share),
             title: const Text("Xの投稿一覧"),
-            subtitle: const Text("保存した投稿の削除、内容の修正、日時の変更ができます"),
+            subtitle: const Text("保存した投稿の確認、削除、内容の修正、日時の変更ができます"),
             onTap: () => context.push(AppRoutes.sharedPosts),
           ),
 
