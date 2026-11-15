@@ -114,7 +114,8 @@ class _DiaryAiScreenState extends ConsumerState<DiaryAiScreen> {
       TutorialStep(
         target: _usageKey,
         title: "トークン使用量",
-        body: "今月の使用量と、使える上限が表示されます。",
+        body: "今月の使用量と、使える上限が表示されます。\n"
+            "毎月の無料枠が足りなくなったときは、設定の「ポイント・トークン」から、続けて使う方法を確認できます。",
       ),
       TutorialStep(
         target: _modelKey,

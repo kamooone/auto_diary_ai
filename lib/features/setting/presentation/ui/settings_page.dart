@@ -55,7 +55,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     final usage = ref.watch(usageProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text("Settings")),
+      appBar: AppBar(title: const Text("設定")),
       body: ListView(
         children: [
           ListTile(

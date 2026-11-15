@@ -25,7 +25,7 @@ class XArchiveRecallSettingsPage extends ConsumerWidget {
               const Padding(
                 padding: EdgeInsets.fromLTRB(16, 16, 16, 8),
                 child: Text(
-                  'Xのアーカイブから取り込んだポスト(ツイート)を、毎日お知らせします。'
+                  'Xのアーカイブから取り込んだポスト(ツイート)を、毎日お知らせします。\n'
                   '通知をタップすると、1年前・2年前…の今日のポスト(ツイート)と、'
                   'ランダムなポスト(ツイート)が見られます。',
                 ),
