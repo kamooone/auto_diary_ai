@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import '../../../../common/constants/app_colors.dart';
 import '../../../../common/constants/app_sizes.dart';
@@ -12,6 +14,7 @@ import '../../../tutorial/application/tutorial_providers.dart';
 import '../../../tutorial/domain/tutorial_step.dart';
 import '../../../tutorial/presentation/tutorial_runner.dart';
 import '../providers/map_provider.dart';
+import '../viewmodel/map_view_model.dart' show MapState;
 import 'widgets/timeline_sheet.dart';
 
 class MapPage extends ConsumerStatefulWidget {
@@ -152,6 +155,46 @@ class _MapPageState extends ConsumerState<MapPage> {
     );
   }
 
+  // 滞在に、タイムラインと同じ番号の丸を付ける。移動には、進む向きの矢印を、経路の真ん中に付ける
+  // (どこからどこへ、どの順に動いたかが、地図だけで分かるようにする)
+  List<Marker> _timelineMarkers(MapState state) {
+    final viewModel = ref.read(mapProvider.notifier);
+    final markers = <Marker>[];
+    var number = 0;
+
+    for (final item in state.timeline) {
+      switch (item) {
+        case Stay():
+          number++;
+          final point = LatLng(item.latitude, item.longitude);
+          if (!_isValidLatLng(point)) break;
+          markers.add(
+            Marker(
+              point: point,
+              width: 32,
+              height: 32,
+              child: _StayMarker(number: number),
+            ),
+          );
+        case Move():
+          final arrow = _midArrow(viewModel.routeOf(item));
+          if (arrow == null) break;
+          markers.add(
+            Marker(
+              point: arrow.point,
+              width: 22,
+              height: 22,
+              child: _DirectionArrow(angle: arrow.angle),
+            ),
+          );
+        case RecordingOff():
+          break;
+      }
+    }
+
+    return markers;
+  }
+
   /// 表示する日を切り替える
   void _changeDate(DateTime date) {
     ref.read(mapProvider.notifier).loadTimeline(date);
@@ -242,6 +285,9 @@ class _MapPageState extends ConsumerState<MapPage> {
                         ..._routeLines(state.selectedRoute),
                     ],
                   ),
+
+                // 滞在の場所(タイムラインの番号と同じ)と、移動の向きの矢印
+                MarkerLayer(markers: _timelineMarkers(state)),
 
                 if (_hasValidCurrentLocation(state.currentLocation))
                   MarkerLayer(
@@ -435,6 +481,96 @@ class _DebugButton extends StatelessWidget {
           size: 20,
           color: AppColors.navy,
         ),
+      ),
+    );
+  }
+}
+
+// 経路の道のりの真ん中の位置と、そこでの進む向き(北から時計回りのラジアン)
+({LatLng point, double angle})? _midArrow(List<LatLng> route) {
+  final points = route
+      .where((e) => e.latitude.isFinite && e.longitude.isFinite)
+      .toList();
+  if (points.length < 2) return null;
+
+  const distance = Distance();
+  var total = 0.0;
+  for (var i = 1; i < points.length; i++) {
+    total += distance(points[i - 1], points[i]);
+  }
+  if (total <= 0) return null;
+
+  var walked = 0.0;
+  for (var i = 1; i < points.length; i++) {
+    final a = points[i - 1];
+    final b = points[i];
+    final length = distance(a, b);
+    if (length > 0 && walked + length >= total / 2) {
+      final t = (total / 2 - walked) / length;
+      final point = LatLng(
+        a.latitude + (b.latitude - a.latitude) * t,
+        a.longitude + (b.longitude - a.longitude) * t,
+      );
+      // 地図は北が上なので、緯度・経度の差から向きを出す
+      final dx =
+          (b.longitude - a.longitude) * math.cos(a.latitude * math.pi / 180);
+      final dy = b.latitude - a.latitude;
+      return (point: point, angle: math.atan2(dx, dy));
+    }
+    walked += length;
+  }
+  return null;
+}
+
+/// 地図の滞在の印(タイムラインの番号と同じ)
+class _StayMarker extends StatelessWidget {
+  const _StayMarker({required this.number});
+
+  final int number;
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      label: '$number番目の滞在',
+      excludeSemantics: true,
+      child: Container(
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: AppColors.navy,
+          border: Border.all(color: AppColors.white, width: 3),
+          boxShadow: AppColors.cardShadows,
+        ),
+        child: Text(
+          '$number',
+          style: const TextStyle(
+            fontSize: 15,
+            fontWeight: FontWeight.w700,
+            color: AppColors.white,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// 移動の向きの矢印(白い丸に、オレンジの矢印)
+class _DirectionArrow extends StatelessWidget {
+  const _DirectionArrow({required this.angle});
+
+  final double angle;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: AppColors.white,
+        border: Border.all(color: AppColors.orange, width: 1.5),
+      ),
+      child: Transform.rotate(
+        angle: angle,
+        child: const Icon(Icons.navigation, size: 14, color: AppColors.orange),
       ),
     );
   }

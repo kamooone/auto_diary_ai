@@ -80,9 +80,7 @@ class MapViewModel extends Notifier<MapState> {
       await stop();
     });
 
-    return MapState(
-      selectedDate: DateTime.now(),
-    );
+    return MapState(selectedDate: DateTime.now());
   }
 
   Future<void> initialize() async {
@@ -115,27 +113,20 @@ class MapViewModel extends Notifier<MapState> {
     _locations = logs;
 
     state = state.copyWith(
-      history: logs
-          .map((e) => LatLng(
-        e.latitude,
-        e.longitude,
-      ))
-          .toList(),
+      history: logs.map((e) => LatLng(e.latitude, e.longitude)).toList(),
     );
 
     // 地名の取得に時間がかかるため、軌跡を表示した後にタイムラインを読み込む
     await _reloadTimeline();
 
-
     debugPrint(
       "${date.year}/${date.month}/${date.day} "
-          "取得件数 = ${logs.length}",
+      "取得件数 = ${logs.length}",
     );
   }
 
-  /// タイムラインの移動を選択し、その移動経路を返す
-  /// (地図上で経路を強調して表示する)
-  List<LatLng> selectMove(Move move) {
+  /// 移動の経路(その時間帯に記録された位置。記録が途切れていれば、前後の滞在場所を結ぶ)
+  List<LatLng> routeOf(Move move) {
     // 移動していた時間帯に記録された位置
     var route = [
       for (final location in _locations)
@@ -151,10 +142,15 @@ class MapViewModel extends Notifier<MapState> {
       route = _surroundingStays(move);
     }
 
-    state = state.copyWith(
-      selectedMoveStart: move.start,
-      selectedRoute: route,
-    );
+    return route;
+  }
+
+  /// タイムラインの移動を選択し、その移動経路を返す
+  /// (地図上で経路を強調して表示する)
+  List<LatLng> selectMove(Move move) {
+    final route = routeOf(move);
+
+    state = state.copyWith(selectedMoveStart: move.start, selectedRoute: route);
 
     return route;
   }
@@ -313,14 +309,10 @@ class MapViewModel extends Notifier<MapState> {
         .read(startLocationTrackingUseCaseProvider)
         .execute()
         .listen((location) {
-
-      state = state.copyWith(
-        currentLocation: LatLng(
-          location.latitude,
-          location.longitude,
-        ),
-      );
-    });
+          state = state.copyWith(
+            currentLocation: LatLng(location.latitude, location.longitude),
+          );
+        });
   }
 
   Future<void> stop() async {

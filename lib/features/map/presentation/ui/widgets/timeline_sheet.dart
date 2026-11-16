@@ -428,19 +428,21 @@ class TimelineSheet extends StatelessWidget {
                               padding: const EdgeInsets.symmetric(
                                 horizontal: AppSizes.space8,
                               ),
-                              alignment: Alignment.center,
                               decoration: BoxDecoration(
                                 color: AppColors.pink,
                                 borderRadius: BorderRadius.circular(
                                   AppSizes.radiusPill,
                                 ),
                               ),
-                              child: Text(
-                                TimelineFormatter.duration(stay.duration),
-                                style: const TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w700,
-                                  color: AppColors.navyDark,
+                              child: Center(
+                                widthFactor: 1,
+                                child: Text(
+                                  TimelineFormatter.duration(stay.duration),
+                                  style: const TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w700,
+                                    color: AppColors.navyDark,
+                                  ),
                                 ),
                               ),
                             ),
