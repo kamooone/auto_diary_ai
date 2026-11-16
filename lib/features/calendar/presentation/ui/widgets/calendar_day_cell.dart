@@ -21,7 +21,6 @@ class CalendarDayCell extends StatelessWidget {
     required this.day,
     required this.column,
     required this.diaries,
-    required this.isLatest,
     required this.isToday,
     required this.onTap,
   });
@@ -34,9 +33,7 @@ class CalendarDayCell extends StatelessWidget {
   /// その日の日記(1件目のタイトルと写真を出す)
   final List<Diary> diaries;
 
-  /// いちばん新しい記録の日か(オレンジの丸)
-  final bool isLatest;
-
+  /// 今日か(オレンジの丸)
   final bool isToday;
 
   final VoidCallback onTap;
@@ -62,7 +59,6 @@ class CalendarDayCell extends StatelessWidget {
                   child: _DayNumber(
                     day: day.day,
                     column: column,
-                    isLatest: isLatest,
                     isToday: isToday,
                   ),
                 ),
@@ -142,23 +138,21 @@ class _DayNumber extends StatelessWidget {
   const _DayNumber({
     required this.day,
     required this.column,
-    required this.isLatest,
     required this.isToday,
   });
 
   final int day;
   final int column;
-  final bool isLatest;
   final bool isToday;
 
   static const _features = [FontFeature.tabularFigures()];
 
   @override
   Widget build(BuildContext context) {
-    // いちばん新しい記録の日は、オレンジの丸に白い数字
-    if (isLatest) {
+    // 今日は、オレンジの丸に白い数字
+    if (isToday) {
       return Container(
-        key: const Key('latestDay'),
+        key: const Key('todayDay'),
         width: 22,
         height: 22,
         alignment: Alignment.center,
@@ -172,29 +166,6 @@ class _DayNumber extends StatelessWidget {
             fontSize: 12,
             fontWeight: FontWeight.w800,
             color: AppColors.white,
-            fontFeatures: _features,
-          ),
-        ),
-      );
-    }
-
-    // 今日(日記が、いちばん新しい日ではないとき)は、オレンジの輪
-    if (isToday) {
-      return Container(
-        key: const Key('todayDay'),
-        width: 22,
-        height: 22,
-        alignment: Alignment.center,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          border: Border.all(color: AppColors.orange, width: 1.5),
-        ),
-        child: Text(
-          '$day',
-          style: const TextStyle(
-            fontSize: 12,
-            fontWeight: FontWeight.w800,
-            color: AppColors.text,
             fontFeatures: _features,
           ),
         ),

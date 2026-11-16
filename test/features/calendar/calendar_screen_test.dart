@@ -76,21 +76,22 @@ void main() {
     semantics.dispose();
   });
 
-  testWidgets('いちばん新しい記録の日だけ、オレンジの丸になる', (tester) async {
+  testWidgets('オレンジの丸は、今日の日付だけに付く(いちばん新しい記録の日には付かない)', (tester) async {
     await open(tester, [
       diary(DateTime(thisMonth.year, thisMonth.month, 1), '古い'),
       diary(DateTime(thisMonth.year, thisMonth.month, 2), '新しい'),
     ]);
 
-    final latest = find.byKey(const Key('latestDay'));
-    expect(latest, findsOneWidget);
+    final today = find.byKey(const Key('todayDay'));
+    expect(today, findsOneWidget);
     expect(
-      find.descendant(of: latest, matching: find.text('2')),
+      find.descendant(of: today, matching: find.text('${now.day}')),
       findsOneWidget,
     );
 
     final decoration =
-        tester.widget<Container>(latest).decoration as BoxDecoration;
+        tester.widget<Container>(today).decoration as BoxDecoration;
+    expect(decoration.shape, BoxShape.circle);
     expect(decoration.color, AppColors.orange);
   });
 
@@ -133,21 +134,5 @@ void main() {
     await tester.tap(find.text('今日'));
     await tester.pumpAndSettle();
     expect(find.text('先月の日記'), findsNothing);
-  });
-
-  testWidgets('今日の日付には、オレンジの輪が付く', (tester) async {
-    await open(tester, const []);
-
-    final today = find.byKey(const Key('todayDay'));
-    expect(today, findsOneWidget);
-    expect(
-      find.descendant(of: today, matching: find.text('${now.day}')),
-      findsOneWidget,
-    );
-
-    final decoration =
-        tester.widget<Container>(today).decoration as BoxDecoration;
-    expect(decoration.shape, BoxShape.circle);
-    expect((decoration.border as Border).top.color, AppColors.orange);
   });
 }

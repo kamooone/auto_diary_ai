@@ -2,12 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:auto_diary_ai/common/constants/app_colors.dart';
 import 'package:auto_diary_ai/common/constants/app_sizes.dart';
+import 'package:auto_diary_ai/common/widgets/month_bar.dart';
 import 'package:auto_diary_ai/common/widgets/timeline_row.dart';
+import 'package:auto_diary_ai/features/home/domain/services/home_months.dart';
 import 'package:auto_diary_ai/features/home/presentation/ui/widgets/trail_illustration.dart';
 import '../../../diary_create/domain/entities/photo.dart';
 import '../../../diary_create/presentation/ui/widgets/photo_thumbnail.dart';
-import '../../../diary_create/domain/services/photo_period_filter.dart';
-import '../../../diary_create/presentation/ui/widgets/photo_period_filter_bar.dart';
 import '../../application/providers/memo_providers.dart';
 import '../../domain/entities/memo.dart';
 import '../../domain/services/memo_filter.dart';
@@ -16,7 +16,7 @@ import 'memo_edit_dialog.dart';
 
 /// ホーム画面の「ひとこと」タブ。ひとことメモを、新しい順に並べる
 ///
-/// 上の年・月のセレクトボックスと検索の入力欄で、絞り込める
+/// 上の月の切り替え(日記の一覧と同じ)で、月ごとに見られる。検索の入力欄に書くと、すべての月から探す
 class MemoListView extends ConsumerStatefulWidget {
   const MemoListView({super.key});
 
@@ -25,8 +25,34 @@ class MemoListView extends ConsumerStatefulWidget {
 }
 
 class _MemoListViewState extends ConsumerState<MemoListView> {
-  var _period = PhotoPeriodFilter.all;
+  // 新しい月が先頭(0番目)。日記の一覧と同じ向き
+  final _controller = PageController();
+
+  // 表示中の月(「2026-10」の形)。選んでいないときは、いちばん新しい月(今月)
+  String? _selected;
   var _query = '';
+  var _monthCount = 0;
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  static String _monthKey(DateTime t) =>
+      '${t.year}-${t.month.toString().padLeft(2, '0')}';
+
+  void _goTo(List<String> months, String month) {
+    final index = months.indexOf(month);
+    if (index < 0) return;
+
+    setState(() => _selected = month);
+    _controller.animateToPage(
+      index,
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeInOut,
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -46,15 +72,36 @@ class _MemoListViewState extends ConsumerState<MemoListView> {
           );
         }
 
-        final shown = MemoFilter.apply(memos, period: _period, query: _query);
+        // 今月から、いちばん古いメモの月まで(メモのない月も含める。新しい月が先頭)
+        final months = homeMonths(
+          diaryDates: memos.map((e) => e.createdAt),
+          now: DateTime.now(),
+        );
+        final selected = _selected != null && months.contains(_selected)
+            ? _selected!
+            : months.first;
+
+        // メモが増えて、月の数が変わったときは、表示中の月のページに合わせ直す
+        if (_monthCount != months.length) {
+          _monthCount = months.length;
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (_controller.hasClients) {
+              _controller.jumpToPage(months.indexOf(selected));
+            }
+          });
+        }
+
+        final searching = _query.trim().isNotEmpty;
 
         return Column(
           children: [
-            PhotoPeriodFilterBar(
-              years: MemoFilter.years(memos),
-              value: _period,
-              onChanged: (value) => setState(() => _period = value),
-            ),
+            // 検索しているときは、すべての月から探すので、月の切り替えは隠す
+            if (!searching)
+              MonthBar(
+                months: months,
+                selectedMonth: selected,
+                onChanged: (month) => _goTo(months, month),
+              ),
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
               child: TextField(
@@ -69,19 +116,55 @@ class _MemoListViewState extends ConsumerState<MemoListView> {
               ),
             ),
             Expanded(
-              child: shown.isEmpty
-                  ? const Center(
-                      child: Text(
-                        "条件に合うメモがありません",
-                        style: TextStyle(color: AppColors.textSub),
+              child: searching
+                  ? _searchResult(memos)
+                  : PageView.builder(
+                      controller: _controller,
+                      // 新しい月が先頭のため向きを逆にして、右にスライドで翌月、左にスライドで先月にする
+                      reverse: true,
+                      itemCount: months.length,
+                      onPageChanged: (index) =>
+                          setState(() => _selected = months[index]),
+                      itemBuilder: (context, index) => _monthPage(
+                        memos
+                            .where(
+                              (e) => _monthKey(e.createdAt) == months[index],
+                            )
+                            .toList(),
                       ),
-                    )
-                  : _MemoTimeline(items: buildMemoTimeline(shown)),
+                    ),
             ),
           ],
         );
       },
     );
+  }
+
+  // 検索の結果(すべての月から)
+  Widget _searchResult(List<Memo> memos) {
+    final shown = MemoFilter.apply(memos, query: _query);
+    if (shown.isEmpty) {
+      return const Center(
+        child: Text(
+          "条件に合うメモがありません",
+          style: TextStyle(color: AppColors.textSub),
+        ),
+      );
+    }
+    return _MemoTimeline(items: buildMemoTimeline(shown));
+  }
+
+  // 1か月分のページ(その月にメモがなければ、小さな絵と一文)
+  Widget _monthPage(List<Memo> items) {
+    if (items.isEmpty) {
+      return ListView(
+        padding: const EdgeInsets.only(bottom: 96),
+        children: const [
+          TrailIllustration(message: "この月は、まだひとことがありません\n右下のボタンから追加できます"),
+        ],
+      );
+    }
+    return _MemoTimeline(items: buildMemoTimeline(items));
   }
 }
 

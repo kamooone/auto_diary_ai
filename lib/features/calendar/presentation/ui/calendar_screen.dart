@@ -3,6 +3,7 @@ import 'package:auto_diary_ai/common/constants/app_colors.dart';
 import 'package:auto_diary_ai/common/constants/app_sizes.dart';
 import 'package:auto_diary_ai/common/widgets/month_bar.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../ads/presentation/banner_ad_view.dart';
 import '../../../diary/application/providers/diary_providers.dart';
 import '../../../diary/domain/entities/diary.dart';
 import '../../../diary/presentation/ui/diary_detail_screen.dart';
@@ -95,11 +96,6 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
       byDay.putIfAbsent(DateTime(d.year, d.month, d.day), () => []).add(diary);
     }
 
-    // いちばん新しい記録の日
-    final latestDay = byDay.keys.isEmpty
-        ? null
-        : byDay.keys.reduce((a, b) => a.isAfter(b) ? a : b);
-
     final page = _page.clamp(0, months.length - 1);
     final month = months[page];
     final monthKeys = [for (final m in months) _monthKey(m)];
@@ -132,6 +128,8 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
           ),
         ],
       ),
+      // 画面の下部に、バナー広告を表示する(読み込めたときだけ、白い帯で出る)
+      bottomNavigationBar: const SafeArea(child: BannerAdView(band: true)),
       body: Column(
         key: _calendarKey,
         children: [
@@ -153,8 +151,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
               reverse: true,
               itemCount: months.length,
               onPageChanged: (index) => setState(() => _page = index),
-              itemBuilder: (context, index) =>
-                  _monthPage(months[index], byDay, latestDay),
+              itemBuilder: (context, index) => _monthPage(months[index], byDay),
             ),
           ),
         ],
@@ -205,11 +202,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
   }
 
   /// 1か月分のページ。6週にまたがる月は、マスの高さを縮めて、1画面に収める(それでも収まらなければ、縦にスクロール)
-  Widget _monthPage(
-    DateTime month,
-    Map<DateTime, List<Diary>> byDay,
-    DateTime? latestDay,
-  ) {
+  Widget _monthPage(DateTime month, Map<DateTime, List<Diary>> byDay) {
     final cells = MonthGrid.cells(month);
     final rows = cells.length ~/ 7;
     final now = DateTime.now();
@@ -242,13 +235,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                       for (var c = 0; c < 7; c++) ...[
                         if (c > 0) const SizedBox(width: _gap),
                         Expanded(
-                          child: _cell(
-                            cells[r * 7 + c],
-                            c,
-                            byDay,
-                            latestDay,
-                            today,
-                          ),
+                          child: _cell(cells[r * 7 + c], c, byDay, today),
                         ),
                       ],
                     ],
@@ -266,7 +253,6 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
     DateTime? day,
     int column,
     Map<DateTime, List<Diary>> byDay,
-    DateTime? latestDay,
     DateTime today,
   ) {
     // その月以外の日(前後の空き)は、何も表示しない
@@ -278,7 +264,6 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
       day: day,
       column: column,
       diaries: diaries,
-      isLatest: latestDay != null && day == latestDay,
       isToday: day == today,
       onTap: () => _open(context, day, diaries),
     );
