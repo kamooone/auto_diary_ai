@@ -367,7 +367,10 @@ class _Footer extends StatelessWidget {
           const SizedBox(width: _dateWidth),
           SizedBox(
             width: _lineWidth,
-            child: CustomPaint(painter: _FooterPainter()),
+            child: CustomPaint(
+              size: const Size(_lineWidth, 28),
+              painter: _FooterPainter(),
+            ),
           ),
           Text(
             '$month月のはじまり',

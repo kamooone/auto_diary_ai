@@ -5,7 +5,12 @@ import 'package:auto_diary_ai/common/constants/app_colors.dart';
 import 'package:auto_diary_ai/common/constants/app_sizes.dart';
 
 class ThemeUtil {
-  static ThemeData appTheme() {
+  /// [useGoogleFonts]をfalseにすると、フォントをネットから読まず、[fontFamily]を使う
+  /// (画面を画像にして確かめるテスト用)
+  static ThemeData appTheme({
+    bool useGoogleFonts = true,
+    String? fontFamily,
+  }) {
     final base = FlexThemeData.light(
       scheme: FlexScheme.sanJuanBlue,
     );
@@ -19,10 +24,11 @@ class ThemeUtil {
       onSurface: AppColors.text,
     );
 
-    final textTheme = GoogleFonts.notoSansTextTheme().apply(
-      bodyColor: AppColors.text,
-      displayColor: AppColors.text,
-    );
+    final textTheme =
+        (useGoogleFonts
+                ? GoogleFonts.notoSansTextTheme()
+                : base.textTheme.apply(fontFamily: fontFamily))
+            .apply(bodyColor: AppColors.text, displayColor: AppColors.text);
 
     return base.copyWith(
       colorScheme: colorScheme,
@@ -36,11 +42,18 @@ class ThemeUtil {
         elevation: 0,
         scrolledUnderElevation: 0,
         centerTitle: false,
-        titleTextStyle: GoogleFonts.notoSans(
-          fontSize: AppSizes.fontSize20,
-          fontWeight: FontWeight.w600,
-          color: AppColors.white,
-        ),
+        titleTextStyle: useGoogleFonts
+            ? GoogleFonts.notoSans(
+                fontSize: AppSizes.fontSize20,
+                fontWeight: FontWeight.w600,
+                color: AppColors.white,
+              )
+            : TextStyle(
+                fontFamily: fontFamily,
+                fontSize: AppSizes.fontSize20,
+                fontWeight: FontWeight.w600,
+                color: AppColors.white,
+              ),
         iconTheme: const IconThemeData(color: AppColors.white),
         actionsIconTheme: const IconThemeData(color: AppColors.white),
       ),
