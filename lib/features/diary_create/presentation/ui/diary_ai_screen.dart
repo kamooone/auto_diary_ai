@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart' show ScrollCacheExtent;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../ads/presentation/banner_ad_view.dart';
 import '../../../../core/app_info/install_date_provider.dart';
 import '../../../ai/application/providers/ai_model_provider.dart';
 import '../../../ai/presentation/widgets/ai_select_card.dart';
@@ -182,6 +183,8 @@ class _DiaryAiScreenState extends ConsumerState<DiaryAiScreen> {
 
     return Scaffold(
       appBar: AppBar(title: Text("${model.label}に書いてもらう")),
+      // 画面の下部に、バナー広告を表示する(読み込めたときだけ、白い帯で出る)
+      bottomNavigationBar: const SafeArea(child: BannerAdView(band: true)),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 20, 16, 32),
         // 画面の外にある部品も、チュートリアルで場所を取れるよう、先に作っておく

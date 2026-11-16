@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart' show ScrollCacheExtent;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../ads/presentation/banner_ad_view.dart';
 import '../../../diary/application/providers/diary_providers.dart';
 import '../../../diary/domain/entities/diary.dart';
 import '../../../plan/application/providers/plan_provider.dart';
@@ -178,6 +179,8 @@ class _SummaryDiaryScreenState extends ConsumerState<SummaryDiaryScreen> {
 
     return Scaffold(
       appBar: AppBar(title: const Text("振り返り作成")),
+      // 画面の下部に、バナー広告を表示する(読み込めたときだけ、白い帯で出る)
+      bottomNavigationBar: const SafeArea(child: BannerAdView(band: true)),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 20, 16, 32),
         // 画面の外にある部品も、チュートリアルで場所を取れるよう、先に作っておく
