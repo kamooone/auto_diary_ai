@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:auto_diary_ai/common/constants/app_colors.dart';
+import 'package:auto_diary_ai/common/constants/app_sizes.dart';
+import 'package:auto_diary_ai/common/widgets/month_bar.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../diary/application/providers/diary_providers.dart';
 import '../../../diary/domain/entities/diary.dart';
@@ -7,6 +10,7 @@ import '../../../tutorial/application/tutorial_providers.dart';
 import '../../../tutorial/domain/tutorial_step.dart';
 import '../../../tutorial/presentation/tutorial_runner.dart';
 import '../../domain/services/month_grid.dart';
+import 'widgets/calendar_day_cell.dart';
 
 /// 日記を書いた日が分かるカレンダー
 ///
@@ -31,6 +35,15 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
   static const _tutorialId = 'calendar';
 
   static const _weekdays = ['日', '月', '火', '水', '木', '金', '土'];
+
+  // 日付のマス
+  static const _sidePadding = 12.0;
+  static const _gap = 4.0;
+  static const _cellHeight = 114.0;
+  static const _minCellHeight = 96.0;
+
+  // マスの下の、説明の行の高さ(上の間隔8を除く。収まるかの計算に使う)
+  static const _legendHeight = 8.0 + 20.0 + 16.0;
 
   @override
   void initState() {
@@ -63,6 +76,9 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
     super.dispose();
   }
 
+  static String _monthKey(DateTime month) =>
+      '${month.year}-${month.month.toString().padLeft(2, '0')}';
+
   @override
   Widget build(BuildContext context) {
     final diaries = ref.watch(diariesProvider).valueOrNull ?? const <Diary>[];
@@ -79,25 +95,63 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
       byDay.putIfAbsent(DateTime(d.year, d.month, d.day), () => []).add(diary);
     }
 
+    // いちばん新しい記録の日
+    final latestDay = byDay.keys.isEmpty
+        ? null
+        : byDay.keys.reduce((a, b) => a.isAfter(b) ? a : b);
+
     final page = _page.clamp(0, months.length - 1);
     final month = months[page];
+    final monthKeys = [for (final m in months) _monthKey(m)];
+
+    // その月に、日記を書いた日の数
+    final recordedDays = byDay.keys
+        .where((d) => d.year == month.year && d.month == month.month)
+        .length;
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text("カレンダー"),
+        leading: IconButton(
+          tooltip: '戻る',
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => Navigator.of(context).maybePop(),
+        ),
+        title: const Text(
+          'カレンダー',
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.w700,
+            letterSpacing: 0.72,
+            color: AppColors.white,
+          ),
+        ),
         actions: [
           TextButton(
             onPressed: page == 0 ? null : () => _go(0),
-            child: const Text("今日"),
+            style: TextButton.styleFrom(
+              foregroundColor: AppColors.white,
+              disabledForegroundColor: AppColors.white.withValues(alpha: 0.5),
+              minimumSize: const Size(44, 44),
+            ),
+            child: const Text('今日'),
           ),
         ],
       ),
       body: Column(
         key: _calendarKey,
         children: [
-          _monthBar(month, page, months.length),
-          _weekdayRow(context),
-          const Divider(height: 1),
+          // 年月の切り替え(ホーム画面と共通)
+          MonthBar(
+            compact: true,
+            months: monthKeys,
+            selectedMonth: _monthKey(month),
+            recordedDays: recordedDays,
+            onChanged: (key) {
+              final index = monthKeys.indexOf(key);
+              if (index >= 0) _go(index);
+            },
+          ),
+          _weekdayRow(),
           Expanded(
             child: PageView.builder(
               controller: _controller,
@@ -106,7 +160,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
               itemCount: months.length,
               onPageChanged: (index) => setState(() => _page = index),
               itemBuilder: (context, index) =>
-                  _monthGrid(context, months[index], byDay),
+                  _monthPage(months[index], byDay, latestDay),
             ),
           ),
         ],
@@ -122,152 +176,120 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
     );
   }
 
-  Widget _monthBar(DateTime month, int page, int count) {
+  // 曜日の行(日付のマスと、同じ幅・同じ間隔で並べる)
+  Widget _weekdayRow() {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 8),
+      padding: const EdgeInsets.fromLTRB(
+        _sidePadding,
+        0,
+        _sidePadding,
+        AppSizes.space4,
+      ),
       child: Row(
         children: [
-          // 左が先月、右が翌月
-          IconButton(
-            icon: const Icon(Icons.chevron_left),
-            tooltip: "先月",
-            onPressed: page < count - 1 ? () => _go(page + 1) : null,
-          ),
-          Expanded(
-            child: Text(
-              "${month.year}年${month.month}月",
-              textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.titleMedium,
+          for (var i = 0; i < 7; i++) ...[
+            if (i > 0) const SizedBox(width: _gap),
+            Expanded(
+              child: Text(
+                _weekdays[i],
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                  color: i == 0
+                      ? AppColors.sunday
+                      : i == 6
+                      ? AppColors.saturday
+                      : AppColors.textSub,
+                ),
+              ),
             ),
-          ),
-          IconButton(
-            icon: const Icon(Icons.chevron_right),
-            tooltip: "翌月",
-            onPressed: page > 0 ? () => _go(page - 1) : null,
-          ),
+          ],
         ],
       ),
     );
   }
 
-  Widget _weekdayRow(BuildContext context) {
-    return Row(
-      children: [
-        for (var i = 0; i < 7; i++)
-          Expanded(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 4),
-              child: Text(
-                _weekdays[i],
-                textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: _weekdayColor(context, i),
-                ),
-              ),
-            ),
-          ),
-      ],
-    );
-  }
-
-  Color? _weekdayColor(BuildContext context, int index) {
-    if (index == 0) return Colors.red;
-    if (index == 6) return Colors.blue;
-    return null;
-  }
-
-  Widget _monthGrid(
-    BuildContext context,
+  /// 1か月分のページ。6週にまたがる月は、マスの高さを縮めて、1画面に収める(それでも収まらなければ、縦にスクロール)
+  Widget _monthPage(
     DateTime month,
     Map<DateTime, List<Diary>> byDay,
+    DateTime? latestDay,
   ) {
     final cells = MonthGrid.cells(month);
     final rows = cells.length ~/ 7;
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
 
-    return Column(
-      children: [
-        for (var r = 0; r < rows; r++)
-          Expanded(
-            child: Row(
-              children: [
-                for (var c = 0; c < 7; c++)
-                  Expanded(
-                    child: _cell(context, cells[r * 7 + c], c, byDay),
-                  ),
-              ],
-            ),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final gaps = (rows - 1) * _gap;
+        final available = constraints.maxHeight - _legendHeight - gaps;
+        final cellHeight = (available / rows).clamp(
+          _minCellHeight,
+          _cellHeight,
+        );
+
+        return SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(
+            _sidePadding,
+            0,
+            _sidePadding,
+            AppSizes.space16,
           ),
-      ],
+          child: Column(
+            children: [
+              for (var r = 0; r < rows; r++) ...[
+                if (r > 0) const SizedBox(height: _gap),
+                SizedBox(
+                  height: cellHeight,
+                  child: Row(
+                    children: [
+                      for (var c = 0; c < 7; c++) ...[
+                        if (c > 0) const SizedBox(width: _gap),
+                        Expanded(
+                          child: _cell(
+                            cells[r * 7 + c],
+                            c,
+                            byDay,
+                            latestDay,
+                            today,
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              ],
+              const SizedBox(height: AppSizes.space8),
+              const _Legend(),
+            ],
+          ),
+        );
+      },
     );
   }
 
   Widget _cell(
-    BuildContext context,
     DateTime? day,
     int column,
     Map<DateTime, List<Diary>> byDay,
+    DateTime? latestDay,
+    DateTime today,
   ) {
-    final border = BorderSide(color: Theme.of(context).dividerColor, width: 0.5);
-    final decoration = BoxDecoration(
-      border: Border(bottom: border, right: border),
-    );
-
-    if (day == null) return DecoratedBox(decoration: decoration);
+    // その月以外の日(前後の空き)は、何も表示しない
+    if (day == null) return const SizedBox.shrink();
 
     final diaries = byDay[day] ?? const <Diary>[];
-    final now = DateTime.now();
-    final isToday = day == DateTime(now.year, now.month, now.day);
-    final scheme = Theme.of(context).colorScheme;
 
-    final cell = Container(
-      decoration: decoration,
-      padding: const EdgeInsets.fromLTRB(3, 3, 3, 2),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 4),
-                decoration: isToday
-                    ? BoxDecoration(
-                        color: scheme.primary,
-                        borderRadius: BorderRadius.circular(8),
-                      )
-                    : null,
-                child: Text(
-                  "${day.day}",
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: isToday ? scheme.onPrimary : _weekdayColor(context, column),
-                  ),
-                ),
-              ),
-              const Spacer(),
-              // 同じ日に複数あるときは、2件目以降の数
-              if (diaries.length > 1)
-                Text(
-                  "+${diaries.length - 1}",
-                  style: TextStyle(fontSize: 10, color: scheme.primary),
-                ),
-            ],
-          ),
-          if (diaries.isNotEmpty)
-            Expanded(
-              child: Text(
-                diaries.first.headline,
-                maxLines: 3,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(fontSize: 10, height: 1.2),
-              ),
-            ),
-        ],
-      ),
+    return CalendarDayCell(
+      day: day,
+      column: column,
+      diaries: diaries,
+      isLatest: latestDay != null && day == latestDay,
+      isToday: day == today,
+      onTap: () => _open(context, day, diaries),
     );
-
-    // 日記がない日は、タップできない
-    if (diaries.isEmpty) return cell;
-
-    return InkWell(onTap: () => _open(context, day, diaries), child: cell);
   }
 
   // 1件ならその日記を開き、複数ならその日の一覧から選ぶ
@@ -312,6 +334,58 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
   void _openDiary(BuildContext context, Diary diary) {
     Navigator.of(context).push(
       MaterialPageRoute(builder: (context) => DiaryDetailScreen(diary: diary)),
+    );
+  }
+}
+
+/// マスの下の、説明の行(「記録した日」「いちばん新しい記録」「ほかの日記の数」)
+class _Legend extends StatelessWidget {
+  const _Legend();
+
+  @override
+  Widget build(BuildContext context) {
+    const style = TextStyle(fontSize: 12, color: AppColors.textSub);
+
+    Widget item(Widget mark, String label) => Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        mark,
+        const SizedBox(width: 6),
+        Text(label, style: style),
+      ],
+    );
+
+    return Wrap(
+      alignment: WrapAlignment.center,
+      crossAxisAlignment: WrapCrossAlignment.center,
+      spacing: AppSizes.space16,
+      runSpacing: AppSizes.space4,
+      children: [
+        item(
+          Container(
+            width: 12,
+            height: 12,
+            decoration: BoxDecoration(
+              color: AppColors.white,
+              borderRadius: BorderRadius.circular(4),
+              border: Border.all(color: AppColors.line),
+            ),
+          ),
+          '記録した日',
+        ),
+        item(
+          Container(
+            width: 12,
+            height: 12,
+            decoration: const BoxDecoration(
+              color: AppColors.orange,
+              shape: BoxShape.circle,
+            ),
+          ),
+          'いちばん新しい記録',
+        ),
+        item(const ExcludeSemantics(child: MoreChip(count: 1)), 'ほかの日記の数'),
+      ],
     );
   }
 }

@@ -1,4 +1,4 @@
-import 'package:auto_diary_ai/features/home/presentation/ui/widgets/home_month_bar.dart';
+import 'package:auto_diary_ai/common/widgets/month_bar.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -15,7 +15,7 @@ void main() {
     return tester.pumpWidget(
       MaterialApp(
         home: Scaffold(
-          body: HomeMonthBar(
+          body: MonthBar(
             months: months,
             selectedMonth: selected,
             recordedDays: days,

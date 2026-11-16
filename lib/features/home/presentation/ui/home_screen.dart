@@ -1,9 +1,9 @@
 import 'package:auto_diary_ai/common/extensions/build_context_ext.dart';
 import 'package:auto_diary_ai/common/constants/app_colors.dart';
+import 'package:auto_diary_ai/common/widgets/month_bar.dart';
 import 'package:auto_diary_ai/features/home/domain/services/timeline_entries.dart';
 import 'package:auto_diary_ai/features/home/presentation/ui/widgets/diary_timeline_view.dart';
 import 'package:auto_diary_ai/features/home/presentation/ui/widgets/home_fab.dart';
-import 'package:auto_diary_ai/features/home/presentation/ui/widgets/home_month_bar.dart';
 import 'package:auto_diary_ai/features/home/presentation/ui/widgets/home_scaffold.dart';
 import 'package:auto_diary_ai/features/home/presentation/ui/widgets/trail_illustration.dart';
 import 'package:flutter/material.dart';
@@ -305,7 +305,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         else if (state.months.contains(selectedMonth))
           Column(
             children: [
-              HomeMonthBar(
+              MonthBar(
                 months: state.months,
                 selectedMonth: selectedMonth,
                 recordedDays: countRecordedDays(
