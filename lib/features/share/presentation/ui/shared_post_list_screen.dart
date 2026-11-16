@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../../common/constants/app_colors.dart';
+import '../../../../common/constants/app_sizes.dart';
+import '../../../../common/widgets/app_card.dart';
+import '../../../../common/widgets/icon_action_button.dart';
 import '../../../diary_create/domain/entities/photo.dart';
 import '../../../diary_create/domain/services/day_grouper.dart';
 import '../../../diary_create/domain/services/month_filter.dart';
@@ -72,11 +76,10 @@ class _PostListState extends ConsumerState<_PostList> {
 
     // 日付の新しい順に、見出しと投稿を1列に並べる
     final rows = <Object>[
-      for (final day in groupByDay<SharedPost>(visible.toList(), (e) => e.receivedAt)
-          .reversed) ...[
-        day.date,
-        ...day.items,
-      ],
+      for (final day in groupByDay<SharedPost>(
+        visible.toList(),
+        (e) => e.receivedAt,
+      ).reversed) ...[day.date, ...day.items],
     ];
 
     return Column(
@@ -85,6 +88,7 @@ class _PostListState extends ConsumerState<_PostList> {
           times: times,
           value: filter,
           onChanged: (value) => setState(() => _filter = value),
+          chipStyle: true,
         ),
         Expanded(child: _list(context, rows)),
       ],
@@ -93,66 +97,120 @@ class _PostListState extends ConsumerState<_PostList> {
 
   Widget _list(BuildContext context, List<Object> rows) {
     return ListView.builder(
+      padding: const EdgeInsets.fromLTRB(
+        AppSizes.space16,
+        AppSizes.space8,
+        AppSizes.space16,
+        AppSizes.space24,
+      ),
       itemCount: rows.length,
       itemBuilder: (context, index) {
         final row = rows[index];
 
+        // 日付ごとの見出し
         if (row is DateTime) {
-          return Container(
-            width: double.infinity,
-            color: Theme.of(context).colorScheme.surfaceContainerHighest,
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          return Padding(
+            padding: EdgeInsets.fromLTRB(
+              AppSizes.space4,
+              index == 0 ? 0 : AppSizes.space16,
+              AppSizes.space4,
+              AppSizes.space8,
+            ),
             child: Text(
               SharedPostFormat.date(row),
-              style: Theme.of(context).textTheme.titleSmall,
+              style: const TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w700,
+                color: AppColors.textSub,
+              ),
             ),
           );
         }
 
         final post = row as SharedPost;
 
-        return ListTile(
-          leading: const Icon(Icons.share),
-          title: Text(
-            post.text.isEmpty ? "(テキストなし)" : post.text,
-            maxLines: 3,
-            overflow: TextOverflow.ellipsis,
-          ),
-          subtitle: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(SharedPostFormat.time(post.receivedAt)),
-              if (post.photoIds.isNotEmpty)
-                Padding(
-                  padding: const EdgeInsets.only(top: 8),
-                  child: Builder(builder: (context) {
-                    final photos = [
-                      for (final id in post.photoIds)
-                        Photo(id: id, createdAt: post.receivedAt),
-                    ];
-                    return PhotoStrip(
-                      photos: photos,
-                      onTap: (i) =>
-                          showPhotoViewer(context, photos, initialIndex: i),
-                    );
-                  }),
-                ),
-            ],
-          ),
-          trailing: IconButton(
-            icon: const Icon(Icons.delete_outline),
-            tooltip: "削除",
-            onPressed: () => _confirmDelete(context, ref, post),
-          ),
-          onTap: () async {
-            final changed = await Navigator.of(context).push<bool>(
-              MaterialPageRoute(
-                builder: (context) => SharedPostEditScreen(post: post),
-              ),
-            );
+        return Padding(
+          padding: const EdgeInsets.only(bottom: AppSizes.space8),
+          child: AppCard(
+            child: InkWell(
+              onTap: () async {
+                final changed = await Navigator.of(context).push<bool>(
+                  MaterialPageRoute(
+                    builder: (context) => SharedPostEditScreen(post: post),
+                  ),
+                );
 
-            if (changed == true) ref.invalidate(allSharedPostsProvider);
-          },
+                if (changed == true) ref.invalidate(allSharedPostsProvider);
+              },
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 14, 8, 8),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            SharedPostFormat.time(post.receivedAt),
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: AppColors.textSub,
+                              fontFeatures: [FontFeature.tabularFigures()],
+                            ),
+                          ),
+                        ),
+                        IconActionButton(
+                          icon: Icons.delete_outline,
+                          label: "削除",
+                          onPressed: () => _confirmDelete(context, ref, post),
+                        ),
+                      ],
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.only(right: AppSizes.space8),
+                      child: Text(
+                        post.text.isEmpty ? "(テキストなし)" : post.text,
+                        maxLines: 3,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 15,
+                          height: 1.7,
+                          color: AppColors.text,
+                        ),
+                      ),
+                    ),
+                    if (post.photoIds.isNotEmpty)
+                      Padding(
+                        padding: const EdgeInsets.only(
+                          top: AppSizes.space8,
+                          bottom: AppSizes.space8,
+                        ),
+                        child: Builder(
+                          builder: (context) {
+                            final photos = [
+                              for (final id in post.photoIds)
+                                Photo(id: id, createdAt: post.receivedAt),
+                            ];
+                            return PhotoStrip(
+                              photos: photos,
+                              size: 88,
+                              radius: AppSizes.radius12,
+                              onTap: (i) => showPhotoViewer(
+                                context,
+                                photos,
+                                initialIndex: i,
+                              ),
+                            );
+                          },
+                        ),
+                      )
+                    else
+                      const SizedBox(height: AppSizes.space8),
+                  ],
+                ),
+              ),
+            ),
+          ),
         );
       },
     );
@@ -179,7 +237,10 @@ class _PostListState extends ConsumerState<_PostList> {
 }
 
 /// 投稿を削除してよいか確認する
-Future<bool> confirmDeleteSharedPost(BuildContext context, SharedPost post) async {
+Future<bool> confirmDeleteSharedPost(
+  BuildContext context,
+  SharedPost post,
+) async {
   final confirmed = await showDialog<bool>(
     context: context,
     builder: (context) => AlertDialog(

@@ -81,6 +81,26 @@ class ThemeUtil {
         disabledBorder: _inputBorder(AppColors.line),
       ),
 
+      // スイッチ: オンはネイビーの背景に白いつまみ、オフはうすい背景に、枠とグレーのつまみ
+      switchTheme: SwitchThemeData(
+        trackColor: WidgetStateProperty.resolveWith(
+          (states) => states.contains(WidgetState.selected)
+              ? AppColors.navy
+              : AppColors.switchOffTrack,
+        ),
+        trackOutlineColor: WidgetStateProperty.resolveWith(
+          (states) => states.contains(WidgetState.selected)
+              ? AppColors.navy
+              : AppColors.switchOffBorder,
+        ),
+        trackOutlineWidth: WidgetStateProperty.all(2),
+        thumbColor: WidgetStateProperty.resolveWith(
+          (states) => states.contains(WidgetState.selected)
+              ? AppColors.white
+              : AppColors.disabledContent,
+        ),
+      ),
+
       bottomSheetTheme: const BottomSheetThemeData(
         backgroundColor: AppColors.pageBackground,
         modalBarrierColor: AppColors.scrim,

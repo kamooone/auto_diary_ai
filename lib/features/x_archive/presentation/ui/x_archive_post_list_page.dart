@@ -6,6 +6,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../application/providers/x_archive_providers.dart';
 import '../../domain/entities/x_archive_post.dart';
 import '../../domain/entities/x_archive_post_filter.dart';
+import '../../../../common/constants/app_colors.dart';
+import '../../../../common/constants/app_sizes.dart';
 import 'x_archive_filter_bar.dart';
 import 'x_archive_post_detail_page.dart';
 import 'x_archive_post_tile.dart';
@@ -81,11 +83,9 @@ class _XArchivePostListPageState extends ConsumerState<XArchivePostListPage> {
     if (_loading || !_hasMore) return;
     _loading = true;
     final generation = _generation;
-    final page = await ref.read(xArchiveRepositoryProvider).findPage(
-          offset: _posts.length,
-          limit: _pageSize,
-          filter: _filter,
-        );
+    final page = await ref
+        .read(xArchiveRepositoryProvider)
+        .findPage(offset: _posts.length, limit: _pageSize, filter: _filter);
     if (!mounted || generation != _generation) return;
     setState(() {
       _posts.addAll(page);
@@ -95,7 +95,8 @@ class _XArchivePostListPageState extends ConsumerState<XArchivePostListPage> {
   }
 
   void _onFilterChanged(XArchivePostFilter filter) {
-    final queryOnly = filter.year == _filter.year &&
+    final queryOnly =
+        filter.year == _filter.year &&
         filter.month == _filter.month &&
         filter.day == _filter.day;
     setState(() => _filter = filter);
@@ -116,8 +117,9 @@ class _XArchivePostListPageState extends ConsumerState<XArchivePostListPage> {
     );
     if (!mounted) return;
     // 写真・本文・日時を変えたり、削除したりしたかもしれないので、その1件を読み直す
-    final updated =
-        await ref.read(xArchiveRepositoryProvider).find(post.tweetId);
+    final updated = await ref
+        .read(xArchiveRepositoryProvider)
+        .find(post.tweetId);
     if (!mounted) return;
     if (updated == null || updated.createdAt != post.createdAt) {
       // 削除したときや、日時を変えたときは、件数・年・並びが変わるので、読み直す
@@ -178,13 +180,33 @@ class _XArchivePostListPageState extends ConsumerState<XArchivePostListPage> {
             filter: _filter,
             onChanged: _onFilterChanged,
           ),
+          // 件数(「21,854件」。数字だけ太字)
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 4),
+            padding: const EdgeInsets.fromLTRB(
+              20,
+              0,
+              AppSizes.space16,
+              AppSizes.space8,
+            ),
             child: Align(
               alignment: Alignment.centerLeft,
-              child: Text(
-                '$_matched件',
-                style: Theme.of(context).textTheme.bodySmall,
+              child: Text.rich(
+                TextSpan(
+                  style: const TextStyle(
+                    fontSize: 13,
+                    color: AppColors.textSub,
+                  ),
+                  children: [
+                    TextSpan(
+                      text: _withCommas(_matched),
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.navyDark,
+                      ),
+                    ),
+                    const TextSpan(text: '件'),
+                  ],
+                ),
               ),
             ),
           ),
@@ -193,6 +215,7 @@ class _XArchivePostListPageState extends ConsumerState<XArchivePostListPage> {
                 ? Center(
                     child: Text(
                       _filter.isNone ? '取り込んだ投稿はありません' : '条件に合う投稿がありません',
+                      style: const TextStyle(color: AppColors.textSub),
                     ),
                   )
                 : Scrollbar(
@@ -202,19 +225,74 @@ class _XArchivePostListPageState extends ConsumerState<XArchivePostListPage> {
                     thumbVisibility: true,
                     thickness: 8,
                     radius: const Radius.circular(4),
-                    child: ListView.separated(
+                    // 投稿は、1枚のカードのように見せる(読み込みは、今のまま、見えている分だけ作る)
+                    child: ListView.builder(
                       controller: _scroll,
+                      padding: const EdgeInsets.fromLTRB(
+                        AppSizes.space16,
+                        0,
+                        AppSizes.space16,
+                        AppSizes.space24,
+                      ),
                       itemCount: _posts.length,
-                      separatorBuilder: (_, __) => const Divider(height: 1),
-                      itemBuilder: (context, i) => XArchivePostTile(
-                        key: ValueKey(_posts[i].tweetId),
-                        post: _posts[i],
-                        onTap: () => _openDetail(i),
+                      itemBuilder: (context, i) => _CardRow(
+                        isFirst: i == 0,
+                        isLast: i == _posts.length - 1 && !_hasMore,
+                        child: XArchivePostTile(
+                          key: ValueKey(_posts[i].tweetId),
+                          post: _posts[i],
+                          onTap: () => _openDetail(i),
+                        ),
                       ),
                     ),
                   ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+// 3桁ごとに、カンマで区切る
+String _withCommas(int value) {
+  return value.toString().replaceAllMapped(
+    RegExp(r'\B(?=(\d{3})+(?!\d))'),
+    (_) => ',',
+  );
+}
+
+/// 一覧の1行。つなげると、1枚の白いカードに見える(行の間に1pxの線)
+class _CardRow extends StatelessWidget {
+  const _CardRow({
+    required this.isFirst,
+    required this.isLast,
+    required this.child,
+  });
+
+  final bool isFirst;
+  final bool isLast;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final radius = BorderRadius.vertical(
+      top: Radius.circular(isFirst ? AppSizes.radius16 : 0),
+      bottom: Radius.circular(isLast ? AppSizes.radius16 : 0),
+    );
+
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.white,
+        borderRadius: radius,
+        border: isLast
+            ? null
+            : const Border(bottom: BorderSide(color: AppColors.line)),
+      ),
+      child: Material(
+        type: MaterialType.transparency,
+        borderRadius: radius,
+        clipBehavior: Clip.antiAlias,
+        child: child,
       ),
     );
   }

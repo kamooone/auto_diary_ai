@@ -2,6 +2,10 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../common/constants/app_colors.dart';
+import '../../../../common/constants/app_sizes.dart';
+import '../../../../common/widgets/app_buttons.dart';
+import '../../../../common/widgets/app_card.dart';
 import '../../../../core/app_info/install_date_provider.dart';
 import '../../../../core/database/isar_provider.dart';
 import '../../application/providers/x_archive_providers.dart';
@@ -83,12 +87,14 @@ class _XArchiveImportPageState extends ConsumerState<XArchiveImportPage> {
       _error = null;
     });
     try {
-      final result = await ref.read(xArchiveRepositoryProvider).import(
-        target,
-        onProgress: (done) {
-          if (mounted) setState(() => _progress = done);
-        },
-      );
+      final result = await ref
+          .read(xArchiveRepositoryProvider)
+          .import(
+            target,
+            onProgress: (done) {
+              if (mounted) setState(() => _progress = done);
+            },
+          );
       // 取り込んだ投稿の、いちばん古い日まで、日記にする期間などで選べるようにする
       // (アプリを使い始めた日より前の投稿も、選べるようにするため)
       final oldest = oldestPostDayJst(target);
@@ -102,7 +108,8 @@ class _XArchiveImportPageState extends ConsumerState<XArchiveImportPage> {
       if (!mounted) return;
       final first = ref.read(installDateProvider);
       setState(() {
-        _resultMessage = '${result.added}件を取り込みました'
+        _resultMessage =
+            '${result.added}件を取り込みました'
             '(取り込み済みで飛ばした分: ${result.skipped}件)\n'
             '日記にする期間などは、${first.year}年${first.month}月${first.day}日から選べます';
       });
@@ -112,6 +119,12 @@ class _XArchiveImportPageState extends ConsumerState<XArchiveImportPage> {
     } finally {
       if (mounted) setState(() => _importing = false);
     }
+  }
+
+  void _openGuide() {
+    Navigator.of(
+      context,
+    ).push(MaterialPageRoute<void>(builder: (_) => const XArchiveGuidePage()));
   }
 
   @override
@@ -129,78 +142,163 @@ class _XArchiveImportPageState extends ConsumerState<XArchiveImportPage> {
           IconButton(
             tooltip: 'アーカイブの取り込み方',
             icon: const Icon(Icons.help_outline),
-            onPressed: () => Navigator.of(context).push(
-              MaterialPageRoute<void>(builder: (_) => const XArchiveGuidePage()),
-            ),
+            onPressed: _openGuide,
           ),
         ],
       ),
       body: ListView(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.fromLTRB(
+          AppSizes.space16,
+          20,
+          AppSizes.space16,
+          AppSizes.space24,
+        ),
         children: [
-          const Text(
-            'Xからダウンロードしたアーカイブの中の「data/tweets.js」を選んでください。',
+          AppCard(
+            padding: const EdgeInsets.fromLTRB(20, 28, 20, 24),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Center(
+                  child: Container(
+                    width: 64,
+                    height: 64,
+                    decoration: const BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: AppColors.pink,
+                    ),
+                    child: const Icon(
+                      Icons.upload_file,
+                      size: 30,
+                      color: AppColors.navy,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: AppSizes.space16),
+                const Text.rich(
+                  TextSpan(
+                    children: [
+                      TextSpan(text: 'Xからダウンロードしたアーカイブの中の '),
+                      TextSpan(
+                        text: 'data / tweets.js',
+                        style: TextStyle(fontWeight: FontWeight.w700),
+                      ),
+                      TextSpan(text: ' を選んでください。'),
+                    ],
+                  ),
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 15,
+                    height: 1.8,
+                    color: AppColors.text,
+                  ),
+                ),
+                const SizedBox(height: AppSizes.space16),
+                PrimaryButton(
+                  icon: Icons.folder_open,
+                  label: 'tweets.js を選ぶ',
+                  onPressed: busy ? null : _pick,
+                ),
+                const SizedBox(height: AppSizes.space12),
+                // ヘッダーの「?」と同じ、取り込み方の画面へ
+                Center(
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(AppSizes.radius12),
+                    onTap: _openGuide,
+                    child: const Padding(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: AppSizes.space12,
+                        vertical: AppSizes.space8,
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.help_outline,
+                            size: 18,
+                            color: AppColors.navy,
+                          ),
+                          SizedBox(width: AppSizes.space4),
+                          Text(
+                            '取り込み方を見る',
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.navy,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+                // 読み込み中・結果の表示は、同じカードの中に、今の内容のまま出す
+                if (_reading) ...[
+                  const SizedBox(height: AppSizes.space16),
+                  const Center(child: CircularProgressIndicator()),
+                  const SizedBox(height: AppSizes.space8),
+                  const Center(child: Text('読み込み中…(大きいファイルは時間がかかります)')),
+                ],
+                if (_error != null) ...[
+                  const SizedBox(height: AppSizes.space16),
+                  Text(
+                    _error!,
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.error,
+                    ),
+                  ),
+                ],
+                if (_posts != null && years.isNotEmpty) ...[
+                  const SizedBox(height: AppSizes.space24),
+                  Text(
+                    '${_posts!.length}件の投稿が見つかりました。取り込む年を選んでください。',
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.text,
+                    ),
+                  ),
+                  const SizedBox(height: AppSizes.space8),
+                  for (final year in years)
+                    CheckboxListTile(
+                      dense: true,
+                      contentPadding: EdgeInsets.zero,
+                      value: _selectedYears.contains(year),
+                      onChanged: busy
+                          ? null
+                          : (checked) => setState(() {
+                              if (checked == true) {
+                                _selectedYears.add(year);
+                              } else {
+                                _selectedYears.remove(year);
+                              }
+                            }),
+                      title: Text('$year年'),
+                      secondary: Text('${_yearCounts[year]}件'),
+                    ),
+                  const SizedBox(height: AppSizes.space16),
+                  PrimaryButton(
+                    label: '$selectedCount件を取り込む',
+                    onPressed: busy || selectedCount == 0 ? null : _import,
+                  ),
+                ],
+                if (_importing) ...[
+                  const SizedBox(height: AppSizes.space16),
+                  LinearProgressIndicator(
+                    value: _progressTotal == 0
+                        ? null
+                        : _progress / _progressTotal,
+                  ),
+                  const SizedBox(height: AppSizes.space8),
+                  Text('$_progress / $_progressTotal件'),
+                ],
+                if (_resultMessage != null) ...[
+                  const SizedBox(height: AppSizes.space16),
+                  Text(_resultMessage!),
+                ],
+              ],
+            ),
           ),
-          const SizedBox(height: 16),
-          FilledButton.icon(
-            onPressed: busy ? null : _pick,
-            icon: const Icon(Icons.folder_open),
-            label: const Text('tweets.js を選ぶ'),
-          ),
-          if (_reading) ...[
-            const SizedBox(height: 24),
-            const Center(child: CircularProgressIndicator()),
-            const SizedBox(height: 8),
-            const Center(child: Text('読み込み中…(大きいファイルは時間がかかります)')),
-          ],
-          if (_error != null) ...[
-            const SizedBox(height: 16),
-            Text(
-              _error!,
-              style: TextStyle(color: Theme.of(context).colorScheme.error),
-            ),
-          ],
-          if (_posts != null && years.isNotEmpty) ...[
-            const SizedBox(height: 24),
-            Text(
-              '${_posts!.length}件の投稿が見つかりました。取り込む年を選んでください。',
-              style: Theme.of(context).textTheme.titleSmall,
-            ),
-            const SizedBox(height: 8),
-            for (final year in years)
-              CheckboxListTile(
-                dense: true,
-                value: _selectedYears.contains(year),
-                onChanged: busy
-                    ? null
-                    : (checked) => setState(() {
-                          if (checked == true) {
-                            _selectedYears.add(year);
-                          } else {
-                            _selectedYears.remove(year);
-                          }
-                        }),
-                title: Text('$year年'),
-                secondary: Text('${_yearCounts[year]}件'),
-              ),
-            const SizedBox(height: 16),
-            FilledButton(
-              onPressed: busy || selectedCount == 0 ? null : _import,
-              child: Text('$selectedCount件を取り込む'),
-            ),
-          ],
-          if (_importing) ...[
-            const SizedBox(height: 16),
-            LinearProgressIndicator(
-              value: _progressTotal == 0 ? null : _progress / _progressTotal,
-            ),
-            const SizedBox(height: 8),
-            Text('$_progress / $_progressTotal件'),
-          ],
-          if (_resultMessage != null) ...[
-            const SizedBox(height: 16),
-            Text(_resultMessage!),
-          ],
         ],
       ),
     );

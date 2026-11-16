@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../common/constants/app_colors.dart';
+import '../../../../common/constants/app_sizes.dart';
+import '../../../../common/widgets/app_card.dart';
+import '../../../../common/widgets/select_row.dart';
 import '../../application/providers/x_archive_recall_providers.dart';
 import '../../domain/entities/x_archive_recall_settings.dart';
 
@@ -21,31 +25,52 @@ class XArchiveRecallSettingsPage extends ConsumerWidget {
         data: (settings) {
           final canUse = available.valueOrNull ?? false;
           return ListView(
+            padding: const EdgeInsets.fromLTRB(
+              AppSizes.space16,
+              20,
+              AppSizes.space16,
+              AppSizes.space24,
+            ),
             children: [
-              const Padding(
-                padding: EdgeInsets.fromLTRB(16, 16, 16, 8),
-                child: Text(
+              AppCard(
+                padding: const EdgeInsets.all(AppSizes.space16),
+                child: const Text(
                   'Xのアーカイブから取り込んだポスト(ツイート)を、毎日お知らせします。\n'
                   '通知をタップすると、1年前・2年前…の今日のポスト(ツイート)と、'
                   'ランダムなポスト(ツイート)が見られます。',
+                  style: TextStyle(
+                    fontSize: 15,
+                    height: 1.8,
+                    color: AppColors.text,
+                  ),
                 ),
               ),
-              SwitchListTile(
-                title: const Text('毎日通知する'),
-                subtitle: canUse
-                    ? null
-                    : const Text('Xのアーカイブを取り込むと使えます'),
-                value: settings.enabled && canUse,
-                onChanged: canUse
-                    ? (value) => _setEnabled(context, ref, settings, value)
-                    : null,
-              ),
-              ListTile(
-                enabled: canUse,
-                title: const Text('通知する時刻'),
-                subtitle: Text(_timeText(settings)),
-                trailing: const Icon(Icons.chevron_right),
-                onTap: canUse ? () => _pickTime(context, ref, settings) : null,
+              const SizedBox(height: AppSizes.space24),
+              AppCard(
+                child: Column(
+                  children: [
+                    SwitchRow(
+                      icon: Icons.notifications_none,
+                      label: '毎日通知する',
+                      subtitle: canUse ? null : 'Xのアーカイブを取り込むと使えます',
+                      value: settings.enabled && canUse,
+                      onChanged: canUse
+                          ? (value) =>
+                                _setEnabled(context, ref, settings, value)
+                          : null,
+                    ),
+                    const RowDivider(),
+                    SelectRow(
+                      icon: Icons.schedule,
+                      label: '通知する時刻',
+                      value: _timeText(settings),
+                      enabled: canUse,
+                      onTap: canUse
+                          ? () => _pickTime(context, ref, settings)
+                          : null,
+                    ),
+                  ],
+                ),
               ),
             ],
           );

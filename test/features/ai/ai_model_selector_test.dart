@@ -16,8 +16,8 @@ void main() {
     await tester.tap(find.text('違いを見る'));
     await tester.pumpAndSettle();
 
-    expect(find.text('書き上がる文章: ${AiModel.gemini.writing}'), findsOneWidget);
-    expect(find.text('書き上がる文章: ${AiModel.gpt.writing}'), findsOneWidget);
+    expect(find.text(AiModel.gemini.writing), findsOneWidget);
+    expect(find.text(AiModel.gpt.writing), findsOneWidget);
     expect(find.textContaining('日記にないことを付け足しにくい'), findsOneWidget);
     expect(find.textContaining('日記にない一言が入ることがある'), findsOneWidget);
   });
@@ -37,7 +37,10 @@ void main() {
     await tester.tap(find.text('違いを見る'));
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('詳しくは、プライバシーポリシーをご確認ください。'));
+    // シートの中は、スクロールできる(画面の外にあるリンクまで動かす)
+    await tester.ensureVisible(find.text('詳しくは、プライバシーポリシーをご確認ください'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('詳しくは、プライバシーポリシーをご確認ください'));
     await tester.pumpAndSettle();
 
     expect(find.byType(PrivacyPolicyPage), findsOneWidget);

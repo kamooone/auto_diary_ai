@@ -58,6 +58,10 @@ class AppColors {
   /// データがなく押せない行の、値の文字
   static const mutedText = Color(0xFF8A8F99);
 
+  /// スイッチ(オフ)の、背景と枠
+  static const switchOffTrack = Color(0xFFEDE6E4);
+  static const switchOffBorder = Color(0xFFC9C2C0);
+
   /// ラジオボタン(未選択)の枠
   static const radioOff = Color(0xFFB9BEC7);
 

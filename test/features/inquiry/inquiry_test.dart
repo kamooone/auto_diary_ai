@@ -264,12 +264,8 @@ void main() {
       addTearDown(container.dispose);
     });
 
-    InquiryMessage reply(DateTime at) => InquiryMessage(
-      id: 'r',
-      fromDeveloper: true,
-      text: '返信',
-      createdAt: at,
-    );
+    InquiryMessage reply(DateTime at) =>
+        InquiryMessage(id: 'r', fromDeveloper: true, text: '返信', createdAt: at);
 
     Future<bool> unread() async {
       container.invalidate(hasUnreadReplyProvider);
@@ -339,16 +335,22 @@ void main() {
       await tester.pumpWidget(app());
       await tester.pumpAndSettle();
 
-      FilledButton button() =>
-          tester.widget<FilledButton>(find.widgetWithText(FilledButton, '送信'));
-      expect(button().onPressed, isNull);
+      // 送信は、丸いボタン(押せないときは、タップしても動かない)
+      final send = find.byIcon(Icons.send_outlined);
+      InkWell button() => tester.widget<InkWell>(
+        find.ancestor(of: send, matching: find.byType(InkWell)).first,
+      );
+      expect(button().onTap, isNull);
 
       await tester.tap(find.text('要望'));
-      await tester.enterText(find.byKey(const Key('inquiryText')), '  夜のモードが欲しい ');
+      await tester.enterText(
+        find.byKey(const Key('inquiryText')),
+        '  夜のモードが欲しい ',
+      );
       await tester.pump();
-      expect(button().onPressed, isNotNull);
+      expect(button().onTap, isNotNull);
 
-      await tester.tap(find.widgetWithText(FilledButton, '送信'));
+      await tester.tap(find.byIcon(Icons.send_outlined));
       await tester.pumpAndSettle();
 
       expect(repository.sent, [(InquiryCategory.request, '夜のモードが欲しい')]);
@@ -358,7 +360,10 @@ void main() {
       expect(find.text('夜のモードが欲しい'), findsOneWidget);
       expect(find.text('送信しました。ありがとうございます'), findsOneWidget);
       expect(
-        tester.widget<TextField>(find.byKey(const Key('inquiryText'))).controller!.text,
+        tester
+            .widget<TextField>(find.byKey(const Key('inquiryText')))
+            .controller!
+            .text,
         isEmpty,
       );
     });
@@ -387,7 +392,7 @@ void main() {
       expect(find.text('質問です'), findsOneWidget);
       expect(find.text('次の更新で直します'), findsOneWidget);
       expect(find.text('開発者からの返信'), findsOneWidget);
-      expect(find.text('あなた(その他)'), findsOneWidget);
+      expect(find.text('あなた ・ その他'), findsOneWidget);
 
       expect(store.state.seenReplyAt, DateTime(2026, 11, 9, 12));
     });
@@ -400,12 +405,15 @@ void main() {
 
       await tester.enterText(find.byKey(const Key('inquiryText')), '本文');
       await tester.pump();
-      await tester.tap(find.widgetWithText(FilledButton, '送信'));
+      await tester.tap(find.byIcon(Icons.send_outlined));
       await tester.pumpAndSettle();
 
       expect(find.textContaining('送れる件数の上限'), findsOneWidget);
       expect(
-        tester.widget<TextField>(find.byKey(const Key('inquiryText'))).controller!.text,
+        tester
+            .widget<TextField>(find.byKey(const Key('inquiryText')))
+            .controller!
+            .text,
         '本文',
       );
     });

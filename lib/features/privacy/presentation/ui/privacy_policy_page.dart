@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../../../common/constants/app_colors.dart';
+import '../../../../common/constants/app_sizes.dart';
+import '../../../../common/widgets/app_card.dart';
+
 /// プライバシーポリシーの画面
 ///
 /// 文章は `assets/privacy_policy.md` から読む(ストアに出すWebページも、同じファイルを元にする)。
@@ -27,17 +31,36 @@ class PrivacyPolicyPage extends StatelessWidget {
           if (text == null) {
             return const Center(child: CircularProgressIndicator());
           }
+          // 本文の全体を、1枚のカードに入れる
           return ListView(
-            padding: const EdgeInsets.all(16),
-            children: _blocks(context, text),
+            padding: const EdgeInsets.fromLTRB(
+              AppSizes.space16,
+              20,
+              AppSizes.space16,
+              AppSizes.space24,
+            ),
+            children: [
+              AppCard(
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: _blocks(context, text),
+                ),
+              ),
+            ],
           );
         },
       ),
     );
   }
 
+  static const _bodyStyle = TextStyle(
+    fontSize: 14,
+    height: 1.9,
+    color: AppColors.text,
+  );
+
   static List<Widget> _blocks(BuildContext context, String source) {
-    final theme = Theme.of(context);
     final widgets = <Widget>[];
 
     for (final raw in source.split('\n')) {
@@ -45,28 +68,58 @@ class PrivacyPolicyPage extends StatelessWidget {
       if (line.isEmpty) continue;
 
       if (line.startsWith('## ')) {
+        // 見出し
         widgets.add(
           Padding(
-            padding: const EdgeInsets.only(top: 20, bottom: 6),
-            child: Text(line.substring(3), style: theme.textTheme.titleMedium),
+            padding: const EdgeInsets.only(top: 24, bottom: AppSizes.space8),
+            child: Text(
+              line.substring(3),
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w700,
+                color: AppColors.navyDark,
+              ),
+            ),
           ),
         );
       } else if (line.startsWith('# ')) {
+        // タイトル
         widgets.add(
           Padding(
-            padding: const EdgeInsets.only(bottom: 8),
-            child: Text(line.substring(2), style: theme.textTheme.titleLarge),
+            padding: const EdgeInsets.only(bottom: AppSizes.space4),
+            child: Text(
+              line.substring(2),
+              style: const TextStyle(
+                fontSize: 22,
+                fontWeight: FontWeight.w700,
+                color: AppColors.text,
+              ),
+            ),
+          ),
+        );
+      } else if (line.startsWith('制定日')) {
+        // 制定日と、その下の線
+        widgets.add(
+          Text(
+            line,
+            style: const TextStyle(fontSize: 12, color: AppColors.textSub),
+          ),
+        );
+        widgets.add(
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: AppSizes.space16),
+            child: Divider(height: 1, thickness: 1, color: AppColors.line),
           ),
         );
       } else if (line.startsWith('- ')) {
         widgets.add(
           Padding(
-            padding: const EdgeInsets.only(left: 8, bottom: 4),
+            padding: const EdgeInsets.only(left: 20, bottom: 6),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('・'),
-                Expanded(child: _rich(line.substring(2), theme)),
+                const Text('・', style: _bodyStyle),
+                Expanded(child: _rich(line.substring(2))),
               ],
             ),
           ),
@@ -75,7 +128,7 @@ class PrivacyPolicyPage extends StatelessWidget {
         widgets.add(
           Padding(
             padding: const EdgeInsets.only(bottom: 6),
-            child: _rich(line, theme),
+            child: _rich(line),
           ),
         );
       }
@@ -84,8 +137,8 @@ class PrivacyPolicyPage extends StatelessWidget {
   }
 
   /// `**太字**` だけを、太字にする
-  static Widget _rich(String line, ThemeData theme) {
-    final style = theme.textTheme.bodyMedium;
+  static Widget _rich(String line) {
+    const style = _bodyStyle;
     final spans = <TextSpan>[];
     final parts = line.split('**');
     for (var i = 0; i < parts.length; i++) {

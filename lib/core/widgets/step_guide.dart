@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
 
+import '../../common/constants/app_colors.dart';
+import '../../common/constants/app_sizes.dart';
+import '../../common/widgets/app_card.dart';
+
 /// 手順の案内の、1つ分
 class GuideStep {
   const GuideStep({required this.title, required this.body, this.icon});
@@ -12,6 +16,8 @@ class GuideStep {
 }
 
 /// 手順を、番号をつけて縦に並べた案内の画面(スクロールできる)
+///
+/// はじめの説明と、手順(左に番号の丸と点線のタイムライン)を、それぞれカードに入れる
 class StepGuidePage extends StatelessWidget {
   const StepGuidePage({
     super.key,
@@ -32,19 +38,59 @@ class StepGuidePage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
     return Scaffold(
       appBar: AppBar(title: Text(title)),
       body: ListView(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.fromLTRB(
+          AppSizes.space16,
+          20,
+          AppSizes.space16,
+          AppSizes.space24,
+        ),
         children: [
-          Text(intro, style: theme.textTheme.bodyLarge),
-          const SizedBox(height: 16),
-          for (var i = 0; i < steps.length; i++)
-            _StepTile(number: i + 1, step: steps[i]),
+          AppCard(
+            padding: const EdgeInsets.all(AppSizes.space16),
+            child: Text(
+              intro,
+              style: const TextStyle(
+                fontSize: 15,
+                height: 1.8,
+                color: AppColors.text,
+              ),
+            ),
+          ),
+          const SizedBox(height: AppSizes.space16),
+          AppCard(
+            padding: const EdgeInsets.fromLTRB(
+              AppSizes.space16,
+              20,
+              AppSizes.space16,
+              AppSizes.space12,
+            ),
+            child: Column(
+              children: [
+                for (var i = 0; i < steps.length; i++)
+                  _StepTile(
+                    number: i + 1,
+                    step: steps[i],
+                    isLast: i == steps.length - 1,
+                  ),
+              ],
+            ),
+          ),
           if (note != null)
-            Text(note!, style: theme.textTheme.bodySmall),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(
+                AppSizes.space4,
+                AppSizes.space16,
+                AppSizes.space4,
+                0,
+              ),
+              child: Text(
+                note!,
+                style: const TextStyle(fontSize: 12, color: AppColors.textSub),
+              ),
+            ),
         ],
       ),
     );
@@ -52,50 +98,115 @@ class StepGuidePage extends StatelessWidget {
 }
 
 class _StepTile extends StatelessWidget {
-  const _StepTile({required this.number, required this.step});
+  const _StepTile({
+    required this.number,
+    required this.step,
+    required this.isLast,
+  });
 
   final int number;
   final GuideStep step;
+  final bool isLast;
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 20),
+    return IntrinsicHeight(
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          CircleAvatar(
-            radius: 14,
-            backgroundColor: theme.colorScheme.primary,
-            foregroundColor: theme.colorScheme.onPrimary,
-            child: Text("$number", style: theme.textTheme.labelLarge),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
+          // 左の列: 番号の丸と、次の手順までの点線(最後の手順の下は線なし)
+          SizedBox(
+            width: 32,
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(step.title, style: theme.textTheme.titleMedium),
-                const SizedBox(height: 4),
-                Text(step.body, style: theme.textTheme.bodyMedium),
-                if (step.icon != null) ...[
-                  const SizedBox(height: 8),
-                  Container(
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      border: Border.all(color: theme.dividerColor),
-                    ),
-                    child: Icon(step.icon, size: 28),
+                Container(
+                  width: 32,
+                  height: 32,
+                  alignment: Alignment.center,
+                  decoration: const BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: AppColors.navy,
                   ),
-                ],
+                  child: Text(
+                    '$number',
+                    style: const TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.white,
+                    ),
+                  ),
+                ),
+                if (!isLast)
+                  Expanded(
+                    child: CustomPaint(
+                      size: const Size(2, double.infinity),
+                      painter: _DottedLinePainter(),
+                    ),
+                  ),
               ],
+            ),
+          ),
+          const SizedBox(width: AppSizes.space12),
+          Expanded(
+            child: Padding(
+              padding: EdgeInsets.only(bottom: isLast ? 0 : 22),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.only(top: 3),
+                    child: Text(
+                      step.title,
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.text,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: AppSizes.space4),
+                  Text(
+                    step.body,
+                    style: const TextStyle(
+                      fontSize: 14,
+                      height: 1.8,
+                      color: AppColors.textSub,
+                    ),
+                  ),
+                  if (step.icon != null) ...[
+                    const SizedBox(height: AppSizes.space8),
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        border: Border.all(color: AppColors.line),
+                      ),
+                      child: Icon(step.icon, size: 28, color: AppColors.navy),
+                    ),
+                  ],
+                ],
+              ),
             ),
           ),
         ],
       ),
     );
   }
+}
+
+class _DottedLinePainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = AppColors.timelineDots
+      ..strokeWidth = 1.5
+      ..strokeCap = StrokeCap.round;
+    final x = size.width / 2;
+    for (var y = 4.0; y < size.height - 4; y += 5) {
+      canvas.drawLine(Offset(x, y), Offset(x, y + 2), paint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }

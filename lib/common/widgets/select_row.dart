@@ -100,6 +100,91 @@ class SelectRow extends StatelessWidget {
   }
 }
 
+/// スイッチの行([SelectRow]と同じ形で、右にスイッチ)
+///
+/// [onChanged]がnullのときは、押せず、グレーの見た目にする。行のどこを押しても、切り替わる
+class SwitchRow extends StatelessWidget {
+  const SwitchRow({
+    super.key,
+    required this.icon,
+    required this.label,
+    this.subtitle,
+    required this.value,
+    required this.onChanged,
+  });
+
+  final IconData icon;
+  final String label;
+
+  /// 項目名の下に出す、補足(なくてもよい)
+  final String? subtitle;
+
+  final bool value;
+  final ValueChanged<bool>? onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final enabled = onChanged != null;
+
+    return InkWell(
+      onTap: enabled ? () => onChanged!(!value) : null,
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(minHeight: 64),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(
+            AppSizes.space16,
+            AppSizes.space12,
+            AppSizes.space12,
+            AppSizes.space12,
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: enabled ? AppColors.pink : AppColors.mutedCircle,
+                ),
+                child: Icon(
+                  icon,
+                  size: 20,
+                  color: enabled ? AppColors.navy : AppColors.chevron,
+                ),
+              ),
+              const SizedBox(width: AppSizes.space12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      label,
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                        color: enabled ? AppColors.text : AppColors.mutedText,
+                      ),
+                    ),
+                    if (subtitle != null)
+                      Text(
+                        subtitle!,
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: AppColors.textSub,
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+              Switch(value: value, onChanged: onChanged),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 /// 1枚のカードの中の、行と行の間の線(1px)
 class RowDivider extends StatelessWidget {
   const RowDivider({super.key});

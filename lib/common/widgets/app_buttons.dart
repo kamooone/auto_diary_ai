@@ -11,12 +11,14 @@ class PrimaryButton extends StatelessWidget {
     this.icon,
     required this.label,
     required this.onPressed,
+    this.height = 52,
   });
 
   /// 左のアイコン(なくてもよい)
   final IconData? icon;
   final String label;
   final VoidCallback? onPressed;
+  final double height;
 
   @override
   Widget build(BuildContext context) {
@@ -43,7 +45,7 @@ class PrimaryButton extends StatelessWidget {
         child: InkWell(
           onTap: onPressed,
           child: SizedBox(
-            height: 52,
+            height: height,
             width: double.infinity,
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -80,12 +82,14 @@ class SecondaryButton extends StatelessWidget {
     this.icon,
     required this.label,
     required this.onPressed,
+    this.height = 48,
   });
 
   /// 左のアイコン(なくてもよい)
   final IconData? icon;
   final String label;
   final VoidCallback? onPressed;
+  final double height;
 
   @override
   Widget build(BuildContext context) {
@@ -99,7 +103,7 @@ class SecondaryButton extends StatelessWidget {
       child: InkWell(
         onTap: onPressed,
         child: SizedBox(
-          height: 48,
+          height: height,
           width: double.infinity,
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
