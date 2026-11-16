@@ -114,16 +114,16 @@ class _DiaryAiScreenState extends ConsumerState<DiaryAiScreen> {
         body: "いつからいつまでの出来事を日記にするかを選びます。",
       ),
       TutorialStep(
+        target: _modelKey,
+        title: "使用するAI",
+        body: "日記を書いてもらうAIを選択します。\n「違いを見る」をタップすると、詳細を確認できます。",
+      ),
+      TutorialStep(
         target: _usageKey,
         title: "トークン使用量",
         body:
             "今月の使用量と、使える上限が表示されます。\n"
             "毎月の無料枠が足りなくなったときは、設定の「ポイント・トークン」から、続けて使う方法を確認できます。",
-      ),
-      TutorialStep(
-        target: _modelKey,
-        title: "使用するAI",
-        body: "日記を書いてもらうAIを選択します。\n「違いを見る」をタップすると、詳細を確認できます。",
       ),
       TutorialStep(
         target: _photoKey,

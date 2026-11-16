@@ -87,11 +87,10 @@ class _SummaryDiaryScreenState extends ConsumerState<SummaryDiaryScreen> {
 
     await showTutorial(context, [
       TutorialStep(
-        target: _usageKey,
-        title: "トークン使用量",
+        target: _diariesKey,
+        title: "振り返りに使う日記",
         body:
-            "今月の使用量と、使える上限が表示されます。\n"
-            "毎月の無料枠が足りなくなったときは、設定の「ポイント・トークン」から、続けて使う方法を確認できます。",
+            "作成済みの日記から、振り返りに使う日記を選びます。\n2件以上選ぶと作成できます。1か月分や1年分も選べます。\n選んだ日記の内容は、AIのサービスに送信されます(「日記を連結させる」は、AIを使わないので送信されません)。",
       ),
       TutorialStep(
         target: _modelKey,
@@ -99,10 +98,11 @@ class _SummaryDiaryScreenState extends ConsumerState<SummaryDiaryScreen> {
         body: "振り返りを書いてもらうAIを選択します。\n「違いを見る」をタップすると、詳細を確認できます。",
       ),
       TutorialStep(
-        target: _diariesKey,
-        title: "振り返りに使う日記",
+        target: _usageKey,
+        title: "トークン使用量",
         body:
-            "作成済みの日記から、振り返りに使う日記を選びます。\n2件以上選ぶと作成できます。1か月分や1年分も選べます。\n選んだ日記の内容は、AIのサービスに送信されます(「日記を連結させる」は、AIを使わないので送信されません)。",
+            "今月の使用量と、使える上限が表示されます。\n"
+            "毎月の無料枠が足りなくなったときは、設定の「ポイント・トークン」から、続けて使う方法を確認できます。",
       ),
       TutorialStep(
         target: _styleKey,
