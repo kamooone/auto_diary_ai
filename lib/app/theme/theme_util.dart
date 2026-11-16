@@ -7,13 +7,8 @@ import 'package:auto_diary_ai/common/constants/app_sizes.dart';
 class ThemeUtil {
   /// [useGoogleFonts]をfalseにすると、フォントをネットから読まず、[fontFamily]を使う
   /// (画面を画像にして確かめるテスト用)
-  static ThemeData appTheme({
-    bool useGoogleFonts = true,
-    String? fontFamily,
-  }) {
-    final base = FlexThemeData.light(
-      scheme: FlexScheme.sanJuanBlue,
-    );
+  static ThemeData appTheme({bool useGoogleFonts = true, String? fontFamily}) {
+    final base = FlexThemeData.light(scheme: FlexScheme.sanJuanBlue);
 
     final colorScheme = base.colorScheme.copyWith(
       primary: AppColors.navy,
@@ -74,6 +69,16 @@ class ThemeUtil {
         ),
       ),
 
+      // 入力欄・選択欄: 白い面に、うすい枠(選んでいるときは、ネイビー)
+      inputDecorationTheme: InputDecorationTheme(
+        filled: true,
+        fillColor: AppColors.white,
+        border: _inputBorder(AppColors.line),
+        enabledBorder: _inputBorder(AppColors.line),
+        focusedBorder: _inputBorder(AppColors.navy, width: 1.5),
+        disabledBorder: _inputBorder(AppColors.line),
+      ),
+
       bottomSheetTheme: const BottomSheetThemeData(
         backgroundColor: AppColors.pageBackground,
         modalBarrierColor: AppColors.scrim,
@@ -94,13 +99,20 @@ class ThemeUtil {
         labelTextStyle: WidgetStateProperty.resolveWith(
           (states) => TextStyle(
             fontSize: 12,
-            fontWeight: FontWeight.w700,
+            fontWeight: FontWeight.w400,
             color: states.contains(WidgetState.selected)
                 ? AppColors.navy
                 : AppColors.textSub,
           ),
         ),
       ),
+    );
+  }
+
+  static OutlineInputBorder _inputBorder(Color color, {double width = 1}) {
+    return OutlineInputBorder(
+      borderRadius: BorderRadius.circular(AppSizes.radius12),
+      borderSide: BorderSide(color: color, width: width),
     );
   }
 }

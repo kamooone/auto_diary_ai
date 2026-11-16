@@ -35,7 +35,16 @@ class HomeScaffold extends StatelessWidget {
               ),
             ),
             const SizedBox(width: AppSizes.space12),
-            Flexible(child: Text(title, overflow: TextOverflow.ellipsis)),
+            Flexible(
+              child: Text(
+                title,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w400,
+                ),
+              ),
+            ),
           ],
         ),
         actions: actions,

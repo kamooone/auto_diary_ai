@@ -24,7 +24,7 @@ class TrailIllustration extends StatelessWidget {
             message,
             textAlign: TextAlign.center,
             style: const TextStyle(
-              fontSize: 15,
+              fontSize: 14,
               height: 1.7,
               color: AppColors.textSub,
             ),

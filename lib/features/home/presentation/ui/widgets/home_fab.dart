@@ -46,7 +46,7 @@ class HomeFab extends StatelessWidget {
         icon: const Icon(Icons.add),
         label: Text(
           label,
-          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w400),
         ),
       ),
     );

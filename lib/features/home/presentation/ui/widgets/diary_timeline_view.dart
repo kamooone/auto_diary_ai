@@ -7,6 +7,7 @@ import 'package:auto_diary_ai/features/diary/presentation/ui/diary_detail_screen
 import 'package:auto_diary_ai/features/diary_create/domain/entities/photo.dart';
 import 'package:auto_diary_ai/features/diary_create/presentation/ui/widgets/photo_thumbnail.dart';
 import 'package:auto_diary_ai/features/home/domain/services/timeline_entries.dart';
+import 'package:auto_diary_ai/common/widgets/timeline_row.dart';
 import 'trail_illustration.dart';
 
 /// ホーム画面の、日記の一覧(月ごとのページ。左に日付、縦の点線、右にカード)
@@ -107,14 +108,17 @@ class _MonthPage extends StatelessWidget {
               child: SlideAnimation(
                 verticalOffset: 40,
                 child: FadeInAnimation(
-                  child: _TimelineRow(
-                    entry: entries[index],
+                  child: TimelineRow(
+                    date: entries[index].diary.date,
+                    showDate: entries[index].showDate,
+                    isLatest: entries[index].isLatest,
                     // 違う日の日記との間は広く、同じ日の日記どうしは、近くに置く
                     bottomGap:
                         index + 1 < entries.length &&
                             entries[index + 1].showDate
                         ? AppSizes.space24
                         : AppSizes.space12,
+                    child: _DiaryCard(diary: entries[index].diary),
                   ),
                 ),
               ),
@@ -126,146 +130,6 @@ class _MonthPage extends StatelessWidget {
       ),
     );
   }
-}
-
-const _dateWidth = 48.0;
-const _lineWidth = 28.0;
-
-/// 日付の数字の中心の高さ(丸い印を、ここにそろえる)
-const _dotY = 17.0;
-
-class _TimelineRow extends StatelessWidget {
-  const _TimelineRow({required this.entry, required this.bottomGap});
-
-  final TimelineEntry entry;
-
-  /// この行の下の空き(縦の点線は、この空きの間も、つながる)
-  final double bottomGap;
-
-  @override
-  Widget build(BuildContext context) {
-    final diary = entry.diary;
-
-    return IntrinsicHeight(
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          SizedBox(
-            width: _dateWidth,
-            child: entry.showDate ? _DateLabel(date: diary.date) : null,
-          ),
-          SizedBox(
-            width: _lineWidth,
-            child: CustomPaint(
-              painter: _LinePainter(
-                showDot: entry.showDate,
-                isLatest: entry.isLatest,
-              ),
-            ),
-          ),
-          Expanded(
-            child: Padding(
-              padding: EdgeInsets.only(bottom: bottomGap),
-              child: _DiaryCard(diary: diary),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _DateLabel extends StatelessWidget {
-  const _DateLabel({required this.date});
-
-  final DateTime date;
-
-  static const _weekdays = ['月', '火', '水', '木', '金', '土', '日'];
-
-  @override
-  Widget build(BuildContext context) {
-    final weekday = date.weekday;
-    final color = weekday == DateTime.saturday
-        ? AppColors.saturday
-        : weekday == DateTime.sunday
-        ? AppColors.sunday
-        : AppColors.textSub;
-
-    return Column(
-      children: [
-        Text(
-          '${date.day}',
-          style: const TextStyle(
-            fontSize: 28,
-            height: 1.1,
-            fontWeight: FontWeight.w800,
-            color: AppColors.navyDark,
-          ),
-        ),
-        Text(
-          _weekdays[weekday - 1],
-          style: TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w700,
-            color: color,
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-/// 縦の点線と、丸い印を描く
-class _LinePainter extends CustomPainter {
-  const _LinePainter({required this.showDot, required this.isLatest});
-
-  final bool showDot;
-  final bool isLatest;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final x = size.width / 2;
-
-    // 点線(丸い印があるときは、印から下へ。同じ日の2件目以降は、上から下まで)
-    final dash = Paint()
-      ..color = AppColors.timelineDots
-      ..strokeWidth = 2
-      ..strokeCap = StrokeCap.round;
-    final top = showDot ? _dotY + 10 : 0.0;
-    for (var y = top; y < size.height; y += 7) {
-      canvas.drawLine(Offset(x, y), Offset(x, y + 2), dash);
-    }
-
-    if (!showDot) return;
-
-    if (isLatest) {
-      // いちばん新しい日記は、オレンジの塗りと、淡い輪
-      canvas.drawCircle(
-        Offset(x, _dotY),
-        11,
-        Paint()..color = AppColors.latestDotRing,
-      );
-      canvas.drawCircle(Offset(x, _dotY), 7, Paint()..color = AppColors.orange);
-    } else {
-      canvas.drawCircle(
-        Offset(x, _dotY),
-        6,
-        Paint()..color = AppColors.pageBackground,
-      );
-      canvas.drawCircle(
-        Offset(x, _dotY),
-        6,
-        Paint()
-          ..color = AppColors.navy
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = 2.2,
-      );
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant _LinePainter oldDelegate) =>
-      oldDelegate.showDot != showDot || oldDelegate.isLatest != isLatest;
 }
 
 class _DiaryCard extends StatelessWidget {
@@ -316,9 +180,9 @@ class _DiaryCard extends StatelessWidget {
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
                           style: const TextStyle(
-                            fontSize: 17,
+                            fontSize: 15,
                             height: 1.35,
-                            fontWeight: FontWeight.w700,
+                            fontWeight: FontWeight.w400,
                             color: AppColors.text,
                           ),
                         ),
@@ -371,8 +235,8 @@ class _AiChip extends StatelessWidget {
       child: const Text(
         'AI',
         style: TextStyle(
-          fontSize: 11,
-          fontWeight: FontWeight.w800,
+          fontSize: 10,
+          fontWeight: FontWeight.w400,
           color: AppColors.navyDark,
         ),
       ),
@@ -392,17 +256,17 @@ class _Footer extends StatelessWidget {
       height: 28,
       child: Row(
         children: [
-          const SizedBox(width: _dateWidth),
+          const SizedBox(width: kTimelineDateWidth),
           SizedBox(
-            width: _lineWidth,
+            width: kTimelineLineWidth,
             child: CustomPaint(
-              size: const Size(_lineWidth, 28),
+              size: const Size(kTimelineLineWidth, 28),
               painter: _FooterPainter(),
             ),
           ),
           Text(
             '$month月のはじまり',
-            style: const TextStyle(fontSize: 13, color: AppColors.textSub),
+            style: const TextStyle(fontSize: 12, color: AppColors.textSub),
           ),
         ],
       ),

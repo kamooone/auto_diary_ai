@@ -86,10 +86,8 @@ class MonthBar extends StatelessWidget {
                         Text(
                           '$year年',
                           style: TextStyle(
-                            fontSize: compact ? 14 : 16,
-                            fontWeight: compact
-                                ? FontWeight.w400
-                                : FontWeight.w500,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w400,
                             color: compact ? AppColors.textSub : AppColors.navy,
                           ),
                         ),
@@ -97,8 +95,11 @@ class MonthBar extends StatelessWidget {
                         Text(
                           '$month月',
                           style: TextStyle(
-                            fontSize: compact ? 24 : 30,
-                            fontWeight: FontWeight.w800,
+                            fontSize: compact ? 24 : 26,
+                            // ホームは、普通の太さ。カレンダーは、太字
+                            fontWeight: compact
+                                ? FontWeight.w800
+                                : FontWeight.w400,
                             color: compact
                                 ? AppColors.text
                                 : AppColors.navyDark,

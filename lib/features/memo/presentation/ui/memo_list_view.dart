@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:auto_diary_ai/common/constants/app_colors.dart';
+import 'package:auto_diary_ai/common/constants/app_sizes.dart';
+import 'package:auto_diary_ai/common/widgets/timeline_row.dart';
+import 'package:auto_diary_ai/features/home/presentation/ui/widgets/trail_illustration.dart';
 import '../../../diary_create/domain/entities/photo.dart';
 import '../../../diary_create/presentation/ui/widgets/photo_thumbnail.dart';
 import '../../../diary_create/domain/services/photo_period_filter.dart';
@@ -7,6 +11,7 @@ import '../../../diary_create/presentation/ui/widgets/photo_period_filter_bar.da
 import '../../application/providers/memo_providers.dart';
 import '../../domain/entities/memo.dart';
 import '../../domain/services/memo_filter.dart';
+import '../../domain/services/memo_timeline.dart';
 import 'memo_edit_dialog.dart';
 
 /// ホーム画面の「ひとこと」タブ。ひとことメモを、新しい順に並べる
@@ -17,15 +22,6 @@ class MemoListView extends ConsumerStatefulWidget {
 
   @override
   ConsumerState<MemoListView> createState() => _MemoListViewState();
-}
-
-/// 「2026年11月9日（月） 12:34」の形
-String memoDateTimeText(DateTime t) {
-  const weekdays = ['月', '火', '水', '木', '金', '土', '日'];
-  final minute = t.minute.toString().padLeft(2, '0');
-
-  return "${t.year}年${t.month}月${t.day}日（${weekdays[t.weekday - 1]}） "
-      "${t.hour}:$minute";
 }
 
 class _MemoListViewState extends ConsumerState<MemoListView> {
@@ -42,9 +38,10 @@ class _MemoListViewState extends ConsumerState<MemoListView> {
       data: (memos) {
         if (memos.isEmpty) {
           return const Center(
-            child: Text(
-              "まだひとことメモがありません\n右下のボタンから追加できます",
-              textAlign: TextAlign.center,
+            child: SingleChildScrollView(
+              child: TrailIllustration(
+                message: "まだひとことメモがありません\n右下のボタンから追加できます",
+              ),
             ),
           );
         }
@@ -73,16 +70,13 @@ class _MemoListViewState extends ConsumerState<MemoListView> {
             ),
             Expanded(
               child: shown.isEmpty
-                  ? const Center(child: Text("条件に合うメモがありません"))
-                  : ListView.separated(
-                      // 右下のボタンに、最後のメモが隠れないようにする
-                      padding: const EdgeInsets.only(bottom: 88),
-                      itemCount: shown.length,
-                      separatorBuilder: (context, index) =>
-                          const Divider(height: 1),
-                      itemBuilder: (context, index) =>
-                          _MemoTile(memo: shown[index]),
-                    ),
+                  ? const Center(
+                      child: Text(
+                        "条件に合うメモがありません",
+                        style: TextStyle(color: AppColors.textSub),
+                      ),
+                    )
+                  : _MemoTimeline(items: buildMemoTimeline(shown)),
             ),
           ],
         );
@@ -91,8 +85,68 @@ class _MemoListViewState extends ConsumerState<MemoListView> {
   }
 }
 
-class _MemoTile extends ConsumerWidget {
-  const _MemoTile({required this.memo});
+/// ひとことのタイムライン(左に日付、縦の点線、右にカード。月が変わるところに、月の見出し)
+class _MemoTimeline extends StatelessWidget {
+  const _MemoTimeline({required this.items});
+
+  final List<MemoTimelineItem> items;
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView.builder(
+      // 右下のボタンに、最後のメモが隠れないようにする
+      padding: const EdgeInsets.fromLTRB(
+        AppSizes.space16,
+        AppSizes.space4,
+        AppSizes.space16,
+        96,
+      ),
+      itemCount: items.length,
+      itemBuilder: (context, index) {
+        final item = items[index];
+        final t = item.memo.createdAt;
+        final next = index + 1 < items.length ? items[index + 1] : null;
+
+        return Column(
+          children: [
+            if (item.showMonth)
+              // 月の見出し(点線は、見出しの横も、つなぐ)
+              TimelineRow(
+                date: t,
+                showDate: false,
+                bottomGap: AppSizes.space8,
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    '${t.year}年${t.month}月',
+                    style: const TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w400,
+                      color: AppColors.navyDark,
+                    ),
+                  ),
+                ),
+              ),
+            TimelineRow(
+              date: t,
+              showDate: item.showDate,
+              // 違う日の間は広く、同じ日のメモどうしは、近くに置く
+              bottomGap: next != null && next.showDate && !next.showMonth
+                  ? AppSizes.space24
+                  : next != null && next.showMonth
+                  ? AppSizes.space16
+                  : AppSizes.space12,
+              child: _MemoCard(memo: item.memo),
+            ),
+          ],
+        );
+      },
+    );
+  }
+}
+
+class _MemoCard extends ConsumerWidget {
+  const _MemoCard({required this.memo});
 
   final Memo memo;
 
@@ -124,67 +178,104 @@ class _MemoTile extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    return InkWell(
-      onTap: () => showMemoEditDialog(context, memo: memo),
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 12, 4, 12),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
+    final t = memo.createdAt;
+    final time = '${t.hour}:${t.minute.toString().padLeft(2, '0')}';
+    final radius = BorderRadius.circular(AppSizes.radius16);
+
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.white,
+        borderRadius: radius,
+        boxShadow: AppColors.cardShadows,
+      ),
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: radius,
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: () => showMemoEditDialog(context, memo: memo),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(
+              AppSizes.space16,
+              AppSizes.space4,
+              AppSizes.space4,
+              AppSizes.space12,
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Expanded(
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        time,
+                        style: const TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w400,
+                          color: AppColors.textSub,
+                        ),
+                      ),
+                    ),
+                    PopupMenuButton<String>(
+                      tooltip: "メニュー",
+                      icon: const Icon(
+                        Icons.more_vert,
+                        color: AppColors.chevron,
+                      ),
+                      onSelected: (value) {
+                        if (value == 'edit') {
+                          showMemoEditDialog(context, memo: memo);
+                        } else {
+                          _delete(context, ref);
+                        }
+                      },
+                      itemBuilder: (context) => const [
+                        PopupMenuItem(value: 'edit', child: Text("修正")),
+                        PopupMenuItem(value: 'delete', child: Text("削除")),
+                      ],
+                    ),
+                  ],
+                ),
+                Padding(
+                  padding: const EdgeInsets.only(right: AppSizes.space12),
                   child: Text(
-                    memoDateTimeText(memo.createdAt),
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: Colors.grey[600],
+                    memo.text,
+                    style: const TextStyle(
+                      fontSize: 14,
+                      height: 1.5,
+                      color: AppColors.text,
                     ),
                   ),
                 ),
-                PopupMenuButton<String>(
-                  tooltip: "メニュー",
-                  onSelected: (value) {
-                    if (value == 'edit') {
-                      showMemoEditDialog(context, memo: memo);
-                    } else {
-                      _delete(context, ref);
-                    }
-                  },
-                  itemBuilder: (context) => const [
-                    PopupMenuItem(value: 'edit', child: Text("修正")),
-                    PopupMenuItem(value: 'delete', child: Text("削除")),
-                  ],
-                ),
-              ],
-            ),
-            Padding(
-              padding: const EdgeInsets.only(right: 12),
-              child: Text(memo.text),
-            ),
-            if (memo.photoIds.isNotEmpty) ...[
-              const SizedBox(height: 8),
-              SizedBox(
-                height: 80,
-                child: ListView.separated(
-                  scrollDirection: Axis.horizontal,
-                  itemCount: memo.photoIds.length,
-                  separatorBuilder: (context, index) => const SizedBox(width: 6),
-                  itemBuilder: (context, index) => SizedBox(
-                    width: 80,
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(8),
-                      child: PhotoThumbnail(
-                        photo: Photo(
-                          id: memo.photoIds[index],
-                          createdAt: memo.createdAt,
+                if (memo.photoIds.isNotEmpty) ...[
+                  const SizedBox(height: AppSizes.space8),
+                  SizedBox(
+                    height: 72,
+                    child: ListView.separated(
+                      scrollDirection: Axis.horizontal,
+                      itemCount: memo.photoIds.length,
+                      separatorBuilder: (context, index) =>
+                          const SizedBox(width: AppSizes.space8),
+                      itemBuilder: (context, index) => SizedBox(
+                        width: 72,
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(
+                            AppSizes.radius12,
+                          ),
+                          child: PhotoThumbnail(
+                            photo: Photo(
+                              id: memo.photoIds[index],
+                              createdAt: memo.createdAt,
+                            ),
+                          ),
                         ),
                       ),
                     ),
                   ),
-                ),
-              ),
-            ],
-          ],
+                ],
+              ],
+            ),
+          ),
         ),
       ),
     );

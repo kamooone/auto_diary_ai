@@ -87,8 +87,10 @@ void main() {
       await tester.pumpWidget(app());
       await tester.pumpAndSettle();
 
-      expect(find.text('2026年11月9日（月） 12:34'), findsOneWidget);
-      expect(find.text('2026年11月1日（日） 9:05'), findsOneWidget);
+      // 月の見出しと、日付(左の列)、時刻(カードの中)が出る
+      expect(find.text('2026年11月'), findsOneWidget);
+      expect(find.text('12:34'), findsOneWidget);
+      expect(find.text('9:05'), findsOneWidget);
 
       final newer = tester.getTopLeft(find.text('新しいメモ')).dy;
       final older = tester.getTopLeft(find.text('古いメモ')).dy;
