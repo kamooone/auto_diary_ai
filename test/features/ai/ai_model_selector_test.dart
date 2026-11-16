@@ -1,5 +1,5 @@
 import 'package:auto_diary_ai/features/ai/domain/entities/ai_model.dart';
-import 'package:auto_diary_ai/features/ai/presentation/widgets/ai_model_selector.dart';
+import 'package:auto_diary_ai/features/ai/presentation/widgets/ai_select_card.dart';
 import 'package:auto_diary_ai/features/privacy/presentation/ui/privacy_policy_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -9,7 +9,7 @@ void main() {
   testWidgets('「違いを見る」に、モデルごとの書き上がる文章の傾向が出る', (tester) async {
     await tester.pumpWidget(
       const ProviderScope(
-        child: MaterialApp(home: Scaffold(body: AiModelSelector())),
+        child: MaterialApp(home: Scaffold(body: AiSelectCard(usage: null))),
       ),
     );
 
@@ -30,7 +30,7 @@ void main() {
   testWidgets('「違いを見る」の、プライバシーポリシーの案内を押すと、その画面を開く', (tester) async {
     await tester.pumpWidget(
       const ProviderScope(
-        child: MaterialApp(home: Scaffold(body: AiModelSelector())),
+        child: MaterialApp(home: Scaffold(body: AiSelectCard(usage: null))),
       ),
     );
 
