@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:auto_diary_ai/features/diary/application/providers/diary_providers.dart';
 import 'package:auto_diary_ai/features/diary/domain/entities/diary.dart';
+import 'package:auto_diary_ai/features/home/domain/services/home_months.dart';
 import 'package:auto_diary_ai/features/home/presentation/providers/home_providers.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 part 'home_view_model.freezed.dart';
@@ -12,12 +13,11 @@ class HomeViewModel extends Notifier<HomeUiModel> {
     final diaries = ref.watch(diariesProvider).valueOrNull ?? const <Diary>[];
     final selectedMonth = ref.watch(selectedMonthProvider);
 
-    final months = diaries
-        .map((e) => _monthKey(e.date))
-        .toSet()
-        .toList()
-      // 新しい月を先頭にする
-      ..sort((a, b) => b.compareTo(a));
+    // 今月から、いちばん古い日記の月まで(日記のない月も含める。新しい月が先頭)
+    final months = homeMonths(
+      diaryDates: diaries.map((e) => e.date),
+      now: DateTime.now(),
+    );
 
     // 選択中の月に日記がない場合は、最新の月を表示する
     final safeSelectedMonth =

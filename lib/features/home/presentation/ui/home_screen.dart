@@ -1,7 +1,5 @@
 import 'package:auto_diary_ai/common/extensions/build_context_ext.dart';
-import 'package:auto_diary_ai/common/constants/app_colors.dart';
 import 'package:auto_diary_ai/common/widgets/month_bar.dart';
-import 'package:auto_diary_ai/features/home/domain/services/timeline_entries.dart';
 import 'package:auto_diary_ai/features/home/presentation/ui/widgets/diary_timeline_view.dart';
 import 'package:auto_diary_ai/features/home/presentation/ui/widgets/home_fab.dart';
 import 'package:auto_diary_ai/features/home/presentation/ui/widgets/home_scaffold.dart';
@@ -10,7 +8,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:auto_diary_ai/app/router/app_routes.dart';
-import 'package:auto_diary_ai/core/app_info/app_version_provider.dart';
 import 'package:auto_diary_ai/features/home/presentation/providers/home_providers.dart';
 import 'package:auto_diary_ai/features/location/application/providers/location_providers.dart';
 import '../../../ads/application/ads_provider.dart';
@@ -238,29 +235,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             ),
           ),
 
-          // 下部：バナー広告、バージョンの表示(白い帯)
-          // (バナー広告を読み込めていない間は、広告の分の空きを作らない)
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(vertical: 4),
-            decoration: const BoxDecoration(
-              color: AppColors.white,
-              border: Border(top: BorderSide(color: AppColors.line)),
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const BannerAdView(),
-                // どの版のアプリが入っているかを確認するための表示
-                Text(
-                  "バージョン ${ref.watch(appVersionProvider).valueOrNull ?? ""}",
-                  style: Theme.of(
-                    context,
-                  ).textTheme.bodySmall?.copyWith(color: AppColors.textSub),
-                ),
-              ],
-            ),
-          ),
+          // 下部：バナー広告(読み込めたときだけ、白い帯で出す)
+          const BannerAdView(band: true),
         ],
       ),
 
@@ -308,9 +284,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               MonthBar(
                 months: state.months,
                 selectedMonth: selectedMonth,
-                recordedDays: countRecordedDays(
-                  state.filteredItemsPerMonth[selectedMonth] ?? const [],
-                ),
                 onChanged: viewModel.setMonth,
               ),
               Expanded(

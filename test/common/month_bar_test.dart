@@ -34,6 +34,23 @@ void main() {
     expect(find.textContaining('記録 4日'), findsOneWidget);
   });
 
+  testWidgets('記録の日数を渡さないときは、「記録 ◯日」を出さない', (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: MonthBar(
+            months: months,
+            selectedMonth: '2026-10',
+            onChanged: (_) {},
+          ),
+        ),
+      ),
+    );
+
+    expect(find.byKey(const Key('homeRecordedDays')), findsNothing);
+    expect(find.text('10月'), findsOneWidget);
+  });
+
   testWidgets('左右のボタンで、日記のある月を、ひとつずつ移る', (tester) async {
     final changes = <String>[];
     await open(tester, selected: '2026-03', changes: changes);

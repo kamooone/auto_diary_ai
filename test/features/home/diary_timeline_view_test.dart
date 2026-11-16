@@ -87,4 +87,50 @@ void main() {
     expect(text.maxLines, 2);
     expect(text.overflow, TextOverflow.ellipsis);
   });
+
+  testWidgets('違う日の間は広く(24)、同じ日の日記どうしは近く(12)置く', (tester) async {
+    await open(tester, [
+      diary(27, title: '二十七'),
+      diary(26, hour: 20, title: '二十六の夜'),
+      diary(26, hour: 8, title: '二十六の朝'),
+      diary(25, title: '二十五'),
+    ]);
+    await tester.pumpAndSettle();
+
+    // 見出しを含む、カード(押せる範囲)の位置
+    Rect card(String text) => tester.getRect(
+      find.ancestor(of: find.text(text), matching: find.byType(InkWell)).first,
+    );
+
+    // カードとカードの、あいだの広さ
+    final differentDay = card('二十六の夜').top - card('二十七').bottom;
+    final sameDay = card('二十六の朝').top - card('二十六の夜').bottom;
+    final nextDay = card('二十五').top - card('二十六の朝').bottom;
+
+    expect(differentDay, 24);
+    expect(nextDay, 24);
+    expect(sameDay, 12);
+  });
+
+  testWidgets('日記のない月は、小さな絵と一文だけを出して、月のはじまりは出さない', (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: DiaryTimelineView(
+            months: const ['2026-11', '2026-10'],
+            itemsPerMonth: {
+              '2026-11': const <Diary>[],
+              '2026-10': [diary(27)],
+            },
+            pageController: PageController(),
+            onPageChanged: (_) {},
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('この月は、まだ日記がありません'), findsOneWidget);
+    expect(find.text('11月のはじまり'), findsNothing);
+  });
 }

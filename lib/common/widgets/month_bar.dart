@@ -13,7 +13,7 @@ class MonthBar extends StatelessWidget {
     super.key,
     required this.months,
     required this.selectedMonth,
-    required this.recordedDays,
+    this.recordedDays,
     required this.onChanged,
     this.compact = false,
   });
@@ -21,8 +21,8 @@ class MonthBar extends StatelessWidget {
   final List<String> months;
   final String selectedMonth;
 
-  /// 表示中の月に、日記を書いた日の数
-  final int recordedDays;
+  /// 表示中の月に、日記を書いた日の数(nullなら、「記録 ◯日」は出さない)
+  final int? recordedDays;
 
   final ValueChanged<String> onChanged;
 
@@ -124,34 +124,36 @@ class MonthBar extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: AppSizes.space8),
-          Container(
-            key: const Key('homeRecordedDays'),
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
-            decoration: BoxDecoration(
-              color: AppColors.white,
-              borderRadius: BorderRadius.circular(AppSizes.radiusPill),
-              border: Border.all(color: AppColors.line),
-            ),
-            child: Text.rich(
-              TextSpan(
-                style: TextStyle(
-                  fontSize: compact ? 12 : 13,
-                  color: AppColors.textSub,
-                ),
-                children: [
-                  const TextSpan(text: '記録 '),
-                  TextSpan(
-                    text: '$recordedDays日',
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w800,
-                      color: AppColors.navyDark,
-                    ),
+          if (recordedDays != null) ...[
+            const SizedBox(height: AppSizes.space8),
+            Container(
+              key: const Key('homeRecordedDays'),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+              decoration: BoxDecoration(
+                color: AppColors.white,
+                borderRadius: BorderRadius.circular(AppSizes.radiusPill),
+                border: Border.all(color: AppColors.line),
+              ),
+              child: Text.rich(
+                TextSpan(
+                  style: TextStyle(
+                    fontSize: compact ? 12 : 13,
+                    color: AppColors.textSub,
                   ),
-                ],
+                  children: [
+                    const TextSpan(text: '記録 '),
+                    TextSpan(
+                      text: '$recordedDays日',
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w800,
+                        color: AppColors.navyDark,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
-          ),
+          ],
         ],
       ),
     );

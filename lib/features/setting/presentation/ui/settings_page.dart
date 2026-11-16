@@ -1,5 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:auto_diary_ai/common/constants/app_colors.dart';
+import 'package:auto_diary_ai/core/app_info/app_version_provider.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../app/router/app_routes.dart';
@@ -206,13 +208,28 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
             ListTile(
               leading: const Icon(Icons.bug_report),
               title: const Text("テストデータ"),
-              subtitle: const Text("日記・Xの投稿・ひとことメモ・行動履歴のテスト用のデータを、まとめて追加・削除します"),
+              subtitle: const Text(
+                "日記・Xの投稿・ひとことメモ・行動履歴のテスト用のデータを、まとめて追加・削除します",
+              ),
               onTap: () {
                 Navigator.of(context).push(
-                  MaterialPageRoute(builder: (context) => const TestDiaryPage()),
+                  MaterialPageRoute(
+                    builder: (context) => const TestDiaryPage(),
+                  ),
                 );
               },
             ),
+
+          // どの版のアプリが入っているかの表示
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 16),
+            child: Center(
+              child: Text(
+                "バージョン ${ref.watch(appVersionProvider).valueOrNull ?? ""}",
+                style: const TextStyle(fontSize: 12, color: AppColors.textSub),
+              ),
+            ),
+          ),
         ],
       ),
     );

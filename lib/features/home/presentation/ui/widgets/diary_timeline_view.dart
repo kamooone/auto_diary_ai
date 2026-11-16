@@ -30,8 +30,15 @@ class DiaryTimelineView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // 全体でいちばん新しい日記(オレンジの印にする)
-    final latest = months.isEmpty ? null : itemsPerMonth[months.first]?.first;
+    // 全体でいちばん新しい日記(オレンジの印にする)。日記のない月は、飛ばす
+    Diary? latest;
+    for (final month in months) {
+      final items = itemsPerMonth[month];
+      if (items != null && items.isNotEmpty) {
+        latest = items.first;
+        break;
+      }
+    }
 
     return PageView.builder(
       controller: pageController,
@@ -69,6 +76,16 @@ class _MonthPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // その月に、日記がないときは、小さな絵と一文だけ
+    if (items.isEmpty) {
+      return ListView(
+        padding: const EdgeInsets.only(bottom: 96),
+        children: const [
+          TrailIllustration(message: 'この月は、まだ日記がありません\n右下のボタンから日記を作成できます'),
+        ],
+      );
+    }
+
     final entries = buildTimelineEntries(items, latest: latest);
     final sparse = countRecordedDays(items) <= DiaryTimelineView.sparseDays;
 
@@ -77,7 +94,7 @@ class _MonthPage extends StatelessWidget {
         // 下は、右下のボタンに、最後の日記が隠れないように、広く空ける
         padding: const EdgeInsets.fromLTRB(
           AppSizes.space16,
-          AppSizes.space8,
+          0,
           AppSizes.space16,
           96,
         ),
@@ -90,7 +107,15 @@ class _MonthPage extends StatelessWidget {
               child: SlideAnimation(
                 verticalOffset: 40,
                 child: FadeInAnimation(
-                  child: _TimelineRow(entry: entries[index]),
+                  child: _TimelineRow(
+                    entry: entries[index],
+                    // 違う日の日記との間は広く、同じ日の日記どうしは、近くに置く
+                    bottomGap:
+                        index + 1 < entries.length &&
+                            entries[index + 1].showDate
+                        ? AppSizes.space24
+                        : AppSizes.space12,
+                  ),
                 ),
               ),
             );
@@ -110,9 +135,12 @@ const _lineWidth = 28.0;
 const _dotY = 17.0;
 
 class _TimelineRow extends StatelessWidget {
-  const _TimelineRow({required this.entry});
+  const _TimelineRow({required this.entry, required this.bottomGap});
 
   final TimelineEntry entry;
+
+  /// この行の下の空き(縦の点線は、この空きの間も、つながる)
+  final double bottomGap;
 
   @override
   Widget build(BuildContext context) {
@@ -137,7 +165,7 @@ class _TimelineRow extends StatelessWidget {
           ),
           Expanded(
             child: Padding(
-              padding: const EdgeInsets.only(bottom: AppSizes.space12),
+              padding: EdgeInsets.only(bottom: bottomGap),
               child: _DiaryCard(diary: diary),
             ),
           ),
