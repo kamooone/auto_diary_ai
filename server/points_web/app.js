@@ -23,6 +23,7 @@ const els = {
   notice: document.getElementById("notice"),
   exchangeRule: document.getElementById("exchangeRule"),
   exchangePoints: document.getElementById("exchangePoints"),
+  exchangeHint: document.getElementById("exchangeHint"),
   pairingCode: document.getElementById("pairingCode"),
   deviceCount: document.getElementById("deviceCount"),
   deviceList: document.getElementById("deviceList"),
@@ -189,6 +190,11 @@ function showBalance(balance) {
       `${yen.format(rule.minPoints)}ポイント以上から交換できます` +
       `(1ポイント = ${rule.tokensPerPoint}トークン)`;
     if (!els.exchangePoints.value) els.exchangePoints.value = rule.minPoints;
+
+    // 交換できるポイントに届いていないときは、あといくつかを表示する(表示だけ。交換の処理は変わらない)
+    const shortage = rule.minPoints - balance.points;
+    els.exchangeHint.hidden = shortage <= 0;
+    els.exchangeHint.textContent = `あと ${yen.format(shortage)} ポイントで交換できます`;
   }
 }
 
@@ -226,28 +232,33 @@ function historyRow(entry) {
   // 内容(ゲームの名前などはサーバーが決めた文字だが、念のため textContent で表示する)
   const left = document.createElement("div");
   const label = document.createElement("div");
+  label.className = "rowTitle";
   label.textContent = entry.label;
   const time = document.createElement("div");
   time.className = "historyTime";
   time.textContent = historyTime.format(new Date(entry.createdAt * 1000));
   left.append(label, time);
 
-  // ポイントの増減(トークンが増えたときは、その数も出す)
+  // ポイントの増減(トークンが増えたときは、その数も出す)。数字を大きく、単位を小さくする
   const right = document.createElement("div");
   right.className = "historyAmount";
-  const points = document.createElement("div");
-  points.className = entry.points >= 0 ? "plus" : "minus";
-  points.textContent = `${signed(entry.points)}ポイント`;
-  right.append(points);
+  right.append(amountLine(signed(entry.points), "ポイント", entry.points >= 0 ? "plus" : "minus"));
 
   if (entry.tokens !== 0) {
-    const tokens = document.createElement("div");
-    tokens.textContent = `${signed(entry.tokens)}トークン`;
-    right.append(tokens);
+    right.append(amountLine(signed(entry.tokens), "トークン", ""));
   }
 
   item.append(left, right);
   return item;
+}
+
+function amountLine(number, unit, className) {
+  const line = document.createElement("div");
+  if (className) line.className = className;
+  const small = document.createElement("small");
+  small.textContent = ` ${unit}`;
+  line.append(number, small);
+  return line;
 }
 
 // reset: true なら、先頭から読み直す(交換した直後など)。false なら、続きを足す
@@ -290,16 +301,24 @@ function showDevices({ devices }) {
 
   for (const device of devices) {
     const item = document.createElement("li");
+
     // 端末の名前は、アプリ側から送られた文字なので、textContentで表示する
-    item.append(
-      `${device.appName}(${device.label}・${new Date(device.createdAt * 1000).toLocaleDateString("ja-JP")}に紐づけ) `,
-    );
+    const left = document.createElement("div");
+    const name = document.createElement("div");
+    name.className = "rowTitle";
+    name.textContent = device.appName;
+    const sub = document.createElement("div");
+    sub.className = "rowSub";
+    sub.textContent =
+      `${device.label} ・ ${new Date(device.createdAt * 1000).toLocaleDateString("ja-JP")}に紐づけ`;
+    left.append(name, sub);
 
     const button = document.createElement("button");
+    button.className = "pill";
     button.textContent = "解除";
     button.onclick = () => unlinkDevice(device);
-    item.append(button);
 
+    item.append(left, button);
     els.deviceList.append(item);
   }
 }
