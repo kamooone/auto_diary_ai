@@ -1,7 +1,11 @@
 import 'package:auto_diary_ai/common/extensions/build_context_ext.dart';
-import 'package:auto_diary_ai/features/home/presentation/ui/widgets/diary_list_view.dart';
+import 'package:auto_diary_ai/common/constants/app_colors.dart';
+import 'package:auto_diary_ai/features/home/domain/services/timeline_entries.dart';
+import 'package:auto_diary_ai/features/home/presentation/ui/widgets/diary_timeline_view.dart';
+import 'package:auto_diary_ai/features/home/presentation/ui/widgets/home_fab.dart';
+import 'package:auto_diary_ai/features/home/presentation/ui/widgets/home_month_bar.dart';
 import 'package:auto_diary_ai/features/home/presentation/ui/widgets/home_scaffold.dart';
-import 'package:auto_diary_ai/features/home/presentation/ui/widgets/year_month_dropdown.dart';
+import 'package:auto_diary_ai/features/home/presentation/ui/widgets/trail_illustration.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -66,7 +70,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       // 最初に、どんなアプリかを説明する
       const TutorialStep.intro(
         title: "アプリをインストールしていただき、ありがとうございます",
-        body: "このアプリでは、行動の記録や写真、メモなど、日記の材料を簡単に集められるので、手軽に日記を作成できます。\n\n"
+        body:
+            "このアプリでは、行動の記録や写真、メモなど、日記の材料を簡単に集められるので、手軽に日記を作成できます。\n\n"
             "これから機能を一つ一つ簡単に説明しますのでご覧ください。",
       ),
       TutorialStep(
@@ -74,7 +79,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         title: "作成ボタン",
         body: "日記タブでは日記作成画面に、ひとことタブではひとこと作成画面に移ります。",
         bubbleAbove: true,
-        circle: true,
       ),
       TutorialStep(
         target: _diaryTabKey,
@@ -160,24 +164,21 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final viewModel = ref.read(homeViewModelProvider.notifier);
     final selectedMonth = ref.watch(selectedMonthProvider);
 
-    ref.listen<String>(
-      selectedMonthProvider,
-          (prev, next) {
-        if (prev == next) return;
+    ref.listen<String>(selectedMonthProvider, (prev, next) {
+      if (prev == next) return;
 
-        final index = state.months.indexOf(next);
+      final index = state.months.indexOf(next);
 
-        if (index >= 0) {
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            pageController.animateToPage(
-              index,
-              duration: const Duration(milliseconds: 300),
-              curve: Curves.easeInOut,
-            );
-          });
-        }
-      },
-    );
+      if (index >= 0) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          pageController.animateToPage(
+            index,
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeInOut,
+          );
+        });
+      }
+    });
 
     return HomeScaffold(
       title: context.l10n.appTitle,
@@ -185,7 +186,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       actions: [
         IconButton(
           key: _calendarKey,
-          icon: const Icon(Icons.calendar_month),
+          icon: const Icon(Icons.calendar_month_outlined),
           tooltip: "カレンダー",
           onPressed: () {
             context.push(AppRoutes.calendar);
@@ -193,7 +194,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         ),
         IconButton(
           key: _mapKey,
-          icon: const Icon(Icons.map),
+          icon: const Icon(Icons.map_outlined),
           tooltip: "地図",
           onPressed: () async {
             // 地図を表示する直前に、広告を表示する
@@ -237,21 +238,29 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             ),
           ),
 
-          // 下部：バナー広告、バージョンの表示
+          // 下部：バナー広告、バージョンの表示(白い帯)
           // (バナー広告を読み込めていない間は、広告の分の空きを作らない)
-          const SizedBox(height: 4),
-          const BannerAdView(),
-          const SizedBox(height: 4),
-
-          // どの版のアプリが入っているかを確認するための表示
-          Text(
-            "バージョン ${ref.watch(appVersionProvider).valueOrNull ?? ""}",
-            style: Theme.of(context)
-                .textTheme
-                .bodySmall
-                ?.copyWith(color: Colors.grey),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(vertical: 4),
+            decoration: const BoxDecoration(
+              color: AppColors.white,
+              border: Border(top: BorderSide(color: AppColors.line)),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const BannerAdView(),
+                // どの版のアプリが入っているかを確認するための表示
+                Text(
+                  "バージョン ${ref.watch(appVersionProvider).valueOrNull ?? ""}",
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodySmall?.copyWith(color: AppColors.textSub),
+                ),
+              ],
+            ),
           ),
-          const SizedBox(height: 8),
         ],
       ),
 
@@ -287,22 +296,27 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         // 月の切り替えは、選択中の月が一覧に反映されてから表示する
         if (state.months.isEmpty)
           const Center(
-            child: Text("まだ日記がありません\n右下のボタンから日記を作成できます"),
+            child: SingleChildScrollView(
+              child: TrailIllustration(
+                message: "まだ日記がありません\n右下のボタンから日記を作成できます",
+              ),
+            ),
           )
         else if (state.months.contains(selectedMonth))
           Column(
             children: [
-              YearMonthDropdown(
+              HomeMonthBar(
                 months: state.months,
                 selectedMonth: selectedMonth,
-                onChanged: (month) {
-                  viewModel.setMonth(month);
-                },
+                recordedDays: countRecordedDays(
+                  state.filteredItemsPerMonth[selectedMonth] ?? const [],
+                ),
+                onChanged: viewModel.setMonth,
               ),
               Expanded(
-                child: DiaryListView(
+                child: DiaryTimelineView(
                   months: state.months,
-                  filteredItemsPerMonth: state.filteredItemsPerMonth,
+                  itemsPerMonth: state.filteredItemsPerMonth,
                   pageController: pageController,
                   onPageChanged: viewModel.onPageChanged,
                 ),
@@ -313,15 +327,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         // 右下：日記作成(一覧の上に重ねる)
         Positioned(
           right: 16,
-          bottom: 8,
-          child: FloatingActionButton(
+          bottom: 16,
+          child: HomeFab(
             key: _createKey,
             heroTag: 'diary',
             tooltip: '日記作成',
+            label: '日記を書く',
             onPressed: () {
               context.push(AppRoutes.diaryCreate);
             },
-            child: const Icon(Icons.add),
           ),
         ),
       ],
@@ -342,12 +356,12 @@ class _MemoTab extends StatelessWidget {
         // 右下：メモの追加(一覧の上に重ねる)
         Positioned(
           right: 16,
-          bottom: 8,
-          child: FloatingActionButton(
+          bottom: 16,
+          child: HomeFab(
             heroTag: 'memo',
             tooltip: 'ひとことメモを追加',
+            label: 'ひとこと',
             onPressed: () => showMemoEditDialog(context),
-            child: const Icon(Icons.add),
           ),
         ),
       ],
