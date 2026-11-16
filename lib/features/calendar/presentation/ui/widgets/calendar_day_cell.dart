@@ -178,7 +178,7 @@ class _DayNumber extends StatelessWidget {
       );
     }
 
-    // 今日(日記が、いちばん新しい日ではないとき)は、ネイビーの輪
+    // 今日(日記が、いちばん新しい日ではないとき)は、オレンジの輪
     if (isToday) {
       return Container(
         key: const Key('todayDay'),
@@ -187,14 +187,14 @@ class _DayNumber extends StatelessWidget {
         alignment: Alignment.center,
         decoration: BoxDecoration(
           shape: BoxShape.circle,
-          border: Border.all(color: AppColors.navy, width: 1.5),
+          border: Border.all(color: AppColors.orange, width: 1.5),
         ),
         child: Text(
           '$day',
           style: const TextStyle(
             fontSize: 12,
             fontWeight: FontWeight.w800,
-            color: AppColors.navy,
+            color: AppColors.text,
             fontFeatures: _features,
           ),
         ),

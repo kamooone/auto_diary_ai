@@ -48,17 +48,17 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  testWidgets('今月の、記録の日数と、説明の行が出る', (tester) async {
+  testWidgets('年月の下に、記録の日数は出ない。マスの下に、説明の行も出ない', (tester) async {
     await open(tester, [
       diary(thisMonth, '月初め'),
       diary(DateTime(thisMonth.year, thisMonth.month, 1, 20), '月初めの夜'),
     ]);
 
-    // 同じ日に2件あっても、1日と数える
-    expect(find.textContaining('記録 1日'), findsOneWidget);
-    expect(find.text('記録した日'), findsOneWidget);
-    expect(find.text('いちばん新しい記録'), findsOneWidget);
-    expect(find.text('ほかの日記の数'), findsOneWidget);
+    expect(find.byKey(const Key('homeRecordedDays')), findsNothing);
+    expect(find.textContaining('記録 '), findsNothing);
+    expect(find.text('記録した日'), findsNothing);
+    expect(find.text('いちばん新しい記録'), findsNothing);
+    expect(find.text('ほかの日記の数'), findsNothing);
   });
 
   testWidgets('同じ日に複数あるときは、1件目のタイトルと、「+1」が出る', (tester) async {
@@ -69,8 +69,7 @@ void main() {
 
     expect(find.text('朝'), findsOneWidget);
     expect(find.text('夜'), findsNothing);
-    // マスの「+1」と、説明の行の「+1」
-    expect(find.text('+1'), findsNWidgets(2));
+    expect(find.text('+1'), findsOneWidget);
     final semantics = tester.ensureSemantics();
     await tester.pump();
     expect(find.bySemanticsLabel(RegExp('ほかに1件')), findsWidgets);
@@ -134,5 +133,21 @@ void main() {
     await tester.tap(find.text('今日'));
     await tester.pumpAndSettle();
     expect(find.text('先月の日記'), findsNothing);
+  });
+
+  testWidgets('今日の日付には、オレンジの輪が付く', (tester) async {
+    await open(tester, const []);
+
+    final today = find.byKey(const Key('todayDay'));
+    expect(today, findsOneWidget);
+    expect(
+      find.descendant(of: today, matching: find.text('${now.day}')),
+      findsOneWidget,
+    );
+
+    final decoration =
+        tester.widget<Container>(today).decoration as BoxDecoration;
+    expect(decoration.shape, BoxShape.circle);
+    expect((decoration.border as Border).top.color, AppColors.orange);
   });
 }

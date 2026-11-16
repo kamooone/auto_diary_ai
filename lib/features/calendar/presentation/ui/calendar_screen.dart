@@ -42,8 +42,8 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
   static const _cellHeight = 114.0;
   static const _minCellHeight = 96.0;
 
-  // マスの下の、説明の行の高さ(上の間隔8を除く。収まるかの計算に使う)
-  static const _legendHeight = 8.0 + 20.0 + 16.0;
+  // マスの下の余白(収まるかの計算に使う)
+  static const _bottomPadding = 16.0;
 
   @override
   void initState() {
@@ -104,11 +104,6 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
     final month = months[page];
     final monthKeys = [for (final m in months) _monthKey(m)];
 
-    // その月に、日記を書いた日の数
-    final recordedDays = byDay.keys
-        .where((d) => d.year == month.year && d.month == month.month)
-        .length;
-
     return Scaffold(
       appBar: AppBar(
         leading: IconButton(
@@ -145,7 +140,6 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
             compact: true,
             months: monthKeys,
             selectedMonth: _monthKey(month),
-            recordedDays: recordedDays,
             onChanged: (key) {
               final index = monthKeys.indexOf(key);
               if (index >= 0) _go(index);
@@ -224,7 +218,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
     return LayoutBuilder(
       builder: (context, constraints) {
         final gaps = (rows - 1) * _gap;
-        final available = constraints.maxHeight - _legendHeight - gaps;
+        final available = constraints.maxHeight - _bottomPadding - gaps;
         final cellHeight = (available / rows).clamp(
           _minCellHeight,
           _cellHeight,
@@ -235,7 +229,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
             _sidePadding,
             0,
             _sidePadding,
-            AppSizes.space16,
+            _bottomPadding,
           ),
           child: Column(
             children: [
@@ -261,8 +255,6 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                   ),
                 ),
               ],
-              const SizedBox(height: AppSizes.space8),
-              const _Legend(),
             ],
           ),
         );
@@ -334,58 +326,6 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
   void _openDiary(BuildContext context, Diary diary) {
     Navigator.of(context).push(
       MaterialPageRoute(builder: (context) => DiaryDetailScreen(diary: diary)),
-    );
-  }
-}
-
-/// マスの下の、説明の行(「記録した日」「いちばん新しい記録」「ほかの日記の数」)
-class _Legend extends StatelessWidget {
-  const _Legend();
-
-  @override
-  Widget build(BuildContext context) {
-    const style = TextStyle(fontSize: 12, color: AppColors.textSub);
-
-    Widget item(Widget mark, String label) => Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        mark,
-        const SizedBox(width: 6),
-        Text(label, style: style),
-      ],
-    );
-
-    return Wrap(
-      alignment: WrapAlignment.center,
-      crossAxisAlignment: WrapCrossAlignment.center,
-      spacing: AppSizes.space16,
-      runSpacing: AppSizes.space4,
-      children: [
-        item(
-          Container(
-            width: 12,
-            height: 12,
-            decoration: BoxDecoration(
-              color: AppColors.white,
-              borderRadius: BorderRadius.circular(4),
-              border: Border.all(color: AppColors.line),
-            ),
-          ),
-          '記録した日',
-        ),
-        item(
-          Container(
-            width: 12,
-            height: 12,
-            decoration: const BoxDecoration(
-              color: AppColors.orange,
-              shape: BoxShape.circle,
-            ),
-          ),
-          'いちばん新しい記録',
-        ),
-        item(const ExcludeSemantics(child: MoreChip(count: 1)), 'ほかの日記の数'),
-      ],
     );
   }
 }
