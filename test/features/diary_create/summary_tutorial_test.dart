@@ -91,7 +91,8 @@ void main() {
 
     await open();
 
-    expect(find.text('トークン使用量'), findsWidgets);
+    // 1ページ目は、画面の一番上の「振り返りに使う日記」
+    expect(find.text('振り返りに使う日記'), findsWidgets);
     expect(find.text('1 / 8'), findsOneWidget);
 
     // 最後の「完了」まで、「次へ」で進める(下にある部品も、スクロールして見せる)
