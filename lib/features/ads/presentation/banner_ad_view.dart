@@ -64,13 +64,13 @@ class _BannerAdViewState extends ConsumerState<BannerAdView> {
 
     return Container(
       width: double.infinity,
-      alignment: Alignment.center,
+      // 高さは広告の分だけにする(alignmentを付けると、画面いっぱいに広がってしまう)
       padding: const EdgeInsets.symmetric(vertical: 4),
       decoration: const BoxDecoration(
         color: AppColors.white,
         border: Border(top: BorderSide(color: AppColors.line)),
       ),
-      child: adView,
+      child: Center(heightFactor: 1, child: adView),
     );
   }
 }
