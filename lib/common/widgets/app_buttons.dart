@@ -8,12 +8,13 @@ import 'package:auto_diary_ai/common/constants/app_sizes.dart';
 class PrimaryButton extends StatelessWidget {
   const PrimaryButton({
     super.key,
-    required this.icon,
+    this.icon,
     required this.label,
     required this.onPressed,
   });
 
-  final IconData icon;
+  /// 左のアイコン(なくてもよい)
+  final IconData? icon;
   final String label;
   final VoidCallback? onPressed;
 
@@ -47,8 +48,10 @@ class PrimaryButton extends StatelessWidget {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(icon, size: 20, color: content),
-                const SizedBox(width: AppSizes.space8),
+                if (icon != null) ...[
+                  Icon(icon, size: 20, color: content),
+                  const SizedBox(width: AppSizes.space8),
+                ],
                 Flexible(
                   child: Text(
                     label,
@@ -74,12 +77,13 @@ class PrimaryButton extends StatelessWidget {
 class SecondaryButton extends StatelessWidget {
   const SecondaryButton({
     super.key,
-    required this.icon,
+    this.icon,
     required this.label,
     required this.onPressed,
   });
 
-  final IconData icon;
+  /// 左のアイコン(なくてもよい)
+  final IconData? icon;
   final String label;
   final VoidCallback? onPressed;
 
@@ -100,8 +104,10 @@ class SecondaryButton extends StatelessWidget {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(icon, size: 20, color: content),
-              const SizedBox(width: AppSizes.space8),
+              if (icon != null) ...[
+                Icon(icon, size: 20, color: content),
+                const SizedBox(width: AppSizes.space8),
+              ],
               Flexible(
                 child: Text(
                   label,

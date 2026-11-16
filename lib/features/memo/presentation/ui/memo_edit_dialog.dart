@@ -1,19 +1,28 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../../common/constants/app_colors.dart';
+import '../../../../common/constants/app_sizes.dart';
+import '../../../../common/widgets/app_buttons.dart';
+import '../../../../common/widgets/app_card.dart';
+import '../../../../common/widgets/select_row.dart';
 import '../../../diary_create/domain/entities/photo.dart';
 import '../../../diary_create/presentation/ui/widgets/photo_selection_card.dart';
 import '../../application/providers/memo_providers.dart';
 import '../../domain/entities/memo.dart';
 
-/// ひとことメモを追加・修正するダイアログ
+/// ひとことメモを追加・修正する、下から出るシート
 ///
 /// [memo]を渡すと修正、渡さないと追加。保存・修正できたときは、一覧を読み込み直す
-Future<void> showMemoEditDialog(
-  BuildContext context, {
-  Memo? memo,
-}) {
-  return showDialog<void>(
+Future<void> showMemoEditDialog(BuildContext context, {Memo? memo}) {
+  return showModalBottomSheet<void>(
     context: context,
+    backgroundColor: AppColors.pageBackground,
+    barrierColor: AppColors.scrim,
+    // キーボードが出ても、入力欄が隠れないようにする
+    isScrollControlled: true,
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+    ),
     builder: (context) => _MemoEditDialog(memo: memo),
   );
 }
@@ -48,9 +57,12 @@ class _MemoEditDialogState extends ConsumerState<_MemoEditDialog> {
 
   static String _two(int n) => n.toString().padLeft(2, '0');
 
-  String get _dateText =>
-      "${_createdAt.year}/${_createdAt.month}/${_createdAt.day} "
-      "${_two(_createdAt.hour)}:${_two(_createdAt.minute)}";
+  String get _dateText {
+    const weekdays = ['月', '火', '水', '木', '金', '土', '日'];
+    return "${_createdAt.year}/${_createdAt.month}/${_createdAt.day}"
+        "（${weekdays[_createdAt.weekday - 1]}） "
+        "${_two(_createdAt.hour)}:${_two(_createdAt.minute)}";
+  }
 
   Future<void> _pickDateTime() async {
     final now = DateTime.now();
@@ -119,57 +131,153 @@ class _MemoEditDialogState extends ConsumerState<_MemoEditDialog> {
   @override
   Widget build(BuildContext context) {
     final isEditing = widget.memo != null;
+    final canSave = _controller.text.trim().isNotEmpty && !_isSaving;
 
-    return AlertDialog(
-      title: Text(isEditing ? "ひとことメモを修正" : "ひとことメモを追加"),
-      content: SizedBox(
-        width: double.maxFinite,
-        child: SingleChildScrollView(
+    return SafeArea(
+      child: SingleChildScrollView(
+        // キーボードの分だけ、持ち上げる
+        padding: EdgeInsets.only(
+          bottom: MediaQuery.viewInsetsOf(context).bottom,
+        ),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(
+            AppSizes.space16,
+            AppSizes.space12,
+            AppSizes.space16,
+            AppSizes.space24,
+          ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              TextField(
-                controller: _controller,
-                autofocus: true,
-                maxLength: Memo.maxLength,
-                minLines: 3,
-                maxLines: 6,
-                keyboardType: TextInputType.multiline,
-                decoration: const InputDecoration(
-                  hintText: "今日のできごとや気持ちを、ひとこと",
-                  border: OutlineInputBorder(),
+              // つまみ
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: AppColors.sheetHandle,
+                    borderRadius: BorderRadius.circular(AppSizes.radiusPill),
+                  ),
                 ),
-                onChanged: (_) => setState(() {}),
               ),
-              const SizedBox(height: 4),
-              ListTile(
-                contentPadding: EdgeInsets.zero,
-                dense: true,
-                leading: const Icon(Icons.schedule),
-                title: Text(_dateText),
-                trailing: const Text("変更"),
-                onTap: _pickDateTime,
+              const SizedBox(height: AppSizes.space16),
+              Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppSizes.space8,
+                ),
+                child: Text(
+                  isEditing ? "ひとことメモを修正" : "ひとことメモを追加",
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.text,
+                  ),
+                ),
               ),
-              // 写真は、撮影日に関係なく選べる(日記の編集と同じ)
-              PhotoSelectionCard(
-                photos: _photos,
-                onChanged: (photos) => setState(() => _photos = photos),
+              const SizedBox(height: AppSizes.space16),
+
+              // ---------- 入力欄(高さ120。文字数は、右下に小さく)
+              SizedBox(
+                height: 120,
+                child: TextField(
+                  controller: _controller,
+                  autofocus: true,
+                  maxLength: Memo.maxLength,
+                  expands: true,
+                  maxLines: null,
+                  minLines: null,
+                  textAlignVertical: TextAlignVertical.top,
+                  keyboardType: TextInputType.multiline,
+                  style: const TextStyle(fontSize: 16, color: AppColors.text),
+                  decoration: const InputDecoration(
+                    hintText: "今日のできごとや気持ちを、ひとこと",
+                    hintStyle: TextStyle(
+                      fontSize: 16,
+                      color: AppColors.mutedText,
+                    ),
+                    counterText: '',
+                    contentPadding: EdgeInsets.all(AppSizes.space16),
+                  ),
+                  onChanged: (_) => setState(() {}),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.only(
+                  top: AppSizes.space4,
+                  right: AppSizes.space8,
+                  bottom: AppSizes.space12,
+                ),
+                child: Align(
+                  alignment: Alignment.centerRight,
+                  child: Text(
+                    "${_controller.text.characters.length} / ${Memo.maxLength}",
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: AppColors.textSub,
+                      fontFeatures: [FontFeature.tabularFigures()],
+                    ),
+                  ),
+                ),
+              ),
+
+              // ---------- 日時と写真
+              AppCard(
+                child: Column(
+                  children: [
+                    SelectRow(
+                      icon: Icons.schedule,
+                      label: "記録する日時",
+                      value: _dateText,
+                      onTap: _pickDateTime,
+                      trailing: const Padding(
+                        padding: EdgeInsets.only(right: AppSizes.space4),
+                        child: Text(
+                          "変更",
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.navy,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const RowDivider(),
+                    // 写真は、撮影日に関係なく選べる(日記の編集と同じ)
+                    PhotoSelectionRows(
+                      photos: _photos,
+                      onChanged: (photos) => setState(() => _photos = photos),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: AppSizes.space24),
+
+              // ---------- ボタン(同じ幅で、横に並べる)
+              Row(
+                children: [
+                  Expanded(
+                    child: SizedBox(
+                      height: 52,
+                      child: SecondaryButton(
+                        label: "キャンセル",
+                        onPressed: () => Navigator.of(context).pop(),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: AppSizes.space12),
+                  Expanded(
+                    child: PrimaryButton(
+                      label: isEditing ? "保存" : "追加する",
+                      onPressed: canSave ? _save : null,
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
         ),
       ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(),
-          child: const Text("キャンセル"),
-        ),
-        FilledButton(
-          onPressed: _controller.text.trim().isEmpty || _isSaving ? null : _save,
-          child: Text(isEditing ? "保存" : "追加"),
-        ),
-      ],
     );
   }
 }

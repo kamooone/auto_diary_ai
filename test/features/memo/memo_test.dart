@@ -261,29 +261,31 @@ void main() {
       await tester.tap(find.text('追加ボタン'));
       await tester.pumpAndSettle();
 
-      FilledButton button() =>
-          tester.widget<FilledButton>(find.widgetWithText(FilledButton, '追加'));
-      expect(button().onPressed, isNull);
+      // 押せないときは、タップしても、何も起きない
+      InkWell button() => tester.widget<InkWell>(
+        find.ancestor(of: find.text('追加する'), matching: find.byType(InkWell)),
+      );
+      expect(button().onTap, isNull);
 
       await tester.enterText(
         find.descendant(
-          of: find.byType(AlertDialog),
+          of: find.byType(BottomSheet),
           matching: find.byType(TextField),
         ),
         '   ',
       );
       await tester.pump();
-      expect(button().onPressed, isNull);
+      expect(button().onTap, isNull);
 
       await tester.enterText(
         find.descendant(
-          of: find.byType(AlertDialog),
+          of: find.byType(BottomSheet),
           matching: find.byType(TextField),
         ),
         '散歩した',
       );
       await tester.pump();
-      expect(button().onPressed, isNotNull);
+      expect(button().onTap, isNotNull);
     });
 
     testWidgets('追加すると、一覧に出て、保存される(前後の空白は取る)', (tester) async {
@@ -293,13 +295,13 @@ void main() {
 
       await tester.enterText(
         find.descendant(
-          of: find.byType(AlertDialog),
+          of: find.byType(BottomSheet),
           matching: find.byType(TextField),
         ),
         '  散歩した  ',
       );
       await tester.pump();
-      await tester.tap(find.widgetWithText(FilledButton, '追加'));
+      await tester.tap(find.text('追加する'));
       await tester.pumpAndSettle();
 
       expect(find.text('散歩した'), findsOneWidget);
@@ -314,7 +316,7 @@ void main() {
 
       await tester.enterText(
         find.descendant(
-          of: find.byType(AlertDialog),
+          of: find.byType(BottomSheet),
           matching: find.byType(TextField),
         ),
         'あ' * 300,
@@ -323,7 +325,7 @@ void main() {
 
       final field = tester.widget<TextField>(
         find.descendant(
-          of: find.byType(AlertDialog),
+          of: find.byType(BottomSheet),
           matching: find.byType(TextField),
         ),
       );
@@ -343,13 +345,13 @@ void main() {
       expect(find.text('ひとことメモを修正'), findsOneWidget);
       await tester.enterText(
         find.descendant(
-          of: find.byType(AlertDialog),
+          of: find.byType(BottomSheet),
           matching: find.byType(TextField),
         ),
         '直した文',
       );
       await tester.pump();
-      await tester.tap(find.widgetWithText(FilledButton, '保存'));
+      await tester.tap(find.text('保存'));
       await tester.pumpAndSettle();
 
       expect(repository.items, hasLength(1));
@@ -365,7 +367,7 @@ void main() {
 
       await tester.enterText(
         find.descendant(
-          of: find.byType(AlertDialog),
+          of: find.byType(BottomSheet),
           matching: find.byType(TextField),
         ),
         '書きかけ',
