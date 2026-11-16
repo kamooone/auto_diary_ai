@@ -39,14 +39,16 @@ class ThemeUtil {
         centerTitle: false,
         titleTextStyle: useGoogleFonts
             ? GoogleFonts.notoSans(
-                fontSize: AppSizes.fontSize20,
-                fontWeight: FontWeight.w600,
+                fontSize: 18,
+                fontWeight: FontWeight.w700,
+                letterSpacing: 0.72,
                 color: AppColors.white,
               )
             : TextStyle(
                 fontFamily: fontFamily,
-                fontSize: AppSizes.fontSize20,
-                fontWeight: FontWeight.w600,
+                fontSize: 18,
+                fontWeight: FontWeight.w700,
+                letterSpacing: 0.72,
                 color: AppColors.white,
               ),
         iconTheme: const IconThemeData(color: AppColors.white),

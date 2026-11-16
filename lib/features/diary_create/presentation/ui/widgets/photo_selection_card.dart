@@ -1,11 +1,16 @@
 import 'package:flutter/material.dart';
+import 'package:auto_diary_ai/common/constants/app_sizes.dart';
+import 'package:auto_diary_ai/common/widgets/app_card.dart';
+import 'package:auto_diary_ai/common/widgets/select_row.dart';
 import '../../../domain/entities/photo.dart';
 import '../photo_picker_page.dart';
 import 'photo_thumbnail.dart';
 
-/// 日記に添える写真の選択と、選択済みの写真の一覧
-class PhotoSelectionCard extends StatelessWidget {
-  const PhotoSelectionCard({
+/// 日記に添える写真の選択(行)と、選択済みの写真の一覧
+///
+/// 1枚のカードの中に、ほかの行と並べて入れるときは、これを使う([PhotoSelectionCard]は、これを1枚のカードで包んだもの)
+class PhotoSelectionRows extends StatelessWidget {
+  const PhotoSelectionRows({
     super.key,
     required this.photos,
     this.from,
@@ -30,86 +35,120 @@ class PhotoSelectionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      child: Column(
-        children: [
-          ListTile(
-            leading: const Icon(Icons.photo_library),
-            title: const Text("写真"),
-            subtitle: Text("${photos.length}枚を選択中"),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: () async {
-              final selected = await Navigator.of(context).push<List<Photo>>(
-                MaterialPageRoute(
-                  fullscreenDialog: true,
-                  builder: (context) => PhotoPickerPage(
-                    initialSelection: photos,
-                    from: from,
-                    to: to,
-                  ),
+    return Column(
+      children: [
+        SelectRow(
+          icon: Icons.image_outlined,
+          label: "写真",
+          value: "${photos.length}枚を選択中",
+          onTap: () async {
+            final selected = await Navigator.of(context).push<List<Photo>>(
+              MaterialPageRoute(
+                fullscreenDialog: true,
+                builder: (context) => PhotoPickerPage(
+                  initialSelection: photos,
+                  from: from,
+                  to: to,
                 ),
-              );
+              ),
+            );
 
-              if (selected != null) {
-                onChanged(selected);
-              }
-            },
-          ),
-          if (photos.isNotEmpty)
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-              child: SizedBox(
-                height: 72,
-                child: ListView.separated(
-                  scrollDirection: Axis.horizontal,
-                  itemCount: photos.length,
-                  separatorBuilder: (context, index) =>
-                      const SizedBox(width: 6),
-                  itemBuilder: (context, index) {
-                    final photo = photos[index];
+            if (selected != null) {
+              onChanged(selected);
+            }
+          },
+        ),
+        if (photos.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(
+              AppSizes.space16,
+              0,
+              AppSizes.space16,
+              AppSizes.space12,
+            ),
+            child: SizedBox(
+              height: 72,
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                itemCount: photos.length,
+                separatorBuilder: (context, index) => const SizedBox(width: 6),
+                itemBuilder: (context, index) {
+                  final photo = photos[index];
 
-                    return SizedBox(
-                      key: ValueKey(photo.id),
-                      width: 72,
-                      child: Stack(
-                        fit: StackFit.expand,
-                        children: [
-                          GestureDetector(
-                            onTap: onPhotoTap == null
-                                ? null
-                                : () => onPhotoTap!(index),
-                            child: ClipRRect(
-                              borderRadius: BorderRadius.circular(8),
-                              child: PhotoThumbnail(photo: photo),
+                  return SizedBox(
+                    key: ValueKey(photo.id),
+                    width: 72,
+                    child: Stack(
+                      fit: StackFit.expand,
+                      children: [
+                        GestureDetector(
+                          onTap: onPhotoTap == null
+                              ? null
+                              : () => onPhotoTap!(index),
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(
+                              AppSizes.radius12,
                             ),
+                            child: PhotoThumbnail(photo: photo),
                           ),
-                          Positioned(
-                            top: 2,
-                            right: 2,
-                            child: GestureDetector(
-                              onTap: () => onChanged([
-                                for (final other in photos)
-                                  if (other.id != photo.id) other,
-                              ]),
-                              child: const CircleAvatar(
-                                radius: 10,
-                                backgroundColor: Colors.black54,
-                                child: Icon(
-                                  Icons.close,
-                                  size: 14,
-                                  color: Colors.white,
-                                ),
+                        ),
+                        Positioned(
+                          top: 2,
+                          right: 2,
+                          child: GestureDetector(
+                            onTap: () => onChanged([
+                              for (final other in photos)
+                                if (other.id != photo.id) other,
+                            ]),
+                            child: const CircleAvatar(
+                              radius: 10,
+                              backgroundColor: Colors.black54,
+                              child: Icon(
+                                Icons.close,
+                                size: 14,
+                                color: Colors.white,
                               ),
                             ),
                           ),
-                        ],
-                      ),
-                    );
-                  },
-                ),
+                        ),
+                      ],
+                    ),
+                  );
+                },
               ),
             ),
-        ],
+          ),
+      ],
+    );
+  }
+}
+
+/// 日記に添える写真の選択と、選択済みの写真の一覧(1枚のカード)
+class PhotoSelectionCard extends StatelessWidget {
+  const PhotoSelectionCard({
+    super.key,
+    required this.photos,
+    this.from,
+    this.to,
+    required this.onChanged,
+    this.onPhotoTap,
+  });
+
+  final List<Photo> photos;
+  final DateTime? from;
+  final DateTime? to;
+  final ValueChanged<List<Photo>> onChanged;
+  final ValueChanged<int>? onPhotoTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return AppCard(
+      child: PhotoSelectionRows(
+        photos: photos,
+        from: from,
+        to: to,
+        onChanged: onChanged,
+        onPhotoTap: onPhotoTap,
       ),
     );
   }

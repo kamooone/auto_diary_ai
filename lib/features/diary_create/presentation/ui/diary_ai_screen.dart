@@ -3,11 +3,17 @@ import 'package:flutter/rendering.dart' show ScrollCacheExtent;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/app_info/install_date_provider.dart';
 import '../../../ai/application/providers/ai_model_provider.dart';
-import '../../../ai/presentation/widgets/ai_model_selector.dart';
+import '../../../ai/presentation/widgets/ai_select_card.dart';
+import '../../../../common/constants/app_colors.dart';
+import '../../../../common/widgets/app_buttons.dart';
+import '../../../../common/widgets/app_card.dart';
+import '../../../../common/widgets/app_text_field.dart';
+import '../../../../common/widgets/section_title.dart';
+import '../../../../common/widgets/select_row.dart';
+import '../../../../common/widgets/style_radio_list.dart';
 import '../../../plan/application/providers/plan_provider.dart';
 import '../viewmodel/diary_create_view_model.dart';
 import '../../../plan/presentation/widgets/usage_limit_guidance.dart';
-import '../../../plan/presentation/widgets/usage_meter.dart';
 import '../../../memo/domain/entities/memo.dart';
 import '../../../share/domain/entities/shared_post.dart';
 import '../../../tutorial/application/tutorial_providers.dart';
@@ -21,7 +27,6 @@ import 'post_select_page.dart';
 import 'timeline_select_page.dart';
 import 'widgets/diary_period_text.dart';
 import 'widgets/photo_selection_card.dart';
-import 'widgets/style_choice_card.dart';
 import 'widgets/token_shortage_dialog.dart';
 import '../../domain/entities/diary_style.dart';
 import '../../domain/entities/timeline_selection.dart';
@@ -101,11 +106,7 @@ class _DiaryAiScreenState extends ConsumerState<DiaryAiScreen> {
     if (!mounted) return;
 
     await showTutorial(context, [
-      TutorialStep(
-        target: _dateKey,
-        title: "日記の日付",
-        body: "作成する日記の日付を選びます。",
-      ),
+      TutorialStep(target: _dateKey, title: "日記の日付", body: "作成する日記の日付を選びます。"),
       TutorialStep(
         target: _periodKey,
         title: "日記にする期間",
@@ -114,7 +115,8 @@ class _DiaryAiScreenState extends ConsumerState<DiaryAiScreen> {
       TutorialStep(
         target: _usageKey,
         title: "トークン使用量",
-        body: "今月の使用量と、使える上限が表示されます。\n"
+        body:
+            "今月の使用量と、使える上限が表示されます。\n"
             "毎月の無料枠が足りなくなったときは、設定の「ポイント・トークン」から、続けて使う方法を確認できます。",
       ),
       TutorialStep(
@@ -125,12 +127,14 @@ class _DiaryAiScreenState extends ConsumerState<DiaryAiScreen> {
       TutorialStep(
         target: _photoKey,
         title: "写真",
-        body: "AIに渡す写真を選びます。この写真をもとにAIが日記を書きます。\n選んだ写真は、AIのサービスに送信されます。\n住所や書類など、個人情報が写っているものは、選ばないでください。\n詳しくは、プライバシーポリシーをご確認ください。",
+        body:
+            "AIに渡す写真を選びます。この写真をもとにAIが日記を書きます。\n選んだ写真は、AIのサービスに送信されます。\n住所や書類など、個人情報が写っているものは、選ばないでください。\n詳しくは、プライバシーポリシーをご確認ください。",
       ),
       TutorialStep(
         target: _sourcesKey,
         title: "Xの投稿・ひとこと・行動履歴",
-        body: "AIに日記を書いてもらう際に渡すデータを選びます。\n選んだものは、AIのサービスに送信されます。\n行動履歴には、自宅など場所の情報が含まれます。\n個人情報などが載っているものは、選ばないでください。",
+        body:
+            "AIに日記を書いてもらう際に渡すデータを選びます。\n選んだものは、AIのサービスに送信されます。\n行動履歴には、自宅など場所の情報が含まれます。\n個人情報などが載っているものは、選ばないでください。",
       ),
       TutorialStep(
         target: _styleKey,
@@ -170,206 +174,202 @@ class _DiaryAiScreenState extends ConsumerState<DiaryAiScreen> {
     final model = ref.watch(aiModelProvider);
     final isExceeded = usage?.isExceeded ?? false;
 
+    final canGenerate =
+        !(state.isLoadingSources ||
+            isExceeded ||
+            (state.diaryStyle == DiaryStyle.custom &&
+                state.diaryCustom.trim().isEmpty));
+
     return Scaffold(
       appBar: AppBar(title: Text("${model.label}に書いてもらう")),
       body: ListView(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.fromLTRB(16, 20, 16, 32),
         // 画面の外にある部品も、チュートリアルで場所を取れるよう、先に作っておく
         scrollCacheExtent: const ScrollCacheExtent.pixels(6000),
         children: [
-          // 何月何日の日記を書くか(1日だけ)
-          Card(
-            key: _dateKey,
-            child: ListTile(
-              leading: const Icon(Icons.calendar_today),
-              title: const Text("日記の日付"),
-              subtitle: Text(
-                DiaryPeriodText.format(state.startDate, state.startDate),
-              ),
-              trailing: const Icon(Icons.chevron_right),
-              onTap: () => _selectDiaryDate(context, state),
-            ),
-          ),
-
-          // AIに渡す情報の期間(プランに関わらず、複数日を選べる。初めは、日記の日付と同じ1日)
-          const SizedBox(height: 4),
-          Card(
-            key: _periodKey,
-            child: ListTile(
-              leading: const Icon(Icons.date_range),
-              title: const Text("日記にする期間"),
-              subtitle: Text(
-                DiaryPeriodText.format(state.aiStartDate, state.aiEndDate),
-              ),
-              trailing: const Icon(Icons.chevron_right),
-              onTap: () => _selectPeriod(context, state),
-            ),
-          ),
-          const SizedBox(height: 4),
-
-          // 今月の使用量。上限に達している場合は、使えるようになる時期を伝える
-          Card(
-            key: _usageKey,
-            child: Padding(
-              padding: const EdgeInsets.all(12),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  UsageMeter(usage: usage),
-                  if (isExceeded) ...[
-                    const SizedBox(height: 8),
-                    UsageLimitGuidance(isPaid: planType.isPaid),
-                  ],
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(height: 12),
-
-          // 日記を書くAIの種類(Gemini / GPT)
-          Card(
-            key: _modelKey,
-            child: const Padding(
-              padding: EdgeInsets.all(12),
-              child: AiModelSelector(),
-            ),
-          ),
-          const SizedBox(height: 12),
-
-          // AIに渡す写真。初めは日記の日付の月の写真を表示し、年と月を変えて、ほかの写真も選べる
-          KeyedSubtree(
-            key: _photoKey,
-            child: PhotoSelectionCard(
-              photos: state.aiPhotos,
-              from: state.aiStartDate,
-              // 対象期間の最終日の終わりまで
-              to: DateTime(
-                state.aiEndDate.year,
-                state.aiEndDate.month,
-                state.aiEndDate.day + 1,
-              ),
-              onChanged: viewModel.setAiPhotos,
-            ),
-          ),
-          const SizedBox(height: 4),
-
-          Card(
-            key: _sourcesKey,
+          // ---------- いつの日記か
+          const SectionTitle("いつの日記？"),
+          AppCard(
             child: Column(
               children: [
-                ListTile(
-                  leading: const Icon(Icons.share),
-                  title: const Text("Xの投稿"),
-                  subtitle: Text(
-                    _selectionText(
-                      isLoading: state.isLoadingSources,
-                      total: state.posts.length,
-                      selected: state.selectedPosts.length,
-                      emptyText: "この日の投稿はありません",
-                    ),
+                // 何月何日の日記を書くか(1日だけ)
+                KeyedSubtree(
+                  key: _dateKey,
+                  child: SelectRow(
+                    icon: Icons.calendar_today_outlined,
+                    label: "日記の日付",
+                    value: dateWithWeekday(state.startDate),
+                    onTap: () => _selectDiaryDate(context, state),
                   ),
-                  trailing: _trailing(state.isLoadingSources),
-                  enabled: state.posts.isNotEmpty,
-                  onTap: () async {
-                    final posts = await Navigator.of(context)
-                        .push<List<SharedPost>>(
-                          MaterialPageRoute(
-                            fullscreenDialog: true,
-                            builder: (context) => PostSelectPage(
-                              posts: state.posts,
-                              initialSelection: state.selectedPosts,
-                            ),
-                          ),
-                        );
-
-                    if (posts != null) {
-                      viewModel.setSelectedPosts(posts);
-                    }
-                  },
                 ),
-                const Divider(height: 1),
-                ListTile(
-                  leading: const Icon(Icons.edit_note),
-                  title: const Text("ひとことメモ"),
-                  subtitle: Text(
-                    _selectionText(
-                      isLoading: state.isLoadingSources,
-                      total: state.memos.length,
-                      selected: state.selectedMemos.length,
-                      emptyText: "この日のメモはありません",
-                    ),
-                  ),
-                  trailing: _trailing(state.isLoadingSources),
-                  enabled: state.memos.isNotEmpty,
-                  onTap: () async {
-                    final memos = await Navigator.of(context)
-                        .push<List<Memo>>(
-                          MaterialPageRoute(
-                            fullscreenDialog: true,
-                            builder: (context) => MemoSelectPage(
-                              memos: state.memos,
-                              initialSelection: state.selectedMemos,
-                            ),
+                const RowDivider(),
+                // AIに渡す情報の期間(プランに関わらず、複数日を選べる。初めは、日記の日付と同じ1日)
+                KeyedSubtree(
+                  key: _periodKey,
+                  child: SelectRow(
+                    icon: Icons.date_range_outlined,
+                    label: "日記にする期間",
+                    value: state.aiStartDate == state.aiEndDate
+                        ? dateWithWeekday(state.aiStartDate)
+                        : DiaryPeriodText.format(
+                            state.aiStartDate,
+                            state.aiEndDate,
                           ),
-                        );
-
-                    if (memos != null) {
-                      viewModel.setSelectedMemos(memos);
-                    }
-                  },
-                ),
-                const Divider(height: 1),
-                ListTile(
-                  leading: const Icon(Icons.timeline),
-                  title: const Text("行動履歴"),
-                  subtitle: Text(
-                    _selectionText(
-                          isLoading: state.isLoadingSources,
-                          total: state.timeline.length,
-                          selected: state.selectedTimeline.length,
-                          emptyText: "この日の行動履歴はありません",
-                        ) +
-                        // 住所を送るときは、一覧でも分かるようにする
-                        (state.timelineAddressStays.isEmpty
-                            ? ""
-                            : "\n住所も送る: ${state.timelineAddressStays.length}件"),
+                    onTap: () => _selectPeriod(context, state),
                   ),
-                  trailing: _trailing(state.isLoadingSources),
-                  enabled: state.timeline.isNotEmpty,
-                  onTap: () async {
-                    final selection = await Navigator.of(context)
-                        .push<TimelineSelection>(
-                          MaterialPageRoute(
-                            fullscreenDialog: true,
-                            builder: (context) => TimelineSelectPage(
-                              items: state.timeline,
-                              initialSelection: state.selectedTimeline,
-                              initialAddressStays: state.timelineAddressStays,
-                            ),
-                          ),
-                        );
-
-                    if (selection != null) {
-                      viewModel.setSelectedTimeline(
-                        selection.items,
-                        addressStays: selection.addressStays,
-                      );
-                    }
-                  },
                 ),
               ],
             ),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 24),
+
+          // ---------- 使うAIと、今月の使用量(上限に達している場合は、使えるようになる時期を伝える)
+          AiSelectCard(
+            usage: usage,
+            modelKey: _modelKey,
+            usageKey: _usageKey,
+            usageExtra: isExceeded
+                ? UsageLimitGuidance(isPaid: planType.isPaid)
+                : null,
+          ),
+          const SizedBox(height: 24),
+
+          // ---------- 日記の材料
+          const SectionTitle("日記の材料", trailing: "使える材料だけが反映されます"),
+          AppCard(
+            child: Column(
+              children: [
+                // AIに渡す写真。初めは日記の日付の月の写真を表示し、年と月を変えて、ほかの写真も選べる
+                KeyedSubtree(
+                  key: _photoKey,
+                  child: PhotoSelectionRows(
+                    photos: state.aiPhotos,
+                    from: state.aiStartDate,
+                    // 対象期間の最終日の終わりまで
+                    to: DateTime(
+                      state.aiEndDate.year,
+                      state.aiEndDate.month,
+                      state.aiEndDate.day + 1,
+                    ),
+                    onChanged: viewModel.setAiPhotos,
+                  ),
+                ),
+                const RowDivider(),
+                KeyedSubtree(
+                  key: _sourcesKey,
+                  child: Column(
+                    children: [
+                      SelectRow(
+                        icon: Icons.chat_bubble_outline,
+                        label: "Xの投稿",
+                        value: _selectionText(
+                          isLoading: state.isLoadingSources,
+                          total: state.posts.length,
+                          selected: state.selectedPosts.length,
+                          emptyText: "この日の投稿はありません",
+                        ),
+                        trailing: _loadingOrNull(state.isLoadingSources),
+                        enabled: state.posts.isNotEmpty,
+                        onTap: () async {
+                          final posts = await Navigator.of(context)
+                              .push<List<SharedPost>>(
+                                MaterialPageRoute(
+                                  fullscreenDialog: true,
+                                  builder: (context) => PostSelectPage(
+                                    posts: state.posts,
+                                    initialSelection: state.selectedPosts,
+                                  ),
+                                ),
+                              );
+
+                          if (posts != null) {
+                            viewModel.setSelectedPosts(posts);
+                          }
+                        },
+                      ),
+                      const RowDivider(),
+                      SelectRow(
+                        icon: Icons.edit_note,
+                        label: "ひとことメモ",
+                        value: _selectionText(
+                          isLoading: state.isLoadingSources,
+                          total: state.memos.length,
+                          selected: state.selectedMemos.length,
+                          emptyText: "この日のメモはありません",
+                        ),
+                        trailing: _loadingOrNull(state.isLoadingSources),
+                        enabled: state.memos.isNotEmpty,
+                        onTap: () async {
+                          final memos = await Navigator.of(context)
+                              .push<List<Memo>>(
+                                MaterialPageRoute(
+                                  fullscreenDialog: true,
+                                  builder: (context) => MemoSelectPage(
+                                    memos: state.memos,
+                                    initialSelection: state.selectedMemos,
+                                  ),
+                                ),
+                              );
+
+                          if (memos != null) {
+                            viewModel.setSelectedMemos(memos);
+                          }
+                        },
+                      ),
+                      const RowDivider(),
+                      SelectRow(
+                        icon: Icons.timeline,
+                        label: "行動履歴",
+                        value:
+                            _selectionText(
+                              isLoading: state.isLoadingSources,
+                              total: state.timeline.length,
+                              selected: state.selectedTimeline.length,
+                              emptyText: "この日の行動履歴はありません",
+                            ) +
+                            // 住所を送るときは、一覧でも分かるようにする
+                            (state.timelineAddressStays.isEmpty
+                                ? ""
+                                : "\n住所も送る: ${state.timelineAddressStays.length}件"),
+                        trailing: _loadingOrNull(state.isLoadingSources),
+                        enabled: state.timeline.isNotEmpty,
+                        onTap: () async {
+                          final selection = await Navigator.of(context)
+                              .push<TimelineSelection>(
+                                MaterialPageRoute(
+                                  fullscreenDialog: true,
+                                  builder: (context) => TimelineSelectPage(
+                                    items: state.timeline,
+                                    initialSelection: state.selectedTimeline,
+                                    initialAddressStays:
+                                        state.timelineAddressStays,
+                                  ),
+                                ),
+                              );
+
+                          if (selection != null) {
+                            viewModel.setSelectedTimeline(
+                              selection.items,
+                              addressStays: selection.addressStays,
+                            );
+                          }
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 24),
 
           // ---------- 書き方(日記の期間に関わらず、同じ選択肢)
           Column(
             key: _styleKey,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text("書き方", style: Theme.of(context).textTheme.titleSmall),
-              const SizedBox(height: 4),
-              StyleChoiceCard<DiaryStyle>(
+              const SectionTitle("書き方"),
+              StyleRadioList<DiaryStyle>(
                 values: DiaryStyle.values,
                 selected: state.diaryStyle,
                 label: (style) => style.label,
@@ -379,75 +379,59 @@ class _DiaryAiScreenState extends ConsumerState<DiaryAiScreen> {
             ],
           ),
           if (state.diaryStyle == DiaryStyle.custom) ...[
-            const SizedBox(height: 8),
-            TextField(
+            const SizedBox(height: 16),
+            AppTextField(
               controller: _customController,
-              decoration: const InputDecoration(
-                labelText: "どんな書き方にしたいか",
-                hintText: "例: 食べたものを中心に、です・ます調で、300文字くらいで書いてほしい",
-                border: OutlineInputBorder(),
-                alignLabelWithHint: true,
-              ),
-              keyboardType: TextInputType.multiline,
-              minLines: 3,
-              maxLines: 8,
+              label: "どんな書き方にしたいか",
+              hintText: "例: 食べたものを中心に、です・ます調で、300文字くらいで書いてほしい",
+              height: 120,
               onChanged: viewModel.setDiaryCustom,
             ),
           ],
-          const SizedBox(height: 12),
+          const SizedBox(height: 24),
 
           // ---------- 文字数の目安(任意)
           KeyedSubtree(
             key: _lengthKey,
             child: LengthField(
               initialChars: state.diaryLengthChars,
+              hintExample: 400,
               onChanged: viewModel.setDiaryLength,
             ),
           ),
-          const SizedBox(height: 12),
-
-          // ---------- AIに追加で伝えたいこと
-          TextField(
-            key: _noteKey,
-            controller: _noteController,
-            decoration: InputDecoration(
-              labelText: "${model.label}に追加で伝えたいこと",
-              hintText: "例: 友人の誕生日だった。楽しかった気持ちを中心に書いてほしい",
-              border: OutlineInputBorder(),
-              alignLabelWithHint: true,
-            ),
-            keyboardType: TextInputType.multiline,
-            minLines: 3,
-            maxLines: 8,
-            onChanged: viewModel.setAiNote,
-          ),
           const SizedBox(height: 16),
 
+          // ---------- AIに追加で伝えたいこと
+          AppTextField(
+            key: _noteKey,
+            controller: _noteController,
+            label: "${model.label}に追加で伝えたいこと",
+            hintText: "例：楽しかった気持ちを中心に",
+            height: 120,
+            onChanged: viewModel.setAiNote,
+          ),
+          const SizedBox(height: 24),
+
           // ---------- 生成
-          if (usage != null)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child: Text(
-                "消費トークンの目安: 約${formatTokens(_estimate(state))}"
-                "(残り ${formatTokens(usage.remainingTokens)})",
-                style: Theme.of(context).textTheme.bodySmall,
-              ),
-            ),
-          ElevatedButton.icon(
+          PrimaryButton(
             key: _generateKey,
+            icon: Icons.auto_awesome,
+            label: "${model.label}に日記を書いてもらう",
             // 読み込みが終わるまでは、選択内容が確定しないため押せないようにする
             // 今月の使用量の上限に達している場合も、押せない
             // 「自分で指定」は、書き方を書くまでは押せない
-            onPressed:
-                state.isLoadingSources ||
-                    isExceeded ||
-                    (state.diaryStyle == DiaryStyle.custom &&
-                        state.diaryCustom.trim().isEmpty)
-                ? null
-                : () => _generate(context),
-            icon: const Icon(Icons.auto_awesome),
-            label: Text("${model.label}に日記を書いてもらう"),
+            onPressed: canGenerate ? () => _generate(context) : null,
           ),
+          if (usage != null)
+            Padding(
+              padding: const EdgeInsets.only(top: 8),
+              child: Text(
+                "消費トークンの目安 約${formatTokens(_estimate(state))}"
+                "（残り ${formatTokens(usage.remainingTokens)}）",
+                textAlign: TextAlign.center,
+                style: const TextStyle(fontSize: 12, color: AppColors.textSub),
+              ),
+            ),
         ],
       ),
     );
@@ -545,9 +529,9 @@ class _DiaryAiScreenState extends ConsumerState<DiaryAiScreen> {
     }
   }
 
-  // 読み込みが終わるまではインジケータを表示する
-  Widget _trailing(bool isLoading) {
-    if (!isLoading) return const Icon(Icons.chevron_right);
+  // 読み込み中は、右の矢印の代わりに、くるくるを出す(読み込みが終わったら、矢印のまま)
+  Widget? _loadingOrNull(bool isLoading) {
+    if (!isLoading) return null;
 
     return const SizedBox(
       width: 16,

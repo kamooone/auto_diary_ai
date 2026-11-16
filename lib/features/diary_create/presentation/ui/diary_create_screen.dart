@@ -8,7 +8,13 @@ import '../../../ads/presentation/banner_ad_view.dart';
 import '../../../tutorial/application/tutorial_providers.dart';
 import '../../../tutorial/domain/tutorial_step.dart';
 import '../../../tutorial/presentation/tutorial_runner.dart';
+import '../../../../common/widgets/app_buttons.dart';
+import '../../../../common/widgets/app_card.dart';
+import '../../../../common/widgets/app_text_field.dart';
+import '../../../../common/widgets/section_title.dart';
+import '../../../../common/widgets/select_row.dart';
 import '../providers/diary_create_provider.dart';
+import 'widgets/diary_period_text.dart';
 import 'diary_ai_screen.dart';
 import 'widgets/photo_selection_card.dart';
 
@@ -75,26 +81,20 @@ class _DiaryCreateScreenState extends ConsumerState<DiaryCreateScreen> {
 
     return Scaffold(
       appBar: AppBar(title: const Text("日記作成")),
-      // 画面の下部に、バナー広告を表示する
-      bottomNavigationBar: const SafeArea(
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [BannerAdView()],
-        ),
-      ),
+      // 画面の下部に、バナー広告を表示する(読み込めたときだけ、白い帯で出る)
+      bottomNavigationBar: const SafeArea(child: BannerAdView(band: true)),
       body: ListView(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.fromLTRB(16, 20, 16, 32),
         // 画面の外にある部品も、チュートリアルで場所を取れるよう、先に作っておく
         scrollCacheExtent: const ScrollCacheExtent.pixels(3000),
         children: [
           // ---------- いつの日記か
-          Card(
+          AppCard(
             key: _dateKey,
-            child: ListTile(
-              leading: const Icon(Icons.calendar_today),
-              title: const Text("日記の日付"),
-              subtitle: Text("${date.year}年${date.month}月${date.day}日"),
-              trailing: const Icon(Icons.chevron_right),
+            child: SelectRow(
+              icon: Icons.calendar_today_outlined,
+              label: "日記の日付",
+              value: dateWithWeekday(date),
               onTap: () async {
                 final now = DateTime.now();
                 final installDate = ref.read(installDateProvider);
@@ -117,43 +117,34 @@ class _DiaryCreateScreenState extends ConsumerState<DiaryCreateScreen> {
               },
             ),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 24),
 
           // ---------- 日記の内容
-          Column(
-            children: [
-              TextField(
-                decoration: const InputDecoration(
-                  labelText: "タイトル",
-                  border: OutlineInputBorder(),
-                ),
-                onChanged: viewModel.setInputTitle,
-              ),
-              const SizedBox(height: 8),
-              TextField(
-                decoration: const InputDecoration(
-                  labelText: "本文",
-                  border: OutlineInputBorder(),
-                  alignLabelWithHint: true,
-                ),
-                keyboardType: TextInputType.multiline,
-                minLines: 8,
-                maxLines: 16,
-                onChanged: viewModel.setMainContent,
-              ),
-            ],
+          AppTextField(
+            label: "タイトル",
+            hintText: "今日のできごとをひとことで",
+            onChanged: viewModel.setInputTitle,
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 16),
+          AppTextField(
+            label: "本文",
+            hintText: "今日あったこと、感じたことを自由に",
+            height: 220,
+            onChanged: viewModel.setMainContent,
+          ),
+          const SizedBox(height: 24),
 
           // 自分で書く日記には、撮影日に関係なく写真を添えられる
           PhotoSelectionCard(
             photos: state.selectedPhotos,
             onChanged: viewModel.setSelectedPhotos,
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 24),
 
           // ---------- 保存
-          ElevatedButton.icon(
+          PrimaryButton(
+            icon: Icons.save_outlined,
+            label: "保存する",
             // 本文が空の日記は保存できない
             onPressed: state.content.trim().isEmpty
                 ? null
@@ -173,32 +164,30 @@ class _DiaryCreateScreenState extends ConsumerState<DiaryCreateScreen> {
                       navigator.pop();
                     }
                   },
-            icon: const Icon(Icons.save),
-            label: const Text("保存する"),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 24),
 
-          // ---------- AIに書いてもらう場合は専用の画面へ
-          OutlinedButton.icon(
+          // ---------- AIの力をかりる
+          const SectionTitle("AIの力をかりる"),
+          // AIに書いてもらう場合は専用の画面へ
+          SecondaryButton(
             key: _aiKey,
+            icon: Icons.auto_awesome,
+            label: "AIに日記を書いてもらう",
             onPressed: () {
               Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (context) => const DiaryAiScreen(),
-                ),
+                MaterialPageRoute(builder: (context) => const DiaryAiScreen()),
               );
             },
-            icon: const Icon(Icons.auto_awesome),
-            label: const Text("AIに日記を書いてもらう"),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 12),
 
-          // ---------- 作成済みの日記をまとめる場合は専用の画面へ
-          OutlinedButton.icon(
+          // 作成済みの日記をまとめる場合は専用の画面へ
+          SecondaryButton(
             key: _summaryKey,
+            icon: Icons.menu_book_outlined,
+            label: "振り返りを作成する",
             onPressed: () => context.push(AppRoutes.summaryDiary),
-            icon: const Icon(Icons.auto_stories),
-            label: const Text("振り返りを作成する"),
           ),
         ],
       ),

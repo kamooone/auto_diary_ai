@@ -45,6 +45,22 @@ class AppColors {
   /// カードの右の矢印（›）
   static const chevron = Color(0xFFA9AEB8);
 
+  // ---- 入力・ボタンの、押せない状態など ----
+  /// 押せないメインボタンの塗り
+  static const disabledFill = Color(0xFFEFE3E0);
+
+  /// 押せないボタンの、文字とアイコン
+  static const disabledContent = Color(0xFF9A9FA9);
+
+  /// データがなく押せない行の、丸の背景
+  static const mutedCircle = Color(0xFFF4F1F0);
+
+  /// データがなく押せない行の、値の文字
+  static const mutedText = Color(0xFF8A8F99);
+
+  /// ラジオボタン(未選択)の枠
+  static const radioOff = Color(0xFFB9BEC7);
+
   // ---- 曜日 ----
   static const saturday = Color(0xFF3A5A96);
   static const sunday = Color(0xFFB4442B);

@@ -5,8 +5,15 @@ import '../../../diary/application/providers/diary_providers.dart';
 import '../../../diary/domain/entities/diary.dart';
 import '../../../plan/application/providers/plan_provider.dart';
 import '../../../ai/application/providers/ai_model_provider.dart';
-import '../../../ai/presentation/widgets/ai_model_selector.dart';
-import '../../../plan/presentation/widgets/usage_meter.dart';
+import '../../../ai/presentation/widgets/ai_select_card.dart';
+import '../../../plan/domain/entities/usage_info.dart';
+import '../../../../common/constants/app_colors.dart';
+import '../../../../common/widgets/app_buttons.dart';
+import '../../../../common/widgets/app_card.dart';
+import '../../../../common/widgets/app_text_field.dart';
+import '../../../../common/widgets/section_title.dart';
+import '../../../../common/widgets/select_row.dart';
+import '../../../../common/widgets/style_radio_list.dart';
 import '../../../tutorial/application/tutorial_providers.dart';
 import '../../../tutorial/domain/tutorial_step.dart';
 import '../../../tutorial/presentation/tutorial_runner.dart';
@@ -20,7 +27,6 @@ import 'diary_select_page.dart';
 import 'generate_flow.dart';
 import 'summary_consult_screen.dart';
 import 'widgets/length_field.dart';
-import 'widgets/style_choice_card.dart';
 import 'widgets/token_shortage_dialog.dart';
 
 /// 作成済みの日記を選んで、AIに1つの日記(月の振り返り・1年の振り返りなど)にしてもらう画面
@@ -82,7 +88,8 @@ class _SummaryDiaryScreenState extends ConsumerState<SummaryDiaryScreen> {
       TutorialStep(
         target: _usageKey,
         title: "トークン使用量",
-        body: "今月の使用量と、使える上限が表示されます。\n"
+        body:
+            "今月の使用量と、使える上限が表示されます。\n"
             "毎月の無料枠が足りなくなったときは、設定の「ポイント・トークン」から、続けて使う方法を確認できます。",
       ),
       TutorialStep(
@@ -93,12 +100,14 @@ class _SummaryDiaryScreenState extends ConsumerState<SummaryDiaryScreen> {
       TutorialStep(
         target: _diariesKey,
         title: "振り返りに使う日記",
-        body: "作成済みの日記から、振り返りに使う日記を選びます。\n2件以上選ぶと作成できます。1か月分や1年分も選べます。\n選んだ日記の内容は、AIのサービスに送信されます(「日記を連結させる」は、AIを使わないので送信されません)。",
+        body:
+            "作成済みの日記から、振り返りに使う日記を選びます。\n2件以上選ぶと作成できます。1か月分や1年分も選べます。\n選んだ日記の内容は、AIのサービスに送信されます(「日記を連結させる」は、AIを使わないので送信されません)。",
       ),
       TutorialStep(
         target: _styleKey,
         title: "書き方",
-        body: "振り返りの書き方を選びます。\nブログ風や箇条書きなどのほかに、自分で指定することもできます。\n「日記を連結させる」は、AIを使わずに日記をつなげるので、トークンを使いません。",
+        body:
+            "振り返りの書き方を選びます。\nブログ風や箇条書きなどのほかに、自分で指定することもできます。\n「日記を連結させる」は、AIを使わずに日記をつなげるので、トークンを使いません。",
         // 縦に長く、説明も長いので、下端に置いて、吹き出しを上に出す
         bubbleAbove: true,
         scrollAlignment: 1,
@@ -161,56 +170,52 @@ class _SummaryDiaryScreenState extends ConsumerState<SummaryDiaryScreen> {
         state.summaryStyle == SummaryStyle.custom &&
         state.summaryCustom.trim().isEmpty;
 
+    final canGenerate =
+        !(selected.length < SummaryText.minCount ||
+            isTooLong ||
+            (isExceeded && !isJoin) ||
+            needsCustom);
+
     return Scaffold(
       appBar: AppBar(title: const Text("振り返り作成")),
       body: ListView(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.fromLTRB(16, 20, 16, 32),
         // 画面の外にある部品も、チュートリアルで場所を取れるよう、先に作っておく
         scrollCacheExtent: const ScrollCacheExtent.pixels(6000),
         children: [
-          Card(
-            key: _usageKey,
-            child: UsageMeter(usage: usage),
-          ),
-          const SizedBox(height: 12),
-
-          // AIを使わない「日記を連結させる」では、選ぶ必要がない
-          if (!isJoin) ...[
-            Card(
-              key: _modelKey,
-              child: const Padding(
-                padding: EdgeInsets.all(12),
-                child: AiModelSelector(),
-              ),
-            ),
-            const SizedBox(height: 12),
-          ],
-
-          Card(
+          // ---------- 振り返りに使う日記
+          const SectionTitle("振り返りに使う日記"),
+          AppCard(
             key: _diariesKey,
-            child: ListTile(
-              leading: const Icon(Icons.menu_book),
-              title: const Text("振り返りに使う日記"),
-              subtitle: Text(
-                diaries.isEmpty
-                    ? "まだ日記がありません"
-                    : "${diaries.length}件中${selected.length}件を選択中",
-              ),
-              trailing: const Icon(Icons.chevron_right),
+            child: SelectRow(
+              icon: Icons.menu_book_outlined,
+              label: "選んだ日記",
+              value: diaries.isEmpty
+                  ? "まだ日記がありません"
+                  : "${diaries.length}件中${selected.length}件を選択中",
               enabled: diaries.isNotEmpty,
               onTap: () => _select(context, diaries, selected),
             ),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 24),
+
+          // ---------- 使うAIと、今月の使用量
+          // AIを使わない「日記を連結させる」では、AIを選ぶ必要がないので、使用量だけを出す
+          AiSelectCard(
+            usage: usage,
+            showModel: !isJoin,
+            modelKey: _modelKey,
+            usageKey: _usageKey,
+          ),
+          const SizedBox(height: 24),
 
           // ---------- 書き方
           Column(
             key: _styleKey,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text("書き方", style: Theme.of(context).textTheme.titleSmall),
-              const SizedBox(height: 4),
-              StyleChoiceCard<SummaryStyle>(
+              const SectionTitle("書き方"),
+              StyleRadioList<SummaryStyle>(
                 values: SummaryStyle.values,
                 selected: state.summaryStyle,
                 label: (style) => style.label,
@@ -220,34 +225,28 @@ class _SummaryDiaryScreenState extends ConsumerState<SummaryDiaryScreen> {
             ],
           ),
           if (state.summaryStyle == SummaryStyle.custom) ...[
-            const SizedBox(height: 8),
-            TextField(
+            const SizedBox(height: 16),
+            AppTextField(
               controller: _customController,
-              decoration: const InputDecoration(
-                labelText: "どんな書き方にしたいか",
-                hintText: "例: 仕事の話だけを中心に、です・ます調で、800文字くらいで書いてほしい",
-                border: OutlineInputBorder(),
-                alignLabelWithHint: true,
-              ),
-              keyboardType: TextInputType.multiline,
-              minLines: 3,
-              maxLines: 8,
+              label: "どんな書き方にしたいか",
+              hintText: "例: 仕事の話だけを中心に、です・ます調で、800文字くらいで書いてほしい",
+              height: 120,
               onChanged: viewModel.setSummaryCustom,
             ),
           ],
-          const SizedBox(height: 8),
+          const SizedBox(height: 24),
 
           // 選んだ日記を見て、書き方をAIに相談する
-          OutlinedButton.icon(
+          SecondaryButton(
             key: _consultKey,
+            icon: Icons.chat_outlined,
+            label: "${model.label}に構成を相談する",
             // 1つにするには、2件以上必要なので、それまでは相談もできない
             onPressed: selected.length < SummaryText.minCount || isExceeded
                 ? null
                 : () => _consult(context, selected),
-            icon: const Icon(Icons.chat_outlined),
-            label: Text("${model.label}に構成を相談する"),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 24),
 
           // AIを使わない「日記を連結させる」では、伝える相手がいないので出さない
           // 一覧は、1件ずつ短く書く形なので、文字数は指定しない
@@ -256,79 +255,77 @@ class _SummaryDiaryScreenState extends ConsumerState<SummaryDiaryScreen> {
               key: _lengthKey,
               child: LengthField(
                 initialChars: state.summaryLengthChars,
+                hintExample: 1200,
                 onChanged: viewModel.setSummaryLength,
               ),
-            ),
-            const SizedBox(height: 12),
-          ],
-
-          if (!isJoin) ...[
-            TextField(
-              key: _noteKey,
-              controller: _noteController,
-              decoration: InputDecoration(
-                labelText: "${model.label}に追加で伝えたいこと",
-                hintText: "例: 今年1年の振り返りとして、前向きな言葉で締めてほしい",
-                border: OutlineInputBorder(),
-                alignLabelWithHint: true,
-              ),
-              keyboardType: TextInputType.multiline,
-              minLines: 3,
-              maxLines: 8,
-              onChanged: viewModel.setAiNote,
             ),
             const SizedBox(height: 16),
           ],
 
-          if (selected.length < SummaryText.minCount)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child: Text(
-                "日記を${SummaryText.minCount}件以上選んでください",
-                style: Theme.of(context).textTheme.bodySmall,
-              ),
+          if (!isJoin) ...[
+            AppTextField(
+              key: _noteKey,
+              controller: _noteController,
+              label: "${model.label}に追加で伝えたいこと",
+              hintText: "例：この1年の変化がわかるように",
+              height: 120,
+              onChanged: viewModel.setAiNote,
             ),
-          if (needsCustom)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child: Text(
-                "「自分で指定」を選んだときは、書き方を書いてください",
-                style: Theme.of(context).textTheme.bodySmall,
-              ),
-            ),
-          if (isJoin && selected.isNotEmpty)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child: Text(
-                "AIを使わないので、トークンは消費しません",
-                style: Theme.of(context).textTheme.bodySmall,
-              ),
-            )
-          else if (usage != null && selected.isNotEmpty)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child: Text(
-                "消費トークンの目安: 約${formatTokens(_estimate(state))}"
-                "(残り ${formatTokens(usage.remainingTokens)})",
-                style: Theme.of(context).textTheme.bodySmall,
-              ),
-            ),
-          ElevatedButton.icon(
+            const SizedBox(height: 24),
+          ],
+
+          // ---------- 作成
+          PrimaryButton(
             key: _generateKey,
+            icon: Icons.auto_awesome,
+            label: isJoin ? "振り返りを作成する" : "${model.label}に振り返りを作成してもらう",
             // 2件以上選ぶまでは押せない。使用量の上限に達している場合も、押せない
-            onPressed:
-                selected.length < SummaryText.minCount ||
-                    isTooLong ||
-                    (isExceeded && !isJoin) ||
-                    needsCustom
-                ? null
-                : () => _generate(context),
-            icon: const Icon(Icons.auto_awesome),
-            label: Text(isJoin ? "振り返りを作成する" : "${model.label}に振り返りを作成してもらう"),
+            onPressed: canGenerate ? () => _generate(context) : null,
+          ),
+
+          // 押せない理由や、トークンの目安は、ボタンのすぐ下に出す
+          ..._notes(
+            usage: usage,
+            state: state,
+            selectedCount: selected.length,
+            isJoin: isJoin,
+            needsCustom: needsCustom,
           ),
         ],
       ),
     );
+  }
+
+  // ボタンのすぐ下に、中央そろえで出す、小さな説明
+  List<Widget> _notes({
+    required UsageInfo? usage,
+    required DiaryCreateState state,
+    required int selectedCount,
+    required bool isJoin,
+    required bool needsCustom,
+  }) {
+    final notes = <String>[
+      if (selectedCount < SummaryText.minCount)
+        "日記を${SummaryText.minCount}件以上選んでください",
+      if (needsCustom) "「自分で指定」を選んだときは、書き方を書いてください",
+      if (isJoin && selectedCount > 0)
+        "AIを使わないので、トークンは消費しません"
+      else if (usage != null && selectedCount > 0)
+        "消費トークンの目安 約${formatTokens(_estimate(state))}"
+            "（残り ${formatTokens(usage.remainingTokens)}）",
+    ];
+
+    return [
+      for (final note in notes)
+        Padding(
+          padding: const EdgeInsets.only(top: 8),
+          child: Text(
+            note,
+            textAlign: TextAlign.center,
+            style: const TextStyle(fontSize: 12, color: AppColors.textSub),
+          ),
+        ),
+    ];
   }
 
   Future<void> _select(

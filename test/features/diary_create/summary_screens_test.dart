@@ -1,3 +1,4 @@
+import 'package:auto_diary_ai/common/constants/app_colors.dart';
 import 'package:auto_diary_ai/features/ads/application/ads_provider.dart';
 import 'package:auto_diary_ai/features/ai/application/providers/ai_provider.dart';
 import 'package:auto_diary_ai/features/ai/domain/entities/ai_message_request.dart';
@@ -67,11 +68,20 @@ List<Override> overrides(List<Diary> diaries, {FakeAi? ai}) => [
   adsEnabledProvider.overrideWithValue(false),
 ];
 
+// ボタン(共通の、メイン・サブのボタン)の、押せる部分
 Finder button(String label) =>
-    find.ancestor(of: find.text(label), matching: find.bySubtype<ButtonStyleButton>());
+    find.ancestor(of: find.text(label), matching: find.byType(InkWell)).first;
 
 bool isEnabled(WidgetTester tester, String label) =>
-    tester.widget<ButtonStyleButton>(button(label)).onPressed != null;
+    tester.widget<InkWell>(button(label)).onTap != null;
+
+// 書き方の選択肢で、選ばれている行(ピンクの面)
+Finder selectedStyleRow(String label) => find.ancestor(
+  of: find.text(label),
+  matching: find.byWidgetPredicate(
+    (w) => w is Material && w.color == AppColors.pink,
+  ),
+);
 
 void main() {
   group('振り返り作成画面', () {
@@ -96,7 +106,8 @@ void main() {
       for (final style in SummaryStyle.values) {
         expect(find.text(style.label), findsOneWidget);
       }
-      expect(find.byIcon(Icons.radio_button_checked), findsOneWidget);
+      expect(selectedStyleRow(SummaryStyle.reading.label), findsOneWidget);
+      expect(selectedStyleRow(SummaryStyle.list.label), findsNothing);
     });
 
     testWidgets('日記を選ぶまでは、相談も作成もできない', (tester) async {

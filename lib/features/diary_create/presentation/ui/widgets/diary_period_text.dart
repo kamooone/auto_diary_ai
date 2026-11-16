@@ -16,3 +16,9 @@ class DiaryPeriodText {
     return "$first〜$last（$days日間）";
   }
 }
+
+/// 「2026年11月16日（月）」の形(1日の日付の表示)
+String dateWithWeekday(DateTime date) {
+  const weekdays = ['月', '火', '水', '木', '金', '土', '日'];
+  return "${date.year}年${date.month}月${date.day}日（${weekdays[date.weekday - 1]}）";
+}
