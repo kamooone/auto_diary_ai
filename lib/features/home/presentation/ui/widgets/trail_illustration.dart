@@ -14,11 +14,7 @@ class TrailIllustration extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          SizedBox(
-            width: 240,
-            height: 130,
-            child: CustomPaint(painter: _TrailPainter()),
-          ),
+          const TrailPicture(),
           const SizedBox(height: 16),
           Text(
             message,
@@ -30,6 +26,29 @@ class TrailIllustration extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// 点線がピンに向かう絵だけ(文字なし)。日記を作っている間の画面などに使う
+class TrailPicture extends StatelessWidget {
+  const TrailPicture({super.key, this.scale = 1});
+
+  /// 大きさの倍率(1で、幅240・高さ130)
+  final double scale;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 240 * scale,
+      height: 130 * scale,
+      child: FittedBox(
+        child: SizedBox(
+          width: 240,
+          height: 130,
+          child: CustomPaint(painter: _TrailPainter()),
+        ),
       ),
     );
   }

@@ -1,5 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
+import '../../../../../common/constants/app_colors.dart';
+import '../../../../../common/constants/app_sizes.dart';
+import '../../../../../common/widgets/app_card.dart';
+import '../../../../../common/widgets/app_tag.dart';
+import '../../../../home/presentation/ui/widgets/trail_illustration.dart';
 import '../../../domain/services/generation_gauge.dart';
 
 /// 日記を作っている間の表示(ダウンロードのようなゲージと、パーセント)
@@ -13,7 +18,11 @@ class GenerationProgress extends StatefulWidget {
     required this.expectedSeconds,
     this.isDone = false,
     this.onFinished,
+    this.modelName,
   });
+
+  /// 使っているAIのモデル名(いちばん下に、小さな札で出す。なければ出さない)
+  final String? modelName;
 
   /// 見積もった所要時間(秒)
   final int expectedSeconds;
@@ -110,34 +119,69 @@ class _GenerationProgressState extends State<GenerationProgress>
         ? null
         : GenerationGauge.fraction(_seconds, widget.expectedSeconds);
 
-    final theme = Theme.of(context);
+    final modelName = widget.modelName;
 
+    // 画面の真ん中に、白いカードを置く(絵、見出し、ゲージ、数字、説明、AIの名前)
     return Center(
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 360),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Text("日記を書いています…"),
-            const SizedBox(height: 16),
-            ClipRRect(
-              borderRadius: BorderRadius.circular(4),
-              child: LinearProgressIndicator(value: fraction, minHeight: 8),
+      child: SingleChildScrollView(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 360),
+          child: AppCard(
+            padding: const EdgeInsets.fromLTRB(
+              AppSizes.space24,
+              AppSizes.space24,
+              AppSizes.space24,
+              AppSizes.space24,
             ),
-            const SizedBox(height: 8),
-            Text(
-              fraction == null ? "処理中…" : "${(fraction * 100).floor()}%",
-              style: theme.textTheme.titleMedium,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const TrailPicture(),
+                const SizedBox(height: AppSizes.space16),
+                const Text(
+                  "日記を書いています…",
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.text,
+                  ),
+                ),
+                const SizedBox(height: AppSizes.space16),
+                LinearProgressIndicator(
+                  value: fraction,
+                  minHeight: 8,
+                  borderRadius: BorderRadius.circular(AppSizes.radiusPill),
+                  backgroundColor: AppColors.pink,
+                  color: AppColors.navy,
+                ),
+                const SizedBox(height: AppSizes.space12),
+                Text(
+                  fraction == null ? "処理中…" : "${(fraction * 100).floor()}%",
+                  style: const TextStyle(
+                    fontSize: 28,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.navyDark,
+                  ),
+                ),
+                const SizedBox(height: AppSizes.space12),
+                Text(
+                  isIndeterminate
+                      ? "AIが混み合っていると、時間がかかります。そのままお待ちください"
+                      : "ゲージは目安です。写真や件数が多いと、時間がかかります",
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    fontSize: 13,
+                    height: 1.8,
+                    color: AppColors.textSub,
+                  ),
+                ),
+                if (modelName != null && modelName.isNotEmpty) ...[
+                  const SizedBox(height: AppSizes.space16),
+                  AppTag(modelName),
+                ],
+              ],
             ),
-            const SizedBox(height: 4),
-            Text(
-              isIndeterminate
-                  ? "AIが混み合っていると、時間がかかります。そのままお待ちください"
-                  : "ゲージは目安です。写真や件数が多いと、時間がかかります",
-              textAlign: TextAlign.center,
-              style: theme.textTheme.bodySmall,
-            ),
-          ],
+          ),
         ),
       ),
     );

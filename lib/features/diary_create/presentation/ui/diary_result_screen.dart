@@ -1,6 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../../common/constants/app_colors.dart';
+import '../../../../common/constants/app_sizes.dart';
+import '../../../../common/widgets/app_buttons.dart';
+import '../../../../common/widgets/app_card.dart';
+import '../../../../common/widgets/app_tag.dart';
+import '../../../../common/widgets/app_text_field.dart';
+import '../../../ai/application/providers/ai_model_provider.dart';
 import '../../domain/services/diary_copy_text.dart';
 import '../providers/diary_create_provider.dart';
 import '../viewmodel/diary_create_view_model.dart';
@@ -65,43 +72,54 @@ class _DiaryResultScreenState extends ConsumerState<DiaryResultScreen> {
     final isCompleted = _isCompleted(state) && !_isFinishing;
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(state.generatedByAi ? "AI日記の確認" : "日記の確認"),
-      ),
+      appBar: AppBar(title: Text(state.generatedByAi ? "AI日記の確認" : "日記の確認")),
       body: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.fromLTRB(16, 20, 16, 0),
         child: _buildBody(context, state),
       ),
+      // ボタンは、画面の下に固定する(本文が長くても、いつでも押せる)
       bottomNavigationBar: isCompleted
-          ? SafeArea(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-                // 本文が空の日記は保存できない
-                child: ValueListenableBuilder<TextEditingValue>(
-                  valueListenable: _contentController,
-                  builder: (context, value, child) {
-                    final isEmpty = value.text.trim().isEmpty;
+          ? Container(
+              decoration: const BoxDecoration(
+                color: AppColors.white,
+                border: Border(top: BorderSide(color: AppColors.line)),
+              ),
+              child: SafeArea(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+                  // 本文が空の日記は保存できない
+                  child: ValueListenableBuilder<TextEditingValue>(
+                    valueListenable: _contentController,
+                    builder: (context, value, child) {
+                      final isEmpty = value.text.trim().isEmpty;
 
-                    return Row(
-                      children: [
-                        // ほかのAIなどで修正するために、書かれた内容をコピーできる
-                        OutlinedButton.icon(
-                          onPressed: isEmpty ? null : _copy,
-                          icon: const Icon(Icons.copy),
-                          label: const Text("コピー"),
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: ElevatedButton.icon(
-                            // 本文が空の日記は保存できない
-                            onPressed: isEmpty ? null : _save,
-                            icon: const Icon(Icons.save),
-                            label: const Text("この内容で保存する"),
+                      return Row(
+                        children: [
+                          // ほかのAIなどで修正するために、書かれた内容をコピーできる
+                          Expanded(
+                            flex: 2,
+                            child: SizedBox(
+                              height: 52,
+                              child: SecondaryButton(
+                                icon: Icons.copy,
+                                label: "コピー",
+                                onPressed: isEmpty ? null : _copy,
+                              ),
+                            ),
                           ),
-                        ),
-                      ],
-                    );
-                  },
+                          const SizedBox(width: 12),
+                          Expanded(
+                            flex: 3,
+                            child: PrimaryButton(
+                              icon: Icons.save_outlined,
+                              label: "この内容で保存する",
+                              onPressed: isEmpty ? null : _save,
+                            ),
+                          ),
+                        ],
+                      );
+                    },
+                  ),
                 ),
               ),
             )
@@ -122,9 +140,7 @@ class _DiaryResultScreenState extends ConsumerState<DiaryResultScreen> {
       ),
     );
 
-    messenger.showSnackBar(
-      const SnackBar(content: Text("タイトルと本文をコピーしました")),
-    );
+    messenger.showSnackBar(const SnackBar(content: Text("タイトルと本文をコピーしました")));
   }
 
   Future<void> _save() async {
@@ -138,9 +154,7 @@ class _DiaryResultScreenState extends ConsumerState<DiaryResultScreen> {
     );
 
     messenger.showSnackBar(
-      SnackBar(
-        content: Text(saved ? "日記を保存しました" : "保存に失敗しました"),
-      ),
+      SnackBar(content: Text(saved ? "日記を保存しました" : "保存に失敗しました")),
     );
 
     // 保存できたら、入力画面も閉じてホームに戻る
@@ -156,6 +170,10 @@ class _DiaryResultScreenState extends ConsumerState<DiaryResultScreen> {
     if (state.isLoading || _isFinishing) {
       return GenerationProgress(
         expectedSeconds: state.expectedSeconds,
+        // AIを使うときは、使っているAIのモデル名を出す
+        modelName: state.generatedByAi
+            ? ref.read(aiModelProvider).modelName
+            : null,
         isDone: !state.isLoading,
         onFinished: () {
           if (mounted) setState(() => _isFinishing = false);
@@ -184,41 +202,109 @@ class _DiaryResultScreenState extends ConsumerState<DiaryResultScreen> {
     }
 
     return ListView(
+      padding: const EdgeInsets.only(bottom: AppSizes.space24),
       children: [
-        Text(
-          state.generatedByAi
-              ? "AIが書いた内容です。必要なら修正してから保存してください。"
-              : "選んだ日記を日付順につなげた内容です。必要なら修正してから保存してください。",
-          style: Theme.of(context).textTheme.bodySmall,
-        ),
-        // 使用したモデル(AIを使わないときや、分からないときは出さない)
-        if (state.generatedByAi && state.generatedModel.isNotEmpty)
-          Padding(
-            padding: const EdgeInsets.only(top: 2),
-            child: Text(
-              "使用したモデル: ${state.generatedModel}",
-              style: Theme.of(context).textTheme.bodySmall,
-            ),
+        // お知らせ(使用したモデルは、小さな札で)
+        AppCard(
+          padding: const EdgeInsets.all(AppSizes.space16),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 40,
+                height: 40,
+                decoration: const BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: AppColors.pink,
+                ),
+                child: Icon(
+                  state.generatedByAi
+                      ? Icons.auto_awesome
+                      : Icons.menu_book_outlined,
+                  size: 20,
+                  color: AppColors.navy,
+                ),
+              ),
+              const SizedBox(width: AppSizes.space12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.only(top: 2),
+                      child: Text(
+                        state.generatedByAi
+                            ? "AIが書いた内容です。必要なら修正してから保存してください。"
+                            : "選んだ日記を日付順につなげた内容です。必要なら修正してから保存してください。",
+                        style: const TextStyle(
+                          fontSize: 15,
+                          height: 1.6,
+                          color: AppColors.text,
+                        ),
+                      ),
+                    ),
+                    // 使用したモデル(AIを使わないときや、分からないときは出さない)
+                    if (state.generatedByAi && state.generatedModel.isNotEmpty)
+                      Padding(
+                        padding: const EdgeInsets.only(top: AppSizes.space8),
+                        child: AppTag(state.generatedModel),
+                      ),
+                  ],
+                ),
+              ),
+            ],
           ),
-        const SizedBox(height: 12),
-        TextField(
-          controller: _titleController,
-          decoration: const InputDecoration(
-            labelText: "タイトル",
-            border: OutlineInputBorder(),
+        ),
+        const SizedBox(height: AppSizes.space24),
+        AppTextField(label: "タイトル", controller: _titleController, bold: true),
+        const SizedBox(height: AppSizes.space24),
+        // 本文(項目名の右に、文字数)
+        Padding(
+          padding: const EdgeInsets.fromLTRB(
+            AppSizes.space4,
+            0,
+            AppSizes.space4,
+            AppSizes.space8,
+          ),
+          child: Row(
+            children: [
+              const Expanded(
+                child: Text(
+                  "本文",
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 0.52,
+                    color: AppColors.textSub,
+                  ),
+                ),
+              ),
+              ValueListenableBuilder<TextEditingValue>(
+                valueListenable: _contentController,
+                builder: (context, value, child) => Text(
+                  "${value.text.characters.length}文字",
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: AppColors.textSub,
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
-        const SizedBox(height: 8),
         TextField(
           controller: _contentController,
-          decoration: const InputDecoration(
-            labelText: "本文",
-            border: OutlineInputBorder(),
-            alignLabelWithHint: true,
-          ),
           keyboardType: TextInputType.multiline,
           minLines: 10,
           maxLines: null,
+          style: const TextStyle(
+            fontSize: 15,
+            height: 1.9,
+            color: AppColors.text,
+          ),
+          decoration: const InputDecoration(
+            contentPadding: EdgeInsets.all(AppSizes.space16),
+          ),
         ),
       ],
     );

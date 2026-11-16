@@ -18,6 +18,7 @@ class AppTextField extends StatelessWidget {
     this.keyboardType,
     this.inputFormatters,
     this.onChanged,
+    this.bold = false,
   });
 
   final String label;
@@ -34,6 +35,9 @@ class AppTextField extends StatelessWidget {
   final List<TextInputFormatter>? inputFormatters;
   final ValueChanged<String>? onChanged;
 
+  /// 入力した文字を、太字にする(タイトルなど)
+  final bool bold;
+
   @override
   Widget build(BuildContext context) {
     final multiline = height != null;
@@ -46,8 +50,14 @@ class AppTextField extends StatelessWidget {
       expands: multiline,
       maxLines: multiline ? null : 1,
       minLines: multiline ? null : 1,
-      textAlignVertical: multiline ? TextAlignVertical.top : TextAlignVertical.center,
-      style: const TextStyle(fontSize: 16, color: AppColors.text),
+      textAlignVertical: multiline
+          ? TextAlignVertical.top
+          : TextAlignVertical.center,
+      style: TextStyle(
+        fontSize: 16,
+        fontWeight: bold ? FontWeight.w700 : FontWeight.w400,
+        color: AppColors.text,
+      ),
       decoration: InputDecoration(
         hintText: hintText,
         hintStyle: const TextStyle(fontSize: 16, color: AppColors.mutedText),

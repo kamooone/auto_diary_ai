@@ -87,7 +87,10 @@ void main() {
 
     test('GPTの簡単なブログ風は、読み物より短い', () {
       final brief = seconds(diaries: diaries(31), style: SummaryStyle.brief);
-      final reading = seconds(diaries: diaries(31), style: SummaryStyle.reading);
+      final reading = seconds(
+        diaries: diaries(31),
+        style: SummaryStyle.reading,
+      );
 
       expect(brief, lessThan(reading));
       expect(brief, inInclusiveRange(5, 15));
@@ -180,17 +183,36 @@ void main() {
     });
 
     test('GPT 31件の出来事の一覧は実測25秒(出力が遅い)', () {
-      final s = seconds(
-        sized(31, 9300),
-        AiModel.gpt,
-        style: SummaryStyle.list,
-      );
+      final s = seconds(sized(31, 9300), AiModel.gpt, style: SummaryStyle.list);
 
       expect(s, inInclusiveRange(18, 32));
     });
   });
 
   group('GenerationProgress', () {
+    testWidgets('使っているAIの名前が、札で出る(渡さなければ出ない)。文字を大きくしても、あふれない', (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          builder: (context, child) => MediaQuery(
+            data: MediaQuery.of(
+              context,
+            ).copyWith(textScaler: const TextScaler.linear(2)),
+            child: child!,
+          ),
+          home: const Scaffold(
+            body: GenerationProgress(
+              expectedSeconds: 20,
+              modelName: 'gemini-flash-lite-latest',
+            ),
+          ),
+        ),
+      );
+      await tester.pump(const Duration(seconds: 1));
+
+      expect(find.text('gemini-flash-lite-latest'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    });
+
     testWidgets('作成中は、ゲージとパーセントと、目安であることを示す', (tester) async {
       await tester.pumpWidget(
         const MaterialApp(
@@ -227,7 +249,9 @@ void main() {
       await tester.pump(const Duration(seconds: 3));
       expect(
         tester
-            .widget<LinearProgressIndicator>(find.byType(LinearProgressIndicator))
+            .widget<LinearProgressIndicator>(
+              find.byType(LinearProgressIndicator),
+            )
             .value,
         isNotNull,
       );
@@ -237,7 +261,9 @@ void main() {
       // 値を決めない棒(流れる動き)になる
       expect(
         tester
-            .widget<LinearProgressIndicator>(find.byType(LinearProgressIndicator))
+            .widget<LinearProgressIndicator>(
+              find.byType(LinearProgressIndicator),
+            )
             .value,
         isNull,
       );
@@ -278,7 +304,9 @@ void main() {
 
       expect(
         tester
-            .widget<LinearProgressIndicator>(find.byType(LinearProgressIndicator))
+            .widget<LinearProgressIndicator>(
+              find.byType(LinearProgressIndicator),
+            )
             .value,
         1.0,
       );
