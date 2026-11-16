@@ -53,7 +53,7 @@ class MonthBar extends StatelessWidget {
         children: [
           Row(
             children: [
-              _RoundButton(
+              RoundNavButton(
                 key: const Key('homePreviousMonth'),
                 size: compact ? 40 : 48,
                 icon: Icons.chevron_left,
@@ -116,7 +116,7 @@ class MonthBar extends StatelessWidget {
                   ),
                 ),
               ),
-              _RoundButton(
+              RoundNavButton(
                 key: const Key('homeNextMonth'),
                 size: compact ? 40 : 48,
                 icon: Icons.chevron_right,
@@ -161,8 +161,9 @@ class MonthBar extends StatelessWidget {
   }
 }
 
-class _RoundButton extends StatelessWidget {
-  const _RoundButton({
+/// 丸い白ボタン(前の月・次の月、前の日・次の日など。枠はうすく、アイコンはネイビー)
+class RoundNavButton extends StatelessWidget {
+  const RoundNavButton({
     super.key,
     required this.size,
     required this.icon,

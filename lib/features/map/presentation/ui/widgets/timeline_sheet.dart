@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import '../../../../../common/constants/app_colors.dart';
+import '../../../../../common/constants/app_sizes.dart';
+import '../../../../../common/widgets/month_bar.dart' show RoundNavButton;
 import '../../../../location/domain/entities/place_candidate.dart';
 import '../../../../location/domain/entities/timeline_item.dart';
 import '../../../../location/domain/entities/transport_mode.dart';
@@ -67,12 +70,12 @@ class TimelineSheet extends StatelessWidget {
   ///
   /// [registerPlace]がtrueの場合は、次回以降もこの場所の名前として表示する
   final void Function(Stay stay, String? placeName, {bool registerPlace})
-      onPlaceNameChanged;
+  onPlaceNameChanged;
 
   /// 移動手段と、移動の説明(自由に書いた文)
   /// どちらもnullの場合は、自動推定に戻す
   final void Function(Move move, TransportMode? transport, String? text)
-      onTransportChanged;
+  onTransportChanged;
 
   /// 取得できなかった訪れた場所を、もう一度取得する
   final VoidCallback onRetryPlaceSearch;
@@ -82,65 +85,103 @@ class TimelineSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // 滞在には、上から1, 2, 3…と番号を付ける(移動と、記録のない時間には付けない)
+    final stayNumbers = <int, int>{};
+    var count = 0;
+    for (var i = 0; i < items.length; i++) {
+      if (items[i] is Stay) stayNumbers[i] = ++count;
+    }
+
     return DraggableScrollableSheet(
       controller: controller,
       initialChildSize: 0.25,
       minChildSize: minSize,
       maxChildSize: 0.7,
       builder: (context, scrollController) {
-        return Material(
+        return Container(
           key: sheetKey,
-          elevation: 8,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
           clipBehavior: Clip.antiAlias,
-          // 左右にスワイプすると、ページをめくるように翌日・前日へ切り替える
-          child: _DaySwipePager(
-            canGoToPreviousDay: canGoToPreviousDay,
-            canGoToNextDay: canGoToNextDay,
-            onPreviousDay: onPreviousDay,
-            onNextDay: onNextDay,
-            child: CustomScrollView(
-              controller: scrollController,
-              slivers: [
-                // 日付の切り替えは、一覧をスクロールしても上部に残す
-                SliverPersistentHeader(
-                  pinned: true,
-                  delegate: _DateHeaderDelegate(
-                    date: date,
-                    canGoToPreviousDay: canGoToPreviousDay,
-                    canGoToNextDay: canGoToNextDay,
-                    onPreviousDay: onPreviousDay,
-                    onNextDay: onNextDay,
-                    onDateTap: onDateTap,
-                  ),
-                ),
-                // 訪れた場所の取得が終わるまで表示する
-                if (isLoading)
-                  const SliverToBoxAdapter(child: _LoadingIndicator()),
-                // 訪れた場所を取得できなかった滞在は、地名だけの表示になっている
-                // (ユーザーが場所名を入力した滞在は、取得できなくても困らない)
-                if (!isLoading &&
-                    items.whereType<Stay>().any(
-                          (e) => e.isPlaceSearchFailed && !e.isPlaceNameEdited,
-                        ))
-                  SliverToBoxAdapter(
-                    child: _PlaceSearchFailedNotice(
-                      onRetry: onRetryPlaceSearch,
+          decoration: BoxDecoration(
+            color: AppColors.pageBackground,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+            boxShadow: [
+              BoxShadow(
+                color: AppColors.navy.withValues(alpha: 0.12),
+                blurRadius: 16,
+                offset: const Offset(0, -4),
+              ),
+            ],
+          ),
+          child: Material(
+            type: MaterialType.transparency,
+            // 左右にスワイプすると、ページをめくるように翌日・前日へ切り替える
+            child: _DaySwipePager(
+              canGoToPreviousDay: canGoToPreviousDay,
+              canGoToNextDay: canGoToNextDay,
+              onPreviousDay: onPreviousDay,
+              onNextDay: onNextDay,
+              child: CustomScrollView(
+                controller: scrollController,
+                slivers: [
+                  // 日付の切り替えは、一覧をスクロールしても上部に残す
+                  SliverPersistentHeader(
+                    pinned: true,
+                    delegate: _DateHeaderDelegate(
+                      date: date,
+                      canGoToPreviousDay: canGoToPreviousDay,
+                      canGoToNextDay: canGoToNextDay,
+                      onPreviousDay: onPreviousDay,
+                      onNextDay: onNextDay,
+                      onDateTap: onDateTap,
                     ),
                   ),
-                if (items.isEmpty && !isLoading)
-                  const SliverToBoxAdapter(
-                    child: Padding(
-                      padding: EdgeInsets.all(24),
-                      child: Center(child: Text("この日の行動履歴はありません")),
+                  // 訪れた場所の取得が終わるまで表示する
+                  if (isLoading)
+                    const SliverToBoxAdapter(child: _LoadingIndicator()),
+                  // 訪れた場所を取得できなかった滞在は、地名だけの表示になっている
+                  // (ユーザーが場所名を入力した滞在は、取得できなくても困らない)
+                  if (!isLoading &&
+                      items.whereType<Stay>().any(
+                        (e) => e.isPlaceSearchFailed && !e.isPlaceNameEdited,
+                      ))
+                    SliverToBoxAdapter(
+                      child: _PlaceSearchFailedNotice(
+                        onRetry: onRetryPlaceSearch,
+                      ),
+                    ),
+                  if (items.isEmpty && !isLoading)
+                    const SliverToBoxAdapter(
+                      child: Padding(
+                        padding: EdgeInsets.all(24),
+                        child: Center(
+                          child: Text(
+                            "この日の行動履歴はありません",
+                            style: TextStyle(color: AppColors.textSub),
+                          ),
+                        ),
+                      ),
+                    ),
+                  // 左の余白12、右の余白16
+                  SliverPadding(
+                    padding: const EdgeInsets.fromLTRB(
+                      AppSizes.space12,
+                      0,
+                      AppSizes.space16,
+                      AppSizes.space24,
+                    ),
+                    sliver: SliverList.builder(
+                      itemCount: items.length,
+                      itemBuilder: (context, index) => _buildItem(
+                        context,
+                        items[index],
+                        stayNumber: stayNumbers[index],
+                        isFirst: index == 0,
+                        isLast: index == items.length - 1,
+                      ),
                     ),
                   ),
-                SliverList.builder(
-                  itemCount: items.length,
-                  itemBuilder: (context, index) =>
-                      _buildItem(context, items[index]),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         );
@@ -148,75 +189,287 @@ class TimelineSheet extends StatelessWidget {
     );
   }
 
-  Widget _buildItem(BuildContext context, TimelineItem item) {
+  Widget _buildItem(
+    BuildContext context,
+    TimelineItem item, {
+    required int? stayNumber,
+    required bool isFirst,
+    required bool isLast,
+  }) {
     final time = TimelineFormatter.timeRange(item);
 
     return switch (item) {
-      Stay() => _buildStay(context, item, time),
-      Move() => ListTile(
-          dense: true,
-          leading: Icon(TimelineFormatter.transportIcon(item.transport)),
-          title: Text(TimelineFormatter.moveTitle(item)),
-          subtitle: Text(time),
-          // 選択中の移動は、地図上の経路と対応が分かるよう色を付ける
-          selected: item.start == selectedMoveStart,
-          selectedTileColor: Theme.of(context)
-              .colorScheme
-              .primary
-              .withValues(alpha: 0.12),
-          trailing: IconButton(
-            icon: const Icon(Icons.edit, size: 18),
-            tooltip: "移動手段を編集",
-            onPressed: () => _editTransport(context, item),
+      Stay() => _TimelineNode(
+        isFirst: isFirst,
+        isLast: isLast,
+        node: Semantics(
+          label: '$stayNumber番目の滞在',
+          container: true,
+          excludeSemantics: true,
+          child: Container(
+            width: 28,
+            height: 28,
+            alignment: Alignment.center,
+            decoration: const BoxDecoration(
+              shape: BoxShape.circle,
+              color: AppColors.navy,
+            ),
+            child: Text(
+              '$stayNumber',
+              style: const TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w700,
+                color: AppColors.white,
+              ),
+            ),
           ),
-          onTap: () => onMoveTap(item),
         ),
+        child: _buildStay(context, item, time),
+      ),
+      Move() => _TimelineNode(
+        isFirst: isFirst,
+        isLast: isLast,
+        node: _lineNode(
+          Icon(
+            TimelineFormatter.transportIcon(item.transport),
+            size: 16,
+            color: AppColors.orange,
+          ),
+        ),
+        child: _buildMove(context, item, time),
+      ),
       // 記録していなかった時間帯は、滞在や移動より目立たない色で表示する
-      RecordingOff() => ListTile(
-          dense: true,
-          leading: Icon(
-            Icons.pause_circle_outline,
-            color: Theme.of(context).disabledColor,
-          ),
-          title: Text(
-            TimelineFormatter.recordingOffTitle,
-            style: TextStyle(color: Theme.of(context).disabledColor),
-          ),
-          subtitle: Text(
-            "$time（${TimelineFormatter.duration(item.duration)}）",
+      RecordingOff() => _TimelineNode(
+        isFirst: isFirst,
+        isLast: isLast,
+        node: _lineNode(
+          const Icon(Icons.pause, size: 16, color: AppColors.chevron),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                TimelineFormatter.recordingOffTitle,
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.mutedText,
+                ),
+              ),
+              Text(
+                "$time（${TimelineFormatter.duration(item.duration)}）",
+                style: const TextStyle(
+                  fontSize: 12,
+                  color: AppColors.textSub,
+                  fontFeatures: [FontFeature.tabularFigures()],
+                ),
+              ),
+            ],
           ),
         ),
+      ),
     };
   }
 
+  // 白い面に、うすい枠の丸(移動・記録のない時間の印)
+  Widget _lineNode(Widget icon) {
+    return Container(
+      width: 28,
+      height: 28,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: AppColors.white,
+        border: Border.all(color: AppColors.line),
+      ),
+      child: icon,
+    );
+  }
+
+  // 編集のボタン(鉛筆。40x40)
+  Widget _editButton({
+    required String tooltip,
+    required VoidCallback onPressed,
+  }) {
+    return IconButton(
+      tooltip: tooltip,
+      onPressed: onPressed,
+      style: IconButton.styleFrom(
+        fixedSize: const Size(40, 40),
+        minimumSize: const Size(40, 40),
+        padding: EdgeInsets.zero,
+      ),
+      icon: const Icon(Icons.edit_outlined, size: 18, color: AppColors.textSub),
+    );
+  }
+
+  // 移動(カードにしない。選択中の移動は、地図上の経路と対応が分かるよう、ピンクにする)
+  Widget _buildMove(BuildContext context, Move move, String time) {
+    final selected = move.start == selectedMoveStart;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 3),
+      child: Material(
+        color: selected ? AppColors.pink : Colors.transparent,
+        borderRadius: BorderRadius.circular(AppSizes.radius12),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: () => onMoveTap(move),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(
+              AppSizes.space4,
+              AppSizes.space4,
+              AppSizes.space4,
+              AppSizes.space4,
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        TimelineFormatter.moveName(move),
+                        style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.text,
+                        ),
+                      ),
+                      Text(
+                        "約${TimelineFormatter.distance(move.distanceMeters)}"
+                        " ・ $time（${TimelineFormatter.duration(move.duration)}）",
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: AppColors.textSub,
+                          fontFeatures: [FontFeature.tabularFigures()],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                _editButton(
+                  tooltip: "移動手段を編集",
+                  onPressed: () => _editTransport(context, move),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // 滞在(白いカード)
   Widget _buildStay(BuildContext context, Stay stay, String time) {
     final candidates = placeCandidates[stay.start] ?? const <PlaceCandidate>[];
-
-    final timeText =
-        "$time（${TimelineFormatter.duration(stay.duration)}）";
 
     // ユーザーが確認していない滞在は、最も近い施設を訪れたものとして表示する。
     // 違っている場合は編集から直せるよう、推定であることと住所を添える
     final isEstimated = stay.isPlaceEstimated;
 
-    return ListTile(
-      dense: true,
-      leading: const Icon(Icons.place),
-      title: Text(
-        TimelineFormatter.stayTitle(stay, showNotFound: !isLoading),
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 3),
+      child: Container(
+        decoration: BoxDecoration(
+          color: AppColors.white,
+          borderRadius: BorderRadius.circular(AppSizes.radius16),
+          boxShadow: AppColors.cardShadows,
+        ),
+        child: Material(
+          color: Colors.transparent,
+          borderRadius: BorderRadius.circular(AppSizes.radius16),
+          clipBehavior: Clip.antiAlias,
+          child: InkWell(
+            onTap: () => onStayTap(stay),
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(
+                AppSizes.space16,
+                AppSizes.space12,
+                6,
+                AppSizes.space12,
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          TimelineFormatter.stayTitle(
+                            stay,
+                            showNotFound: !isLoading,
+                          ),
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.text,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Wrap(
+                          crossAxisAlignment: WrapCrossAlignment.center,
+                          spacing: AppSizes.space8,
+                          runSpacing: 4,
+                          children: [
+                            Text(
+                              time,
+                              style: const TextStyle(
+                                fontSize: 13,
+                                color: AppColors.textSub,
+                                fontFeatures: [FontFeature.tabularFigures()],
+                              ),
+                            ),
+                            // 滞在した時間の札
+                            Container(
+                              height: 20,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: AppSizes.space8,
+                              ),
+                              alignment: Alignment.center,
+                              decoration: BoxDecoration(
+                                color: AppColors.pink,
+                                borderRadius: BorderRadius.circular(
+                                  AppSizes.radiusPill,
+                                ),
+                              ),
+                              child: Text(
+                                TimelineFormatter.duration(stay.duration),
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w700,
+                                  color: AppColors.navyDark,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        if (isEstimated && stay.placeName != null)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 4),
+                            child: Text(
+                              stay.placeName!,
+                              style: const TextStyle(
+                                fontSize: 12,
+                                color: AppColors.textSub,
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                  _editButton(
+                    tooltip: "場所を編集",
+                    onPressed: () => _editPlace(context, stay, candidates),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
       ),
-      subtitle: Text(
-        isEstimated && stay.placeName != null
-            ? "$timeText\n${stay.placeName}"
-            : timeText,
-      ),
-      isThreeLine: isEstimated && stay.placeName != null,
-      trailing: IconButton(
-        icon: const Icon(Icons.edit, size: 18),
-        tooltip: "場所を編集",
-        onPressed: () => _editPlace(context, stay, candidates),
-      ),
-      onTap: () => onStayTap(stay),
     );
   }
 
@@ -270,8 +523,9 @@ class TimelineSheet extends StatelessWidget {
                       "約${candidate.distanceMeters.round()}m",
                     ].join("・"),
                   ),
-                  onTap: () => Navigator.of(context)
-                      .pop(_PlaceChoice.name(candidate.name)),
+                  onTap: () => Navigator.of(
+                    context,
+                  ).pop(_PlaceChoice.name(candidate.name)),
                 ),
               // 自動で取得した住所のまま確定する
               if (!stay.isPlaceNameEdited && stay.placeName != null)
@@ -279,8 +533,9 @@ class TimelineSheet extends StatelessWidget {
                   leading: const Icon(Icons.location_on_outlined),
                   title: const Text("この中にない"),
                   subtitle: Text("「${stay.placeName}」のままにする"),
-                  onTap: () => Navigator.of(context)
-                      .pop(_PlaceChoice.name(stay.placeName!)),
+                  onTap: () => Navigator.of(
+                    context,
+                  ).pop(_PlaceChoice.name(stay.placeName!)),
                 ),
               ListTile(
                 leading: const Icon(Icons.edit),
@@ -388,10 +643,10 @@ class TimelineSheet extends StatelessWidget {
         content: Text(
           stay.isPlaceRegistered
               ? "登録すると、登録している名前を「$placeName」に変更します。\n"
-                  "登録しない場合は、この滞在だけ「$placeName」にします。"
+                    "登録しない場合は、この滞在だけ「$placeName」にします。"
               : "次回以降も、この場所を訪れたときは「$placeName」と表示します。\n"
-                  "登録しない場合は、この滞在だけ「$placeName」にして、"
-                  "次回以降は訪れた場所を取得します。",
+                    "登録しない場合は、この滞在だけ「$placeName」にして、"
+                    "次回以降は訪れた場所を取得します。",
         ),
         actions: [
           TextButton(
@@ -427,8 +682,9 @@ class TimelineSheet extends StatelessWidget {
                 ListTile(
                   leading: Icon(TimelineFormatter.transportIcon(mode)),
                   title: Text(mode.label),
-                  trailing:
-                      move.transport == mode ? const Icon(Icons.check) : null,
+                  trailing: move.transport == mode
+                      ? const Icon(Icons.check)
+                      : null,
                   onTap: () =>
                       Navigator.of(context).pop(_TransportResult.mode(mode)),
                 ),
@@ -471,7 +727,8 @@ class TimelineSheet extends StatelessWidget {
       builder: (context) => _TextDialog(
         title: "移動の説明を編集",
         hintText: "例: 〇〇さんの車で移動",
-        initialText: move.transportText ??
+        initialText:
+            move.transportText ??
             (transport == null ? "" : "${transport.label}で移動"),
       ),
     );
@@ -485,7 +742,6 @@ class TimelineSheet extends StatelessWidget {
       text,
     );
   }
-
 }
 
 // キャンセル(null)と「元に戻す」(中身がnull)を区別するための入れ物
@@ -499,13 +755,9 @@ class _PlaceNameResult {
 class _PlaceChoice {
   const _PlaceChoice.name(String this.placeName) : isManual = false;
 
-  const _PlaceChoice.manual()
-      : placeName = null,
-        isManual = true;
+  const _PlaceChoice.manual() : placeName = null, isManual = true;
 
-  const _PlaceChoice.reset()
-      : placeName = null,
-        isManual = false;
+  const _PlaceChoice.reset() : placeName = null, isManual = false;
 
   final String? placeName;
   final bool isManual;
@@ -515,13 +767,9 @@ class _PlaceChoice {
 class _TransportResult {
   const _TransportResult.mode(TransportMode this.transport) : isText = false;
 
-  const _TransportResult.text()
-      : transport = null,
-        isText = true;
+  const _TransportResult.text() : transport = null, isText = true;
 
-  const _TransportResult.reset()
-      : transport = null,
-        isText = false;
+  const _TransportResult.reset() : transport = null, isText = false;
 
   final TransportMode? transport;
   final bool isText;
@@ -602,9 +850,7 @@ class _PlaceNameDialogState extends State<_PlaceNameDialog> {
       content: TextField(
         controller: _controller,
         autofocus: true,
-        decoration: const InputDecoration(
-          hintText: "例: 自宅、〇〇カフェ",
-        ),
+        decoration: const InputDecoration(hintText: "例: 自宅、〇〇カフェ"),
       ),
       actions: [
         if (widget.stay.isPlaceNameEdited)
@@ -689,10 +935,12 @@ class _DaySwipePagerState extends State<_DaySwipePager>
     final velocity = details.primaryVelocity ?? 0;
 
     // 右へ動かすと前の日、左へ動かすと次の日
-    final toPrevious = widget.canGoToPreviousDay &&
+    final toPrevious =
+        widget.canGoToPreviousDay &&
         offset > 0 &&
         (offset > _width * _switchRatio || velocity > _flingVelocity);
-    final toNext = widget.canGoToNextDay &&
+    final toNext =
+        widget.canGoToNextDay &&
         offset < 0 &&
         (offset < -_width * _switchRatio || velocity < -_flingVelocity);
 
@@ -761,7 +1009,7 @@ class _DaySwipePagerState extends State<_DaySwipePager>
   }
 }
 
-/// シートの上部に固定する、つまみと日付の切り替え
+/// シートの上部に固定する、つまみと日付の切り替え(ホームの年月の切り替えと同じ見た目)
 class _DateHeaderDelegate extends SliverPersistentHeaderDelegate {
   const _DateHeaderDelegate({
     required this.date,
@@ -779,7 +1027,8 @@ class _DateHeaderDelegate extends SliverPersistentHeaderDelegate {
   final VoidCallback onNextDay;
   final VoidCallback onDateTap;
 
-  static const _height = 68.0;
+  // つまみ(上の余白10 + 4 + 下12)と、日付の切り替え(40)と、下の余白(12)
+  static const _height = 80.0;
   static const _weekdays = ["月", "火", "水", "木", "金", "土", "日"];
 
   @override
@@ -797,41 +1046,73 @@ class _DateHeaderDelegate extends SliverPersistentHeaderDelegate {
     final weekday = _weekdays[date.weekday - 1];
 
     return Material(
-      color: Theme.of(context).colorScheme.surface,
+      color: AppColors.pageBackground,
       child: Column(
         children: [
           const _Handle(),
-          SizedBox(
-            height: 48,
-            child: Row(
-              children: [
-                IconButton(
-                  icon: const Icon(Icons.chevron_left),
-                  tooltip: "前の日",
-                  onPressed: canGoToPreviousDay ? onPreviousDay : null,
-                ),
-                Expanded(
-                  child: InkWell(
-                    onTap: onDateTap,
-                    borderRadius: BorderRadius.circular(8),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(
-                          "${date.year}年${date.month}月${date.day}日($weekday)",
-                          style: Theme.of(context).textTheme.titleMedium,
-                        ),
-                        const Icon(Icons.arrow_drop_down),
-                      ],
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: AppSizes.space16),
+            child: SizedBox(
+              height: 40,
+              child: Row(
+                children: [
+                  RoundNavButton(
+                    size: 40,
+                    icon: Icons.chevron_left,
+                    tooltip: "前の日",
+                    onPressed: canGoToPreviousDay ? onPreviousDay : null,
+                  ),
+                  Expanded(
+                    child: InkWell(
+                      onTap: onDateTap,
+                      borderRadius: BorderRadius.circular(AppSizes.radius12),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        crossAxisAlignment: CrossAxisAlignment.baseline,
+                        textBaseline: TextBaseline.alphabetic,
+                        children: [
+                          Text(
+                            "${date.year}年",
+                            style: const TextStyle(
+                              fontSize: 13,
+                              color: AppColors.textSub,
+                            ),
+                          ),
+                          const SizedBox(width: AppSizes.space4),
+                          Text(
+                            "${date.month}月${date.day}日",
+                            style: const TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.text,
+                            ),
+                          ),
+                          const SizedBox(width: AppSizes.space4),
+                          Text(
+                            "（$weekday）",
+                            style: const TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.textSub,
+                            ),
+                          ),
+                          const Icon(
+                            Icons.keyboard_arrow_down,
+                            size: 20,
+                            color: AppColors.navy,
+                          ),
+                        ],
+                      ),
                     ),
                   ),
-                ),
-                IconButton(
-                  icon: const Icon(Icons.chevron_right),
-                  tooltip: "次の日",
-                  onPressed: canGoToNextDay ? onNextDay : null,
-                ),
-              ],
+                  RoundNavButton(
+                    size: 40,
+                    icon: Icons.chevron_right,
+                    tooltip: "次の日",
+                    onPressed: canGoToNextDay ? onNextDay : null,
+                  ),
+                ],
+              ),
             ),
           ),
         ],
@@ -862,10 +1143,7 @@ class _LoadingIndicator extends StatelessWidget {
             child: CircularProgressIndicator(strokeWidth: 2),
           ),
           const SizedBox(width: 12),
-          Text(
-            "訪れた場所を取得しています…",
-            style: Theme.of(context).textTheme.bodySmall,
-          ),
+          Text("訪れた場所を取得しています…", style: Theme.of(context).textTheme.bodySmall),
         ],
       ),
     );
@@ -891,10 +1169,7 @@ class _PlaceSearchFailedNotice extends StatelessWidget {
               style: Theme.of(context).textTheme.bodySmall,
             ),
           ),
-          TextButton(
-            onPressed: onRetry,
-            child: const Text("再取得"),
-          ),
+          TextButton(onPressed: onRetry, child: const Text("再取得")),
         ],
       ),
     );
@@ -910,12 +1185,83 @@ class _Handle extends StatelessWidget {
       child: Container(
         width: 36,
         height: 4,
-        margin: const EdgeInsets.symmetric(vertical: 8),
+        margin: const EdgeInsets.only(top: 10, bottom: 12),
         decoration: BoxDecoration(
-          color: Colors.grey[400],
+          color: AppColors.sheetHandle,
           borderRadius: BorderRadius.circular(2),
         ),
       ),
     );
   }
+}
+
+/// タイムラインの1行(左に幅32の列。項目どうしを、点線でつなぐ)
+///
+/// 最初の項目の上と、最後の項目の下には、線を出さない
+class _TimelineNode extends StatelessWidget {
+  const _TimelineNode({
+    required this.isFirst,
+    required this.isLast,
+    required this.node,
+    required this.child,
+  });
+
+  final bool isFirst;
+  final bool isLast;
+
+  /// 左の列の、丸い印(直径28)
+  final Widget node;
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return IntrinsicHeight(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          SizedBox(
+            width: 32,
+            child: CustomPaint(
+              painter: _RailPainter(isFirst: isFirst, isLast: isLast),
+              child: Center(child: node),
+            ),
+          ),
+          Expanded(child: child),
+        ],
+      ),
+    );
+  }
+}
+
+class _RailPainter extends CustomPainter {
+  const _RailPainter({required this.isFirst, required this.isLast});
+
+  final bool isFirst;
+  final bool isLast;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final x = size.width / 2;
+    // 丸い印は、行の真ん中にある。最初の行は印から下、最後の行は上から印まで
+    final top = isFirst ? size.height / 2 : 0.0;
+    final bottom = isLast ? size.height / 2 : size.height;
+
+    final paint = Paint()
+      ..color = AppColors.timelineDots
+      ..strokeWidth = 1.5
+      ..strokeCap = StrokeCap.round;
+
+    for (var y = top; y < bottom; y += 5) {
+      canvas.drawLine(
+        Offset(x, y),
+        Offset(x, (y + 2).clamp(top, bottom)),
+        paint,
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _RailPainter oldDelegate) =>
+      oldDelegate.isFirst != isFirst || oldDelegate.isLast != isLast;
 }

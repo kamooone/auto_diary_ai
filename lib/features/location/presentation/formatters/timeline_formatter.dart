@@ -35,7 +35,8 @@ class TimelineFormatter {
     final name = stay.displayName ?? "場所名を取得できませんでした";
     if (stay.isPlaceEstimated) return "$name（推定）";
 
-    final isUnresolved = showNotFound &&
+    final isUnresolved =
+        showNotFound &&
         stay.displayName != null &&
         !stay.isPlaceNameEdited &&
         stay.estimatedPlaceName == null;
@@ -44,6 +45,20 @@ class TimelineFormatter {
     return stay.isPlaceSearchFailed
         ? "$name（通信に失敗しました。）"
         : "$name（取得できませんでした。手動で登録することも可能です。）";
+  }
+
+  /// 移動の名前(距離は含めない)。「自転車で移動（推定）」の形
+  static String moveName(Move move) {
+    // ユーザーが書いた説明があれば、それをそのまま表示する
+    final text = move.transportText;
+    if (text != null) return text;
+
+    final transport = move.transport;
+    if (transport == null) return "移動";
+
+    return move.isTransportEdited
+        ? "${transport.label}で移動"
+        : "${transport.label}で移動（推定）";
   }
 
   static String moveTitle(Move move) {

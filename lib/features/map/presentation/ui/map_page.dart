@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../../../../common/constants/app_colors.dart';
+import '../../../../common/constants/app_sizes.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:latlong2/latlong.dart';
@@ -36,13 +38,11 @@ class _MapPageState extends ConsumerState<MapPage> {
   static const _tutorialId = 'map';
 
   bool _isValidLatLng(LatLng loc) {
-    return loc.latitude.isFinite &&
-        loc.longitude.isFinite;
+    return loc.latitude.isFinite && loc.longitude.isFinite;
   }
 
   bool _hasValidCurrentLocation(LatLng? loc) {
-    return loc != null &&
-        _isValidLatLng(loc);
+    return loc != null && _isValidLatLng(loc);
   }
 
   @override
@@ -68,27 +68,21 @@ class _MapPageState extends ConsumerState<MapPage> {
       await vm.start();
     });
 
-    ref.listenManual(
-      mapProvider,
-          (previous, next) {
-            final loc = next.currentLocation;
+    ref.listenManual(mapProvider, (previous, next) {
+      final loc = next.currentLocation;
 
-            if (!_hasValidCurrentLocation(loc)) {
-              return;
-            }
+      if (!_hasValidCurrentLocation(loc)) {
+        return;
+      }
 
-            if (_movedToCurrentLocation) {
-              return;
-            }
+      if (_movedToCurrentLocation) {
+        return;
+      }
 
-            _movedToCurrentLocation = true;
+      _movedToCurrentLocation = true;
 
-            _controller.move(
-              loc!,
-              MapConstants.currentLocationZoom,
-            );
-      },
-    );
+      _controller.move(loc!, MapConstants.currentLocationZoom);
+    });
   }
 
   // 初めて表示したときだけ、説明する
@@ -106,7 +100,8 @@ class _MapPageState extends ConsumerState<MapPage> {
         target: _timelineKey,
         title: "タイムライン",
         bubbleAbove: true,
-        body: "その日の滞在と移動が並びます。\n行動履歴の内容は正確ではないので、鉛筆のボタンで場所の名前や移動手段を直すことができます。\nこのタイムラインの情報はAIに日記を作成してもらうときに使用することができます。",
+        body:
+            "その日の滞在と移動が並びます。\n行動履歴の内容は正確ではないので、鉛筆のボタンで場所の名前や移動手段を直すことができます。\nこのタイムラインの情報はAIに日記を作成してもらうときに使用することができます。",
       ),
     ]);
 
@@ -200,141 +195,246 @@ class _MapPageState extends ConsumerState<MapPage> {
 
     return Scaffold(
       appBar: AppBar(
+        leading: IconButton(
+          tooltip: '戻る',
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => Navigator.of(context).maybePop(),
+        ),
         title: const Text("行動履歴"),
       ),
-      body: Stack(
-        children: [
-          FlutterMap(
-            mapController: _controller,
-            options: MapOptions(
-              initialCenter: LatLng(
-                MapConstants.tokyoStationLat,
-                MapConstants.tokyoStationLng,
+      // シートの高さに合わせて、地図の上の部品(出典、デバッグボタン)を、シートの少し上に置く
+      body: LayoutBuilder(
+        builder: (context, constraints) => Stack(
+          children: [
+            FlutterMap(
+              mapController: _controller,
+              options: MapOptions(
+                initialCenter: LatLng(
+                  MapConstants.tokyoStationLat,
+                  MapConstants.tokyoStationLng,
+                ),
+                initialZoom: MapConstants.initialZoom,
+                minZoom: MapConstants.minZoom,
+                maxZoom: MapConstants.maxZoom,
+                // 慣性アニメーションによる暴走を防ぐ
+                interactionOptions: const InteractionOptions(
+                  flags: InteractiveFlag.all & ~InteractiveFlag.flingAnimation,
+                ),
               ),
-              initialZoom: MapConstants.initialZoom,
-              minZoom: MapConstants.minZoom,
-              maxZoom: MapConstants.maxZoom,
-              // 慣性アニメーションによる暴走を防ぐ
-              interactionOptions: const InteractionOptions(
-                flags: InteractiveFlag.all & ~InteractiveFlag.flingAnimation,
-              ),
-            ),
-            children: [
-              TileLayer(
-                urlTemplate: MapConstants.tileUrl,
-                userAgentPackageName: MapConstants.userAgent,
-              ),
-
-              // 地図データの出典(OpenStreetMapの利用条件)
-              // 画面下部はタイムラインが重なるため、上部に表示する
-              const SimpleAttributionWidget(
-                source: Text('OpenStreetMap contributors'),
-                alignment: Alignment.topRight,
-              ),
-
-              // 履歴にもNaNが混入しないようフィルタリング
-              if (state.history.isNotEmpty)
-                PolylineLayer(
-                  polylines: [
-                    Polyline(
-                      points: state.history.where(_isValidLatLng).toList(),
-                      strokeWidth: 4,
-                      // 移動を選択している間は、全体の軌跡を薄くして経路を目立たせる
-                      color: state.selectedRoute.isEmpty
-                          ? Colors.blue
-                          : Colors.blue.withValues(alpha: 0.35),
-                    ),
-                    // タイムラインで選択した移動の経路
-                    if (state.selectedRoute.length >= 2)
-                      Polyline(
-                        points: state.selectedRoute,
-                        strokeWidth: 7,
-                        color: Colors.blue.shade900,
-                      ),
-                  ],
+              children: [
+                TileLayer(
+                  urlTemplate: MapConstants.tileUrl,
+                  userAgentPackageName: MapConstants.userAgent,
                 ),
 
-              if (_hasValidCurrentLocation(state.currentLocation))
-                MarkerLayer(
-                  markers: [
-                    Marker(
-                      point: state.currentLocation!,
-                      width: MapConstants.markerSize,
-                      height: MapConstants.markerSize,
-                      child: const Icon(
-                        Icons.my_location,
-                        color: Colors.blue,
-                        size: MapConstants.markerSize,
+                // 履歴にもNaNが混入しないようフィルタリング
+                // 移動のルート(白い線の上に、オレンジの点線)
+                if (state.history.isNotEmpty)
+                  PolylineLayer(
+                    polylines: [
+                      // 移動を選択している間は、全体の軌跡を薄くして、選んだ経路を目立たせる
+                      ..._routeLines(
+                        state.history.where(_isValidLatLng).toList(),
+                        opacity: state.selectedRoute.isEmpty ? 1 : 0.35,
                       ),
-                    ),
-                  ],
-                ),
-            ],
-          ),
-          // 記録のない日でも日付を切り替えられるよう、シートは常に表示する
-          TimelineSheet(
-            sheetKey: _timelineKey,
-            controller: _sheetController,
-            date: state.selectedDate,
-            canGoToPreviousDay: selectedDay.isAfter(firstDay),
-            canGoToNextDay: selectedDay.isBefore(today),
-            onPreviousDay: () => _changeDate(
-              DateTime(selectedDay.year, selectedDay.month, selectedDay.day - 1),
-            ),
-            onNextDay: () => _changeDate(
-              DateTime(selectedDay.year, selectedDay.month, selectedDay.day + 1),
-            ),
-            onDateTap: () => _pickDate(firstDay: firstDay, lastDay: today),
-            items: state.timeline,
-            isLoading: state.isLoadingTimeline,
-            placeCandidates: state.placeCandidates,
-            selectedMoveStart: state.selectedMoveStart,
-            onStayTap: (stay) {
-              ref.read(mapProvider.notifier).clearSelectedMove();
-              _collapseSheet();
+                      // タイムラインで選択した移動の経路
+                      if (state.selectedRoute.length >= 2)
+                        ..._routeLines(state.selectedRoute),
+                    ],
+                  ),
 
-              _controller.move(
-                LatLng(stay.latitude, stay.longitude),
-                MapConstants.currentLocationZoom,
-              );
-            },
-            onMoveTap: _showRoute,
-            onRetryPlaceSearch: () {
-              ref.read(mapProvider.notifier).retryPlaceSearch();
-            },
-            onPlaceNameChanged: (stay, placeName, {registerPlace = false}) {
-              ref.read(mapProvider.notifier).updateStayPlaceName(
-                    stay,
-                    placeName,
-                    registerPlace: registerPlace,
-                  );
-            },
-            onTransportChanged: (move, transport, text) {
-              ref
-                  .read(mapProvider.notifier)
-                  .updateMoveTransport(move, transport: transport, text: text);
-            },
-          ),
-          // 動作確認用のログ
-          SafeArea(
-            child: Align(
-              alignment: Alignment.topCenter,
-              child: Padding(
-                padding: const EdgeInsets.all(8),
-                child: _showLog
-                    ? AppLogPanel(onClose: () => setState(() => _showLog = false))
-                    : Align(
-                        alignment: Alignment.centerRight,
-                        child: IconButton.filledTonal(
-                          onPressed: () => setState(() => _showLog = true),
-                          icon: const Icon(Icons.bug_report_outlined),
-                          tooltip: 'ログを表示',
+                if (_hasValidCurrentLocation(state.currentLocation))
+                  MarkerLayer(
+                    markers: [
+                      Marker(
+                        point: state.currentLocation!,
+                        width: MapConstants.markerSize,
+                        height: MapConstants.markerSize,
+                        child: const Icon(
+                          Icons.my_location,
+                          color: Colors.blue,
+                          size: MapConstants.markerSize,
                         ),
                       ),
+                    ],
+                  ),
+              ],
+            ),
+            // 記録のない日でも日付を切り替えられるよう、シートは常に表示する
+            TimelineSheet(
+              sheetKey: _timelineKey,
+              controller: _sheetController,
+              date: state.selectedDate,
+              canGoToPreviousDay: selectedDay.isAfter(firstDay),
+              canGoToNextDay: selectedDay.isBefore(today),
+              onPreviousDay: () => _changeDate(
+                DateTime(
+                  selectedDay.year,
+                  selectedDay.month,
+                  selectedDay.day - 1,
+                ),
+              ),
+              onNextDay: () => _changeDate(
+                DateTime(
+                  selectedDay.year,
+                  selectedDay.month,
+                  selectedDay.day + 1,
+                ),
+              ),
+              onDateTap: () => _pickDate(firstDay: firstDay, lastDay: today),
+              items: state.timeline,
+              isLoading: state.isLoadingTimeline,
+              placeCandidates: state.placeCandidates,
+              selectedMoveStart: state.selectedMoveStart,
+              onStayTap: (stay) {
+                ref.read(mapProvider.notifier).clearSelectedMove();
+                _collapseSheet();
+
+                _controller.move(
+                  LatLng(stay.latitude, stay.longitude),
+                  MapConstants.currentLocationZoom,
+                );
+              },
+              onMoveTap: _showRoute,
+              onRetryPlaceSearch: () {
+                ref.read(mapProvider.notifier).retryPlaceSearch();
+              },
+              onPlaceNameChanged: (stay, placeName, {registerPlace = false}) {
+                ref
+                    .read(mapProvider.notifier)
+                    .updateStayPlaceName(
+                      stay,
+                      placeName,
+                      registerPlace: registerPlace,
+                    );
+              },
+              onTransportChanged: (move, transport, text) {
+                ref
+                    .read(mapProvider.notifier)
+                    .updateMoveTransport(
+                      move,
+                      transport: transport,
+                      text: text,
+                    );
+              },
+            ),
+            // 動作確認用のログ
+            SafeArea(
+              child: Align(
+                alignment: Alignment.topCenter,
+                child: Padding(
+                  padding: const EdgeInsets.all(8),
+                  child: _showLog
+                      ? AppLogPanel(
+                          onClose: () => setState(() => _showLog = false),
+                        )
+                      : const SizedBox.shrink(),
+                ),
               ),
             ),
-          ),
-        ],
+
+            // 地図データの出典(OpenStreetMapの利用条件)と、デバッグボタン
+            // どちらも、シートに隠れないよう、シートの少し上に置く
+            ListenableBuilder(
+              listenable: _sheetController,
+              builder: (context, _) {
+                final sheetSize = _sheetController.isAttached
+                    ? _sheetController.size
+                    : 0.25;
+                final bottom = constraints.maxHeight * sheetSize;
+
+                return Stack(
+                  children: [
+                    Positioned(
+                      left: AppSizes.space8,
+                      bottom: bottom + AppSizes.space4,
+                      child: const _MapAttribution(),
+                    ),
+                    if (!_showLog)
+                      Positioned(
+                        right: AppSizes.space16,
+                        bottom: bottom + AppSizes.space12,
+                        child: _DebugButton(
+                          onPressed: () => setState(() => _showLog = true),
+                        ),
+                      ),
+                  ],
+                );
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// 移動のルートの線: 白い線(太さ8)の上に、オレンジの点線(太さ4、丸い端、点2・間7)
+List<Polyline> _routeLines(List<LatLng> points, {double opacity = 1}) {
+  return [
+    Polyline(
+      points: points,
+      strokeWidth: 8,
+      color: AppColors.white.withValues(alpha: opacity),
+    ),
+    Polyline(
+      points: points,
+      strokeWidth: 4,
+      color: AppColors.orange.withValues(alpha: opacity),
+      strokeCap: StrokeCap.round,
+      pattern: StrokePattern.dashed(segments: const [2, 7]),
+    ),
+  ];
+}
+
+/// 地図の出典(OpenStreetMapの利用条件)。地図の左下に、小さく出す
+class _MapAttribution extends StatelessWidget {
+  const _MapAttribution();
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: AppColors.white.withValues(alpha: 0.85),
+        borderRadius: BorderRadius.circular(4),
+      ),
+      child: const Padding(
+        padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+        child: Text(
+          '© OpenStreetMap contributors',
+          style: TextStyle(fontSize: 10, color: AppColors.textSub),
+        ),
+      ),
+    );
+  }
+}
+
+/// デバッグ用のボタン(ログを表示する)
+class _DebugButton extends StatelessWidget {
+  const _DebugButton({required this.onPressed});
+
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 44,
+      height: 44,
+      decoration: BoxDecoration(
+        color: AppColors.white,
+        shape: BoxShape.circle,
+        border: Border.all(color: AppColors.line),
+        boxShadow: AppColors.cardShadows,
+      ),
+      child: IconButton(
+        onPressed: onPressed,
+        tooltip: 'ログを表示',
+        padding: EdgeInsets.zero,
+        icon: const Icon(
+          Icons.bug_report_outlined,
+          size: 20,
+          color: AppColors.navy,
+        ),
       ),
     );
   }
