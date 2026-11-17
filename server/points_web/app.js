@@ -86,6 +86,8 @@ async function login() {
     state,
     code_challenge: base64Url(await sha256(verifier)),
     code_challenge_method: "S256",
+    // ログイン画面の言葉を、日本語にする
+    lang: "ja",
   });
 
   location.href = `${cognitoDomain}/oauth2/authorize?${params}`;
