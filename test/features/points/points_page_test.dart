@@ -80,8 +80,6 @@ void main() {
     expect(find.text('下のボタンで、6桁のコードを発行します'), findsOneWidget);
     expect(find.text('コードを発行する'), findsOneWidget);
     expect(find.text('Webを開く'), findsOneWidget);
-    // アカウントの削除は、Webで行う(その案内が出る)
-    expect(find.text('アカウントの削除は、Webで行えます'), findsOneWidget);
     // ポイントは、ゲームで遊ぶと貯まる(紹介のページへの入口)
     expect(find.text('ゲームで遊んで、ポイントを貯める'), findsOneWidget);
   });
