@@ -25,6 +25,21 @@ class XArchivePostFormatter {
     return '${t.year}/${two(t.month)}/${two(t.day)} ${two(t.hour)}:${two(t.minute)}';
   }
 
+  /// 日本時間の時刻だけ(「08:58」の形)
+  static String time(DateTime utc) {
+    final t = utc.add(const Duration(hours: 9));
+    String two(int n) => n.toString().padLeft(2, '0');
+    return '${two(t.hour)}:${two(t.minute)}';
+  }
+
+  static const _weekdays = ['月', '火', '水', '木', '金', '土', '日'];
+
+  /// 日本時間の日付と曜日(「2024年9月11日（水）」の形)
+  static String dateWithWeekday(DateTime utc) {
+    final t = utc.add(const Duration(hours: 9));
+    return '${t.year}年${t.month}月${t.day}日（${_weekdays[t.weekday - 1]}）';
+  }
+
   /// 種類・画像の枚数・動画の有無
   static List<String> notes(XArchivePost post) {
     final kind = kindLabel(post);
