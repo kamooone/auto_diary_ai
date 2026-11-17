@@ -19,11 +19,8 @@
     header { background: var(--navy); color: var(--white); height: 56px;
              display: flex; align-items: center; gap: 12px; padding: 0 16px; }
     header img { width: 32px; height: 32px; border-radius: 8px; }
-    header .name { font-weight: 700; letter-spacing: .04em; flex: 1; }
+    header .name { font-weight: 700; letter-spacing: .04em; }
     header .sub { font-weight: 400; opacity: .85; margin-left: 4px; }
-    header nav a { color: var(--white); text-decoration: none; font-size: 14px; opacity: .85;
-                   padding: 6px 10px; border-radius: 999px; }
-    header nav a.current { background: rgba(255, 255, 255, .18); opacity: 1; font-weight: 700; }
     main { max-width: 480px; margin: 0 auto; padding: 20px 16px 40px; }
     h1 { font-size: 24px; margin: 4px 0 4px; line-height: 1.3; }
     .lead { color: var(--text-sub); margin: 0 0 16px; }
@@ -48,10 +45,6 @@
   <header>
     <img src="icon.png" alt="">
     <span class="name">あなたの軌跡<span class="sub">ポイント</span></span>
-    <nav>
-      <a href="index.html">ポイント</a>
-      <a href="games.html" class="current">ゲーム</a>
-    </nav>
   </header>
 
   <main>
@@ -61,7 +54,7 @@
     <div id="gameList"></div>
     <p id="gameEmpty" class="card empty" hidden>ゲームは、準備中です。</p>
 
-    <p class="note">ポイントを使うには、アカウントを作って、アプリと紐づける必要があります(「ポイント」のページから行えます)。</p>
+    <p class="note">ポイントを使うには、アカウントを作って、アプリと紐づける必要があります。</p>
   </main>
 
   <script src="games_data.js"></script>
