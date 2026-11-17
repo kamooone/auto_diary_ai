@@ -82,6 +82,8 @@ void main() {
     expect(find.text('Webを開く'), findsOneWidget);
     // アカウントの削除は、Webで行う(その案内が出る)
     expect(find.text('アカウントの削除は、Webで行えます'), findsOneWidget);
+    // ポイントは、ゲームで遊ぶと貯まる(紹介のページへの入口)
+    expect(find.text('ゲームで遊んで、ポイントを貯める'), findsOneWidget);
   });
 
   testWidgets('コードを発行すると、1桁ずつの四角で出て、キャンセルで戻れる', (tester) async {

@@ -25,6 +25,9 @@ final pointsWebUrlProvider = Provider<String>((ref) {
       _defaultPointsWebUrl;
 });
 
+/// ゲームの紹介ページのURL(ポイントのWebページと同じ場所の games.html)
+Uri pointsGamesUri(String baseUrl) => Uri.parse(baseUrl).resolve('games.html');
+
 /// Webのページを開くURL
 /// [code]を渡すと、Webの入力欄にコードが入った状態で開く(紐づけるかは本人が決める)
 Uri pointsWebUri(String baseUrl, {String? code}) {
@@ -39,8 +42,9 @@ final pairingRepositoryProvider = Provider<PairingRepository>((ref) {
 });
 
 /// 紐づけが済んだかを確認する間隔
-final pairingPollIntervalProvider =
-    Provider<Duration>((ref) => const Duration(seconds: 3));
+final pairingPollIntervalProvider = Provider<Duration>(
+  (ref) => const Duration(seconds: 3),
+);
 
 /// Webの確認画面に表示する、この端末の名前
 final pairingLabelProvider = Provider<String>((ref) {
@@ -76,8 +80,8 @@ class PairingState {
 /// 紐づけコードを発行し、Webで確定されるまで確認を続ける
 final pairingProvider =
     NotifierProvider.autoDispose<PairingNotifier, PairingState>(
-  PairingNotifier.new,
-);
+      PairingNotifier.new,
+    );
 
 class PairingNotifier extends AutoDisposeNotifier<PairingState> {
   Timer? _timer;

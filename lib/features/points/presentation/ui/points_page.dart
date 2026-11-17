@@ -60,6 +60,17 @@ class _PointsPageState extends ConsumerState<PointsPage> {
           const SizedBox(height: AppSizes.space16),
           if (isLinked) const _LinkedCard() else const _PairingCard(),
           const SizedBox(height: AppSizes.space16),
+          // ポイントは、ゲームで遊ぶと貯まる(ゲームの紹介は、Webのページにある)
+          Builder(
+            builder: (context) => Consumer(
+              builder: (context, ref, _) => SecondaryButton(
+                icon: Icons.sports_esports_outlined,
+                label: "ゲームで遊んで、ポイントを貯める",
+                onPressed: () => _openWeb(context, ref, games: true),
+              ),
+            ),
+          ),
+          const SizedBox(height: AppSizes.space8),
           const _DeleteAccountLink(),
         ],
       ),
@@ -86,11 +97,13 @@ Future<void> _openWeb(
   BuildContext context,
   WidgetRef ref, {
   String? code,
+  bool games = false,
 }) async {
   final messenger = ScaffoldMessenger.of(context);
 
+  final base = ref.read(pointsWebUrlProvider);
   final opened = await launchUrl(
-    pointsWebUri(ref.read(pointsWebUrlProvider), code: code),
+    games ? pointsGamesUri(base) : pointsWebUri(base, code: code),
     mode: LaunchMode.externalApplication,
   ).catchError((_) => false);
 

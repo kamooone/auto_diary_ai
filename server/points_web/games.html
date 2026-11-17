@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ゲーム | あなたの軌跡 ポイント</title>
+  <link rel="icon" href="icon.png">
+  <style>
+    /* 色は、アプリ(lib/common/constants/app_colors.dart)と同じ値 */
+    :root {
+      --navy: #3F5879; --navy-dark: #2E4260; --pink: #FFE4E1; --page: #FFF7F5; --white: #FFFFFF;
+      --orange-dark: #C75A22; --text: #1F2430; --text-sub: #5E6472; --line: #F0DAD5;
+      --shadow: 0 1px 2px rgba(46, 66, 96, .06), 0 4px 12px rgba(46, 66, 96, .05);
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--page); color: var(--text);
+           font-family: "Noto Sans JP", system-ui, -apple-system, "Hiragino Sans", sans-serif;
+           font-size: 15px; line-height: 1.7; }
+    header { background: var(--navy); color: var(--white); height: 56px;
+             display: flex; align-items: center; gap: 12px; padding: 0 16px; }
+    header img { width: 32px; height: 32px; border-radius: 8px; }
+    header .name { font-weight: 700; letter-spacing: .04em; flex: 1; }
+    header .sub { font-weight: 400; opacity: .85; margin-left: 4px; }
+    header nav a { color: var(--white); text-decoration: none; font-size: 14px; opacity: .85;
+                   padding: 6px 10px; border-radius: 999px; }
+    header nav a.current { background: rgba(255, 255, 255, .18); opacity: 1; font-weight: 700; }
+    main { max-width: 480px; margin: 0 auto; padding: 20px 16px 40px; }
+    h1 { font-size: 24px; margin: 4px 0 4px; line-height: 1.3; }
+    .lead { color: var(--text-sub); margin: 0 0 16px; }
+    h3 { font-size: 18px; margin: 0; }
+    .card { background: var(--white); border-radius: 16px; box-shadow: var(--shadow); padding: 16px; }
+    .card + .card { margin-top: 12px; }
+    .gameHead { display: flex; align-items: center; gap: 12px; }
+    .gameIcon { width: 56px; height: 56px; border-radius: 14px; flex: none; object-fit: cover; }
+    .gameIcon.initial { background: var(--pink); color: var(--navy); font-size: 24px; font-weight: 700;
+                        display: grid; place-items: center; }
+    .gameSummary { margin: 12px 0 0; }
+    .gamePoints { margin: 8px 0 0; color: var(--navy-dark); font-weight: 700; font-size: 14px; }
+    .primary { display: flex; align-items: center; justify-content: center; width: 100%; height: 52px;
+               margin-top: 16px; border-radius: 999px; background: var(--orange-dark); color: var(--white);
+               font-weight: 700; font-size: 16px; text-decoration: none; box-shadow: 0 4px 12px rgba(199, 90, 34, .28); }
+    .empty { text-align: center; color: var(--text-sub); }
+    .note { color: var(--text-sub); font-size: 13px; margin: 24px 4px 0; }
+    [hidden] { display: none !important; }
+  </style>
+</head>
+<body>
+  <header>
+    <img src="icon.png" alt="">
+    <span class="name">あなたの軌跡<span class="sub">ポイント</span></span>
+    <nav>
+      <a href="index.html">ポイント</a>
+      <a href="games.html" class="current">ゲーム</a>
+    </nav>
+  </header>
+
+  <main>
+    <h1>ゲーム</h1>
+    <p class="lead">ゲームで遊ぶと、ポイントが貯まります。貯めたポイントは、トークンに交換して、日記アプリで使えます。</p>
+
+    <div id="gameList"></div>
+    <p id="gameEmpty" class="card empty" hidden>ゲームは、準備中です。</p>
+
+    <p class="note">ポイントを使うには、アカウントを作って、アプリと紐づける必要があります(「ポイント」のページから行えます)。</p>
+  </main>
+
+  <script src="games_data.js"></script>
+  <script src="games_page.js"></script>
+</body>
+</html>
