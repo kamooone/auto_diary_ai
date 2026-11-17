@@ -59,6 +59,8 @@ class _PointsPageState extends ConsumerState<PointsPage> {
           const _Description(),
           const SizedBox(height: AppSizes.space16),
           if (isLinked) const _LinkedCard() else const _PairingCard(),
+          const SizedBox(height: AppSizes.space16),
+          const _DeleteAccountLink(),
         ],
       ),
     );
@@ -94,6 +96,36 @@ Future<void> _openWeb(
 
   if (!opened) {
     messenger.showSnackBar(const SnackBar(content: Text("Webを開けませんでした")));
+  }
+}
+
+/// アカウントの削除は、Webのページで行う(アプリからは、そのページを開く)
+class _DeleteAccountLink extends ConsumerWidget {
+  const _DeleteAccountLink();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return Center(
+      child: InkWell(
+        borderRadius: BorderRadius.circular(AppSizes.radius12),
+        onTap: () => _openWeb(context, ref),
+        child: const Padding(
+          padding: EdgeInsets.symmetric(
+            horizontal: AppSizes.space12,
+            vertical: AppSizes.space8,
+          ),
+          child: Text(
+            "アカウントの削除は、Webで行えます",
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w700,
+              color: AppColors.navy,
+              decoration: TextDecoration.underline,
+            ),
+          ),
+        ),
+      ),
+    );
   }
 }
 

@@ -80,6 +80,8 @@ void main() {
     expect(find.text('下のボタンで、6桁のコードを発行します'), findsOneWidget);
     expect(find.text('コードを発行する'), findsOneWidget);
     expect(find.text('Webを開く'), findsOneWidget);
+    // アカウントの削除は、Webで行う(その案内が出る)
+    expect(find.text('アカウントの削除は、Webで行えます'), findsOneWidget);
   });
 
   testWidgets('コードを発行すると、1桁ずつの四角で出て、キャンセルで戻れる', (tester) async {

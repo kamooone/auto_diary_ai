@@ -469,3 +469,35 @@ Webのポイント画面に、「ポイントの履歴」を出す。データ�
 ```
 python3 -m unittest server/points_api/test_lambda_function.py
 ```
+
+---
+
+## 手順9: アカウントの削除
+
+Webのページの一番下の「アカウントの削除」から、アカウントとデータを削除できる(アプリの「ポイント・トークン」画面からは、そのページを開く)。
+
+### 流れ
+1. 「アカウントを削除する」を押す → 削除されるデータの説明と、メールアドレスの入力(ログイン中のものと一致したときだけ、次へ進める)。
+2. 「パスワードを入力して続ける」を押す → Cognitoのログイン画面で、パスワードを入れてログインし直す(`prompt=login`)。
+3. 戻ってきたら、最後の確認。「削除する」を押すと、`DELETE /me` を呼ぶ。
+4. サーバーは、トークンの `auth_time`(ログインした時刻)が、**直近5分以内**のときだけ、削除する。古いときは `403 recent_login_required`(画面から直接APIを呼んでも消せない)。
+
+パスワードは、自分たちのページやサーバーでは受け取らない(Cognitoの画面で入力する)。
+
+### 削除されるもの
+残高(accounts)、ポイントの履歴(ledger)、紐づけた端末(devices)、そのアカウントの紐づけコード(pairing)、Cognitoのアカウント。
+成果の二重付与を防ぐ記録(grants)は、アカウントのIDだけが入っていて、保存期間(最長30日)で自動で消える。
+お問い合わせは、アカウントとは別(端末の匿名のID)で管理しているので、削除の対象に入れていない。
+
+### AWSでやること(コードを上げる前に)
+1. **API Gateway**: ルート `DELETE /me` を追加する。統合は同じLambda、オーソライザーは `cognito`(`GET /me` と同じ)。CORSの許可メソッドに `DELETE` が入っていることを確認する(`DELETE /devices/{deviceId}` で、すでに入っているはず)。
+2. **Lambda の環境変数**: `USER_POOL_ID` に、Cognitoのユーザープールの ID(`ap-northeast-1_…`)を入れる。入っていないと、削除は 500 になり、データも消えない。
+3. **Lambda の権限(IAMのポリシー)**: 実行ロールに、次を足す。
+   - `cognito-idp:AdminDeleteUser`(リソース: そのユーザープールのARN)
+   - DynamoDBは、`BatchWriteItem`、`Query`、`Scan`(pairingテーブル)を、4つのテーブル(accounts、ledger、devices、pairing)に許可する。`devices` は、インデックス `accountId-index` の `Query` も必要。
+4. `lambda_function.py` を上げる(`python3 -m unittest server/points_api/test_lambda_function.py` で確認できる)。
+5. Webの `index.html` と `app.js` を、S3に上げて、CloudFrontの無効化をする。
+
+### 確認
+- 動作確認用のアカウントで、削除を最後まで試す。削除後に、同じメールアドレスでログインできず(新規作成になる)、DynamoDBの4つのテーブルに、そのアカウントの行が残っていないこと。
+- 削除の確認画面で、時間を置いて(5分以上)「削除する」を押すと、「パスワードの確認ができませんでした…」と出て、削除されないこと。

@@ -31,6 +31,10 @@ const els = {
   historyEmpty: document.getElementById("historyEmpty"),
   historyMore: document.getElementById("historyMoreButton"),
   message: document.getElementById("message"),
+  deleteIntro: document.getElementById("deleteIntro"),
+  deleteForm: document.getElementById("deleteForm"),
+  deleteConfirm: document.getElementById("deleteConfirm"),
+  deleteEmail: document.getElementById("deleteEmail"),
 };
 
 // ---------- 小さな道具
@@ -70,7 +74,8 @@ const yen = new Intl.NumberFormat("ja-JP");
 
 // ---------- ログイン
 
-async function login() {
+// forceLogin: true なら、ログインしたままでも、パスワードの入力をもう一度求める(アカウントの削除のとき)
+async function login({ forceLogin = false } = {}) {
   const verifier = randomString();
   const state = randomString();
 
@@ -88,6 +93,7 @@ async function login() {
     code_challenge_method: "S256",
     // ログイン画面の言葉を、日本語にする
     lang: "ja",
+    ...(forceLogin ? { prompt: "login" } : {}),
   });
 
   location.href = `${cognitoDomain}/oauth2/authorize?${params}`;
@@ -169,6 +175,8 @@ async function callApi(method, path, body) {
       invalid_code: "コードが正しくないか、期限が切れています。アプリで新しいコードを表示してください。",
       device_limit: `同じアプリに紐づけられる端末は${data.maxDevices ?? ""}台までです。使わない端末を解除してください。`,
       not_found: "対象が見つかりません。",
+      recent_login_required:
+        "パスワードの確認ができませんでした。いったんログアウトして、ログインし直してから、もう一度お試しください。",
     };
     throw new Error(
       messages[data.error] ?? `APIの呼び出しに失敗しました (${response.status})`,
@@ -442,6 +450,61 @@ async function exchange() {
   }
 }
 
+// ---------- アカウントの削除
+//
+// 流れ: 説明とメールアドレスの確認 → パスワードを入れてログインし直す → 最後の確認 → 削除
+// (ログインし直した時刻は、サーバーが確かめる。直近5分以内でないと、削除されない)
+
+function showDeleteStep(step) {
+  els.deleteIntro.hidden = step !== "intro";
+  els.deleteForm.hidden = step !== "form";
+  els.deleteConfirm.hidden = step !== "confirm";
+}
+
+function startDelete() {
+  els.deleteEmail.value = "";
+  showDeleteStep("form");
+  els.deleteEmail.focus();
+}
+
+function cancelDelete() {
+  sessionStorage.removeItem("pending_delete");
+  showDeleteStep("intro");
+}
+
+async function continueDelete() {
+  const email = readJwt(sessionStorage.getItem("id_token")).email ?? "";
+  const typed = els.deleteEmail.value.trim().toLowerCase();
+
+  if (!email || typed !== email.toLowerCase()) {
+    show("メールアドレスが、ログイン中のものと一致しません。");
+    return;
+  }
+
+  // ログインし直して戻ってきたときに、続きの確認画面を出すための目印
+  sessionStorage.setItem("pending_delete", "1");
+  await login({ forceLogin: true });
+}
+
+async function executeDelete() {
+  const button = document.getElementById("deleteExecuteButton");
+  button.disabled = true;
+
+  try {
+    await callApi("DELETE", "/me");
+    sessionStorage.clear();
+    render();
+    showNotice("アカウントを削除しました。ご利用ありがとうございました。");
+  } catch (e) {
+    show(e.message);
+    // 5分を過ぎたなどで、削除できなかったときは、最初からやり直してもらう
+    sessionStorage.removeItem("pending_delete");
+    showDeleteStep("intro");
+  } finally {
+    button.disabled = false;
+  }
+}
+
 // ---------- 画面
 
 function render() {
@@ -475,11 +538,17 @@ async function main() {
     return;
   }
 
-  document.getElementById("loginButton").onclick = login;
+  document.getElementById("loginButton").onclick = () => login();
   document.getElementById("logoutButton").onclick = logout;
   document.getElementById("grantButton").onclick = grantForTest;
   document.getElementById("exchangeButton").onclick = exchange;
   document.getElementById("pairingButton").onclick = pairDevice;
+  document.getElementById("deleteStartButton").onclick = startDelete;
+  document.getElementById("deleteContinueButton").onclick = () =>
+    continueDelete().catch((e) => show(e.message));
+  document.getElementById("deleteCancelButton").onclick = cancelDelete;
+  document.getElementById("deleteCancelConfirmButton").onclick = cancelDelete;
+  document.getElementById("deleteExecuteButton").onclick = executeDelete;
   els.historyMore.onclick = () =>
     loadHistory({ reset: false }).catch((e) => show(e.message));
 
@@ -504,6 +573,17 @@ async function main() {
   }
 
   render();
+
+  // 削除の途中で、パスワードを入れてログインし直して戻ってきたときだけ、最後の確認を出す
+  // (ログインし直さずに開き直したときは、途中の状態を捨てる)
+  if (sessionStorage.getItem("pending_delete")) {
+    if (query.get("code") && sessionStorage.getItem("access_token")) {
+      showDeleteStep("confirm");
+      els.deleteConfirm.scrollIntoView({ block: "center" });
+    } else {
+      sessionStorage.removeItem("pending_delete");
+    }
+  }
 
   if (sessionStorage.getItem("access_token")) {
     try {
