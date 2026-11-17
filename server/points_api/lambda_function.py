@@ -9,6 +9,7 @@
     GET    /devices             紐づけ済みの端末の一覧
     GET    /history             ポイントの履歴(新しい順。?next=… で続きを取得)
     DELETE /devices/{deviceId}  端末の紐づけを解除する
+    DELETE /me                  アカウントを削除する(直近5分以内にログインし直したときだけ)
 
   ログインなしで呼ぶもの(アプリが呼ぶ。オーソライザーを付けない)
     POST   /pairing/start       紐づけコードを発行する(ゲームは、アプリのキーが必要)
@@ -38,6 +39,9 @@ TABLE_NAME = os.environ["TABLE_NAME"]
 LEDGER_TABLE_NAME = os.environ["LEDGER_TABLE_NAME"]
 PAIRING_TABLE_NAME = os.environ["PAIRING_TABLE_NAME"]
 DEVICES_TABLE_NAME = os.environ["DEVICES_TABLE_NAME"]
+
+# アカウントを削除するときに使う、Cognitoのユーザープール(IDは、環境変数で渡す)
+USER_POOL_ID = os.environ.get("USER_POOL_ID")
 
 # 動作確認用の口を使えるか(環境変数で切り替える。本番では false にする)
 ENABLE_DEV_GRANT = os.environ.get("ENABLE_DEV_GRANT") == "true"
@@ -113,6 +117,7 @@ def load_app_key_hashes():
 APP_KEY_HASHES = load_app_key_hashes()
 
 dynamodb = boto3.client("dynamodb")
+cognito = boto3.client("cognito-idp")
 
 
 def response(status, body):
@@ -611,6 +616,114 @@ def delete_device(account_id, device_id):
     return response(200, {"deleted": True})
 
 
+# ---------- アカウントの削除
+
+# 削除するには、この秒数以内に、パスワードを入れてログインし直している必要がある
+# (ログインしたままの端末を、他の人に操作されても、消されないようにする)
+DELETE_RECENT_LOGIN_SECONDS = 300
+
+
+def logged_in_recently(event):
+    """直近にパスワードでログインし直したか(トークンの auth_time = ログインした時刻)"""
+    claims = event["requestContext"]["authorizer"]["jwt"]["claims"]
+    try:
+        auth_time = int(float(claims.get("auth_time")))
+    except (TypeError, ValueError):
+        return False
+    return 0 <= int(time.time()) - auth_time <= DELETE_RECENT_LOGIN_SECONDS
+
+
+def batch_delete(table_name, keys):
+    """25件ずつ、まとめて削除する(処理しきれなかった分は、やり直す)"""
+    for start in range(0, len(keys), 25):
+        pending = {
+            table_name: [{"DeleteRequest": {"Key": key}} for key in keys[start:start + 25]]
+        }
+        for _ in range(10):
+            result = dynamodb.batch_write_item(RequestItems=pending)
+            pending = result.get("UnprocessedItems") or {}
+            if not pending:
+                break
+        else:
+            raise RuntimeError("batch_delete: 削除しきれませんでした")
+
+
+def query_keys(account_id, table_name, key_names, index_name=None):
+    """アカウントの行のキーを、すべて取り出す(1回で読み切れないときは、続きを読む)"""
+    query = {
+        "TableName": table_name,
+        "KeyConditionExpression": "accountId = :a",
+        "ExpressionAttributeValues": {":a": {"S": account_id}},
+        "ProjectionExpression": ", ".join(f"#{n}" for n in key_names),
+        "ExpressionAttributeNames": {f"#{n}": n for n in key_names},
+    }
+    if index_name:
+        query["IndexName"] = index_name
+
+    keys = []
+    while True:
+        result = dynamodb.query(**query)
+        keys.extend({n: item[n] for n in key_names} for item in result["Items"])
+        last = result.get("LastEvaluatedKey")
+        if not last:
+            return keys
+        query["ExclusiveStartKey"] = last
+
+
+def pairing_codes_of(account_id):
+    """そのアカウントに結ばれた、紐づけコード(10分で消える一時的なもの)"""
+    codes = []
+    scan = {
+        "TableName": PAIRING_TABLE_NAME,
+        "FilterExpression": "accountId = :a",
+        "ExpressionAttributeValues": {":a": {"S": account_id}},
+        "ProjectionExpression": "#c",
+        "ExpressionAttributeNames": {"#c": "code"},
+    }
+    while True:
+        result = dynamodb.scan(**scan)
+        codes.extend({"code": item["code"]} for item in result["Items"])
+        last = result.get("LastEvaluatedKey")
+        if not last:
+            return codes
+        scan["ExclusiveStartKey"] = last
+
+
+def delete_account(event, account_id):
+    """アカウントと、そのポイントのデータをすべて消す(元に戻せない)
+
+    消すもの: 残高・ポイントの履歴・紐づけた端末・紐づけコード・Cognitoのアカウント。
+    成果の二重付与を防ぐ記録(grantsテーブル)は、アカウントのIDだけが入っていて、
+    保存期間(最長30日)が過ぎると自動で消える。
+    Cognitoのアカウントは、最後に消す(途中で失敗しても、もう一度、削除をやり直せる)。
+    """
+    if not USER_POOL_ID:
+        # 設定がないまま、データだけ消してしまわないよう、最初に確認する
+        print("error: USER_POOL_ID が設定されていません")
+        return response(500, {"error": "internal_error"})
+
+    if not logged_in_recently(event):
+        return response(403, {"error": "recent_login_required"})
+
+    batch_delete(DEVICES_TABLE_NAME, query_keys(
+        account_id, DEVICES_TABLE_NAME, ["deviceId"], index_name="accountId-index",
+    ))
+    batch_delete(PAIRING_TABLE_NAME, pairing_codes_of(account_id))
+    batch_delete(LEDGER_TABLE_NAME, query_keys(
+        account_id, LEDGER_TABLE_NAME, ["accountId", "entryId"],
+    ))
+    batch_delete(TABLE_NAME, [{"accountId": {"S": account_id}}])
+
+    try:
+        cognito.admin_delete_user(UserPoolId=USER_POOL_ID, Username=account_id)
+    except ClientError as e:
+        # すでに消えているときは、成功として扱う
+        if error_code(e) != "UserNotFoundException":
+            raise
+
+    return response(200, {"deleted": True})
+
+
 # ---------- ポイントの履歴
 
 # 1回に返す件数
@@ -931,6 +1044,9 @@ def lambda_handler(event, context):
 
         if route == "GET /me":
             return response(200, get_or_create(account_id))
+
+        if route == "DELETE /me":
+            return delete_account(event, account_id)
 
         if route == "GET /history":
             return history(account_id, event.get("queryStringParameters"))

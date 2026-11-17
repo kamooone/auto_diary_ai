@@ -37,7 +37,7 @@ sys.path.insert(0, os.path.dirname(__file__))
 import lambda_function as m  # noqa: E402
 
 
-def event(route, body=None, path=None, logged_in=True, headers=None):
+def event(route, body=None, path=None, logged_in=True, headers=None, auth_time=None):
     result = {
         "routeKey": route,
         "body": json.dumps(body) if body is not None else None,
@@ -46,9 +46,10 @@ def event(route, body=None, path=None, logged_in=True, headers=None):
         "requestContext": {},
     }
     if logged_in:
-        result["requestContext"] = {
-            "authorizer": {"jwt": {"claims": {"sub": "user-1"}}}
-        }
+        claims = {"sub": "user-1"}
+        if auth_time is not None:
+            claims["auth_time"] = str(auth_time)
+        result["requestContext"] = {"authorizer": {"jwt": {"claims": claims}}}
     return result
 
 
@@ -821,6 +822,154 @@ class EventsTest(unittest.TestCase):
         )
         status, body = self.send(self.valid())
         self.assertEqual((status, body["error"]), (500, "internal_error"))
+
+
+class DeleteAccountTest(unittest.TestCase):
+    def setUp(self):
+        fake_client.reset_mock(side_effect=True)
+        fake_client.query.return_value = {"Items": []}
+        fake_client.scan.return_value = {"Items": []}
+        fake_client.batch_write_item.return_value = {"UnprocessedItems": {}}
+        patcher = mock.patch.object(m, "USER_POOL_ID", "pool-1")
+        patcher.start()
+        self.addCleanup(patcher.stop)
+
+    def delete(self, auth_time="now"):
+        if auth_time == "now":
+            auth_time = int(m.time.time())
+        result = m.lambda_handler(
+            event("DELETE /me", auth_time=auth_time), None
+        )
+        return result["statusCode"], json.loads(result["body"])
+
+    def test_直近にログインし直していれば_データとアカウントを消す(self):
+        fake_client.query.side_effect = [
+            {"Items": [{"deviceId": {"S": "d1"}}]},
+            {"Items": [
+                {"accountId": {"S": "user-1"}, "entryId": {"S": "e1"}},
+                {"accountId": {"S": "user-1"}, "entryId": {"S": "e2"}},
+            ]},
+        ]
+        fake_client.scan.return_value = {"Items": [{"code": {"S": "123456"}}]}
+
+        status, body = self.delete()
+        self.assertEqual((status, body), (200, {"deleted": True}))
+
+        deleted = {}
+        for call_args in fake_client.batch_write_item.call_args_list:
+            for table, requests in call_args.kwargs["RequestItems"].items():
+                deleted.setdefault(table, []).extend(
+                    r["DeleteRequest"]["Key"] for r in requests
+                )
+        self.assertEqual(deleted["devices"], [{"deviceId": {"S": "d1"}}])
+        self.assertEqual(deleted["pairing"], [{"code": {"S": "123456"}}])
+        self.assertEqual(len(deleted["ledger"]), 2)
+        self.assertEqual(deleted["accounts"], [{"accountId": {"S": "user-1"}}])
+
+        # Cognitoのアカウントは、最後に消す
+        fake_client.admin_delete_user.assert_called_once_with(
+            UserPoolId="pool-1", Username="user-1"
+        )
+
+    def test_自分のアカウントの行だけを探す(self):
+        self.delete()
+        for call_args in fake_client.query.call_args_list:
+            values = call_args.kwargs["ExpressionAttributeValues"]
+            self.assertEqual(values, {":a": {"S": "user-1"}})
+
+    def test_ログインし直してから5分を過ぎていると消せない(self):
+        old = int(m.time.time()) - m.DELETE_RECENT_LOGIN_SECONDS - 10
+        status, body = self.delete(auth_time=old)
+        self.assertEqual((status, body["error"]), (403, "recent_login_required"))
+        fake_client.batch_write_item.assert_not_called()
+        fake_client.admin_delete_user.assert_not_called()
+
+    def test_ログインした時刻がないトークンでは消せない(self):
+        for bad in (None, "", "abc"):
+            status, body = self.delete(auth_time=bad)
+            self.assertEqual(
+                (status, body["error"]), (403, "recent_login_required"), bad
+            )
+        fake_client.admin_delete_user.assert_not_called()
+
+    def test_未来の時刻のトークンでは消せない(self):
+        future = int(m.time.time()) + 3600
+        status, _ = self.delete(auth_time=future)
+        self.assertEqual(status, 403)
+        fake_client.admin_delete_user.assert_not_called()
+
+    def test_ログインなしでは消せない(self):
+        result = m.lambda_handler(
+            event("DELETE /me", logged_in=False), None
+        )
+        self.assertEqual(result["statusCode"], 500)
+        fake_client.batch_write_item.assert_not_called()
+        fake_client.admin_delete_user.assert_not_called()
+
+    def test_ユーザープールの設定がなければ_何も消さない(self):
+        with mock.patch.object(m, "USER_POOL_ID", None):
+            status, body = self.delete()
+        self.assertEqual((status, body["error"]), (500, "internal_error"))
+        fake_client.batch_write_item.assert_not_called()
+        fake_client.admin_delete_user.assert_not_called()
+
+    def test_Cognitoにすでにアカウントがなくても_成功として扱う(self):
+        fake_client.admin_delete_user.side_effect = ClientError(
+            {"Error": {"Code": "UserNotFoundException"}}, "AdminDeleteUser"
+        )
+        status, body = self.delete()
+        self.assertEqual((status, body), (200, {"deleted": True}))
+
+    def test_Cognitoの削除に失敗したら_エラーを返す(self):
+        fake_client.admin_delete_user.side_effect = ClientError(
+            {"Error": {"Code": "AccessDeniedException"}}, "AdminDeleteUser"
+        )
+        status, body = self.delete()
+        self.assertEqual((status, body["error"]), (500, "internal_error"))
+
+    def test_履歴が多いときは_25件ずつ消し_続きも読む(self):
+        entries = [
+            {"accountId": {"S": "user-1"}, "entryId": {"S": f"e{i}"}}
+            for i in range(30)
+        ]
+        fake_client.query.side_effect = [
+            {"Items": []},  # 端末
+            {"Items": entries[:20], "LastEvaluatedKey": {"k": {"S": "x"}}},
+            {"Items": entries[20:]},
+        ]
+        status, _ = self.delete()
+        self.assertEqual(status, 200)
+
+        ledger_batches = [
+            c.kwargs["RequestItems"]["ledger"]
+            for c in fake_client.batch_write_item.call_args_list
+            if "ledger" in c.kwargs["RequestItems"]
+        ]
+        self.assertEqual([len(b) for b in ledger_batches], [25, 5])
+        self.assertIn(
+            "ExclusiveStartKey", fake_client.query.call_args_list[2].kwargs
+        )
+
+    def test_処理しきれなかった分は_やり直す(self):
+        fake_client.query.side_effect = [
+            {"Items": [{"deviceId": {"S": "d1"}}]},
+            {"Items": []},
+        ]
+        leftover = {"devices": [{"DeleteRequest": {"Key": {"deviceId": {"S": "d1"}}}}]}
+        fake_client.batch_write_item.side_effect = [
+            {"UnprocessedItems": leftover},
+            {"UnprocessedItems": {}},
+            {"UnprocessedItems": {}},
+            {"UnprocessedItems": {}},
+        ]
+        status, _ = self.delete()
+        self.assertEqual(status, 200)
+        # 端末の削除が2回(1回目で残った分を、もう一度送る)
+        device_calls = [
+            c for c in fake_client.batch_write_item.call_args_list
+            if "devices" in c.kwargs["RequestItems"]
+        ]
+        self.assertEqual(len(device_calls), 2)
 
 
 if __name__ == "__main__":
