@@ -126,7 +126,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                 ],
                 SettingsRow(
                   icon: Icons.savings_outlined,
-                  title: "ポイント・トークン",
+                  title: "ポイント・ゲーム",
                   subtitle: "Webのアカウントと紐づけて、使える量を増やします",
                   onTap: () => context.push(AppRoutes.points),
                 ),

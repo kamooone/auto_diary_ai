@@ -80,6 +80,10 @@ void main() {
     expect(find.text('下のボタンで、6桁のコードを発行します'), findsOneWidget);
     expect(find.text('コードを発行する'), findsOneWidget);
     expect(find.text('Webを開く'), findsOneWidget);
+    // ポイントは、ゲームで遊ぶと貯まる(ゲーム紹介のページへの入口)
+    expect(find.text('ゲームで遊んで、ポイントを貯める'), findsOneWidget);
+    // 画面の名前
+    expect(find.text('ポイント・ゲーム'), findsOneWidget);
   });
 
   testWidgets('コードを発行すると、1桁ずつの四角で出て、キャンセルで戻れる', (tester) async {

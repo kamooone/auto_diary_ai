@@ -25,6 +25,9 @@ final pointsWebUrlProvider = Provider<String>((ref) {
       _defaultPointsWebUrl;
 });
 
+/// ゲームの紹介ページのURL(ポイントのWebページと同じ場所の games.html)
+Uri pointsGamesUri(String baseUrl) => Uri.parse(baseUrl).resolve('games.html');
+
 /// Webのページを開くURL
 /// [code]を渡すと、Webの入力欄にコードが入った状態で開く(紐づけるかは本人が決める)
 Uri pointsWebUri(String baseUrl, {String? code}) {

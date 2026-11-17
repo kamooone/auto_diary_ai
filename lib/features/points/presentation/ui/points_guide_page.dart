@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../../core/widgets/step_guide.dart';
 
 /// ポイントを貯めて、トークンに交換し、このアプリで使うまでの流れ
-/// (「ポイント・トークン」の画面の右上から開く)
+/// (「ポイント・ゲーム」の画面の右上から開く)
 class PointsGuidePage extends StatelessWidget {
   const PointsGuidePage({super.key});
 
@@ -24,7 +24,7 @@ class PointsGuidePage extends StatelessWidget {
     ),
     GuideStep(
       title: "アプリで、コードを発行する",
-      body: "このアプリの「ポイント・トークン」の画面で、「コードを発行する」を押すと、"
+      body: "このアプリの「ポイント・ゲーム」の画面で、「コードを発行する」を押すと、"
           "6桁のコードが表示されます。\n"
           "コードの有効期限は、10分です。",
     ),

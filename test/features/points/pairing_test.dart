@@ -94,6 +94,19 @@ http.Response jsonResponse(int status, Object body) {
 }
 
 void main() {
+  group('pointsGamesUri', () {
+    test('ポイントのWebページと同じ場所の games.html を開く', () {
+      expect(
+        pointsGamesUri('https://example.com/index.html').toString(),
+        'https://example.com/games.html',
+      );
+      expect(
+        pointsGamesUri('https://example.com/').toString(),
+        'https://example.com/games.html',
+      );
+    });
+  });
+
   group('pointsWebUri', () {
     test('コードを渡すと、pairの値として付ける', () {
       expect(
