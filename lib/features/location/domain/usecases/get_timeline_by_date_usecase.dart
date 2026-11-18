@@ -5,6 +5,7 @@ import '../entities/location.dart';
 import '../entities/place_candidate.dart';
 import '../entities/recording_pause.dart';
 import '../entities/registered_place.dart';
+import '../entities/timeline_edit.dart';
 import '../entities/timeline_item.dart';
 import '../repositories/activity_repository.dart';
 import '../repositories/location_repository.dart';
@@ -170,7 +171,18 @@ class GetTimelineByDateUseCase {
       items.last.end,
     );
 
-    final named = _applyRegistered(items, registered);
+    // ユーザーが削除した時間帯に収まる滞在・移動は表示しない
+    final deleted = edits.where((e) => e.type == TimelineEditType.deleted);
+    final visible = [
+      for (final item in items)
+        if (item is RecordingOff ||
+            !deleted.any(
+              (e) => !item.start.isBefore(e.start) && !item.end.isAfter(e.end),
+            ))
+          item,
+    ];
+
+    final named = _applyRegistered(visible, registered);
 
     // 並べ替えても、同じ時刻に始まるものの順番は変わらないようにする
     final all = [..._applier.apply(named, edits), ...recordingOffs];

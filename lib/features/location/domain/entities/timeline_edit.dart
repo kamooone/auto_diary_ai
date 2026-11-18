@@ -1,6 +1,8 @@
 import 'transport_mode.dart';
 
-enum TimelineEditType { stay, move }
+/// stay / move: 場所名・移動手段の修正
+/// deleted: ユーザーが削除した時間帯(その時間帯に収まる滞在・移動は表示しない)
+enum TimelineEditType { stay, move, deleted }
 
 /// ユーザーがタイムラインに加えた修正
 ///

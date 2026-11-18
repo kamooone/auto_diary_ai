@@ -57,6 +57,7 @@ void main() {
                 onPlaceNameChanged: (_, __, {registerPlace = false}) {},
                 onTransportChanged: (_, __, ___) {},
                 onRetryPlaceSearch: () {},
+                onDelete: (_) {},
               ),
             ],
           ),

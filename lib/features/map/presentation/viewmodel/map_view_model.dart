@@ -304,6 +304,14 @@ class MapViewModel extends Notifier<MapState> {
     await _reloadTimeline();
   }
 
+  /// 滞在・移動を削除する(位置のデータも消える)
+  Future<void> deleteTimelineItem(TimelineItem item) async {
+    await ref.read(deleteTimelineItemUseCaseProvider).execute(item);
+
+    // 地図の経路も、削除した位置を除いて読み込み直す
+    await loadTimeline(state.selectedDate);
+  }
+
   Future<void> start() async {
     _subscription = ref
         .read(startLocationTrackingUseCaseProvider)

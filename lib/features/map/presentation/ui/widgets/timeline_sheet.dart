@@ -27,6 +27,7 @@ class TimelineSheet extends StatelessWidget {
     required this.onPlaceNameChanged,
     required this.onTransportChanged,
     required this.onRetryPlaceSearch,
+    required this.onDelete,
     this.sheetKey,
   });
 
@@ -79,6 +80,9 @@ class TimelineSheet extends StatelessWidget {
 
   /// 取得できなかった訪れた場所を、もう一度取得する
   final VoidCallback onRetryPlaceSearch;
+
+  /// 滞在・移動を削除する(確認のあとに呼ばれる)
+  final ValueChanged<TimelineItem> onDelete;
 
   /// シート全体の目印(チュートリアルで明るくするため)
   final GlobalKey? sheetKey;
@@ -288,6 +292,48 @@ class TimelineSheet extends StatelessWidget {
     );
   }
 
+  // 削除のボタン(ごみ箱。40x40)
+  Widget _deleteButton(BuildContext context, TimelineItem item) {
+    return IconButton(
+      tooltip: "削除",
+      onPressed: () => _confirmDelete(context, item),
+      style: IconButton.styleFrom(
+        fixedSize: const Size(40, 40),
+        minimumSize: const Size(40, 40),
+        padding: EdgeInsets.zero,
+      ),
+      icon: const Icon(
+        Icons.delete_outline,
+        size: 18,
+        color: AppColors.textSub,
+      ),
+    );
+  }
+
+  Future<void> _confirmDelete(BuildContext context, TimelineItem item) async {
+    final isStay = item is Stay;
+
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(isStay ? "この滞在を削除しますか?" : "この移動を削除しますか?"),
+        content: const Text("その時間帯の位置情報のデータも、端末から削除されます。元に戻せません。"),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text("キャンセル"),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text("削除する"),
+          ),
+        ],
+      ),
+    );
+
+    if (ok == true) onDelete(item);
+  }
+
   // 編集のボタン(鉛筆。40x40)
   Widget _editButton({
     required String tooltip,
@@ -354,6 +400,7 @@ class TimelineSheet extends StatelessWidget {
                   tooltip: "移動手段を編集",
                   onPressed: () => _editTransport(context, move),
                 ),
+                _deleteButton(context, move),
               ],
             ),
           ),
@@ -466,6 +513,7 @@ class TimelineSheet extends StatelessWidget {
                     tooltip: "場所を編集",
                     onPressed: () => _editPlace(context, stay, candidates),
                   ),
+                  _deleteButton(context, stay),
                 ],
               ),
             ),

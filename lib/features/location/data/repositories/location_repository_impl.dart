@@ -111,6 +111,15 @@ class LocationRepositoryImpl
     return log == null ? null : _toEntity(log);
   }
 
+  @override
+  Future<void> deleteLocations(
+    DateTime start,
+    DateTime end, {
+    bool includeEdges = true,
+  }) {
+    return local.deleteBetween(start, end, includeEdges: includeEdges);
+  }
+
   Location _toEntity(LocationLog log) {
     return Location(
       id: log.id,

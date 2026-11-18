@@ -25,6 +25,7 @@ import '../../domain/usecases/get_locations_by_date_usecase.dart';
 import '../../domain/usecases/get_place_candidates_usecase.dart';
 import '../../domain/usecases/get_timeline_by_date_usecase.dart';
 import '../../domain/usecases/start_location_tracking_usecase.dart';
+import '../../domain/usecases/delete_timeline_item_usecase.dart';
 import '../../domain/usecases/update_move_transport_usecase.dart';
 import '../../domain/usecases/update_stay_place_name_usecase.dart';
 
@@ -197,6 +198,16 @@ final updateMoveTransportUseCaseProvider =
 Provider((ref) {
 
   return UpdateMoveTransportUseCase(
+    ref.watch(timelineEditRepositoryProvider),
+  );
+
+});
+
+final deleteTimelineItemUseCaseProvider =
+Provider((ref) {
+
+  return DeleteTimelineItemUseCase(
+    ref.watch(locationRepositoryProvider),
     ref.watch(timelineEditRepositoryProvider),
   );
 

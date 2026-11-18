@@ -504,6 +504,30 @@ void main() {
     expect(placeNames.callCount, 1);
   });
 
+  test('削除した時間帯に収まる滞在は表示しない', () async {
+    edits.edits = [
+      TimelineEdit(
+        type: TimelineEditType.deleted,
+        start: DateTime(2026, 1, 1, 9, 0),
+        end: DateTime(2026, 1, 1, 11, 0),
+      ),
+    ];
+
+    expect(await useCase.execute(day), isEmpty);
+  });
+
+  test('削除した時間帯からはみ出す滞在は表示する', () async {
+    edits.edits = [
+      TimelineEdit(
+        type: TimelineEditType.deleted,
+        start: DateTime(2026, 1, 1, 9, 0),
+        end: DateTime(2026, 1, 1, 10, 0),
+      ),
+    ];
+
+    expect(await useCase.execute(day), hasLength(1));
+  });
+
   test('今日のタイムラインは保存しない', () async {
     final now = DateTime.now();
     locations.locations = [

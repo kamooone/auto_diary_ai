@@ -345,6 +345,10 @@ class _MapPageState extends ConsumerState<MapPage> {
               onRetryPlaceSearch: () {
                 ref.read(mapProvider.notifier).retryPlaceSearch();
               },
+              onDelete: (item) {
+                ref.read(mapProvider.notifier).clearSelectedMove();
+                ref.read(mapProvider.notifier).deleteTimelineItem(item);
+              },
               onPlaceNameChanged: (stay, placeName, {registerPlace = false}) {
                 ref
                     .read(mapProvider.notifier)

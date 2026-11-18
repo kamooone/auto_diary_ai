@@ -61,6 +61,24 @@ class IsarLocationDataSource {
         .findAll();
   }
 
+  Future<void> deleteBetween(
+    DateTime start,
+    DateTime end, {
+    bool includeEdges = true,
+  }) async {
+    await isar.writeTxn(() async {
+      await isar.locationLogs
+          .filter()
+          .timestampBetween(
+            start,
+            end,
+            includeLower: includeEdges,
+            includeUpper: includeEdges,
+          )
+          .deleteAll();
+    });
+  }
+
   Future<LocationLog?> getLastBefore(DateTime time) {
     return isar.locationLogs
         .filter()
