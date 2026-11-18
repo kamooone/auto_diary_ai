@@ -27,7 +27,12 @@ void main() {
       point(9, 1, 35.0001),
       point(9, 20, 35.01),
     ]);
-    expect(shortStay.whereType<Stay>().where((e) => e.start.hour == 9 && e.start.minute == 0), isEmpty);
+    expect(
+      shortStay.whereType<Stay>().where(
+        (e) => e.start.hour == 9 && e.start.minute == 0,
+      ),
+      isEmpty,
+    );
 
     final stay = builder.build([
       point(9, 0, 35.0),
@@ -37,11 +42,36 @@ void main() {
     expect((stay.first as Stay).end, DateTime(2026, 1, 1, 9, 2));
   });
 
-  test('同じ場所に長くいると滞在になる', () {
+  test('移動の途中で3分止まっても、同じ向きに進み続けているなら滞在にしない(信号待ち)', () {
     final items = builder.build([
       point(9, 0, 35.0),
-      point(11, 0, 35.0001),
+      point(10, 0, 35.0001),
+      point(10, 5, 35.005),
+      point(10, 6, 35.01),
+      point(10, 9, 35.0101),
+      point(10, 15, 35.02),
+      point(12, 0, 35.0201),
     ]);
+
+    expect(items.map((e) => e.runtimeType), [Stay, Move, Stay]);
+  });
+
+  test('移動の途中で3分止まり、来た道を戻る場合は滞在になる(お店に寄る)', () {
+    final items = builder.build([
+      point(9, 0, 35.0),
+      point(10, 0, 35.0001),
+      point(10, 5, 35.005),
+      point(10, 6, 35.01),
+      point(10, 9, 35.0101),
+      point(10, 15, 35.0),
+      point(12, 0, 35.0001),
+    ]);
+
+    expect(items.whereType<Stay>().length, 3);
+  });
+
+  test('同じ場所に長くいると滞在になる', () {
+    final items = builder.build([point(9, 0, 35.0), point(11, 0, 35.0001)]);
 
     expect(items, hasLength(1));
     final stay = items.single as Stay;
@@ -79,10 +109,7 @@ void main() {
   });
 
   test('時刻順でなくても正しく並べる', () {
-    final items = builder.build([
-      point(11, 0, 35.0001),
-      point(9, 0, 35.0),
-    ]);
+    final items = builder.build([point(11, 0, 35.0001), point(9, 0, 35.0)]);
 
     expect((items.single as Stay).start, DateTime(2026, 1, 1, 9, 0));
   });
@@ -96,10 +123,7 @@ void main() {
 
     expect(builder.build(locations).last, isA<Move>());
 
-    final items = builder.build(
-      locations,
-      until: DateTime(2026, 1, 1, 13, 0),
-    );
+    final items = builder.build(locations, until: DateTime(2026, 1, 1, 13, 0));
     final last = items.last as Stay;
     expect(last.start, DateTime(2026, 1, 1, 10, 10));
     expect(last.end, DateTime(2026, 1, 1, 13, 0));
@@ -301,10 +325,7 @@ void main() {
         point(13, 0, 35.0002),
       ]);
 
-      expect(
-        items.map((e) => e.runtimeType),
-        [Stay, Move, Stay, Move, Stay],
-      );
+      expect(items.map((e) => e.runtimeType), [Stay, Move, Stay, Move, Stay]);
     });
 
     test('移動中にありえない速さで飛んだ点は、距離に含めない', () {

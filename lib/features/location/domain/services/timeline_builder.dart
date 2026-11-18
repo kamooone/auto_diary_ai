@@ -11,6 +11,11 @@ class TimelineBuilder {
   // この時間以上とどまった場合に滞在とみなす
   static const _minStayDuration = Duration(minutes: 2);
 
+  // 滞在の時間がこれ未満で、前後が同じ方向につながっている場合は、
+  // 信号待ちなどの一時停止とみなし、滞在にしない(移動の一部にする)
+  // (お店に寄って来た道を戻る場合は、前後の向きが逆になるため滞在になる)
+  static const _maxPauseDuration = Duration(minutes: 5);
+
   // これ未満の移動は位置のぶれとみなして表示しない
   static const _minMoveMeters = 30.0;
 
@@ -97,6 +102,11 @@ class TimelineBuilder {
         continue;
       }
 
+      if (end.difference(start) < _maxPauseDuration && _isPause(clusters, i)) {
+        movePoints.addAll(cluster);
+        continue;
+      }
+
       final move = _move([
         if (lastStayPoint != null) lastStayPoint,
         ...movePoints,
@@ -126,6 +136,33 @@ class TimelineBuilder {
     }
 
     return items;
+  }
+
+  /// [index]番目のまとまりが、移動の途中の一時停止(信号待ちなど)かどうか
+  ///
+  /// 前にも後ろにもまとまりがあり、来た向きと去る向きがほぼ同じ(90度未満)なら
+  /// 通り過ぎただけとみなす。最初と最後のまとまりは、その日の始まりと終わりなので対象外。
+  bool _isPause(List<List<Location>> clusters, int index) {
+    if (index == 0 || index == clusters.length - 1) return false;
+
+    final before = clusters[index - 1].last;
+    final here = clusters[index];
+    final after = clusters[index + 1].first;
+
+    final lat = _average(here.map((e) => e.latitude));
+    final lng = _average(here.map((e) => e.longitude));
+
+    // 緯度1度あたりの距離に合わせて、経度を補正した向き(x:東, y:北)
+    final cosLat = cos(lat * pi / 180);
+    final inX = (lng - before.longitude) * cosLat;
+    final inY = lat - before.latitude;
+    final outX = (after.longitude - lng) * cosLat;
+    final outY = after.latitude - lat;
+
+    // 向きが決まらないほど近い場合は、通り過ぎたとは言えない
+    if (inX == 0 && inY == 0 || outX == 0 && outY == 0) return false;
+
+    return inX * outX + inY * outY > 0;
   }
 
   // 最初の点から一定範囲内にある連続した点をひとまとまりにする
@@ -206,18 +243,23 @@ class TimelineBuilder {
         if (pointCount <= _maxDriftPoints) return j;
 
         // 点が多い場合は、時間をおいてまばらに記録されているときだけ、ぶれとみなす
-        final elapsed = cluster.first.timestamp.difference(current.last.timestamp);
+        final elapsed = cluster.first.timestamp.difference(
+          current.last.timestamp,
+        );
         final isSparse = elapsed >= _sparseInterval * (pointCount + 1);
 
         return isAllNearby && isSparse ? j : null;
       }
 
       // 別の場所にとどまっていた場合は、実際に訪れた場所なので残す
-      final duration = cluster.last.timestamp.difference(cluster.first.timestamp);
+      final duration = cluster.last.timestamp.difference(
+        cluster.first.timestamp,
+      );
       if (duration >= _minStayDuration) return null;
 
       pointCount += cluster.length;
-      isAllNearby = isAllNearby &&
+      isAllNearby =
+          isAllNearby &&
           cluster.every((e) => _distance(anchor, e) <= _nearbyMeters);
 
       if (pointCount > _maxDriftPoints && !isAllNearby) return null;
@@ -264,7 +306,8 @@ class TimelineBuilder {
   }
 
   bool _isTooFast(Location from, Location to) {
-    final seconds = to.timestamp.difference(from.timestamp).inMilliseconds / 1000;
+    final seconds =
+        to.timestamp.difference(from.timestamp).inMilliseconds / 1000;
     final meters = _distance(from, to);
 
     // 同時刻に離れた場所にいることはない
@@ -312,7 +355,8 @@ class TimelineBuilder {
     final dLat = (b.latitude - a.latitude) * toRadians;
     final dLng = (b.longitude - a.longitude) * toRadians;
 
-    final h = sin(dLat / 2) * sin(dLat / 2) +
+    final h =
+        sin(dLat / 2) * sin(dLat / 2) +
         cos(a.latitude * toRadians) *
             cos(b.latitude * toRadians) *
             sin(dLng / 2) *
