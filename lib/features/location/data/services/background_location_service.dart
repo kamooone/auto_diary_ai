@@ -23,7 +23,7 @@ Future<void> initializeBackgroundService() async {
       foregroundServiceNotificationId: 100,
       // Android14以上はフォアグラウンドサービスの種別指定が必須
       foregroundServiceTypes: [AndroidForegroundType.location],
-      initialNotificationTitle: 'Auto Diary AI',
+      initialNotificationTitle: 'あなたの軌跡',
       initialNotificationContent: '位置情報を記録しています',
     ),
     iosConfiguration: IosConfiguration(
