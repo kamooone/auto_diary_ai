@@ -70,7 +70,7 @@ DEFAULT_APP_ID = "auto_diary"  # アプリID未指定(これまでのauto_diary)
 APPS = {
     "auto_diary": {"name": "auto_diary", "isGame": False},
     "kamoooneshot": {"name": "KamoooneShot", "isGame": True},
-    "escape_2": {"name": "脱出ゲーム２", "isGame": True},
+    "escape_2": {"name": "脱出させるなゲーム", "isGame": True},
     "escape_3": {"name": "脱出ゲーム3", "isGame": True},
     "escape_4": {"name": "脱出ゲーム4", "isGame": True},
 }
@@ -85,11 +85,34 @@ EVENT_RULES = {
 }
 
 # アプリごとに違うルールにしたいときは、ここに書く(例: {"escape_2": {"stage_clear": {...}}})
-APP_EVENT_RULES = {}
+# ゲームごとの成果の一覧は、docs/game_points_api.md にも書く(直し忘れると、テストが失敗する)
+APP_EVENT_RULES = {
+    # 脱出させるなゲーム
+    "escape_2": {
+        # ステージのクリア(何回クリアしても同じ量。ステージが進むごとに50ずつ上がる)
+        **{
+            f"clear_{key}": {
+                "points": 50 * (i + 1),
+                "label": f"ステージ{key.replace('_', '-')} クリア",
+            }
+            for i, key in enumerate(
+                ["1_1", "1_2", "1_3", "2_1", "2_2", "2_3", "3_1", "3_2", "3_3"]
+            )
+        },
+        # 捕まえた敵のボーナス(1体50ポイント。最大5体で250ポイント)
+        **{
+            f"catch_bonus_{n}": {
+                "points": 50 * n,
+                "label": f"捕まえボーナス(敵{n}体)",
+            }
+            for n in range(1, 6)
+        },
+    },
+}
 
 # 1アカウントが、1日(全アプリ合計)に付けられるポイントの上限。
 # 普通に遊んでは届かない値にする(キーが盗まれたときに、被害を止める安全装置)
-DAILY_POINTS_CEILING = 5_000
+DAILY_POINTS_CEILING = 100_000
 
 EVENT_ID_PATTERN = re.compile(r"^[A-Za-z0-9_-]{8,64}$")
 

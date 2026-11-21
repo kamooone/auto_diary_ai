@@ -403,7 +403,7 @@ class AppPairingTest(unittest.TestCase):
     def test_確認画面にアプリ名が出る(self):
         fake_client.get_item.return_value = pairing_item(app_id="escape_2")
         status, body = call("POST /pairing/lookup", {"code": "123456"})
-        self.assertEqual((status, body["appName"]), (200, "脱出ゲーム２"))
+        self.assertEqual((status, body["appName"]), (200, "脱出させるなゲーム"))
 
     def test_上限はアプリごとに数える(self):
         # auto_diaryが3台でも、ゲームの紐づけは別に数える
@@ -547,7 +547,7 @@ class HistoryTest(unittest.TestCase):
 
         _, body = call("GET /history")
 
-        self.assertEqual(body["entries"][0]["label"], "脱出ゲーム２: new_event")
+        self.assertEqual(body["entries"][0]["label"], "脱出させるなゲーム: new_event")
 
     def test_続きがあるときだけnextを返し1ページの件数に切る(self):
         items = [
@@ -639,6 +639,39 @@ class EventRulesDocTest(unittest.TestCase):
             documented,
             actual,
             "EVENT_RULES を変えたら、docs/game_points_api.md の表も直す(ゲームの更新も確認する)",
+        )
+
+    def documented_app_events(self):
+        """「## ゲームごとの成果」の、「### `アプリID`」ごとの表を読む"""
+        with open(self.DOC, encoding="utf-8") as f:
+            lines = f.read().splitlines()
+
+        start = next(i for i, line in enumerate(lines) if line.startswith("## ゲームごとの成果"))
+        apps = {}
+        app_id = None
+        for line in lines[start + 1:]:
+            if line.startswith("## "):
+                break
+            if line.startswith("### `"):
+                app_id = line.split("`")[1]
+                apps[app_id] = {}
+                continue
+            cells = [c.strip() for c in line.strip().strip("|").split("|")]
+            if app_id and line.startswith("|") and len(cells) >= 2 and cells[0].startswith("`"):
+                apps[app_id][cells[0].strip("`")] = int(cells[1])
+        return apps
+
+    def test_ゲームごとの説明の一覧とサーバーのルールの名前とポイントが一致する(self):
+        documented = self.documented_app_events()
+        actual = {
+            app_id: {name: rule["points"] for name, rule in rules.items()}
+            for app_id, rules in m.APP_EVENT_RULES.items()
+        }
+
+        self.assertEqual(
+            documented,
+            actual,
+            "APP_EVENT_RULES を変えたら、docs/game_points_api.md の「ゲームごとの成果」も直す",
         )
 
 
