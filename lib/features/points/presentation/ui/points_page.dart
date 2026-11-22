@@ -75,8 +75,8 @@ class _PointsPageState extends ConsumerState<PointsPage> {
 }
 
 /// 画面の上の説明
-/// ゲームで遊ぶとポイントが貯まること、ポイントはトークンに交換できること、
-/// ポイントを貯めるにはアカウントが必要なことを伝える
+/// 伝える順番: ①ポイントを貯めるにはアカウントが必要 → ②ポイントはトークンに交換できる
+/// → ③ポイントはゲームで遊ぶと貯まる
 class _Description extends StatelessWidget {
   const _Description({required this.isLinked});
 
@@ -86,24 +86,25 @@ class _Description extends StatelessWidget {
   Widget build(BuildContext context) {
     const style = TextStyle(fontSize: 15, height: 1.8, color: AppColors.textSub);
 
+    final paragraphs = [
+      isLinked
+          ? "ポイントは、紐づけたアカウントに貯まります。"
+          : "ポイントを貯めるには、アカウントが必要です。\n"
+              "アカウントの作成は、Webで行います。",
+      "貯めたポイントは、AIが日記を書くときに使う「トークン」に交換できます。\n"
+          "ポイントの確認と、トークンへの交換は、Webで行います。",
+      "ポイントは、ゲームで遊ぶと貯まります。",
+    ];
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: AppSizes.space4),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            "ゲームで遊ぶとポイントが貯まります。\n"
-            "貯めたポイントは、AIが日記を書くときに使う「トークン」に交換できます。",
-            style: style,
-          ),
-          const SizedBox(height: AppSizes.space8),
-          Text(
-            isLinked
-                ? "ポイントの確認と、トークンへの交換は、Webで行います。"
-                : "ポイントを貯めるには、アカウントが必要です。\n"
-                    "アカウントの作成と、ポイントの交換は、Webで行います。",
-            style: style,
-          ),
+          for (final (index, text) in paragraphs.indexed) ...[
+            if (index > 0) const SizedBox(height: AppSizes.space8),
+            Text(text, style: style),
+          ],
         ],
       ),
     );

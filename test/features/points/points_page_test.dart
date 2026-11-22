@@ -88,7 +88,7 @@ void main() {
 
   testWidgets('コードを発行すると、1桁ずつの四角で出て、キャンセルで戻れる', (tester) async {
     // 画面の上の説明が長いため、ボタンまで表示される高さにする
-    tester.view.physicalSize = const Size(800, 1600);
+    tester.view.physicalSize = const Size(800, 2400);
     tester.view.devicePixelRatio = 2;
     addTearDown(tester.view.reset);
 
