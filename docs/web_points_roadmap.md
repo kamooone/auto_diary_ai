@@ -536,3 +536,21 @@ Webのページの一番下の「アカウントの削除」から、アカウ�
 
 ### Webに上げるファイル
 `games.html`、`games_data.js`、`games_page.js`、アイコンの画像(あれば)。ポイントのページ(`index.html`)とは、つながっていない。上げたあと、CloudFrontの無効化をする。
+
+---
+
+## 手順11: ゲームのポイントが貯まるケースの表(`GET /rules`)
+
+Webのゲーム紹介ページ(`games.html`)に、「ポイントが貯まるケースを見る」の表を出す。
+表の中身は、サーバーのルール(`EVENT_RULES`・`APP_EVENT_RULES`)から作る(数字を2か所に書かない)。
+
+### 作業
+1. Lambda(`auto-diary-points-api`)のコードを `server/points_api/lambda_function.py` の内容に置き換えて、Deploy。
+2. API Gateway(ポイントのAPI)に、ルート **`GET /rules`** を追加する。
+   統合はポイントのLambda、**オーソライザーは付けない**(ログイン不要)。CORSは変更なし。
+3. Webのファイル(`games.html`、`games_page.js`、`games_data.js`、`escape_2.png`)を、S3へ上げて、CloudFrontのキャッシュを削除する。
+
+### 確認
+- `curl -s https://<API>/rules` で、ゲームごとの一覧(JSON)が返る。
+- ゲーム紹介ページの、ゲームのカードに、「ポイントが貯まるケースを見る」が出て、開くと表が出る。
+- ポイントを変えて Lambda を Deploy すると、数分後に、表の数字も変わる。

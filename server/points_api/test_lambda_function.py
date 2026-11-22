@@ -586,6 +586,70 @@ class PendingDeviceTokenTest(unittest.TestCase):
         self.assertIsNone(m.device_of_token("dev1.anything"))
 
 
+class RulesTest(unittest.TestCase):
+    def setUp(self):
+        fake_client.reset_mock(side_effect=True)
+
+    def test_ログインなしで見られる(self):
+        status, body = call("GET /rules", None, logged_in=False)
+
+        self.assertEqual(status, 200)
+        fake_client.get_item.assert_not_called()  # データベースは、使わない
+
+    def test_ゲームだけを返し_日記アプリは含めない(self):
+        _, body = call("GET /rules", None, logged_in=False)
+
+        ids = [game["appId"] for game in body["games"]]
+        self.assertIn("escape_2", ids)
+        self.assertNotIn("auto_diary", ids)
+
+    def test_ゲーム別のルールがあるゲームは_その一覧だけを返す(self):
+        _, body = call("GET /rules", None, logged_in=False)
+        game = next(g for g in body["games"] if g["appId"] == "escape_2")
+
+        self.assertEqual(game["name"], "脱出させるなゲーム")
+        self.assertEqual(
+            {e["type"]: e["points"] for e in game["events"]},
+            {name: rule["points"] for name, rule in m.APP_EVENT_RULES["escape_2"].items()},
+        )
+        self.assertEqual(game["events"][0]["label"], "ステージ1-1 クリア")
+
+    def test_ゲーム別のルールがないゲームは_共通のルールを返す(self):
+        _, body = call("GET /rules", None, logged_in=False)
+        game = next(g for g in body["games"] if g["appId"] == "kamoooneshot")
+
+        self.assertEqual(
+            {e["type"]: e["points"] for e in game["events"]},
+            {name: rule["points"] for name, rule in m.EVENT_RULES.items()},
+        )
+
+    def test_回数の上限があるときだけ_上限を付ける(self):
+        with mock.patch.dict(
+            m.APP_EVENT_RULES,
+            {"escape_3": {
+                "daily": {"points": 10, "maxPerDay": 1, "label": "毎日"},
+                "once": {"points": 100, "maxTotal": 1, "label": "初回"},
+                "free": {"points": 5, "label": "自由"},
+            }},
+        ):
+            _, body = call("GET /rules", None, logged_in=False)
+
+        events = {
+            e["type"]: e
+            for e in next(g for g in body["games"] if g["appId"] == "escape_3")["events"]
+        }
+        self.assertEqual(events["daily"]["maxPerDay"], 1)
+        self.assertNotIn("maxTotal", events["daily"])
+        self.assertEqual(events["once"]["maxTotal"], 1)
+        self.assertNotIn("maxPerDay", events["free"])
+        self.assertNotIn("maxTotal", events["free"])
+
+    def test_少しの間は覚えておいてよい(self):
+        result = m.lambda_handler(event("GET /rules", None, logged_in=False), None)
+
+        self.assertIn("max-age", result["headers"]["Cache-Control"])
+
+
 class DeviceStatusTest(unittest.TestCase):
     def setUp(self):
         fake_client.reset_mock(side_effect=True)

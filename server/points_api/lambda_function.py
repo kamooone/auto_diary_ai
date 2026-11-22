@@ -15,6 +15,7 @@
     POST   /pairing/claim       紐づけが済んだら、端末用のトークンを1回だけ渡す
     POST   /events              ゲームの成果を受け取り、ポイントを付ける
                                 (アプリのキーと端末用のトークンの両方が必要)
+    GET    /rules               ゲームごとの、ポイントが貯まるケースの一覧(誰でも見られる)
     GET    /device/status       端末の紐づけが、まだ有効かを確かめる(端末用のトークンが必要)
     POST   /device/unlink       端末自身が、紐づけを解除する(端末用のトークンが必要)
 
@@ -917,6 +918,47 @@ def unlink_self(event):
     return response(200, {"unlinked": True})
 
 
+def rules_for_app(app_id):
+    """そのゲームで、ポイントが貯まるケース(成果の名前 → ルール)
+
+    ゲーム別のルールがあれば、それだけ。なければ、共通のルール。
+    """
+    return APP_EVENT_RULES.get(app_id) or EVENT_RULES
+
+
+def list_rules():
+    """Webのゲーム紹介が、「ポイントが貯まるケース」の表を作るための一覧
+
+    ログインは要らない(誰でも見られる)。ポイントの量や回数の上限は、ここにある
+    ルールが、そのまま使われる。数字を変えたら、このAPIの応答も、自動で変わる。
+    """
+    games = []
+
+    for app_id, app in APPS.items():
+        if not app["isGame"]:
+            continue
+
+        events = []
+        for event_type, rule in rules_for_app(app_id).items():
+            item = {
+                "type": event_type,
+                "label": rule.get("label", event_type),
+                "points": rule["points"],
+            }
+            # 回数の上限があるときだけ、付ける
+            for key in ("maxPerDay", "maxTotal"):
+                if key in rule:
+                    item[key] = rule[key]
+            events.append(item)
+
+        games.append({"appId": app_id, "name": app["name"], "events": events})
+
+    result = response(200, {"games": games})
+    # ブラウザや CloudFront に、少しの間、覚えておいてもらう(数字を変えたら、数分で反映される)
+    result["headers"]["Cache-Control"] = "public, max-age=300"
+    return result
+
+
 def device_status(event):
     """アプリが呼ぶ。端末用のトークンが、まだ紐づけられているかを確かめる
 
@@ -1114,6 +1156,8 @@ def lambda_handler(event, context):
             return unlink_self(event)
         if route == "GET /device/status":
             return device_status(event)
+        if route == "GET /rules":
+            return list_rules()
 
         # ここから先は、ログインが必要。オーソライザーが付いていないと、
         # account_id_of が失敗して、エラーになる(何も実行されない)

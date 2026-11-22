@@ -4,6 +4,7 @@
 function gameCard(game) {
   const card = document.createElement("div");
   card.className = "card game";
+  card.dataset.gameId = game.id;
 
   const head = document.createElement("div");
   head.className = "gameHead";
@@ -61,3 +62,93 @@ if (games.length === 0) {
 } else {
   list.append(...games.map(gameCard));
 }
+
+// ---------- ポイントが貯まるケースの表
+// ケースの一覧は、サーバー(GET /rules)から取る。ポイントの量や回数の上限は、
+// サーバーのルールがそのまま出るため、ここには数字を書かない。
+
+// 回数の上限の説明(上限がなければ空)
+function limitText(event) {
+  const parts = [];
+  if (event.maxPerDay) parts.push(`1日${event.maxPerDay}回まで`);
+  if (event.maxTotal) parts.push(`${event.maxTotal}回まで`);
+  return parts.join("・");
+}
+
+function rulesTable(game) {
+  const details = document.createElement("details");
+  details.className = "rules";
+
+  const summary = document.createElement("summary");
+  summary.textContent = "ポイントが貯まるケースを見る";
+  details.append(summary);
+
+  // 上限のあるケースが1つもなければ、「回数の上限」の列は出さない
+  const hasLimit = game.events.some((e) => limitText(e));
+
+  const table = document.createElement("table");
+  const head = document.createElement("tr");
+  for (const label of ["ケース", "ポイント"]) {
+    const th = document.createElement("th");
+    th.textContent = label;
+    if (label === "ポイント") th.className = "num";
+    head.append(th);
+  }
+  if (hasLimit) {
+    const th = document.createElement("th");
+    th.textContent = "回数の上限";
+    head.append(th);
+  }
+  table.append(head);
+
+  const yen = new Intl.NumberFormat("ja-JP");
+
+  for (const event of game.events) {
+    const row = document.createElement("tr");
+
+    const name = document.createElement("td");
+    name.textContent = event.label;
+
+    const points = document.createElement("td");
+    points.className = "num";
+    points.textContent = yen.format(event.points);
+
+    row.append(name, points);
+
+    if (hasLimit) {
+      const limit = document.createElement("td");
+      limit.className = "limit";
+      limit.textContent = limitText(event);
+      row.append(limit);
+    }
+
+    table.append(row);
+  }
+
+  details.append(table);
+  return details;
+}
+
+async function loadRules() {
+  const apiBase = window.APP_CONFIG?.apiBase;
+  if (!apiBase) return;
+
+  try {
+    const response = await fetch(`${apiBase}/rules`);
+    if (!response.ok) return;
+
+    const { games: rules } = await response.json();
+
+    for (const game of rules ?? []) {
+      const card = list.querySelector(`[data-game-id="${CSS.escape(game.appId)}"]`);
+      if (!card || !game.events?.length) continue;
+
+      // ストアのボタンがあれば、その前に入れる
+      card.insertBefore(rulesTable(game), card.querySelector(".linkButton"));
+    }
+  } catch {
+    // 取得できなくても、ゲームの紹介は、そのまま表示される
+  }
+}
+
+loadRules();

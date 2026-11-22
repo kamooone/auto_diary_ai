@@ -33,6 +33,15 @@
                         display: grid; place-items: center; }
     .gameSummary { margin: 12px 0 0; }
     .gamePoints { margin: 8px 0 0; color: var(--navy-dark); font-weight: 700; font-size: 14px; }
+    /* ポイントが貯まるケースの表(折りたたみ) */
+    .rules { margin-top: 12px; }
+    .rules summary { cursor: pointer; color: var(--navy-dark); font-weight: 700; font-size: 14px; }
+    .rules table { width: 100%; border-collapse: collapse; margin-top: 8px; font-size: 14px; }
+    .rules th { text-align: left; color: var(--text-sub); font-weight: 400; font-size: 12px; padding: 4px 0; }
+    .rules td { padding: 8px 0; border-top: 1px solid var(--line); vertical-align: top; }
+    .rules .num { text-align: right; white-space: nowrap; font-weight: 700; color: var(--navy-dark);
+                  padding-left: 12px; font-variant-numeric: tabular-nums; }
+    .rules .limit { color: var(--text-sub); font-size: 12px; padding-left: 12px; }
     .primary { display: flex; align-items: center; justify-content: center; width: 100%; height: 52px;
                margin-top: 16px; border-radius: 999px; background: var(--orange-dark); color: var(--white);
                font-weight: 700; font-size: 16px; text-decoration: none; box-shadow: 0 4px 12px rgba(199, 90, 34, .28); }
@@ -57,6 +66,7 @@
     <p class="note">ポイントを使うには、アカウントを作って、アプリと紐づける必要があります。</p>
   </main>
 
+  <script src="config.js"></script>
   <script src="games_data.js"></script>
   <script src="games_page.js"></script>
 </body>
