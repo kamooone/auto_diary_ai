@@ -305,8 +305,29 @@ async function refreshHistory() {
 
 // ---------- アプリの紐づけ
 
+// 紐づけの手続きを終えて、アプリが受け取りに来るのを待っているもの
+// (端末は、アプリが受け取りに来たときに登録される。ブラウザを開いている間、アプリは止まっている)
+let pendingPair = null;
+
+function setPairStatus(text) {
+  document.getElementById("pairStatusText").textContent = text || "";
+  document.getElementById("pairStatus").hidden = !text;
+}
+
 function showDevices({ devices }) {
   els.deviceCount.textContent = String(devices.length);
+
+  // 待っていたアプリが受け取りに来て、一覧に載ったら、完了を知らせる
+  if (
+    pendingPair &&
+    devices.some(
+      (d) => d.appId === pendingPair.appId && d.createdAt * 1000 >= pendingPair.since - 60000
+    )
+  ) {
+    setPairStatus(`「${pendingPair.appName}」の紐づけが完了しました。`);
+    pendingPair = null;
+  }
+
   els.deviceList.replaceChildren();
 
   for (const device of devices) {
@@ -417,9 +438,12 @@ async function pairDevice() {
     return;
   }
 
+  // 前の紐づけの案内は、消す
+  setPairStatus("");
+
   try {
     // どの端末のコードかを先に確認して、本人に確かめてもらう
-    const { label, appName } = await callApi("POST", "/pairing/lookup", { code });
+    const { label, appName, appId } = await callApi("POST", "/pairing/lookup", { code });
 
     const ok = await confirmDialog({
       title: `「${appName}」を紐づけますか？`,
@@ -431,7 +455,14 @@ async function pairDevice() {
 
     await callApi("POST", "/pairing/confirm", { code });
     els.pairingCode.value = "";
-    showNotice(`「${appName}」を紐づけました。アプリの画面に戻ってください。`);
+    // 入力欄のすぐ下に出す(ページの一番下に出すと、見えない)
+    els.message.textContent = "";
+    pendingPair = { appId, appName, since: Date.now() };
+    setPairStatus(
+      `「${appName}」の紐づけを受け付けました。アプリの画面に戻ると、紐づけが完了します。` +
+      "(戻るまでは、下の一覧に出ません)"
+    );
+    document.getElementById("pairStatus").scrollIntoView({ block: "nearest", behavior: "smooth" });
     await loadDevices();
     // 端末は、アプリが確認に来たときに登録される。数秒かかるため、一覧が変わるまで確かめる
     waitForDeviceChange();
