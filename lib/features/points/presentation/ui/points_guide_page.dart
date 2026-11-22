@@ -15,7 +15,8 @@ class PointsGuidePage extends StatelessWidget {
     ),
     GuideStep(
       title: "ゲームで、ポイントを貯める",
-      body: "このアプリの開発者が作ったゲームで遊ぶと、ポイントが貯まります。\n"
+      body: "このアプリの開発者が作ったゲームで、同じアカウントと紐づけて遊ぶと、"
+          "ポイントが貯まります。\n"
           "ゲームの一覧は、専用のWebページに載っています。",
     ),
     GuideStep(
@@ -42,8 +43,9 @@ class PointsGuidePage extends StatelessWidget {
   Widget build(BuildContext context) {
     return const StepGuidePage(
       title: "ポイントとトークンの使い方",
-      intro: "このアプリの開発者が作ったゲームで貯めたポイントは、トークンに交換できます。\n"
-          "トークンは、AIが日記を書くときに使う、使用量の単位です。",
+      intro: "ゲームで遊ぶとポイントが貯まります。\n"
+          "貯めたポイントは、AIが日記を書くときに使う「トークン」に交換できます。\n"
+          "ポイントを貯めるには、アカウントが必要です。",
       steps: _steps,
     );
   }
