@@ -630,7 +630,8 @@ def account_of_device_token(token):
     )
     item = result.get("Item")
 
-    if item is None or not hmac.compare_digest(
+    # アプリがまだトークンを受け取っていない端末(tokenHashがない)は、使えない
+    if item is None or "tokenHash" not in item or not hmac.compare_digest(
         item["tokenHash"]["S"], sha256_hex(secret)
     ):
         raise InvalidDeviceToken()

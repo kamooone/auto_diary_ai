@@ -278,8 +278,13 @@ python3 -m unittest server/points_api/test_lambda_function.py
 2. アプリの画面にコードを表示する。合言葉は、アプリの中だけに持つ(画面には出さない)。
 3. ユーザーがWebにログインして、コードを入力する → `POST /pairing/lookup` で端末の名前を確認し、
    確認ダイアログで本人に確かめてから、`POST /pairing/confirm` で端末とアカウントを結ぶ。
+   このとき、**端末の行を、先に作る**(トークンはまだ入れない。「受け取り前」の印 `pendingUntil`(10分の期限)を付ける)。
+   コードの確定と、端末の行の作成は、1回のトランザクションで行う。
+   → アプリが背面で止まっていても、Webの端末一覧には、すぐ出る(「ゲームに戻ると、紐づけが完了します」と表示する)。
 4. アプリは、`POST /pairing/claim`(コードと合言葉)を、数秒おきに呼ぶ。
-   確定済みになると、**端末用のトークン**(`<端末ID>.<秘密の文字列>`)が1回だけ返る。
+   確定済みになると、先に作った端末の行にトークンのハッシュを入れて(`pendingUntil` を消す)、
+   **端末用のトークン**(`<端末ID>.<秘密の文字列>`)が1回だけ返る。
+   受け取り前の端末は、トークンが使えない(`device_of_token` が、tokenHashのない行を断る)。
 5. アプリはトークンを安全な場所(Keychain/Keystore)に保存する。手順6で、`/ai/chat` に付ける。
 
 ### セキュリティ上の約束
@@ -298,6 +303,10 @@ python3 -m unittest server/points_api/test_lambda_function.py
    - `auto-diary-points-devices`: パーティションキー `deviceId`(文字列)。
      作成後、「インデックス」→「インデックスを作成」: パーティションキー `accountId`(文字列)、
      名前 `accountId-index`、射影は「すべて」。
+     「追加の設定」→「有効期限 (TTL)」を有効にして、属性名は **`pendingUntil`**
+     (受け取り前のまま期限が過ぎた端末の行を、DynamoDBが自動で削除する。
+     トークンを受け取ると `pendingUntil` が消えるので、使用中の端末は消えない。
+     削除は、期限から最大48時間ほど遅れることがあるが、期限が過ぎた行は、一覧にも数にも入れない)。
 2. Lambdaの環境変数に追加
    - `PAIRING_TABLE_NAME` = `auto-diary-points-pairing`
    - `DEVICES_TABLE_NAME` = `auto-diary-points-devices`

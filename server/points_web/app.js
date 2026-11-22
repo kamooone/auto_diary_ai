@@ -317,11 +317,14 @@ function setPairStatus(text) {
 function showDevices({ devices }) {
   els.deviceCount.textContent = String(devices.length);
 
-  // 待っていたアプリが受け取りに来て、一覧に載ったら、完了を知らせる
+  // 待っていたアプリが、トークンを受け取って(受け取り前の印が消えて)、完了したら知らせる
   if (
     pendingPair &&
     devices.some(
-      (d) => d.appId === pendingPair.appId && d.createdAt * 1000 >= pendingPair.since - 60000
+      (d) =>
+        d.appId === pendingPair.appId &&
+        !d.pending &&
+        d.createdAt * 1000 >= pendingPair.since - 60000
     )
   ) {
     setPairStatus(`「${pendingPair.appName}」の紐づけが完了しました。`);
@@ -340,8 +343,10 @@ function showDevices({ devices }) {
     name.textContent = device.appName;
     const sub = document.createElement("div");
     sub.className = "rowSub";
-    sub.textContent =
-      `${device.label} ・ ${new Date(device.createdAt * 1000).toLocaleDateString("ja-JP")}に紐づけ`;
+    // 受け取り前(Webで確定したが、アプリがまだトークンを受け取っていない)の端末は、そう分かるようにする
+    sub.textContent = device.pending
+      ? `${device.label} ・ ゲームに戻ると、紐づけが完了します`
+      : `${device.label} ・ ${new Date(device.createdAt * 1000).toLocaleDateString("ja-JP")}に紐づけ`;
     left.append(name, sub);
 
     const button = document.createElement("button");
@@ -371,14 +376,11 @@ async function refreshDevicesQuietly() {
   }
 }
 
-// 紐づけの直後は、一覧の件数が増えるまで、短い間隔で確かめる
+// 紐づけの直後は、アプリが受け取りに来て完了するまで、短い間隔で確かめる
 async function waitForDeviceChange() {
-  const before = els.deviceList.children.length;
-
-  for (let i = 0; i < 20; i++) {
+  for (let i = 0; i < 20 && pendingPair; i++) {
     await new Promise((resolve) => setTimeout(resolve, 1500));
     await refreshDevicesQuietly();
-    if (els.deviceList.children.length !== before) return;
   }
 }
 
@@ -459,12 +461,11 @@ async function pairDevice() {
     els.message.textContent = "";
     pendingPair = { appId, appName, since: Date.now() };
     setPairStatus(
-      `「${appName}」の紐づけを受け付けました。アプリの画面に戻ると、紐づけが完了します。` +
-      "(戻るまでは、下の一覧に出ません)"
+      `「${appName}」の紐づけを受け付けました。アプリの画面に戻ると、紐づけが完了します。`
     );
     document.getElementById("pairStatus").scrollIntoView({ block: "nearest", behavior: "smooth" });
     await loadDevices();
-    // 端末は、アプリが確認に来たときに登録される。数秒かかるため、一覧が変わるまで確かめる
+    // アプリがトークンを受け取りに来て、紐づけが完了するまで、一覧を確かめる
     waitForDeviceChange();
   } catch (e) {
     show(e.message);

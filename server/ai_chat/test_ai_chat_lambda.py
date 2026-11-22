@@ -337,6 +337,17 @@ class AiChatUsageTest(unittest.TestCase):
         self.gemini.assert_not_called()
         self.assertEqual(self.balance(), 5000)
 
+    def test_device_not_yet_claimed_by_the_app_is_401(self):
+        # Webで確定したが、アプリがまだトークンを受け取っていない端末には、tokenHashがない
+        self.link_device(balance=5000)
+        del fake_dynamo.tables["devices"]["dev1"]["tokenHash"]
+
+        status, body = call(chat_event(device_token="dev1.secret"))
+
+        self.assertEqual(status, 401)
+        self.assertEqual(body["error"], "invalid_device_token")
+        self.gemini.assert_not_called()
+
     def test_display_adds_balance_to_the_monthly_limit(self):
         # 残高10,000 を足した状態で、毎月の枠 + 3,000 使った場合
         self.link_device(balance=10_000)

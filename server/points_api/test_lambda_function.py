@@ -66,7 +66,7 @@ def conditional_failure(operation):
 
 def pairing_item(
     status="pending", secret="s3cret", expires_in=300, account="user-1",
-    app_id=None,
+    app_id=None, device_id=None,
 ):
     item = {
         "code": {"S": "123456"},
@@ -79,6 +79,9 @@ def pairing_item(
         item["appId"] = {"S": app_id}
     if status == "linked":
         item["accountId"] = {"S": account}
+    if device_id:
+        # Webで確定したときに、先に作っておいた端末の行のID
+        item["deviceId"] = {"S": device_id}
     return {"Item": item}
 
 
@@ -232,11 +235,25 @@ class PairingTest(unittest.TestCase):
         status, _ = call("POST /pairing/confirm", {"code": "123456"})
         self.assertEqual(status, 200)
 
-        update = fake_client.update_item.call_args.kwargs
-        self.assertEqual(update["ExpressionAttributeValues"][":a"], {"S": "user-1"})
+        # コードの確定と、端末の行の作成は、1回のトランザクションで行う
+        fake_client.update_item.assert_not_called()
+        update, put = [
+            list(item.values())[0]
+            for item in fake_client.transact_write_items.call_args.kwargs["TransactItems"]
+        ]
+        values = update["ExpressionAttributeValues"]
+        self.assertEqual(values[":a"], {"S": "user-1"})
         # 使っていない値や名前を渡すと、DynamoDBがエラーにする
-        for name in update["ExpressionAttributeValues"]:
+        for name in values:
             self.assertIn(name, update["UpdateExpression"] + update["ConditionExpression"])
+
+        # 端末の行は、トークンなし・受け取り前の期限つきで、先に作る
+        device = put["Item"]
+        self.assertEqual(put["TableName"], m.DEVICES_TABLE_NAME)
+        self.assertEqual(device["deviceId"], values[":d"])
+        self.assertEqual(device["accountId"], {"S": "user-1"})
+        self.assertNotIn("tokenHash", device)
+        self.assertIn("pendingUntil", device)
 
     def test_端末が上限に達していると確定できない(self):
         fake_client.get_item.return_value = pairing_item()
@@ -247,14 +264,53 @@ class PairingTest(unittest.TestCase):
         }
         status, body = call("POST /pairing/confirm", {"code": "123456"})
         self.assertEqual((status, body["error"]), (409, "device_limit"))
-        fake_client.update_item.assert_not_called()
+        fake_client.transact_write_items.assert_not_called()
+
+    def test_期限切れの受け取り前の端末は_上限に数えない(self):
+        fake_client.get_item.return_value = pairing_item()
+        expired = {"appId": {"S": "auto_diary"}, "pendingUntil": {"N": "1"}}
+        fake_client.query.return_value = {
+            "Items": [{"appId": {"S": "auto_diary"}}] * (m.MAX_DEVICES - 1) + [expired]
+        }
+        status, _ = call("POST /pairing/confirm", {"code": "123456"})
+        self.assertEqual(status, 200)
+
+    def test_期限内の受け取り前の端末は_上限に数える(self):
+        fake_client.get_item.return_value = pairing_item()
+        pending = {
+            "appId": {"S": "auto_diary"},
+            "pendingUntil": {"N": str(int(m.time.time()) + 300)},
+        }
+        fake_client.query.return_value = {
+            "Items": [{"appId": {"S": "auto_diary"}}] * (m.MAX_DEVICES - 1) + [pending]
+        }
+        status, body = call("POST /pairing/confirm", {"code": "123456"})
+        self.assertEqual((status, body["error"]), (409, "device_limit"))
 
     def test_先に確定されたコードは二重に確定できない(self):
         fake_client.get_item.return_value = pairing_item()
         fake_client.query.return_value = {"Items": []}
-        fake_client.update_item.side_effect = conditional_failure("UpdateItem")
+        fake_client.transact_write_items.side_effect = ClientError(
+            {
+                "Error": {"Code": "TransactionCanceledException"},
+                "CancellationReasons": [{"Code": "ConditionalCheckFailed"}, {"Code": "None"}],
+            },
+            "TransactWriteItems",
+        )
         status, _ = call("POST /pairing/confirm", {"code": "123456"})
         self.assertEqual(status, 404)
+
+    def test_確定が失敗したときは_コードも端末の行も変えない(self):
+        # 1回のトランザクションなので、片方だけが成功することはない
+        fake_client.get_item.return_value = pairing_item()
+        fake_client.query.return_value = {"Items": []}
+        fake_client.transact_write_items.side_effect = ClientError(
+            {"Error": {"Code": "InternalServerError"}}, "TransactWriteItems"
+        )
+        status, _ = call("POST /pairing/confirm", {"code": "123456"})
+        self.assertEqual(status, 500)
+        fake_client.put_item.assert_not_called()
+        fake_client.update_item.assert_not_called()
 
     def test_未確定のうちは待つ(self):
         fake_client.get_item.return_value = pairing_item("pending")
@@ -293,6 +349,38 @@ class PairingTest(unittest.TestCase):
         self.assertEqual(device["tokenHash"], {"S": m.sha256_hex(secret)})
         self.assertNotIn(secret, json.dumps(device))
 
+    def test_確定のときに作った端末の行に_トークンを入れて渡す(self):
+        fake_client.get_item.return_value = pairing_item("linked", device_id="d" * 32)
+        status, body = call(
+            "POST /pairing/claim",
+            {"code": "123456", "claimSecret": "s3cret"},
+            logged_in=False,
+        )
+        self.assertEqual((status, body["status"]), (200, "linked"))
+
+        device_id, secret = body["deviceToken"].split(".")
+        self.assertEqual(device_id, "d" * 32)
+        fake_client.delete_item.assert_called_once()  # コードは使い切り
+        fake_client.put_item.assert_not_called()  # 端末の行は、作り直さない
+
+        update = fake_client.update_item.call_args.kwargs
+        self.assertEqual(update["TableName"], m.DEVICES_TABLE_NAME)
+        self.assertEqual(update["Key"], {"deviceId": {"S": device_id}})
+        self.assertEqual(update["ExpressionAttributeValues"][":h"], {"S": m.sha256_hex(secret)})
+        # 受け取り前の印(期限)を消す。消さないと、期限が来たときに、使用中の端末が消える
+        self.assertIn("REMOVE pendingUntil", update["UpdateExpression"])
+        self.assertNotIn(secret, json.dumps(update["ExpressionAttributeValues"]))
+
+    def test_受け取る前にWebで解除された端末は_期限切れにする(self):
+        fake_client.get_item.return_value = pairing_item("linked", device_id="d" * 32)
+        fake_client.update_item.side_effect = conditional_failure("UpdateItem")
+        status, body = call(
+            "POST /pairing/claim",
+            {"code": "123456", "claimSecret": "s3cret"},
+            logged_in=False,
+        )
+        self.assertEqual((status, body["status"]), (404, "expired"))
+
     def test_トークンは1回しか渡さない(self):
         fake_client.get_item.return_value = pairing_item("linked")
         fake_client.delete_item.side_effect = conditional_failure("DeleteItem")
@@ -327,6 +415,24 @@ class DevicesTest(unittest.TestCase):
         self.assertEqual([d["deviceId"] for d in body["devices"]], ["a", "b"])
         self.assertEqual(body["maxDevices"], m.MAX_DEVICES)
         self.assertNotIn("tokenHash", json.dumps(body))
+
+    def test_受け取り前の端末には印を付け_期限切れの分は出さない(self):
+        now = int(m.time.time())
+        fake_client.query.return_value = {
+            "Items": [
+                {"deviceId": {"S": "a"}, "label": {"S": "Android"}, "createdAt": {"N": "10"}},
+                {"deviceId": {"S": "b"}, "label": {"S": "Pixel"}, "createdAt": {"N": "20"},
+                 "pendingUntil": {"N": str(now + 300)}},
+                {"deviceId": {"S": "c"}, "label": {"S": "古い"}, "createdAt": {"N": "5"},
+                 "pendingUntil": {"N": str(now - 1)}},
+            ]
+        }
+        status, body = call("GET /devices")
+        self.assertEqual(status, 200)
+        self.assertEqual(
+            [(d["deviceId"], d["pending"]) for d in body["devices"]],
+            [("a", False), ("b", True)],
+        )
 
     def test_解除は自分の端末だけ(self):
         device_id = "a" * 32
@@ -472,6 +578,16 @@ class UnlinkSelfTest(unittest.TestCase):
             self.assertEqual(body["error"], "invalid_device_token")
 
         fake_client.delete_item.assert_not_called()
+
+
+class PendingDeviceTokenTest(unittest.TestCase):
+    def test_トークンを受け取る前の端末の行では_何も使えない(self):
+        fake_client.reset_mock(side_effect=True)
+        row = device_row()
+        del row["Item"]["tokenHash"]
+        fake_client.get_item.return_value = row
+
+        self.assertIsNone(m.device_of_token("dev1.anything"))
 
 
 class DeviceStatusTest(unittest.TestCase):

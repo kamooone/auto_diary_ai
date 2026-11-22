@@ -493,15 +493,30 @@ def pairing_lookup(body):
     })
 
 
+def is_pending(item):
+    """Webで確定したが、アプリがまだトークンを受け取っていない端末か"""
+    return "pendingUntil" in item
+
+
+def is_expired_pending(item):
+    """受け取り前のまま、期限(pendingUntil)が過ぎた端末(一覧にも、数にも入れない)"""
+    until = item.get("pendingUntil")
+    return until is not None and int(until["N"]) <= int(time.time())
+
+
 def count_devices(account_id, app_id):
-    """そのアカウントで、そのアプリに紐づいている端末の数"""
+    """そのアカウントで、そのアプリに紐づいている端末の数(受け取り前の端末も含む)"""
     result = dynamodb.query(
         TableName=DEVICES_TABLE_NAME,
         IndexName="accountId-index",
         KeyConditionExpression="accountId = :a",
         ExpressionAttributeValues={":a": {"S": account_id}},
     )
-    return sum(1 for item in result["Items"] if app_id_of(item) == app_id)
+    return sum(
+        1
+        for item in result["Items"]
+        if app_id_of(item) == app_id and not is_expired_pending(item)
+    )
 
 
 def pairing_confirm(account_id, body):
@@ -515,24 +530,52 @@ def pairing_confirm(account_id, body):
     if count_devices(account_id, app_id_of(pairing)) >= MAX_DEVICES:
         return response(409, {"error": "device_limit", "maxDevices": MAX_DEVICES})
 
+    # 次の2つを、1回のトランザクションで行う(間に、アプリの受け取りが割り込まないように)
+    #   1. コードを確定済みにして、アカウントと、これから作る端末のIDを結ぶ
+    #   2. 端末の行を先に作る(トークンは、アプリが受け取るときに入れる)
+    # 端末の行を、確定のときに作っておくと、アプリが背面で止まっていても、
+    # Webの端末一覧に、すぐ出る。受け取り前の端末には、期限(pendingUntil)を付ける。
+    device_id = uuid.uuid4().hex
+    now = int(time.time())
+
     try:
-        dynamodb.update_item(
-            TableName=PAIRING_TABLE_NAME,
-            Key={"code": {"S": code}},
-            # 期限内で、まだ誰にも確定されていないコードだけが、対象
-            ConditionExpression="#s = :pending AND expiresAt > :now",
-            UpdateExpression="SET #s = :linked, accountId = :a",
-            ExpressionAttributeNames={"#s": "status"},
-            ExpressionAttributeValues={
-                ":pending": {"S": "pending"},
-                ":linked": {"S": "linked"},
-                ":a": {"S": account_id},
-                ":now": {"N": str(int(time.time()))},
+        dynamodb.transact_write_items(TransactItems=[
+            {
+                "Update": {
+                    "TableName": PAIRING_TABLE_NAME,
+                    "Key": {"code": {"S": code}},
+                    # 期限内で、まだ誰にも確定されていないコードだけが、対象
+                    "ConditionExpression": "#s = :pending AND expiresAt > :now",
+                    "UpdateExpression": "SET #s = :linked, accountId = :a, deviceId = :d",
+                    "ExpressionAttributeNames": {"#s": "status"},
+                    "ExpressionAttributeValues": {
+                        ":pending": {"S": "pending"},
+                        ":linked": {"S": "linked"},
+                        ":a": {"S": account_id},
+                        ":d": {"S": device_id},
+                        ":now": {"N": str(now)},
+                    },
+                }
             },
-        )
+            {
+                "Put": {
+                    "TableName": DEVICES_TABLE_NAME,
+                    "Item": {
+                        "deviceId": {"S": device_id},
+                        "accountId": {"S": account_id},
+                        "label": pairing["label"],
+                        "appId": {"S": app_id_of(pairing)},
+                        "createdAt": {"N": str(now)},
+                        "pendingUntil": {"N": str(now + PAIRING_CODE_TTL_SECONDS)},
+                    },
+                }
+            },
+        ])
     except ClientError as e:
-        if error_code(e) == "ConditionalCheckFailedException":
-            return response(404, {"error": "invalid_code"})
+        if error_code(e) == "TransactionCanceledException":
+            reasons = e.response.get("CancellationReasons", [])
+            if any(r.get("Code") == "ConditionalCheckFailed" for r in reasons):
+                return response(404, {"error": "invalid_code"})
         raise
 
     return response(200, {"linked": True})
@@ -577,20 +620,38 @@ def pairing_claim(body):
             return response(404, {"status": "expired"})
         raise
 
-    device_id = uuid.uuid4().hex
     device_secret = secrets.token_urlsafe(32)
+    device_id = item.get("deviceId", {}).get("S")
 
-    dynamodb.put_item(
-        TableName=DEVICES_TABLE_NAME,
-        Item={
-            "deviceId": {"S": device_id},
-            "accountId": item["accountId"],
-            "tokenHash": {"S": sha256_hex(device_secret)},
-            "label": item["label"],
-            "appId": {"S": app_id_of(item)},
-            "createdAt": {"N": str(int(time.time()))},
-        },
-    )
+    if device_id:
+        # 確定のときに作っておいた端末の行に、トークンを入れる(受け取り前の印を消す)
+        try:
+            dynamodb.update_item(
+                TableName=DEVICES_TABLE_NAME,
+                Key={"deviceId": {"S": device_id}},
+                ConditionExpression="attribute_exists(deviceId)",
+                UpdateExpression="SET tokenHash = :h REMOVE pendingUntil",
+                ExpressionAttributeValues={":h": {"S": sha256_hex(device_secret)}},
+            )
+        except ClientError as e:
+            if error_code(e) == "ConditionalCheckFailedException":
+                # 受け取る前に、Webの端末一覧から解除された
+                return response(404, {"status": "expired"})
+            raise
+    else:
+        # 端末の行を確定のときに作っていない、昔の流れ(互換)。受け取りのときに作る
+        device_id = uuid.uuid4().hex
+        dynamodb.put_item(
+            TableName=DEVICES_TABLE_NAME,
+            Item={
+                "deviceId": {"S": device_id},
+                "accountId": item["accountId"],
+                "tokenHash": {"S": sha256_hex(device_secret)},
+                "label": item["label"],
+                "appId": {"S": app_id_of(item)},
+                "createdAt": {"N": str(int(time.time()))},
+            },
+        )
 
     return response(200, {
         "status": "linked",
@@ -613,8 +674,11 @@ def list_devices(account_id):
                 "appId": app_id_of(item),
                 "appName": APPS.get(app_id_of(item), {}).get("name", "アプリ"),
                 "createdAt": int(item["createdAt"]["N"]),
+                # Webで確定したが、アプリがまだトークンを受け取っていない
+                "pending": is_pending(item),
             }
             for item in result["Items"]
+            if not is_expired_pending(item)
         ),
         key=lambda d: d["createdAt"],
     )
@@ -855,7 +919,8 @@ def device_of_token(token):
         Key={"deviceId": {"S": device_id}},
     ).get("Item")
 
-    if item is None or not hmac.compare_digest(
+    # アプリがまだトークンを受け取っていない端末(tokenHashがない)は、使えない
+    if item is None or "tokenHash" not in item or not hmac.compare_digest(
         item["tokenHash"]["S"], sha256_hex(secret)
     ):
         return None
