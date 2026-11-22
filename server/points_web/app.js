@@ -309,6 +309,13 @@ async function refreshHistory() {
 // (端末は、アプリが受け取りに来たときに登録される。ブラウザを開いている間、アプリは止まっている)
 let pendingPair = null;
 
+// 紐づけのエラー(入力欄のすぐ下に出す)
+function setPairError(text) {
+  const el = document.getElementById("pairError");
+  el.textContent = text || "";
+  el.hidden = !text;
+}
+
 function setPairStatus(text) {
   document.getElementById("pairStatusText").textContent = text || "";
   document.getElementById("pairStatus").hidden = !text;
@@ -435,13 +442,14 @@ function confirmDialog({ title, detail, note, okText }) {
 async function pairDevice() {
   const code = els.pairingCode.value.trim();
 
+  // 前の紐づけの案内・エラーは、消す
+  setPairStatus("");
+  setPairError("");
+
   if (!/^\d{6}$/.test(code)) {
-    show("6桁の数字を入力してください。");
+    setPairError("6桁の数字を入力してください。");
     return;
   }
-
-  // 前の紐づけの案内は、消す
-  setPairStatus("");
 
   try {
     // どの端末のコードかを先に確認して、本人に確かめてもらう
@@ -468,7 +476,8 @@ async function pairDevice() {
     // アプリがトークンを受け取りに来て、紐づけが完了するまで、一覧を確かめる
     waitForDeviceChange();
   } catch (e) {
-    show(e.message);
+    // 入力欄のすぐ下に出す(ページの一番下に出すと、見えない)
+    setPairError(e.message);
   }
 }
 
