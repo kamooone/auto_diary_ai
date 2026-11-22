@@ -16,6 +16,8 @@
     POST   /pairing/claim       紐づけが済んだら、端末用のトークンを1回だけ渡す
     POST   /events              ゲームの成果を受け取り、ポイントを付ける
                                 (アプリのキーと端末用のトークンの両方が必要)
+    GET    /device/status       端末の紐づけが、まだ有効かを確かめる(端末用のトークンが必要)
+    POST   /device/unlink       端末自身が、紐づけを解除する(端末用のトークンが必要)
 
 誰のリクエストかは、確認済みのトークンの中の `sub`(アカウント固有のID)で分かる。
 
@@ -879,6 +881,20 @@ def unlink_self(event):
     return response(200, {"unlinked": True})
 
 
+def device_status(event):
+    """アプリが呼ぶ。端末用のトークンが、まだ紐づけられているかを確かめる
+
+    Webで解除されたかどうかを、アプリが成果を送る前に知るために使う(ポイントは付かない)。
+    紐づけが生きていれば200、解除されている・トークンが正しくなければ401。
+    """
+    device = device_of_token(header_of(event, "x-device-token"))
+
+    if device is None:
+        return response(401, {"error": "invalid_device_token"})
+
+    return response(200, {"linked": True})
+
+
 def grant_event(event):
     """ゲームが呼ぶ。成果の種類を受け取り、サーバーが決めた量のポイントを付ける
 
@@ -1060,6 +1076,8 @@ def lambda_handler(event, context):
             return grant_event(event)
         if route == "POST /device/unlink":
             return unlink_self(event)
+        if route == "GET /device/status":
+            return device_status(event)
 
         # ここから先は、ログインが必要。オーソライザーが付いていないと、
         # account_id_of が失敗して、エラーになる(何も実行されない)

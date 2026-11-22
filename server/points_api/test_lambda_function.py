@@ -474,6 +474,42 @@ class UnlinkSelfTest(unittest.TestCase):
         fake_client.delete_item.assert_not_called()
 
 
+class DeviceStatusTest(unittest.TestCase):
+    def setUp(self):
+        fake_client.reset_mock(side_effect=True)
+        fake_client.get_item.return_value = device_row()
+
+    def send(self, token):
+        headers = {"X-Device-Token": token} if token else {}
+        return call("GET /device/status", None, logged_in=False, headers=headers)
+
+    def test_紐づけが生きていれば200を返す(self):
+        status, body = self.send(f"dev1.{DEVICE_SECRET}")
+
+        self.assertEqual((status, body), (200, {"linked": True}))
+
+    def test_Webで解除されて端末の行がなければ401を返す(self):
+        fake_client.get_item.return_value = {}
+
+        status, body = self.send(f"dev1.{DEVICE_SECRET}")
+
+        self.assertEqual(status, 401)
+        self.assertEqual(body["error"], "invalid_device_token")
+
+    def test_トークンが違うと401を返す(self):
+        for token in ["dev1.wrong", "garbage", None]:
+            status, body = self.send(token)
+            self.assertEqual(status, 401)
+            self.assertEqual(body["error"], "invalid_device_token")
+
+    def test_ポイントも端末の行も変えない(self):
+        self.send(f"dev1.{DEVICE_SECRET}")
+
+        fake_client.transact_write_items.assert_not_called()
+        fake_client.update_item.assert_not_called()
+        fake_client.delete_item.assert_not_called()
+
+
 def ledger_item(entry_id, kind, points, tokens=0, app_id=None, event_type=None,
                 created_at=1792422783):
     item = {
