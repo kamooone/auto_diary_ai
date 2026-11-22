@@ -3,7 +3,6 @@
   ログインが必要なもの(API GatewayのJWTオーソライザーが、先に確認する)
     GET    /me                  ポイントとトークンの残高(初めてなら残高0で作る)
     POST   /exchange            ポイントをトークンに交換する
-    POST   /dev/grant           動作確認用: ポイントを足す(本番では無効にする)
     POST   /pairing/lookup      紐づけコードから、どの端末かを確認する
     POST   /pairing/confirm     紐づけコードを確定し、端末とアカウントを結ぶ
     GET    /devices             紐づけ済みの端末の一覧
@@ -44,12 +43,6 @@ DEVICES_TABLE_NAME = os.environ["DEVICES_TABLE_NAME"]
 
 # アカウントを削除するときに使う、Cognitoのユーザープール(IDは、環境変数で渡す)
 USER_POOL_ID = os.environ.get("USER_POOL_ID")
-
-# 動作確認用の口を使えるか(環境変数で切り替える。本番では false にする)
-ENABLE_DEV_GRANT = os.environ.get("ENABLE_DEV_GRANT") == "true"
-
-# 動作確認用に、1回で足せるポイントの上限
-DEV_GRANT_MAX = 100_000
 
 # 交換のルール(変えるときは、ここだけ直す)
 TOKENS_PER_POINT = 1  # 1ポイントあたりのトークン数
@@ -322,31 +315,6 @@ def exchange(account_id, body):
             return response(409, {"error": "request_id_conflict"})
         raise
 
-    return response(200, read_balance(account_id))
-
-
-def dev_grant(account_id, body):
-    if not ENABLE_DEV_GRANT:
-        return response(404, {"error": "not_found"})
-
-    data = parse_body(body)
-    amount = to_int(data.get("amount"))
-
-    if amount is None or not 1 <= amount <= DEV_GRANT_MAX:
-        return response(400, {"error": f"amount must be 1..{DEV_GRANT_MAX}"})
-
-    change_balance(
-        account_id,
-        update_expression=(
-            "ADD points :amount "
-            "SET tokens = if_not_exists(tokens, :zero), "
-            "createdAt = if_not_exists(createdAt, :now)"
-        ),
-        values={":amount": {"N": str(amount)}},
-        kind="dev_grant",
-        points_delta=amount,
-        tokens_delta=0,
-    )
     return response(200, read_balance(account_id))
 
 
@@ -825,6 +793,7 @@ ENTRY_ID_PATTERN = re.compile(r"^\d{13}#[0-9a-f]{32}$")
 
 HISTORY_TYPE_LABELS = {
     "exchange": "トークンに交換",
+    # 動作確認用のポイント追加は、なくなった。以前に残った履歴の表示のために、名前だけ残す
     "dev_grant": "テスト用のポイント追加",
 }
 
@@ -1161,9 +1130,6 @@ def lambda_handler(event, context):
 
         if route == "POST /exchange":
             return exchange(account_id, event.get("body"))
-
-        if route == "POST /dev/grant":
-            return dev_grant(account_id, event.get("body"))
 
         if route == "POST /pairing/lookup":
             return pairing_lookup(event.get("body"))

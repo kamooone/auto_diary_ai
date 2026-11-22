@@ -502,16 +502,6 @@ async function unlinkDevice(device) {
   }
 }
 
-async function grantForTest() {
-  try {
-    showBalance(await callApi("POST", "/dev/grant", { amount: 10000 }));
-    showNotice("テスト用に、10,000ポイントを追加しました。");
-    await refreshHistory();
-  } catch (e) {
-    show(e.message);
-  }
-}
-
 // ボタンを押した1回の操作ごとに、IDを作る。
 // 通信が失敗して、同じ操作を送り直しても、サーバーは1回しか実行しない。
 let pendingExchange = null;
@@ -649,7 +639,6 @@ async function main() {
 
   document.getElementById("loginButton").onclick = () => login();
   document.getElementById("logoutButton").onclick = logout;
-  document.getElementById("grantButton").onclick = grantForTest;
   document.getElementById("exchangeButton").onclick = exchange;
   document.getElementById("pairingButton").onclick = pairDevice;
   document.getElementById("deleteStartButton").onclick = startDelete;

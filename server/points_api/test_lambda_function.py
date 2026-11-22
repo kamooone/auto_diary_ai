@@ -13,7 +13,6 @@ os.environ["TABLE_NAME"] = "accounts"
 os.environ["LEDGER_TABLE_NAME"] = "ledger"
 os.environ["PAIRING_TABLE_NAME"] = "pairing"
 os.environ["DEVICES_TABLE_NAME"] = "devices"
-os.environ["ENABLE_DEV_GRANT"] = "true"
 
 # boto3がなくても動かせるよう、偽物を先に登録する
 fake_client = mock.MagicMock()
@@ -159,31 +158,13 @@ class ExchangeTest(unittest.TestCase):
         self.assertEqual((status, body["error"]), (500, "internal_error"))
 
 
-class DevGrantTest(unittest.TestCase):
-    def setUp(self):
+class DevGrantRemovedTest(unittest.TestCase):
+    def test_動作確認用のポイント追加の口は_もうない(self):
         fake_client.reset_mock(side_effect=True)
-        fake_client.get_item.return_value = balance_item(10, 0)
-
-    def test_上限を超える追加は受け付けない(self):
-        result = m.lambda_handler(
-            event("POST /dev/grant", {"amount": m.DEV_GRANT_MAX + 1}), None
-        )
-        self.assertEqual(result["statusCode"], 400)
-
-    def test_無効にすると404(self):
-        with mock.patch.object(m, "ENABLE_DEV_GRANT", False):
-            result = m.lambda_handler(event("POST /dev/grant", {"amount": 10}), None)
-        self.assertEqual(result["statusCode"], 404)
-
-    def test_履歴も残る(self):
         result = m.lambda_handler(event("POST /dev/grant", {"amount": 10}), None)
-        self.assertEqual(result["statusCode"], 200)
-        items = fake_client.transact_write_items.call_args.kwargs["TransactItems"]
-        self.assertEqual(items[1]["Put"]["Item"]["type"], {"S": "dev_grant"})
 
-        update = items[0]["Update"]
-        for name in update["ExpressionAttributeValues"]:
-            self.assertIn(name, update["UpdateExpression"])
+        self.assertEqual(result["statusCode"], 404)
+        fake_client.transact_write_items.assert_not_called()
 
 
 class MeTest(unittest.TestCase):
