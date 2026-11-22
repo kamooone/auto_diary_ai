@@ -113,6 +113,9 @@
     #message { color: #B4442B; margin: 16px 4px 0; }
     #notice { color: var(--navy-dark); margin: 16px 4px 0; }
     .pairError { color: #B4442B; margin: 8px 4px 0; font-size: 14px; line-height: 1.6; }
+    .inlineMessage { margin: 8px 4px 0; font-size: 14px; line-height: 1.6; text-align: center; }
+    .inlineMessage.error { color: #B4442B; }
+    .inlineMessage.ok { color: var(--navy-dark); font-weight: 700; }
     #message:empty, #notice:empty { display: none; }
     .danger { color: var(--orange-dark); }
     .deleteList { margin: 8px 0 0; padding-left: 20px; color: var(--text-sub); }
@@ -178,6 +181,8 @@
           <span class="suffix">ポイント</span>
         </div>
         <button id="exchangeButton" class="primary gap">トークンに交換</button>
+        <!-- 交換の結果(ボタンのすぐ下に出す。ページの一番下だと、見えないため) -->
+        <p id="exchangeMessage" class="inlineMessage" role="status" hidden></p>
         <p id="exchangeHint" class="hint" hidden></p>
       </div>
 

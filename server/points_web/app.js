@@ -196,10 +196,16 @@ function showBalance(balance) {
   const rule = balance.exchange;
   if (rule) {
     minExchangePoints = rule.minPoints;
+    // 最低ポイントがない(1ポイントから)ときは、「1ポイントから」と表示する
     els.exchangeRule.textContent =
-      `${yen.format(rule.minPoints)}ポイント以上から交換できます` +
+      (rule.minPoints <= 1
+        ? "1ポイントから交換できます"
+        : `${yen.format(rule.minPoints)}ポイント以上から交換できます`) +
       `(1ポイント = ${rule.tokensPerPoint}トークン)`;
-    if (!els.exchangePoints.value) els.exchangePoints.value = rule.minPoints;
+    // 最初の入力は、持っているポイントすべて(持っていなければ、最低のポイント)
+    if (!els.exchangePoints.value) {
+      els.exchangePoints.value = Math.max(rule.minPoints, balance.points);
+    }
 
     // 交換できるポイントに届いていないときは、あといくつかを表示する(表示だけ。交換の処理は変わらない)
     const shortage = rule.minPoints - balance.points;
@@ -510,15 +516,26 @@ async function grantForTest() {
 // 通信が失敗して、同じ操作を送り直しても、サーバーは1回しか実行しない。
 let pendingExchange = null;
 
+// 交換の結果(ボタンのすぐ下に出す)。kind は "error" か "ok"
+function setExchangeMessage(text, kind) {
+  const el = document.getElementById("exchangeMessage");
+  el.textContent = text || "";
+  el.className = `inlineMessage ${kind || ""}`;
+  el.hidden = !text;
+}
+
 async function exchange() {
   const points = Number(els.exchangePoints.value);
 
+  // 前の結果は、消す
+  setExchangeMessage("");
+
   if (!Number.isInteger(points) || points <= 0) {
-    show("ポイントは、1以上の整数で入力してください。");
+    setExchangeMessage("ポイントは、1以上の整数で入力してください。", "error");
     return;
   }
   if (minExchangePoints !== null && points < minExchangePoints) {
-    show(`${yen.format(minExchangePoints)}ポイント以上から交換できます。`);
+    setExchangeMessage(`${yen.format(minExchangePoints)}ポイント以上から交換できます。`, "error");
     return;
   }
 
@@ -533,10 +550,10 @@ async function exchange() {
   try {
     showBalance(await callApi("POST", "/exchange", pendingExchange));
     pendingExchange = null;
-    showNotice(`${yen.format(points)}ポイントを、トークンに交換しました。`);
+    setExchangeMessage(`${yen.format(points)}ポイントを、トークンに交換しました。`, "ok");
     await refreshHistory();
   } catch (e) {
-    show(e.message);
+    setExchangeMessage(e.message, "error");
   } finally {
     button.disabled = false;
   }

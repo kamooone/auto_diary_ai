@@ -98,8 +98,19 @@ class ExchangeTest(unittest.TestCase):
         result = m.lambda_handler(event("POST /exchange", body), None)
         return result["statusCode"], json.loads(result["body"])
 
-    def test_最低ポイント未満は交換できない(self):
-        status, body = self.call({"points": 9999})
+    def test_最低ポイントはなく_1ポイントから交換できる(self):
+        fake_client.get_item.return_value = balance_item(0, 1)
+        status, body = self.call({"points": 1})
+        self.assertEqual(status, 200)
+
+        update = fake_client.transact_write_items.call_args.kwargs["TransactItems"][0]["Update"]
+        self.assertEqual(update["ExpressionAttributeValues"][":points"], {"N": "1"})
+        self.assertEqual(update["ExpressionAttributeValues"][":tokens"], {"N": "1"})
+
+    def test_最低ポイントの設定を上げれば_それ未満は交換できない(self):
+        # 設定(MIN_EXCHANGE_POINTS)で、最低ポイントを決められる
+        with mock.patch.object(m, "MIN_EXCHANGE_POINTS", 100):
+            status, body = self.call({"points": 99})
         self.assertEqual((status, body["error"]), (400, "below_minimum"))
         fake_client.transact_write_items.assert_not_called()
 
@@ -183,7 +194,7 @@ class MeTest(unittest.TestCase):
         result = m.lambda_handler(event("GET /me"), None)
         body = json.loads(result["body"])
         self.assertEqual(body["points"], 5)
-        self.assertEqual(body["exchange"], {"minPoints": 10000, "tokensPerPoint": 1})
+        self.assertEqual(body["exchange"], {"minPoints": 1, "tokensPerPoint": 1})
 
 
 class PairingTest(unittest.TestCase):
