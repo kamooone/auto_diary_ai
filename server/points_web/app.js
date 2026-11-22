@@ -364,6 +364,51 @@ async function waitForDeviceChange() {
 setInterval(refreshDevicesQuietly, DEVICE_REFRESH_MS);
 document.addEventListener("visibilitychange", refreshDevicesQuietly);
 
+// ページに合わせた確認のダイアログ(OKなら true、キャンセルなら false)
+// ブラウザ標準の confirm() は、ドメイン名が出て見た目も変えられないため使わない
+function confirmDialog({ title, detail, note, okText }) {
+  const dialog = document.getElementById("confirmDialog");
+
+  // 古いブラウザなど、dialog が使えないときは、標準の確認で代わりにする
+  if (typeof dialog.showModal !== "function") {
+    return Promise.resolve(confirm([title, detail, note].filter(Boolean).join("\n")));
+  }
+
+  const set = (id, text) => {
+    const el = document.getElementById(id);
+    el.textContent = text || "";
+    return el;
+  };
+
+  set("confirmTitle", title);
+  document.getElementById("confirmDetail").hidden = !detail;
+  set("confirmDetail", detail);
+  document.getElementById("confirmNote").hidden = !note;
+  set("confirmNoteText", note);
+  set("confirmOk", okText);
+
+  return new Promise((resolve) => {
+    const ok = document.getElementById("confirmOk");
+    const cancel = document.getElementById("confirmCancel");
+
+    const finish = (result) => {
+      ok.onclick = cancel.onclick = null;
+      dialog.onclose = null;
+      if (dialog.open) dialog.close();
+      resolve(result);
+    };
+
+    ok.onclick = () => finish(true);
+    cancel.onclick = () => finish(false);
+    // Esc キーなどで閉じたときは、キャンセル
+    dialog.onclose = () => finish(false);
+
+    dialog.showModal();
+    // 最初のボタンに枠が付かないよう、見出しにフォーカスを置く
+    document.getElementById("confirmTitle").focus();
+  });
+}
+
 async function pairDevice() {
   const code = els.pairingCode.value.trim();
 
@@ -376,9 +421,13 @@ async function pairDevice() {
     // どの端末のコードかを先に確認して、本人に確かめてもらう
     const { label, appName } = await callApi("POST", "/pairing/lookup", { code });
 
-    if (!confirm(`「${appName}」(${label})を、このアカウントに紐づけますか？\n(ご自身のアプリに表示されたコードのときだけ、紐づけてください)`)) {
-      return;
-    }
+    const ok = await confirmDialog({
+      title: `「${appName}」を紐づけますか？`,
+      detail: `端末: ${label}`,
+      note: "ご自身のアプリに表示されたコードのときだけ、紐づけてください。",
+      okText: "紐づける",
+    });
+    if (!ok) return;
 
     await callApi("POST", "/pairing/confirm", { code });
     els.pairingCode.value = "";
@@ -393,7 +442,12 @@ async function pairDevice() {
 
 async function unlinkDevice(device) {
   const name = `${device.appName}(${device.label})`;
-  if (!confirm(`「${name}」の紐づけを解除しますか？`)) return;
+  const ok = await confirmDialog({
+    title: `「${name}」の紐づけを解除しますか？`,
+    detail: "解除すると、この端末では、ポイントが貯まらなくなります。貯めたポイントは、そのまま残ります。",
+    okText: "解除する",
+  });
+  if (!ok) return;
 
   try {
     await callApi("DELETE", `/devices/${encodeURIComponent(device.deviceId)}`);
