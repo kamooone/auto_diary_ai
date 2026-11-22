@@ -49,7 +49,7 @@ class AdMobAdGateway implements AdGateway {
   }
 
   Future<RewardedAd?> _loadRewarded() {
-    // 広告ユニットがない(まだ作っていない)ときは、広告を出さない
+    // 広告ユニットがない環境(iOSなど)では、広告を出さない
     final adUnitId = AdUnitIds.rewarded;
     if (adUnitId == null) return Future.value(null);
 
