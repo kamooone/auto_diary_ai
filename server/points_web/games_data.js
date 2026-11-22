@@ -13,6 +13,8 @@ window.GAMES = [
     summary: "迷路を走って塀の部品を拾い、脱獄囚の出口をふさごう。ダッシュで脱獄囚をすくませるのがコツ。",
     points: "ステージをクリアすると、ステージごとに50〜450ポイントが貯まります。敵を捕まえると、ボーナスのポイントももらえます。",
     icon: "escape_2.png",
-    storeUrl: "",
+    // 仮のリンク(Google Play のゲームのトップ)。公開したら、このゲームのページのアドレスに差し替える
+    // 例: https://play.google.com/store/apps/details?id=<ゲームのパッケージ名>
+    storeUrl: "https://play.google.com/store/games",
   },
 ];
