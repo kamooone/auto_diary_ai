@@ -278,7 +278,8 @@ python3 -m unittest server/points_api/test_lambda_function.py
 2. アプリの画面にコードを表示する。合言葉は、アプリの中だけに持つ(画面には出さない)。
 3. ユーザーがWebにログインして、コードを入力する → `POST /pairing/lookup` で端末の名前を確認し、
    確認ダイアログで本人に確かめてから、`POST /pairing/confirm` で端末とアカウントを結ぶ。
-   このとき、**端末の行を、先に作る**(トークンはまだ入れない。「受け取り前」の印 `pendingUntil`(10分の期限)を付ける)。
+   このとき、**端末の行を、先に作る**(トークンはまだ入れない。「受け取り前」の印 `pendingUntil` を付ける。
+   期限は、紐づけコード自身の期限と同じ)。
    コードの確定と、端末の行の作成は、1回のトランザクションで行う。
    → アプリが背面で止まっていても、Webの端末一覧には、すぐ出る(「ゲームに戻ると、紐づけが完了します」と表示する)。
 4. アプリは、`POST /pairing/claim`(コードと合言葉)を、数秒おきに呼ぶ。
@@ -312,7 +313,9 @@ python3 -m unittest server/points_api/test_lambda_function.py
    - `DEVICES_TABLE_NAME` = `auto-diary-points-devices`
 3. 実行ロールのインラインポリシーに、次を追加する(ARNは自分のもの)
    - pairingテーブル: `dynamodb:PutItem`、`dynamodb:GetItem`、`dynamodb:UpdateItem`、`dynamodb:DeleteItem`
-   - devicesテーブル: `dynamodb:PutItem`、`dynamodb:DeleteItem`
+   - devicesテーブル: `dynamodb:PutItem`、`dynamodb:DeleteItem`、**`dynamodb:UpdateItem`**
+     (`UpdateItem` は、アプリがトークンを受け取るとき、確定のときに作っておいた端末の行を更新するのに使う。
+     足し忘れると、受け取りが500で失敗し、紐づけコードは消えているので、紐づけをやり直すことになる)
    - devicesテーブルのインデックス(`<devicesのARN>/index/accountId-index`): `dynamodb:Query`
 4. Lambdaのコードを `server/points_api/lambda_function.py` の内容に置き換えて、Deploy
 5. API Gatewayにルートを追加する

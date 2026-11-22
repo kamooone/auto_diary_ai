@@ -566,7 +566,9 @@ def pairing_confirm(account_id, body):
                         "label": pairing["label"],
                         "appId": {"S": app_id_of(pairing)},
                         "createdAt": {"N": str(now)},
-                        "pendingUntil": {"N": str(now + PAIRING_CODE_TTL_SECONDS)},
+                        # 受け取り前の期限は、コード自身の期限にそろえる
+                        # (コードの期限が切れて受け取れなくなったら、すぐ一覧から消える)
+                        "pendingUntil": {"N": str(int(pairing["expiresAt"]["N"]))},
                     },
                 }
             },

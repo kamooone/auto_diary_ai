@@ -253,7 +253,11 @@ class PairingTest(unittest.TestCase):
         self.assertEqual(device["deviceId"], values[":d"])
         self.assertEqual(device["accountId"], {"S": "user-1"})
         self.assertNotIn("tokenHash", device)
-        self.assertIn("pendingUntil", device)
+        # 受け取り前の期限は、紐づけコード自身の期限と同じ
+        self.assertEqual(
+            device["pendingUntil"],
+            fake_client.get_item.return_value["Item"]["expiresAt"],
+        )
 
     def test_端末が上限に達していると確定できない(self):
         fake_client.get_item.return_value = pairing_item()
