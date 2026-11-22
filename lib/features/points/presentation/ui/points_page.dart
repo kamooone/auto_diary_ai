@@ -123,7 +123,7 @@ Future<void> _openWeb(
   ).catchError((_) => false);
 
   if (!opened) {
-    messenger.showSnackBar(const SnackBar(content: Text("Webを開けませんでした")));
+    messenger.showSnackBar(const SnackBar(content: Text("ページを開けませんでした")));
   }
 }
 
@@ -155,7 +155,7 @@ class _LinkedCard extends ConsumerWidget {
           const SizedBox(height: AppSizes.space24),
           PrimaryButton(
             icon: Icons.open_in_new,
-            label: "Webでポイントを交換する",
+            label: "ポイントを交換する",
             onPressed: () => _openWeb(context, ref),
           ),
           const SizedBox(height: AppSizes.space12),
@@ -176,7 +176,7 @@ class _LinkedCard extends ConsumerWidget {
         content: const Text(
           "この端末では、アカウントのトークンを使えなくなります。"
           "トークンの残高は、アカウントに残ります。"
-          "Webの端末一覧からも、この端末が消えます。",
+          "ポイントのページの端末一覧からも、この端末が消えます。",
         ),
         actions: [
           TextButton(
@@ -240,7 +240,7 @@ class _PairingCard extends ConsumerWidget {
           const _Steps(
             steps: [
               "下のボタンで、6桁のコードを発行します",
-              "Webにログイン(アカウントがなければ作成)して、コードを入力します",
+              "ポイントのページにログイン(アカウントがなければ作成)して、コードを入力します",
               "確認画面で、この端末であることを確かめて、紐づけます",
             ],
           ),
@@ -253,7 +253,7 @@ class _PairingCard extends ConsumerWidget {
           const SizedBox(height: AppSizes.space12),
           SecondaryButton(
             icon: Icons.open_in_new,
-            label: "Webを開く",
+            label: "ポイントのページを開く",
             onPressed: () => _openWeb(context, ref),
           ),
         ];
@@ -266,7 +266,7 @@ class _PairingCard extends ConsumerWidget {
 
         return [
           const Text(
-            "Webにログインして、このコードを入力してください。",
+            "ポイントのページにログインして、このコードを入力してください。",
             style: TextStyle(fontSize: 15, height: 1.8, color: AppColors.text),
           ),
           const SizedBox(height: AppSizes.space16),
@@ -313,7 +313,7 @@ class _PairingCard extends ConsumerWidget {
                         ),
                         TextSpan(
                           text:
-                              "Webで紐づけると、この画面が自動で切り替わります。"
+                              "紐づけが済むと、この画面が自動で切り替わります。"
                               "自分で発行したコード以外は、入力しないでください。",
                         ),
                       ],
@@ -331,7 +331,7 @@ class _PairingCard extends ConsumerWidget {
           const SizedBox(height: AppSizes.space24),
           PrimaryButton(
             icon: Icons.open_in_new,
-            label: "Webを開いて紐づける",
+            label: "ポイントのページを開いて紐づける",
             // 同じ端末なら、コードを入力する手間を省く
             onPressed: () => _openWeb(context, ref, code: code),
           ),

@@ -9,19 +9,19 @@ class PointsGuidePage extends StatelessWidget {
 
   static const _steps = [
     GuideStep(
-      title: "Webで、アカウントを作る",
-      body: "「Webを開く」を押すと、専用のWebページが開きます。\n"
+      title: "ポイントのページで、アカウントを作る",
+      body: "「ポイントのページを開く」を押すと、ポイントのページが開きます。\n"
           "そこで、アカウントを作成します。",
     ),
     GuideStep(
       title: "ゲームで、ポイントを貯める",
       body: "このアプリの開発者が作ったゲームで、同じアカウントと紐づけて遊ぶと、"
           "ポイントが貯まります。\n"
-          "ゲームの一覧は、専用のWebページに載っています。",
+          "ゲームの一覧は、ポイントのページに載っています。",
     ),
     GuideStep(
       title: "ポイントを、トークンに交換する",
-      body: "貯めたポイントは、Webページで、トークンに交換できます。",
+      body: "貯めたポイントは、ポイントのページで、トークンに交換できます。",
     ),
     GuideStep(
       title: "アプリで、コードを発行する",
@@ -30,8 +30,8 @@ class PointsGuidePage extends StatelessWidget {
           "コードの有効期限は、10分です。",
     ),
     GuideStep(
-      title: "Webページで、コードを入力する",
-      body: "Webページにログインして、コードを入力すると、このアプリとアカウントが紐づけされます。",
+      title: "ポイントのページで、コードを入力する",
+      body: "ポイントのページにログインして、コードを入力すると、このアプリとアカウントが紐づけされます。",
     ),
     GuideStep(
       title: "トークンが使えるようになります",

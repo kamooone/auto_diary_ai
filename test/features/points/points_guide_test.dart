@@ -6,7 +6,7 @@ void main() {
   testWidgets('ポイントとトークンの使い方を、最後の手順までスクロールして読める', (tester) async {
     await tester.pumpWidget(const MaterialApp(home: PointsGuidePage()));
 
-    expect(find.text('Webで、アカウントを作る'), findsOneWidget);
+    expect(find.text('ポイントのページで、アカウントを作る'), findsOneWidget);
 
     await tester.drag(find.byType(ListView), const Offset(0, -3000));
     await tester.pumpAndSettle();

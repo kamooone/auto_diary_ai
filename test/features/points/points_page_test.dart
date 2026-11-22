@@ -79,7 +79,7 @@ void main() {
     expect(find.text('アカウントと紐づける'), findsOneWidget);
     expect(find.text('下のボタンで、6桁のコードを発行します'), findsOneWidget);
     expect(find.text('コードを発行する'), findsOneWidget);
-    expect(find.text('Webを開く'), findsOneWidget);
+    expect(find.text('ポイントのページを開く'), findsOneWidget);
     // ポイントは、ゲームで遊ぶと貯まる(ゲーム紹介のページへの入口)
     expect(find.text('ゲームで遊んで、ポイントを貯める'), findsOneWidget);
     // 画面の名前
@@ -102,7 +102,7 @@ void main() {
       expect(find.text(digit), findsWidgets);
     }
     expect(find.byKey(const Key('pairingCode')), findsOneWidget);
-    expect(find.text('Webを開いて紐づける'), findsOneWidget);
+    expect(find.text('ポイントのページを開いて紐づける'), findsOneWidget);
 
     await tester.tap(find.text('キャンセル'));
     await tester.pump();
