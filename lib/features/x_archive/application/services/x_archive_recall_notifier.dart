@@ -99,46 +99,11 @@ class XArchiveRecallNotifier {
     );
   }
 
-  static const _testNotificationIdBase = 7100;
-
   /// 通知の印から、紹介する日を取り出す。日の指定がなければnull(タップした日)
   static DateTime? dateFromPayload(String? payload) {
     const prefix = '${XArchiveRecallNotifier.payload}:';
     if (payload == null || !payload.startsWith(prefix)) return null;
     return DateTime.tryParse(payload.substring(prefix.length));
-  }
-
-  /// 動作確認用:通知を、今すぐ [count] 件出す
-  ///
-  /// 1件目は今日、2件目は明日…と、通知ごとに別の日の紹介画面が開く。
-  Future<void> showTestNotifications({int count = 20}) async {
-    if (!_initialized) return;
-
-    final jst = DateTime.now().toUtc().add(const Duration(hours: 9));
-    for (var i = 0; i < count; i++) {
-      final date = DateTime(jst.year, jst.month, jst.day + i);
-      final dateText =
-          '${date.year}-'
-          '${date.month.toString().padLeft(2, '0')}-'
-          '${date.day.toString().padLeft(2, '0')}';
-      await _plugin.show(
-        _testNotificationIdBase + i + 1,
-        '(テスト ${i + 1}/$count) $title',
-        '${date.month}月${date.day}日の分です。$body',
-        const NotificationDetails(
-          android: AndroidNotificationDetails(
-            _channelId,
-            '過去のポスト(ツイート)',
-            channelDescription: '過去のポスト(ツイート)を、毎日お知らせします',
-            importance: Importance.defaultImportance,
-            priority: Priority.defaultPriority,
-            color: Color(0xFF3F5879),
-          ),
-          iOS: DarwinNotificationDetails(),
-        ),
-        payload: '$payload:$dateText',
-      );
-    }
   }
 
   /// 予約した通知を取り消す

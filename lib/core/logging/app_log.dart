@@ -1,6 +1,6 @@
 import 'package:flutter/foundation.dart';
 
-/// 動作確認用のログ(画面にも表示する)
+/// 動作確認用のログ(開発のとき(デバッグ実行)だけ、コンソールに出す。ストアに出すビルドでは出さない)
 class AppLog {
   AppLog._();
 
@@ -17,7 +17,7 @@ class AppLog {
         '.${now.millisecond.toString().padLeft(3, '0')}';
 
     final line = '$time [$tag] $message';
-    debugPrint(line);
+    if (kDebugMode) debugPrint(line);
 
     final next = [...entries.value, line];
     entries.value = next.length > _maxEntries

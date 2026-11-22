@@ -11,7 +11,7 @@ final installDateProvider = StateProvider<DateTime>((ref) {
 
 /// 使い始めた日を、[date]まで早める(すでに[date]より前なら、何もしない)
 ///
-/// テスト用のデータなど、使い始める前の日付のデータを選べるようにするために使う
+/// Xのアーカイブから、使い始める前の日付の投稿を取り込んだとき、その日付を選べるようにするために使う
 Future<void> moveInstallDateEarlier(
   Isar isar,
   StateController<DateTime> state,

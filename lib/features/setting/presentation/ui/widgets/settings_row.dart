@@ -5,7 +5,6 @@ import 'package:auto_diary_ai/common/constants/app_sizes.dart';
 /// 設定画面の1行(左にピンクの丸とアイコン、中央に項目名と説明、右に矢印やスイッチ)
 ///
 /// 1枚のカードに複数の行を入れるときは、行の間に`RowDivider`を入れる。
-/// [muted]がtrueのとき(開発用など)は、グレーの見た目にする
 class SettingsRow extends StatelessWidget {
   const SettingsRow({
     super.key,
@@ -15,7 +14,6 @@ class SettingsRow extends StatelessWidget {
     this.extra,
     this.trailing,
     this.onTap,
-    this.muted = false,
   });
 
   final IconData icon;
@@ -31,8 +29,6 @@ class SettingsRow extends StatelessWidget {
   final Widget? trailing;
 
   final VoidCallback? onTap;
-
-  final bool muted;
 
   @override
   Widget build(BuildContext context) {
@@ -65,12 +61,12 @@ class SettingsRow extends StatelessWidget {
                 height: 40,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: muted ? AppColors.mutedCircle : AppColors.pink,
+                  color: AppColors.pink,
                 ),
                 child: Icon(
                   icon,
                   size: 20,
-                  color: muted ? AppColors.mutedText : AppColors.navy,
+                  color: AppColors.navy,
                 ),
               ),
               const SizedBox(width: AppSizes.space12),

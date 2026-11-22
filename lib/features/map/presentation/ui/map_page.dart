@@ -8,7 +8,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:latlong2/latlong.dart';
 import '../../../../common/constants/map_constants.dart';
 import '../../../../core/app_info/install_date_provider.dart';
-import '../../../../core/logging/app_log_panel.dart';
 import '../../../location/domain/entities/timeline_item.dart';
 import '../../../tutorial/application/tutorial_providers.dart';
 import '../../../tutorial/domain/tutorial_step.dart';
@@ -31,8 +30,6 @@ class _MapPageState extends ConsumerState<MapPage> {
   final _sheetController = DraggableScrollableController();
   bool _movedToCurrentLocation = false; // 初回移動フラグ
 
-  // 動作確認用のログを表示するか
-  bool _showLog = true;
 
   // チュートリアルで明るくする部品
   final _timelineKey = GlobalKey();
@@ -368,23 +365,8 @@ class _MapPageState extends ConsumerState<MapPage> {
                     );
               },
             ),
-            // 動作確認用のログ
-            SafeArea(
-              child: Align(
-                alignment: Alignment.topCenter,
-                child: Padding(
-                  padding: const EdgeInsets.all(8),
-                  child: _showLog
-                      ? AppLogPanel(
-                          onClose: () => setState(() => _showLog = false),
-                        )
-                      : const SizedBox.shrink(),
-                ),
-              ),
-            ),
-
-            // 地図データの出典(OpenStreetMapの利用条件)と、デバッグボタン
-            // どちらも、シートに隠れないよう、シートの少し上に置く
+            // 地図データの出典(OpenStreetMapの利用条件)
+            // シートに隠れないよう、シートの少し上に置く
             ListenableBuilder(
               listenable: _sheetController,
               builder: (context, _) {
@@ -400,14 +382,6 @@ class _MapPageState extends ConsumerState<MapPage> {
                       bottom: bottom + AppSizes.space4,
                       child: const _MapAttribution(),
                     ),
-                    if (!_showLog)
-                      Positioned(
-                        right: AppSizes.space16,
-                        bottom: bottom + AppSizes.space12,
-                        child: _DebugButton(
-                          onPressed: () => setState(() => _showLog = true),
-                        ),
-                      ),
                   ],
                 );
               },
@@ -453,37 +427,6 @@ class _MapAttribution extends StatelessWidget {
         child: Text(
           '© OpenStreetMap contributors',
           style: TextStyle(fontSize: 10, color: AppColors.textSub),
-        ),
-      ),
-    );
-  }
-}
-
-/// デバッグ用のボタン(ログを表示する)
-class _DebugButton extends StatelessWidget {
-  const _DebugButton({required this.onPressed});
-
-  final VoidCallback onPressed;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 44,
-      height: 44,
-      decoration: BoxDecoration(
-        color: AppColors.white,
-        shape: BoxShape.circle,
-        border: Border.all(color: AppColors.line),
-        boxShadow: AppColors.cardShadows,
-      ),
-      child: IconButton(
-        onPressed: onPressed,
-        tooltip: 'ログを表示',
-        padding: EdgeInsets.zero,
-        icon: const Icon(
-          Icons.bug_report_outlined,
-          size: 20,
-          color: AppColors.navy,
         ),
       ),
     );

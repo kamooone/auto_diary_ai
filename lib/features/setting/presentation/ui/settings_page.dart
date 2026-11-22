@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:auto_diary_ai/common/constants/app_colors.dart';
 import 'package:auto_diary_ai/common/constants/app_sizes.dart';
@@ -19,7 +18,6 @@ import '../../../plan/application/providers/plan_provider.dart';
 import '../../../plan/domain/entities/plan_availability.dart';
 import '../../../privacy/presentation/ui/privacy_policy_page.dart';
 import '../../../tutorial/application/tutorial_providers.dart';
-import 'test_diary_page.dart';
 import 'widgets/settings_row.dart';
 import '../providers/recording_settings_provider.dart';
 
@@ -31,9 +29,6 @@ class SettingsPage extends ConsumerStatefulWidget {
 }
 
 class _SettingsPageState extends ConsumerState<SettingsPage> {
-  // 【リリース前に、falseに戻す】ストアに出すビルドでも、「テストデータ」を出すか
-  static const _showTestDataInRelease = true;
-
   // ウィジェットで切り替えたり、ホーム画面に追加したりした結果を、戻ってきたときに反映する
   late final AppLifecycleListener _lifecycleListener;
 
@@ -247,30 +242,6 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
               ],
             ),
           ),
-
-          // ---------- 開発用
-          // 日記・Xの投稿・ひとことメモ・行動履歴を、まとめて追加・削除できるようにする
-          // (開発のとき(デバッグ実行)だけ表示する。ストアに出すビルドでは出ない)
-          // 今は、内部テストで通知の見た目を確かめるため、出している(リリース前に、falseに戻す)
-          if (kDebugMode || _showTestDataInRelease) ...[
-            const SizedBox(height: AppSizes.space24),
-            const SectionTitle("開発用"),
-            AppCard(
-              child: SettingsRow(
-                icon: Icons.bug_report_outlined,
-                title: "テストデータ",
-                subtitle: "日記・Xの投稿・ひとことメモ・行動履歴のテスト用のデータを、まとめて追加・削除します",
-                muted: true,
-                onTap: () {
-                  Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (context) => const TestDiaryPage(),
-                    ),
-                  );
-                },
-              ),
-            ),
-          ],
 
           // どの版のアプリが入っているかの表示
           Padding(
