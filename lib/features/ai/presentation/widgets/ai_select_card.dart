@@ -230,11 +230,17 @@ class _UsagePart extends StatelessWidget {
           ].join(' ・ '),
           style: const TextStyle(fontSize: 12, color: AppColors.textSub),
         ),
-        if (usage.tokenBalance > 0)
+        // ポイントで交換したトークンの残り。毎月の枠を使い切ったあとに使われる
+        if (usage.tokenBalance > 0) ...[
           Text(
-            'うち、アカウントのトークン ${_number(usage.tokenBalance)}',
+            'ポイントで交換したトークン 残り ${_number(usage.tokenBalance)}',
             style: const TextStyle(fontSize: 12, color: AppColors.textSub),
           ),
+          const Text(
+            '(毎月の無料枠を使い切ったあとに、使われます)',
+            style: TextStyle(fontSize: 12, color: AppColors.textSub),
+          ),
+        ],
         if (extra != null) ...[const SizedBox(height: AppSizes.space8), extra!],
       ],
     );

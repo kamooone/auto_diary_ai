@@ -51,11 +51,17 @@ class UsageMeter extends StatelessWidget {
           ].join("・"),
           style: theme.textTheme.bodySmall,
         ),
-        if (usage.tokenBalance > 0)
+        // ポイントで交換したトークンの残り。毎月の枠を使い切ったあとに使われる
+        if (usage.tokenBalance > 0) ...[
           Text(
-            "うち、アカウントのトークン ${_number(usage.tokenBalance)}",
+            "ポイントで交換したトークン 残り ${_number(usage.tokenBalance)}",
             style: theme.textTheme.bodySmall,
           ),
+          Text(
+            "(毎月の無料枠を使い切ったあとに、使われます)",
+            style: theme.textTheme.bodySmall,
+          ),
+        ],
       ],
     );
   }

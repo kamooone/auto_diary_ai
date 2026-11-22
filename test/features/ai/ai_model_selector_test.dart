@@ -1,5 +1,6 @@
 import 'package:auto_diary_ai/features/ai/domain/entities/ai_model.dart';
 import 'package:auto_diary_ai/features/ai/presentation/widgets/ai_select_card.dart';
+import 'package:auto_diary_ai/features/plan/domain/entities/usage_info.dart';
 import 'package:auto_diary_ai/features/privacy/presentation/ui/privacy_policy_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -20,6 +21,38 @@ void main() {
     expect(find.text(AiModel.gpt.writing), findsOneWidget);
     expect(find.textContaining('日記にないことを付け足しにくい'), findsOneWidget);
     expect(find.textContaining('日記にない一言が入ることがある'), findsOneWidget);
+  });
+
+  Future<void> showUsage(WidgetTester tester, int tokenBalance) async {
+    await tester.pumpWidget(
+      ProviderScope(
+        child: MaterialApp(
+          home: Scaffold(
+            body: AiSelectCard(
+              usage: UsageInfo(
+                usedTokens: 1000,
+                limitTokens: 10000,
+                tokenBalance: tokenBalance,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  testWidgets('ポイントで交換したトークンがあれば、残りと「無料枠を使い切ったあとに使われる」ことを出す', (tester) async {
+    await showUsage(tester, 7000);
+
+    expect(find.text('ポイントで交換したトークン 残り 7,000'), findsOneWidget);
+    expect(find.textContaining('無料枠を使い切ったあとに'), findsOneWidget);
+  });
+
+  testWidgets('ポイントで交換したトークンがなければ、その行を出さない', (tester) async {
+    await showUsage(tester, 0);
+
+    expect(find.textContaining('ポイントで交換したトークン'), findsNothing);
+    expect(find.textContaining('無料枠を使い切ったあとに'), findsNothing);
   });
 
   test('Geminiの説明は、予備のモデルへの自動切り替えを約束しない', () {
