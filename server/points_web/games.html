@@ -33,10 +33,26 @@
                         display: grid; place-items: center; }
     .gameSummary { margin: 12px 0 0; }
     .gamePoints { margin: 8px 0 0; color: var(--navy-dark); font-weight: 700; font-size: 14px; }
-    /* ポイントが貯まるケースの表(折りたたみ) */
-    .rules { margin-top: 12px; }
-    .rules summary { cursor: pointer; color: var(--navy-dark); font-weight: 700; font-size: 14px; }
-    .rules table { width: 100%; border-collapse: collapse; margin-top: 8px; font-size: 14px; }
+    /* ポイントが貯まるケースを見るボタン(押すと、ダイアログで表を出す) */
+    .secondary { display: flex; align-items: center; justify-content: center; width: 100%; height: 48px;
+                 margin-top: 16px; border-radius: 999px; background: var(--white); color: var(--navy-dark);
+                 border: 1px solid var(--line); font: inherit; font-weight: 700; font-size: 15px; cursor: pointer; }
+
+    /* ダイアログ(表が長くなっても、中だけスクロールする) */
+    dialog.rulesDialog { border: 0; border-radius: 20px; padding: 0; width: calc(100% - 32px); max-width: 440px;
+                         max-height: 80vh; background: var(--white); color: var(--text);
+                         box-shadow: 0 8px 32px rgba(46, 66, 96, .25); overflow: hidden; }
+    dialog.rulesDialog[open] { display: flex; flex-direction: column; }
+    dialog.rulesDialog::backdrop { background: rgba(31, 36, 48, .45); }
+    .dialogHead { padding: 20px 20px 8px; }
+    .dialogHead h3 { color: var(--navy-dark); line-height: 1.5; }
+    .dialogHead p { margin: 2px 0 0; color: var(--text-sub); font-size: 13px; }
+    .dialogBody { padding: 0 20px; overflow-y: auto; flex: 1; min-height: 0; outline: 0; }
+    .dialogFoot { padding: 12px 20px 20px; }
+    .dialogFoot button { display: flex; align-items: center; justify-content: center; width: 100%; height: 48px;
+                         border-radius: 999px; border: 0; background: var(--orange-dark); color: var(--white);
+                         font: inherit; font-weight: 700; font-size: 15px; cursor: pointer; }
+    .rules table { width: 100%; border-collapse: collapse; font-size: 14px; }
     .rules th { text-align: left; color: var(--text-sub); font-weight: 400; font-size: 12px; padding: 4px 0; }
     .rules td { padding: 8px 0; border-top: 1px solid var(--line); vertical-align: top; }
     .rules .num { text-align: right; white-space: nowrap; font-weight: 700; color: var(--navy-dark);
@@ -65,6 +81,15 @@
 
     <p class="note">ポイントを使うには、アカウントを作って、アプリと紐づける必要があります。</p>
   </main>
+
+  <dialog id="rulesDialog" class="rulesDialog" aria-labelledby="rulesTitle">
+    <div class="dialogHead">
+      <h3 id="rulesTitle"></h3>
+      <p>ポイントが貯まるケースと、もらえるポイントです。</p>
+    </div>
+    <div id="rulesBody" class="dialogBody rules"></div>
+    <div class="dialogFoot"><button type="button" id="rulesClose">閉じる</button></div>
+  </dialog>
 
   <script src="config.js"></script>
   <script src="games_data.js"></script>
