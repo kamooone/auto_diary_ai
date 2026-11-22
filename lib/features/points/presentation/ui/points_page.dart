@@ -75,8 +75,8 @@ class _PointsPageState extends ConsumerState<PointsPage> {
 }
 
 /// 画面の上の説明
-/// 伝える順番: ①ポイントを貯めるにはアカウントが必要 → ②ポイントはトークンに交換できる
-/// → ③ポイントはゲームで遊ぶと貯まる
+/// 伝える順番: ①ポイントを貯めるにはアカウントが必要(紐づけ済みのときは出さない)
+/// → ②ポイントはトークンに交換できる → ③ポイントはゲームで遊ぶと貯まる
 class _Description extends StatelessWidget {
   const _Description({required this.isLinked});
 
@@ -87,10 +87,10 @@ class _Description extends StatelessWidget {
     const style = TextStyle(fontSize: 15, height: 1.8, color: AppColors.textSub);
 
     final paragraphs = [
-      isLinked
-          ? "ポイントは、紐づけたアカウントに貯まります。"
-          : "ポイントを貯めるには、アカウントが必要です。\n"
-              "アカウントの作成は、Webで行います。",
+      // 紐づけ済みの人には、アカウントが必要なことは、もう分かっているので出さない
+      if (!isLinked)
+        "ポイントを貯めるには、アカウントが必要です。\n"
+            "アカウントの作成は、Webで行います。",
       "貯めたポイントは、AIが日記を書くときに使う「トークン」に交換できます。\n"
           "ポイントの確認と、トークンへの交換は、Webで行います。",
       "ポイントは、ゲームで遊ぶと貯まります。",
