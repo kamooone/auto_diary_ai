@@ -352,7 +352,7 @@ function showDevices({ devices }) {
     sub.className = "rowSub";
     // 受け取り前(Webで確定したが、アプリがまだトークンを受け取っていない)の端末は、そう分かるようにする
     sub.textContent = device.pending
-      ? `${device.label} ・ ゲームに戻ると、紐づけが完了します`
+      ? `${device.label} ・ アプリに戻ると、紐づけが完了します`
       : `${device.label} ・ ${new Date(device.createdAt * 1000).toLocaleDateString("ja-JP")}に紐づけ`;
     left.append(name, sub);
 
@@ -465,14 +465,11 @@ async function pairDevice() {
 
     await callApi("POST", "/pairing/confirm", { code });
     els.pairingCode.value = "";
-    // 入力欄のすぐ下に出す(ページの一番下に出すと、見えない)
     els.message.textContent = "";
     pendingPair = { appId, appName, since: Date.now() };
-    setPairStatus(
-      `「${appName}」の紐づけを受け付けました。アプリの画面に戻ると、紐づけが完了します。`
-    );
-    document.getElementById("pairStatus").scrollIntoView({ block: "nearest", behavior: "smooth" });
+    // 端末は、確定した時点で、一覧に出る(アプリが受け取るまでは「受け取り前」と表示される)
     await loadDevices();
+    els.deviceList.scrollIntoView({ block: "nearest", behavior: "smooth" });
     // アプリがトークンを受け取りに来て、紐づけが完了するまで、一覧を確かめる
     waitForDeviceChange();
   } catch (e) {
