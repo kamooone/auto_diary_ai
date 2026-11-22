@@ -27,8 +27,12 @@ class _BannerAdViewState extends ConsumerState<BannerAdView> {
 
     if (!ref.read(adsEnabledProvider)) return;
 
+    // 広告ユニットがない環境(iOSなど)では、広告を出さない
+    final adUnitId = AdUnitIds.banner;
+    if (adUnitId == null) return;
+
     _ad = BannerAd(
-      adUnitId: AdUnitIds.banner,
+      adUnitId: adUnitId,
       size: AdSize.banner,
       request: const AdRequest(),
       listener: BannerAdListener(

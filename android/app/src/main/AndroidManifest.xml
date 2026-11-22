@@ -45,10 +45,10 @@
         <meta-data
             android:name="com.google.firebase.messaging.default_notification_color"
             android:resource="@color/notification_accent" />
-        <!-- AdMobのアプリID(いまはGoogleのテスト用。本番のIDを作成したら差し替える) -->
+        <!-- AdMobのアプリID(あなたの軌跡・Android) -->
         <meta-data
             android:name="com.google.android.gms.ads.APPLICATION_ID"
-            android:value="ca-app-pub-3940256099942544~3347511713"/>
+            android:value="ca-app-pub-2678597473306441~7581740331"/>
         <activity
             android:name=".MainActivity"
             android:exported="true"

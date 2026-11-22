@@ -24,10 +24,14 @@ class AdMobAdGateway implements AdGateway {
   }
 
   Future<InterstitialAd?> _loadInterstitial() {
+    // 広告ユニットがない環境(iOSなど)では、広告を出さない
+    final adUnitId = AdUnitIds.interstitial;
+    if (adUnitId == null) return Future.value(null);
+
     final completer = Completer<InterstitialAd?>();
 
     InterstitialAd.load(
-      adUnitId: AdUnitIds.interstitial,
+      adUnitId: adUnitId,
       request: const AdRequest(),
       adLoadCallback: InterstitialAdLoadCallback(
         onAdLoaded: (ad) {
@@ -45,10 +49,14 @@ class AdMobAdGateway implements AdGateway {
   }
 
   Future<RewardedAd?> _loadRewarded() {
+    // 広告ユニットがない(まだ作っていない)ときは、広告を出さない
+    final adUnitId = AdUnitIds.rewarded;
+    if (adUnitId == null) return Future.value(null);
+
     final completer = Completer<RewardedAd?>();
 
     RewardedAd.load(
-      adUnitId: AdUnitIds.rewarded,
+      adUnitId: adUnitId,
       request: const AdRequest(),
       rewardedAdLoadCallback: RewardedAdLoadCallback(
         onAdLoaded: (ad) {
