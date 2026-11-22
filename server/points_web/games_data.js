@@ -8,10 +8,10 @@
 //   storeUrl : Google Play のページのアドレス。まだ公開していないときは、空にする(ボタンを出さない)
 window.GAMES = [
   {
-    id: "kamoooneshot",
-    name: "KamoooneShot",
+    id: "escape_2",
+    name: "脱出させるなゲーム",
     summary: "(紹介の文を、ここに入れます)",
-    points: "ステージをクリアすると、50ポイントが貯まります。",
+    points: "ステージをクリアすると、ステージごとに50〜450ポイントが貯まります。敵を捕まえると、ボーナスのポイントももらえます。",
     icon: "",
     storeUrl: "",
   },
