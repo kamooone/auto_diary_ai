@@ -9,18 +9,31 @@ import '../../../../common/widgets/app_card.dart';
 ///
 /// 文章は `assets/privacy_policy.md` から読む(ストアに出すWebページも、同じファイルを元にする)。
 /// 使うMarkdownは、`# ` 大見出し、`## ` 見出し、`- ` 箇条書き、`**太字**`、空行で区切った段落だけ。
+///
+/// [title]と[assetPath]を渡すと、同じ作りで、別の文書(利用規約など)も出せる。
 class PrivacyPolicyPage extends StatelessWidget {
-  const PrivacyPolicyPage({super.key, this.loader});
+  const PrivacyPolicyPage({
+    super.key,
+    this.loader,
+    this.title = 'プライバシーポリシー',
+    this.assetPath = defaultAssetPath,
+  });
 
   /// 文章の読み込み(テストで差し替える)
   final Future<String> Function()? loader;
 
-  static const assetPath = 'assets/privacy_policy.md';
+  /// 画面の題
+  final String title;
+
+  /// 読み込む文章のファイル
+  final String assetPath;
+
+  static const defaultAssetPath = 'assets/privacy_policy.md';
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('プライバシーポリシー')),
+      appBar: AppBar(title: Text(title)),
       body: FutureBuilder<String>(
         future: (loader ?? () => rootBundle.loadString(assetPath))(),
         builder: (context, snapshot) {
@@ -63,6 +76,9 @@ class PrivacyPolicyPage extends StatelessWidget {
   static List<Widget> _blocks(BuildContext context, String source) {
     final widgets = <Widget>[];
 
+    // 「最終改定日」があるときは、その下に線を引く(制定日の下には引かない)
+    final hasRevisedDate = source.contains('最終改定日');
+
     for (final raw in source.split('\n')) {
       final line = raw.trimRight();
       if (line.isEmpty) continue;
@@ -97,20 +113,23 @@ class PrivacyPolicyPage extends StatelessWidget {
             ),
           ),
         );
-      } else if (line.startsWith('制定日')) {
-        // 制定日と、その下の線
+      } else if (line.startsWith('制定日') || line.startsWith('最終改定日')) {
+        // 制定日・最終改定日(小さく出す)。最後の日付の下に、線を引く
         widgets.add(
           Text(
             line,
             style: const TextStyle(fontSize: 12, color: AppColors.textSub),
           ),
         );
-        widgets.add(
-          const Padding(
-            padding: EdgeInsets.symmetric(vertical: AppSizes.space16),
-            child: Divider(height: 1, thickness: 1, color: AppColors.line),
-          ),
-        );
+        final isLast = line.startsWith('最終改定日') || !hasRevisedDate;
+        if (isLast) {
+          widgets.add(
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: AppSizes.space16),
+              child: Divider(height: 1, thickness: 1, color: AppColors.line),
+            ),
+          );
+        }
       } else if (line.startsWith('- ')) {
         widgets.add(
           Padding(

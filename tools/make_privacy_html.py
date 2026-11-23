@@ -1,14 +1,17 @@
 #!/usr/bin/env python3
-"""プライバシーポリシーの Web ページ(server/points_web/privacy.html)を作る
+"""プライバシーポリシーと利用規約の Web ページ(server/points_web/ の privacy.html・terms.html)を作る
 
-文面は、アプリの中で見せているものと同じ assets/privacy_policy.md を、そのまま使う。
-(文面を2か所に書くと、食い違うため。直すのは、assets/privacy_policy.md だけ)
+文面は、アプリの中で見せているものと同じ assets/ のファイルを、そのまま使う。
+(文面を2か所に書くと、食い違うため。直すのは、assets/ のファイルだけ)
 
-  python3 tools/make_privacy_html.py           privacy.html を作り直す
-  python3 tools/make_privacy_html.py --check   privacy.html が、最新の文面から作ったものか確かめる
+  assets/privacy_policy.md → privacy.html
+  assets/terms_of_use.md   → terms.html
+
+  python3 tools/make_privacy_html.py           Webページを作り直す
+  python3 tools/make_privacy_html.py --check   Webページが、最新の文面から作ったものか確かめる
                                                (古ければ、終了コード1)
 
-文面を直したら、このスクリプトを動かして、できた privacy.html を S3 に上げる。
+文面を直したら、このスクリプトを動かして、できたWebページを S3 に上げる。
 """
 import html
 import re
@@ -16,10 +19,13 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-SOURCE = ROOT / "assets" / "privacy_policy.md"
-OUTPUT = ROOT / "server" / "points_web" / "privacy.html"
+WEB = ROOT / "server" / "points_web"
 
-TITLE = "プライバシーポリシー"
+# (文面, できるWebページ, 題)
+DOCUMENTS = [
+    (ROOT / "assets" / "privacy_policy.md", WEB / "privacy.html", "プライバシーポリシー"),
+    (ROOT / "assets" / "terms_of_use.md", WEB / "terms.html", "利用規約"),
+]
 
 # 「情報の削除」の節には、ストアの申請(データの削除方法のページ)から、直接飛べるよう、目印を付ける
 ANCHORS = {"情報の削除": "delete", "お問い合わせ": "contact"}
@@ -89,7 +95,7 @@ def inline(text):
     return re.sub(r"\*\*(.+?)\*\*", r"<strong>\1</strong>", escaped)
 
 
-def convert(markdown):
+def convert(markdown, title):
     """このポリシーで使っている書き方(見出し・箇条書き・段落・太字)だけを変換する"""
     out = []
     paragraph = []
@@ -126,12 +132,12 @@ def convert(markdown):
             out.append(f"      <h1>{inline(line[2:])}</h1>")
         elif line.startswith("## "):
             close_section()
-            title = line[3:]
+            heading = line[3:]
             anchor = next(
-                (id_ for key, id_ in ANCHORS.items() if key in title), None
+                (id_ for key, id_ in ANCHORS.items() if key in heading), None
             )
             attr = f' id="{anchor}"' if anchor else ""
-            out.append(f"      <h2{attr}>{inline(title)}</h2>")
+            out.append(f"      <h2{attr}>{inline(heading)}</h2>")
         elif line.startswith("- "):
             flush_paragraph()
             if not in_list:
@@ -149,22 +155,29 @@ def convert(markdown):
     body = re.sub(
         r"<p>((?:制定日|最終改定日):[^<]*)</p>", r'<p class="date">\1</p>', body
     )
-    return TEMPLATE.format(title=TITLE, body=body)
+    return TEMPLATE.format(title=title, body=body)
 
 
 def main():
-    result = convert(SOURCE.read_text(encoding="utf-8"))
+    check = "--check" in sys.argv
+    outdated = False
 
-    if "--check" in sys.argv:
-        current = OUTPUT.read_text(encoding="utf-8") if OUTPUT.exists() else ""
-        if current != result:
-            print("privacy.html が古いです。python3 tools/make_privacy_html.py で作り直してください。")
-            sys.exit(1)
-        print("privacy.html は、最新です。")
-        return
+    for source, output, title in DOCUMENTS:
+        result = convert(source.read_text(encoding="utf-8"), title)
 
-    OUTPUT.write_text(result, encoding="utf-8")
-    print(f"作りました: {OUTPUT.relative_to(ROOT)}")
+        if check:
+            current = output.read_text(encoding="utf-8") if output.exists() else ""
+            if current != result:
+                print(f"{output.name} が古いです。python3 tools/make_privacy_html.py で作り直してください。")
+                outdated = True
+            else:
+                print(f"{output.name} は、最新です。")
+        else:
+            output.write_text(result, encoding="utf-8")
+            print(f"作りました: {output.relative_to(ROOT)}")
+
+    if outdated:
+        sys.exit(1)
 
 
 if __name__ == "__main__":
