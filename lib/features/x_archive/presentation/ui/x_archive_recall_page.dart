@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../ads/presentation/ad_top_layout.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../common/constants/app_colors.dart';
@@ -24,65 +25,67 @@ class XArchiveRecallPage extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(title: const Text('過去のポスト(ツイート)')),
-      body: recall.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (_, __) => const Center(child: Text('読み込めませんでした')),
-        data: (recall) {
-          if (recall.isEmpty) {
-            return const Center(
-              child: Padding(
-                padding: EdgeInsets.all(24),
-                child: Text(
-                  '紹介できるポスト(ツイート)がありません\n設定の「Xのアーカイブを取り込む」から、取り込んでください',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(color: AppColors.textSub),
-                ),
-              ),
-            );
-          }
-
-          return ListView(
-            padding: const EdgeInsets.fromLTRB(
-              AppSizes.space16,
-              20,
-              AppSizes.space16,
-              AppSizes.space24,
-            ),
-            children: [
-              // N年前の今日(丸から点線を伸ばして、その年の投稿をぶら下げる)
-              for (final year in recall.years)
-                _YearBlock(
-                  year: year,
-                  onOpen: (post) => _open(context, ref, post),
-                ),
-              if (recall.years.isEmpty)
-                const Padding(
-                  padding: EdgeInsets.all(AppSizes.space8),
+      body: AdTopLayout(
+        child: recall.when(
+          loading: () => const Center(child: CircularProgressIndicator()),
+          error: (_, __) => const Center(child: Text('読み込めませんでした')),
+          data: (recall) {
+            if (recall.isEmpty) {
+              return const Center(
+                child: Padding(
+                  padding: EdgeInsets.all(24),
                   child: Text(
-                    'この日と同じ月日のポスト(ツイート)は、見つかりませんでした',
-                    style: TextStyle(fontSize: 14, color: AppColors.textSub),
+                    '紹介できるポスト(ツイート)がありません\n設定の「Xのアーカイブを取り込む」から、取り込んでください',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: AppColors.textSub),
                   ),
                 ),
-              if (recall.randoms.isNotEmpty) ...[
-                const SizedBox(height: AppSizes.space24),
-                const _RandomHeading(),
-                const SizedBox(height: AppSizes.space12),
-                for (final post in recall.randoms)
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: AppSizes.space12),
-                    child: AppCard(
-                      child: XArchivePostTile(
-                        key: ValueKey(post.tweetId),
-                        post: post,
-                        style: XArchiveTileStyle.cardWithDate,
-                        onTap: () => _open(context, ref, post),
-                      ),
+              );
+            }
+
+            return ListView(
+              padding: const EdgeInsets.fromLTRB(
+                AppSizes.space16,
+                20,
+                AppSizes.space16,
+                AppSizes.space24,
+              ),
+              children: [
+                // N年前の今日(丸から点線を伸ばして、その年の投稿をぶら下げる)
+                for (final year in recall.years)
+                  _YearBlock(
+                    year: year,
+                    onOpen: (post) => _open(context, ref, post),
+                  ),
+                if (recall.years.isEmpty)
+                  const Padding(
+                    padding: EdgeInsets.all(AppSizes.space8),
+                    child: Text(
+                      'この日と同じ月日のポスト(ツイート)は、見つかりませんでした',
+                      style: TextStyle(fontSize: 14, color: AppColors.textSub),
                     ),
                   ),
+                if (recall.randoms.isNotEmpty) ...[
+                  const SizedBox(height: AppSizes.space24),
+                  const _RandomHeading(),
+                  const SizedBox(height: AppSizes.space12),
+                  for (final post in recall.randoms)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: AppSizes.space12),
+                      child: AppCard(
+                        child: XArchivePostTile(
+                          key: ValueKey(post.tweetId),
+                          post: post,
+                          style: XArchiveTileStyle.cardWithDate,
+                          onTap: () => _open(context, ref, post),
+                        ),
+                      ),
+                    ),
+                ],
               ],
-            ],
-          );
-        },
+            );
+          },
+        ),
       ),
     );
   }

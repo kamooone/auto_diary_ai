@@ -1,4 +1,5 @@
 import 'dart:async';
+import '../../../ads/presentation/banner_ad_view.dart';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -175,6 +176,7 @@ class _XArchivePostListPageState extends ConsumerState<XArchivePostListPage> {
       ),
       body: Column(
         children: [
+          const BannerAdView(band: true, atTop: true),
           XArchiveFilterBar(
             years: _years,
             filter: _filter,

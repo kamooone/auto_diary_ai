@@ -1,4 +1,5 @@
 import 'package:file_picker/file_picker.dart';
+import '../../../ads/presentation/banner_ad_view.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -146,6 +147,7 @@ class _XArchiveImportPageState extends ConsumerState<XArchiveImportPage> {
           ),
         ],
       ),
+      bottomNavigationBar: const SafeArea(child: BannerAdView(band: true)),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(
           AppSizes.space16,

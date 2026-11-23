@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../ads/presentation/ad_top_layout.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../common/constants/app_colors.dart';
 import '../../../../common/constants/app_sizes.dart';
@@ -39,16 +40,18 @@ class SharedPostListScreen extends ConsumerWidget {
           ),
         ],
       ),
-      body: posts.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, _) => const Center(child: Text("投稿を読み込めませんでした")),
-        data: (posts) {
-          if (posts.isEmpty) {
-            return const Center(child: Text("保存したXの投稿はありません"));
-          }
+      body: AdTopLayout(
+        child: posts.when(
+          loading: () => const Center(child: CircularProgressIndicator()),
+          error: (error, _) => const Center(child: Text("投稿を読み込めませんでした")),
+          data: (posts) {
+            if (posts.isEmpty) {
+              return const Center(child: Text("保存したXの投稿はありません"));
+            }
 
-          return _PostList(posts: posts);
-        },
+            return _PostList(posts: posts);
+          },
+        ),
       ),
     );
   }

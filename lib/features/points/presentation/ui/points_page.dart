@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../ads/presentation/banner_ad_view.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -48,6 +49,7 @@ class _PointsPageState extends ConsumerState<PointsPage> {
           ),
         ],
       ),
+      bottomNavigationBar: const SafeArea(child: BannerAdView(band: true)),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(
           AppSizes.space16,
@@ -84,7 +86,11 @@ class _Description extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const style = TextStyle(fontSize: 15, height: 1.8, color: AppColors.textSub);
+    const style = TextStyle(
+      fontSize: 15,
+      height: 1.8,
+      color: AppColors.textSub,
+    );
 
     final paragraphs = [
       // 紐づけ済みの人には、アカウントが必要なことは、もう分かっているので出さない

@@ -1,4 +1,5 @@
 import 'dart:async';
+import '../../../ads/presentation/banner_ad_view.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../common/constants/app_colors.dart';
@@ -88,6 +89,9 @@ class _InquiryPageState extends ConsumerState<InquiryPage> {
 
     return Scaffold(
       appBar: AppBar(title: const Text("お問い合わせ")),
+      bottomNavigationBar: const SafeArea(
+        child: BannerAdView(band: true, hideWithKeyboard: true),
+      ),
       body: SafeArea(
         child: Column(
           children: [

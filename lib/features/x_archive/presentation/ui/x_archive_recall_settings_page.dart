@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../ads/presentation/ad_top_layout.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../common/constants/app_colors.dart';
@@ -19,62 +20,64 @@ class XArchiveRecallSettingsPage extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(title: const Text('過去のポスト(ツイート)の通知')),
-      body: settings.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (_, __) => const Center(child: Text('読み込めませんでした')),
-        data: (settings) {
-          final canUse = available.valueOrNull ?? false;
-          return ListView(
-            padding: const EdgeInsets.fromLTRB(
-              AppSizes.space16,
-              20,
-              AppSizes.space16,
-              AppSizes.space24,
-            ),
-            children: [
-              AppCard(
-                padding: const EdgeInsets.all(AppSizes.space16),
-                child: const Text(
-                  'Xのアーカイブから取り込んだポスト(ツイート)を、毎日お知らせします。\n'
-                  '通知をタップすると、1年前・2年前…の今日のポスト(ツイート)と、'
-                  'ランダムなポスト(ツイート)が見られます。',
-                  style: TextStyle(
-                    fontSize: 15,
-                    height: 1.8,
-                    color: AppColors.text,
+      body: AdTopLayout(
+        child: settings.when(
+          loading: () => const Center(child: CircularProgressIndicator()),
+          error: (_, __) => const Center(child: Text('読み込めませんでした')),
+          data: (settings) {
+            final canUse = available.valueOrNull ?? false;
+            return ListView(
+              padding: const EdgeInsets.fromLTRB(
+                AppSizes.space16,
+                20,
+                AppSizes.space16,
+                AppSizes.space24,
+              ),
+              children: [
+                AppCard(
+                  padding: const EdgeInsets.all(AppSizes.space16),
+                  child: const Text(
+                    'Xのアーカイブから取り込んだポスト(ツイート)を、毎日お知らせします。\n'
+                    '通知をタップすると、1年前・2年前…の今日のポスト(ツイート)と、'
+                    'ランダムなポスト(ツイート)が見られます。',
+                    style: TextStyle(
+                      fontSize: 15,
+                      height: 1.8,
+                      color: AppColors.text,
+                    ),
                   ),
                 ),
-              ),
-              const SizedBox(height: AppSizes.space24),
-              AppCard(
-                child: Column(
-                  children: [
-                    SwitchRow(
-                      icon: Icons.notifications_none,
-                      label: '毎日通知する',
-                      subtitle: canUse ? null : 'Xのアーカイブを取り込むと使えます',
-                      value: settings.enabled && canUse,
-                      onChanged: canUse
-                          ? (value) =>
-                                _setEnabled(context, ref, settings, value)
-                          : null,
-                    ),
-                    const RowDivider(),
-                    SelectRow(
-                      icon: Icons.schedule,
-                      label: '通知する時刻',
-                      value: _timeText(settings),
-                      enabled: canUse,
-                      onTap: canUse
-                          ? () => _pickTime(context, ref, settings)
-                          : null,
-                    ),
-                  ],
+                const SizedBox(height: AppSizes.space24),
+                AppCard(
+                  child: Column(
+                    children: [
+                      SwitchRow(
+                        icon: Icons.notifications_none,
+                        label: '毎日通知する',
+                        subtitle: canUse ? null : 'Xのアーカイブを取り込むと使えます',
+                        value: settings.enabled && canUse,
+                        onChanged: canUse
+                            ? (value) =>
+                                  _setEnabled(context, ref, settings, value)
+                            : null,
+                      ),
+                      const RowDivider(),
+                      SelectRow(
+                        icon: Icons.schedule,
+                        label: '通知する時刻',
+                        value: _timeText(settings),
+                        enabled: canUse,
+                        onTap: canUse
+                            ? () => _pickTime(context, ref, settings)
+                            : null,
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-            ],
-          );
-        },
+              ],
+            );
+          },
+        ),
       ),
     );
   }
