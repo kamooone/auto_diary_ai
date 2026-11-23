@@ -8,7 +8,9 @@ class MapConstants {
   static const double currentLocationZoom = 16;
   static const double markerSize = 40;
   static const String tileUrl = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
-  static const String userAgent = 'com.example.auto_diary_ai';
+  // 地図の画像のサーバー(OpenStreetMap)に、このアプリだと分かるよう名乗る名前
+  // アプリのパッケージ名(android/app/build.gradle.kts の applicationId)と同じにする
+  static const String userAgent = 'com.kazusa.auto_diary_ai';
   static const double zoomButtonRight = 10;
   static const double zoomButtonBottom = 20;
   static const double zoomButtonSpacing = 10;
