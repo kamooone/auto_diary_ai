@@ -135,6 +135,7 @@ class _XArchivePostListPageState extends ConsumerState<XArchivePostListPage> {
     final ok = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
+        scrollable: true,
         title: const Text('取り込んだ投稿をすべて消しますか?'),
         content: const Text('アプリに取り込んだ分だけが消えます。Xの投稿やアーカイブのファイルは消えません。'),
         actions: [

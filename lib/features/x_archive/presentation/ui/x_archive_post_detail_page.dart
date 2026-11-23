@@ -60,8 +60,9 @@ class _XArchivePostDetailPageState
       MaterialPageRoute(builder: (_) => XArchivePostEditPage(post: _post)),
     );
     if (saved != true || !mounted) return;
-    final updated =
-        await ref.read(xArchiveRepositoryProvider).find(_post.tweetId);
+    final updated = await ref
+        .read(xArchiveRepositoryProvider)
+        .find(_post.tweetId);
     if (!mounted || updated == null) return;
     setState(() => _post = updated);
   }
@@ -70,6 +71,7 @@ class _XArchivePostDetailPageState
     final ok = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
+        scrollable: true,
         title: const Text('この投稿を削除しますか?'),
         content: const Text('アプリに取り込んだ分だけが消えます。Xの投稿は消えません。'),
         actions: [
@@ -116,7 +118,10 @@ class _XArchivePostDetailPageState
         padding: const EdgeInsets.all(16),
         children: [
           Text(
-            [XArchivePostFormatter.date(_post.createdAt), ...notes].join('  ・  '),
+            [
+              XArchivePostFormatter.date(_post.createdAt),
+              ...notes,
+            ].join('  ・  '),
             style: Theme.of(context).textTheme.bodySmall,
           ),
           const SizedBox(height: 8),

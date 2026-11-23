@@ -178,6 +178,7 @@ class _LinkedCard extends ConsumerWidget {
     final agreed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
+        scrollable: true,
         title: const Text("紐づけを解除しますか？"),
         content: const Text(
           "この端末では、アカウントのトークンを使えなくなります。"

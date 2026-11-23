@@ -237,6 +237,7 @@ class _MemoCard extends ConsumerWidget {
     final ok = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
+        scrollable: true,
         title: const Text("このメモを削除しますか？"),
         content: const Text("削除したメモは、元に戻せません。"),
         actions: [

@@ -9,7 +9,7 @@ import 'diary_edit_screen.dart';
 /// 保存した日記を表示する画面
 class DiaryDetailScreen extends ConsumerWidget {
   const DiaryDetailScreen({super.key, required Diary diary})
-      : initialDiary = diary;
+    : initialDiary = diary;
 
   /// 一覧から開いた時点の日記
   final Diary initialDiary;
@@ -17,7 +17,8 @@ class DiaryDetailScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     // 編集した内容がすぐ反映されるよう、保存されている最新の日記を表示する
-    final diary = ref
+    final diary =
+        ref
             .watch(diariesProvider)
             .valueOrNull
             ?.where((e) => e.id == initialDiary.id)
@@ -52,10 +53,7 @@ class DiaryDetailScreen extends ConsumerWidget {
         padding: const EdgeInsets.all(16),
         children: [
           if (diary.title.trim().isNotEmpty) ...[
-            Text(
-              diary.title,
-              style: Theme.of(context).textTheme.titleLarge,
-            ),
+            Text(diary.title, style: Theme.of(context).textTheme.titleLarge),
             const SizedBox(height: 4),
           ],
           Text(
@@ -102,6 +100,7 @@ class DiaryDetailScreen extends ConsumerWidget {
       context: context,
       builder: (context) {
         return AlertDialog(
+          scrollable: true,
           title: const Text("日記を削除しますか？"),
           content: const Text("削除した日記は元に戻せません。"),
           actions: [

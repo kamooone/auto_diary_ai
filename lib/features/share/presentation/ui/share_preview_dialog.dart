@@ -4,11 +4,7 @@ class SharePreviewDialog extends StatefulWidget {
   final String url;
   final String text;
 
-  const SharePreviewDialog({
-    super.key,
-    required this.url,
-    required this.text,
-  });
+  const SharePreviewDialog({super.key, required this.url, required this.text});
 
   @override
   State<SharePreviewDialog> createState() => _SharePreviewDialogState();
@@ -50,9 +46,9 @@ class _SharePreviewDialogState extends State<SharePreviewDialog> {
 
   void _onConfirm() {
     if (_selectedDate == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('日時を選択してください')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('日時を選択してください')));
       return;
     }
 
@@ -63,24 +59,20 @@ class _SharePreviewDialogState extends State<SharePreviewDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
+      scrollable: true,
       title: const Text('投稿内容の確認'),
       content: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'テキスト',
-            style: TextStyle(fontWeight: FontWeight.bold),
-          ),
+          const Text('テキスト', style: TextStyle(fontWeight: FontWeight.bold)),
           Text(widget.text.isEmpty ? '(取得できませんでした)' : widget.text),
           const SizedBox(height: 20),
 
           ElevatedButton(
             onPressed: _pickDateTime,
             child: Text(
-              _selectedDate == null
-                  ? '日時を選択'
-                  : _selectedDate.toString(),
+              _selectedDate == null ? '日時を選択' : _selectedDate.toString(),
             ),
           ),
         ],
@@ -90,10 +82,7 @@ class _SharePreviewDialogState extends State<SharePreviewDialog> {
           onPressed: () => Navigator.of(context).pop(),
           child: const Text('キャンセル'),
         ),
-        ElevatedButton(
-          onPressed: _onConfirm,
-          child: const Text('OK'),
-        ),
+        ElevatedButton(onPressed: _onConfirm, child: const Text('OK')),
       ],
     );
   }

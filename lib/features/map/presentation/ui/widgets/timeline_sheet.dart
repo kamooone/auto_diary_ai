@@ -316,6 +316,7 @@ class TimelineSheet extends StatelessWidget {
     final ok = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
+        scrollable: true,
         title: Text(isStay ? "この滞在を削除しますか?" : "この移動を削除しますか?"),
         content: const Text("その時間帯の位置情報のデータも、端末から削除されます。元に戻せません。"),
         actions: [
@@ -637,6 +638,7 @@ class TimelineSheet extends StatelessWidget {
     final retry = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
+        scrollable: true,
         title: const Text("通信に失敗しました"),
         content: const Text(
           "訪れた場所を取得できませんでした。\n"
@@ -689,6 +691,7 @@ class TimelineSheet extends StatelessWidget {
       context: context,
       barrierDismissible: false,
       builder: (context) => AlertDialog(
+        scrollable: true,
         title: const Text("この場所として登録しますか？"),
         content: Text(
           stay.isPlaceRegistered
@@ -853,6 +856,7 @@ class _TextDialogState extends State<_TextDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
+      scrollable: true,
       title: Text(widget.title),
       content: TextField(
         controller: _controller,
@@ -896,6 +900,7 @@ class _PlaceNameDialogState extends State<_PlaceNameDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
+      scrollable: true,
       title: const Text("場所名を編集"),
       content: TextField(
         controller: _controller,
@@ -1116,42 +1121,47 @@ class _DateHeaderDelegate extends SliverPersistentHeaderDelegate {
                     child: InkWell(
                       onTap: onDateTap,
                       borderRadius: BorderRadius.circular(AppSizes.radius12),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        crossAxisAlignment: CrossAxisAlignment.baseline,
-                        textBaseline: TextBaseline.alphabetic,
-                        children: [
-                          Text(
-                            "${date.year}年",
-                            style: const TextStyle(
-                              fontSize: 13,
-                              color: AppColors.textSub,
+                      // 文字を大きくした小さな画面では、幅が足りなくなるため、収まるまで縮める
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          crossAxisAlignment: CrossAxisAlignment.baseline,
+                          textBaseline: TextBaseline.alphabetic,
+                          children: [
+                            Text(
+                              "${date.year}年",
+                              style: const TextStyle(
+                                fontSize: 13,
+                                color: AppColors.textSub,
+                              ),
                             ),
-                          ),
-                          const SizedBox(width: AppSizes.space4),
-                          Text(
-                            "${date.month}月${date.day}日",
-                            style: const TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.w700,
-                              color: AppColors.text,
+                            const SizedBox(width: AppSizes.space4),
+                            Text(
+                              "${date.month}月${date.day}日",
+                              style: const TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.w700,
+                                color: AppColors.text,
+                              ),
                             ),
-                          ),
-                          const SizedBox(width: AppSizes.space4),
-                          Text(
-                            "（$weekday）",
-                            style: const TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w700,
-                              color: AppColors.textSub,
+                            const SizedBox(width: AppSizes.space4),
+                            Text(
+                              "（$weekday）",
+                              style: const TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w700,
+                                color: AppColors.textSub,
+                              ),
                             ),
-                          ),
-                          const Icon(
-                            Icons.keyboard_arrow_down,
-                            size: 20,
-                            color: AppColors.navy,
-                          ),
-                        ],
+                            const Icon(
+                              Icons.keyboard_arrow_down,
+                              size: 20,
+                              color: AppColors.navy,
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   ),

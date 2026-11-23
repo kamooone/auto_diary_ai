@@ -300,6 +300,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     await showDialog<void>(
       context: context,
       builder: (context) => AlertDialog(
+        scrollable: true,
         title: const Text("ホーム画面から追加してください"),
         content: const Text(
           "ホーム画面の何もないところを長押しして、ウィジェットの一覧から、このアプリの「行動履歴」のボタンを追加してください。",
@@ -319,6 +320,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     return showDialog<void>(
       context: context,
       builder: (context) => AlertDialog(
+        scrollable: true,
         title: const Text("ホーム画面から削除してください"),
         content: const Text("ホーム画面の行動履歴のオン・オフのボタンを長押しして、「削除」を選んでください。"),
         actions: [

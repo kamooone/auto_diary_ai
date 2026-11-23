@@ -78,40 +78,48 @@ class MonthBar extends StatelessWidget {
                     padding: const EdgeInsets.symmetric(
                       vertical: AppSizes.space4,
                     ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      crossAxisAlignment: CrossAxisAlignment.baseline,
-                      textBaseline: TextBaseline.alphabetic,
-                      children: [
-                        Text(
-                          '$year年',
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w400,
-                            color: compact ? AppColors.textSub : AppColors.navy,
+                    // 文字を大きくした小さな画面では、幅が足りなくなるため、収まるまで縮める
+                    // (幅に余裕があるときは、そのままの大きさ)
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        crossAxisAlignment: CrossAxisAlignment.baseline,
+                        textBaseline: TextBaseline.alphabetic,
+                        children: [
+                          Text(
+                            '$year年',
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w400,
+                              color: compact
+                                  ? AppColors.textSub
+                                  : AppColors.navy,
+                            ),
                           ),
-                        ),
-                        const SizedBox(width: AppSizes.space4),
-                        Text(
-                          '$month月',
-                          style: TextStyle(
-                            fontSize: compact ? 24 : 26,
-                            // ホームは、普通の太さ。カレンダーは、太字
-                            fontWeight: compact
-                                ? FontWeight.w800
-                                : FontWeight.w400,
-                            color: compact
-                                ? AppColors.text
-                                : AppColors.navyDark,
+                          const SizedBox(width: AppSizes.space4),
+                          Text(
+                            '$month月',
+                            style: TextStyle(
+                              fontSize: compact ? 24 : 26,
+                              // ホームは、普通の太さ。カレンダーは、太字
+                              fontWeight: compact
+                                  ? FontWeight.w800
+                                  : FontWeight.w400,
+                              color: compact
+                                  ? AppColors.text
+                                  : AppColors.navyDark,
+                            ),
                           ),
-                        ),
-                        const SizedBox(width: AppSizes.space4),
-                        const Icon(
-                          Icons.keyboard_arrow_down,
-                          size: 22,
-                          color: AppColors.navy,
-                        ),
-                      ],
+                          const SizedBox(width: AppSizes.space4),
+                          const Icon(
+                            Icons.keyboard_arrow_down,
+                            size: 22,
+                            color: AppColors.navy,
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ),

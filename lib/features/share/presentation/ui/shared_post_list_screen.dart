@@ -247,6 +247,7 @@ Future<bool> confirmDeleteSharedPost(
   final confirmed = await showDialog<bool>(
     context: context,
     builder: (context) => AlertDialog(
+      scrollable: true,
       title: const Text("この投稿を削除しますか？"),
       content: Text(
         post.text.isEmpty ? "(テキストなし)" : post.text,

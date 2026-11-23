@@ -23,6 +23,7 @@ Future<bool> confirmBeforeGenerate(
   final agreed = await showDialog<bool>(
     context: context,
     builder: (context) => AlertDialog(
+      scrollable: true,
       title: const Text("広告を見ますか？"),
       content: const Text("AIに日記を書いてもらうには、広告(動画)を最後まで見る必要があります。"),
       actions: [
@@ -46,9 +47,9 @@ Future<bool> confirmBeforeGenerate(
 
   if (!allowed) {
     // 広告を最後まで見ないと、日記を書いてもらえない
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text("広告を最後まで見ると、AIに日記を書いてもらえます")),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text("広告を最後まで見ると、AIに日記を書いてもらえます")));
     return false;
   }
 
@@ -100,6 +101,7 @@ Future<bool> confirmBeforeConsult(
   final agreed = await showDialog<bool>(
     context: context,
     builder: (context) => AlertDialog(
+      scrollable: true,
       title: const Text("AIに構成を相談しますか？"),
       content: Text(
         "選んだ日記の内容をAIに送ります。消費トークンの目安は、"

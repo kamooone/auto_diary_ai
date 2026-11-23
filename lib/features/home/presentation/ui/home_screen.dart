@@ -125,6 +125,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final shouldAdd = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
+        scrollable: true,
         title: const Text("ホーム画面にボタンを表示しますか？"),
         content: const Text(
           "行動履歴のオン・オフを切り替えるボタンを、ホーム画面に表示できます。\n"

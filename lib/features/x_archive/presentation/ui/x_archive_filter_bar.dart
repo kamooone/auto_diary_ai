@@ -37,7 +37,11 @@ class XArchiveFilterBar extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
+          // 幅が足りない画面(小さい端末、文字を大きくした端末)では、次の行に折り返す
+          Wrap(
+            spacing: AppSizes.space8,
+            runSpacing: AppSizes.space8,
+            crossAxisAlignment: WrapCrossAlignment.center,
             children: [
               FilterChipField<int>(
                 key: const Key('xYear'),
@@ -46,7 +50,6 @@ class XArchiveFilterBar extends StatelessWidget {
                 options: [(null, 'すべて'), for (final y in years) (y, '$y年')],
                 onChanged: (v) => onChanged(filter.withYear(v)),
               ),
-              const SizedBox(width: AppSizes.space8),
               FilterChipField<int>(
                 key: Key('xMonth-$year'),
                 label: '月',
@@ -60,7 +63,6 @@ class XArchiveFilterBar extends StatelessWidget {
                     ? null
                     : (v) => onChanged(filter.withMonth(v)),
               ),
-              const SizedBox(width: AppSizes.space8),
               FilterChipField<int>(
                 key: Key('xDay-$year-$month'),
                 label: '日',

@@ -93,26 +93,40 @@ class _InquiryPageState extends ConsumerState<InquiryPage> {
         child: BannerAdView(band: true, hideWithKeyboard: true),
       ),
       body: SafeArea(
-        child: Column(
-          children: [
-            Expanded(
-              child: messages.when(
-                loading: () => const Center(child: CircularProgressIndicator()),
-                error: (_, _) => const Center(child: Text("やり取りを読み込めませんでした")),
-                data: (list) => _MessageList(messages: list),
+        // 横向きなど、高さが足りない画面では、入力欄が画面からはみ出さないよう、
+        // 入力欄の高さに上限を付けて、その中でスクロールできるようにする
+        // (縦向きで、入力欄が収まるときは、これまでと同じ)
+        child: LayoutBuilder(
+          builder: (context, constraints) => Column(
+            children: [
+              Expanded(
+                child: messages.when(
+                  loading: () =>
+                      const Center(child: CircularProgressIndicator()),
+                  error: (_, _) => const Center(child: Text("やり取りを読み込めませんでした")),
+                  data: (list) => _MessageList(messages: list),
+                ),
               ),
-            ),
-            _Form(
-              controller: _controller,
-              category: _category,
-              error: _error,
-              canSend: _canSend,
-              isSending: _isSending,
-              onCategoryChanged: (value) => setState(() => _category = value),
-              onTextChanged: () => setState(() {}),
-              onSend: _send,
-            ),
-          ],
+              ConstrainedBox(
+                constraints: BoxConstraints(
+                  maxHeight: constraints.maxHeight * 0.65,
+                ),
+                child: SingleChildScrollView(
+                  child: _Form(
+                    controller: _controller,
+                    category: _category,
+                    error: _error,
+                    canSend: _canSend,
+                    isSending: _isSending,
+                    onCategoryChanged: (value) =>
+                        setState(() => _category = value),
+                    onTextChanged: () => setState(() {}),
+                    onSend: _send,
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

@@ -65,7 +65,14 @@ class CalendarDayCell extends StatelessWidget {
               ),
               const Spacer(),
               // 同じ日に複数あるときは、2件目以降の数
-              if (diaries.length > 1) MoreChip(count: diaries.length - 1),
+              // 文字を大きくした小さな画面では、幅が足りないため、収まるまで縮める
+              if (diaries.length > 1)
+                Flexible(
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: MoreChip(count: diaries.length - 1),
+                  ),
+                ),
             ],
           ),
           if (first != null) ...[

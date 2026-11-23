@@ -221,12 +221,14 @@ class _XArchiveImportPageState extends ConsumerState<XArchiveImportPage> {
                             color: AppColors.navy,
                           ),
                           SizedBox(width: AppSizes.space4),
-                          Text(
-                            '取り込み方を見る',
-                            style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w700,
-                              color: AppColors.navy,
+                          Flexible(
+                            child: Text(
+                              '取り込み方を見る',
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w700,
+                                color: AppColors.navy,
+                              ),
                             ),
                           ),
                         ],

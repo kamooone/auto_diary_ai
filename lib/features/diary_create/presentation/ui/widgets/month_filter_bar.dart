@@ -39,7 +39,11 @@ class MonthFilterBar extends StatelessWidget {
           AppSizes.space16,
           AppSizes.space8,
         ),
-        child: Row(
+        // 幅が足りない画面(小さい端末、文字を大きくした端末)では、次の行に折り返す
+        child: Wrap(
+          spacing: AppSizes.space8,
+          runSpacing: AppSizes.space8,
+          crossAxisAlignment: WrapCrossAlignment.center,
           children: [
             FilterChipField<int>(
               key: const Key('filterYear'),
@@ -51,7 +55,6 @@ class MonthFilterBar extends StatelessWidget {
               ],
               onChanged: (year) => onChanged(value.withYear(year)),
             ),
-            const SizedBox(width: AppSizes.space8),
             FilterChipField<int>(
               key: Key('filterMonth-${value.year}'),
               label: "月",

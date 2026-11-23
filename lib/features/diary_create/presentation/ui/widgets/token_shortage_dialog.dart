@@ -13,6 +13,7 @@ Future<TokenShortageChoice> showTokenShortageDialog(
   final choice = await showDialog<TokenShortageChoice>(
     context: context,
     builder: (context) => AlertDialog(
+      scrollable: true,
       title: const Text("トークンが足りない見込みです"),
       content: Text(
         "この日記に必要なトークンは、約${formatTokens(estimated)}の見込みです"
