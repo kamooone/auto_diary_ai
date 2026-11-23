@@ -557,26 +557,24 @@ Webのゲーム紹介ページ(`games.html`)に、「ポイントが貯まるケ
 
 ---
 
-## 手順12: プライバシーポリシーと利用規約のWebページ(ストアの申請に使う)
+## 手順12: プライバシーポリシーのWebページ(ストアの申請に使う)
 
 ストアの申請(Google Play のプライバシーポリシーの欄、データ セーフティの削除の案内)には、
 **誰でも開ける、公開されたWebページのアドレス**が要る。アプリの中の画面だけでは、申請できない。
 
-- 文面は、アプリの中で見せているものと同じ。1か所だけを直す。
-  - プライバシーポリシー: `assets/privacy_policy.md` → `server/points_web/privacy.html`
-  - 利用規約(注意事項だけの、短いもの): `assets/terms_of_use.md` → `server/points_web/terms.html`
-- Webページは、`python3 tools/make_privacy_html.py` で、文面から作る。
-  文面を直したら、このスクリプトを動かして、できたWebページをS3へ上げる。
-  (`--check` を付けると、Webページが最新の文面から作ったものか、確かめられる)
-- アプリの設定画面に、「プライバシーポリシー」と「利用規約」の入口がある。
-  ポイントのページ(`index.html`)と、ゲーム紹介(`games.html`)の下にも、両方へのリンクがある。
+- 文面は、アプリの中で見せているものと同じ `assets/privacy_policy.md`(1か所だけを直す)。
+- Webページ `server/points_web/privacy.html` は、その文面から、`python3 tools/make_privacy_html.py` で作る。
+  文面を直したら、このスクリプトを動かして、できた `privacy.html` をS3へ上げる。
+  (`--check` を付けると、`privacy.html` が最新の文面から作ったものか、確かめられる)
+- アプリの設定画面に、「プライバシーポリシー」の入口がある。
+  ポイントのページ(`index.html`)と、ゲーム紹介(`games.html`)の下にも、リンクがある。
+- 利用規約は、作らないと決めた(2026-11-24。下書きは `docs/terms_of_use_draft.md`)。
 
 ### 作業
-1. `privacy.html`・`terms.html`(と、すでに上げていなければ `icon.png`)を、S3へ上げて、CloudFrontのキャッシュを削除する。
+1. `privacy.html`(と、すでに上げていなければ `icon.png`)を、S3へ上げて、CloudFrontのキャッシュを削除する。
    リンクを足した `index.html`・`games.html` も、一緒に上げる。
 2. 次のアドレスで、ページが開くことを確かめる(ログインなしで開けること)。
    - プライバシーポリシー: `https://<CloudFrontのドメイン>/privacy.html`
-   - 利用規約: `https://<CloudFrontのドメイン>/terms.html`
    - データの削除の案内: `https://<CloudFrontのドメイン>/privacy.html#delete`(「8. 情報の削除について」から、削除できるページへのリンクがある)
 3. Google Play Console に、次を入れる。
    - 「アプリのコンテンツ」→「プライバシーポリシー」: 上のプライバシーポリシーのアドレス

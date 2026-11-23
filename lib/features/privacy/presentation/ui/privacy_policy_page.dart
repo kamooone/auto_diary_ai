@@ -9,31 +9,18 @@ import '../../../../common/widgets/app_card.dart';
 ///
 /// 文章は `assets/privacy_policy.md` から読む(ストアに出すWebページも、同じファイルを元にする)。
 /// 使うMarkdownは、`# ` 大見出し、`## ` 見出し、`- ` 箇条書き、`**太字**`、空行で区切った段落だけ。
-///
-/// [title]と[assetPath]を渡すと、同じ作りで、別の文書(利用規約など)も出せる。
 class PrivacyPolicyPage extends StatelessWidget {
-  const PrivacyPolicyPage({
-    super.key,
-    this.loader,
-    this.title = 'プライバシーポリシー',
-    this.assetPath = defaultAssetPath,
-  });
+  const PrivacyPolicyPage({super.key, this.loader});
 
   /// 文章の読み込み(テストで差し替える)
   final Future<String> Function()? loader;
 
-  /// 画面の題
-  final String title;
-
-  /// 読み込む文章のファイル
-  final String assetPath;
-
-  static const defaultAssetPath = 'assets/privacy_policy.md';
+  static const assetPath = 'assets/privacy_policy.md';
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text(title)),
+      appBar: AppBar(title: const Text('プライバシーポリシー')),
       body: FutureBuilder<String>(
         future: (loader ?? () => rootBundle.loadString(assetPath))(),
         builder: (context, snapshot) {

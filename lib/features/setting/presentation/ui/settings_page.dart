@@ -17,7 +17,6 @@ import '../../../inquiry/application/providers/inquiry_providers.dart';
 import '../../../plan/application/providers/plan_provider.dart';
 import '../../../plan/domain/entities/plan_availability.dart';
 import '../../../privacy/presentation/ui/privacy_policy_page.dart';
-import '../../../privacy/presentation/ui/terms_of_use_page.dart';
 import '../../../tutorial/application/tutorial_providers.dart';
 import 'widgets/settings_row.dart';
 import '../providers/recording_settings_provider.dart';
@@ -230,17 +229,6 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                   onTap: () => Navigator.of(context).push(
                     MaterialPageRoute<void>(
                       builder: (_) => const PrivacyPolicyPage(),
-                    ),
-                  ),
-                ),
-                const RowDivider(),
-                SettingsRow(
-                  icon: Icons.description_outlined,
-                  title: "利用規約",
-                  subtitle: "ご利用にあたっての注意事項",
-                  onTap: () => Navigator.of(context).push(
-                    MaterialPageRoute<void>(
-                      builder: (_) => const TermsOfUsePage(),
                     ),
                   ),
                 ),

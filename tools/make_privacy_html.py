@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
-"""プライバシーポリシーと利用規約の Web ページ(server/points_web/ の privacy.html・terms.html)を作る
+"""プライバシーポリシーの Web ページ(server/points_web/privacy.html)を作る
 
-文面は、アプリの中で見せているものと同じ assets/ のファイルを、そのまま使う。
+文面は、アプリの中で見せているものと同じ assets/privacy_policy.md を、そのまま使う。
 (文面を2か所に書くと、食い違うため。直すのは、assets/ のファイルだけ)
 
   assets/privacy_policy.md → privacy.html
-  assets/terms_of_use.md   → terms.html
+
+(別の文書を足すときは、下の DOCUMENTS に、1行足す。利用規約の下書きは docs/terms_of_use_draft.md)
 
   python3 tools/make_privacy_html.py           Webページを作り直す
   python3 tools/make_privacy_html.py --check   Webページが、最新の文面から作ったものか確かめる
@@ -24,7 +25,6 @@ WEB = ROOT / "server" / "points_web"
 # (文面, できるWebページ, 題)
 DOCUMENTS = [
     (ROOT / "assets" / "privacy_policy.md", WEB / "privacy.html", "プライバシーポリシー"),
-    (ROOT / "assets" / "terms_of_use.md", WEB / "terms.html", "利用規約"),
 ]
 
 # 「情報の削除」の節には、ストアの申請(データの削除方法のページ)から、直接飛べるよう、目印を付ける

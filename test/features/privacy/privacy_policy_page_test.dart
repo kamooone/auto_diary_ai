@@ -33,4 +33,20 @@ void main() {
     expect(find.textContaining('**'), findsNothing);
     expect(find.textContaining('## '), findsNothing);
   });
+
+  testWidgets('制定日と最終改定日の両方を、小さく出す', (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: PrivacyPolicyPage(
+          loader: () async => '# 題\n\n制定日:2026年1月1日\n\n最終改定日:2026年2月2日\n\n本文',
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('制定日:2026年1月1日'), findsOneWidget);
+    expect(find.text('最終改定日:2026年2月2日'), findsOneWidget);
+    // 線は、最後の日付の下に、1本だけ
+    expect(find.byType(Divider), findsOneWidget);
+  });
 }
