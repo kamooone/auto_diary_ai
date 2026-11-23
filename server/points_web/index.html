@@ -116,6 +116,8 @@
     .inlineMessage { margin: 8px 4px 0; font-size: 14px; line-height: 1.6; text-align: center; }
     .inlineMessage.error { color: #B4442B; }
     .inlineMessage.ok { color: var(--navy-dark); font-weight: 700; }
+    .agree { color: var(--text-sub); font-size: 12px; line-height: 1.7; margin: 14px 0 0; }
+    .agree a { color: var(--navy-dark); font-weight: 700; }
     .legal { text-align: center; font-size: 13px; margin: 24px 0 0; }
     .legal a { color: var(--text-sub); }
     #message:empty, #notice:empty { display: none; }
@@ -157,6 +159,8 @@
             <path d="M11 12l9-9M16 7l3 3"/></svg>
           ログイン / アカウント作成
         </button>
+        <!-- アカウントを作る(契約を結ぶ)場面で、規約への同意を示す -->
+        <p class="agree">ログイン・アカウント作成をすると、<a href="terms.html">利用規約</a>と<a href="privacy.html">プライバシーポリシー</a>に同意したものとみなします。</p>
       </div>
     </div>
 
