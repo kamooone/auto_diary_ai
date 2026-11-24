@@ -26,6 +26,9 @@ class XArchiveRecallNotifier {
 
   bool _initialized = false;
 
+  /// 通知の準備が終わっているか(終わっていないと、予約できない)
+  bool get isReady => _initialized;
+
   /// 通知の準備。[onTap] は、通知をタップしたとき(アプリが動いている間)に呼ばれる
   Future<void> initialize({required ValueChanged<String?> onTap}) async {
     tzdata.initializeTimeZones();

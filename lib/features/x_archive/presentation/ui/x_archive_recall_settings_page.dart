@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
 import '../../../ads/presentation/banner_ad_view.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 import '../../../../common/constants/app_colors.dart';
+import '../../../../app/router/app_routes.dart';
 import '../../../../common/constants/app_sizes.dart';
+import '../../../../common/widgets/app_buttons.dart';
 import '../../../../common/widgets/app_card.dart';
 import '../../../../common/widgets/select_row.dart';
 import '../../application/providers/x_archive_recall_providers.dart';
@@ -47,6 +51,35 @@ class XArchiveRecallSettingsPage extends ConsumerWidget {
                   ),
                 ),
               ),
+              // Xのアーカイブを取り込んでいないと、通知は使えない。そのことと、取り込む入口を、
+              // 目立つ場所に出す(スイッチが押せない理由が、分からなくならないように)
+              if (!canUse) ...[
+                const SizedBox(height: AppSizes.space16),
+                AppCard(
+                  padding: const EdgeInsets.all(AppSizes.space16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      const Text(
+                        'まだ、Xのアーカイブを取り込んでいないため、通知を使えません。\n'
+                        '取り込むと、毎日の通知をオンにできます。',
+                        style: TextStyle(
+                          fontSize: 14,
+                          height: 1.8,
+                          color: AppColors.text,
+                        ),
+                      ),
+                      const SizedBox(height: AppSizes.space12),
+                      SecondaryButton(
+                        icon: Icons.file_download_outlined,
+                        label: 'Xのアーカイブを取り込む',
+                        onPressed: () =>
+                            context.push(AppRoutes.xArchiveImport),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
               const SizedBox(height: AppSizes.space24),
               AppCard(
                 child: Column(
@@ -95,14 +128,36 @@ class XArchiveRecallSettingsPage extends ConsumerWidget {
     final store = ref.read(xArchiveRecallSettingsStoreProvider);
 
     if (enabled) {
-      // 通知が許可されていなければ、オンにしない
-      if (!await notifier.requestPermission()) {
+      // 通知の準備が終わっていないと、予約できない(オンに見えて、通知が来ない状態を避ける)
+      if (!notifier.isReady) {
         messenger.showSnackBar(
-          const SnackBar(content: Text('通知が許可されていません。端末の設定で、通知を許可してください')),
+          const SnackBar(content: Text('通知を準備できていません。アプリを開き直してから、もう一度お試しください')),
         );
         return;
       }
-      await notifier.schedule(hour: settings.hour, minute: settings.minute);
+
+      // 通知が許可されていなければ、オンにしない(端末の設定を開けるようにする)
+      if (!await notifier.requestPermission()) {
+        messenger.showSnackBar(
+          SnackBar(
+            content: const Text('通知が許可されていません。端末の設定で、通知を許可してください'),
+            action: SnackBarAction(
+              label: '設定を開く',
+              onPressed: openAppSettings,
+            ),
+          ),
+        );
+        return;
+      }
+
+      try {
+        await notifier.schedule(hour: settings.hour, minute: settings.minute);
+      } catch (_) {
+        messenger.showSnackBar(
+          const SnackBar(content: Text('通知を設定できませんでした。もう一度お試しください')),
+        );
+        return;
+      }
     } else {
       await notifier.cancel();
     }
