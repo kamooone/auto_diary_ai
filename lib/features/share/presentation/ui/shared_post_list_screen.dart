@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../ads/presentation/banner_ad_view.dart';
+import '../../../tutorial/application/tutorial_providers.dart';
+import '../../../tutorial/presentation/help_icon_tutorial.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../common/constants/app_colors.dart';
 import '../../../../common/constants/app_sizes.dart';
@@ -19,11 +21,43 @@ import 'x_share_guide_page.dart';
 
 /// 保存したXの投稿の一覧(設定画面から開く)
 /// 投稿の削除、内容の修正、日時の変更ができる
-class SharedPostListScreen extends ConsumerWidget {
+class SharedPostListScreen extends ConsumerStatefulWidget {
   const SharedPostListScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<SharedPostListScreen> createState() =>
+      _SharedPostListScreenState();
+}
+
+class _SharedPostListScreenState extends ConsumerState<SharedPostListScreen> {
+  // チュートリアルで明るくする「?」アイコン
+  final _helpKey = GlobalKey();
+
+  // この画面のチュートリアルの印(見たかどうかを覚えるときの名前)
+  static const _tutorialId = 'shared_posts';
+
+  @override
+  void initState() {
+    super.initState();
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      showHelpIconTutorialOnce(
+        context,
+        store: ref.read(tutorialSeenStoreProvider),
+        tutorialId: _tutorialId,
+        screenTitle: 'Xの投稿一覧',
+        screenBody:
+            'Xから共有して保存した投稿を、ここで確認できます。\n\n'
+            '内容の修正、日時の変更、削除もできます。',
+        helpKey: _helpKey,
+        helpBody: 'Xから共有するしかたは、画面の右上の「?」から、いつでも確認できます。',
+      );
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final posts = ref.watch(allSharedPostsProvider);
 
     return Scaffold(
@@ -32,6 +66,7 @@ class SharedPostListScreen extends ConsumerWidget {
         actions: [
           // 投稿が1件もないときも、保存のしかたを確認できるようにする
           IconButton(
+            key: _helpKey,
             tooltip: "Xから共有する方法",
             icon: const Icon(Icons.help_outline),
             onPressed: () => Navigator.of(context).push(

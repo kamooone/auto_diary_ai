@@ -9,9 +9,12 @@ import 'package:auto_diary_ai/features/points/domain/entities/pairing_session.da
 import 'package:auto_diary_ai/features/points/domain/repositories/device_token_store.dart';
 import 'package:auto_diary_ai/features/points/domain/repositories/pairing_repository.dart';
 import 'package:auto_diary_ai/features/points/presentation/ui/points_page.dart';
+import 'package:auto_diary_ai/features/tutorial/application/tutorial_providers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+
+import '../../support/tutorial_stores.dart';
 
 class _Store implements DeviceTokenStore {
   @override
@@ -58,6 +61,7 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
+          tutorialSeenStoreProvider.overrideWithValue(AllSeenTutorialStore()),
           deviceTokenStoreProvider.overrideWithValue(_Store()),
           planRepositoryProvider.overrideWithValue(_Plan()),
           usageRepositoryProvider.overrideWithValue(_Usage()),

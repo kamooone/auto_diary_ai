@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../ads/presentation/banner_ad_view.dart';
+import '../../../tutorial/application/tutorial_providers.dart';
+import '../../../tutorial/presentation/help_icon_tutorial.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -24,12 +26,33 @@ class PointsPage extends ConsumerStatefulWidget {
 }
 
 class _PointsPageState extends ConsumerState<PointsPage> {
+  // チュートリアルで明るくする「?」アイコン
+  final _helpKey = GlobalKey();
+
+  // この画面のチュートリアルの印(見たかどうかを覚えるときの名前)
+  static const _tutorialId = 'points';
+
   @override
   void initState() {
     super.initState();
 
     // トークン残高を、最新にする
     Future.microtask(() => ref.read(usageProvider.notifier).refresh());
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      showHelpIconTutorialOnce(
+        context,
+        store: ref.read(tutorialSeenStoreProvider),
+        tutorialId: _tutorialId,
+        screenTitle: 'ポイント・ゲーム',
+        screenBody:
+            'ゲームで遊んで貯めたポイントは、AIが日記を書くときに使う「トークン」に交換できます。\n\n'
+            'この画面で、アカウントとの紐づけができます。',
+        helpKey: _helpKey,
+        helpBody: 'ポイントとトークンの、くわしい使い方は、画面の右上の「?」から、いつでも確認できます。',
+      );
+    });
   }
 
   @override
@@ -41,6 +64,7 @@ class _PointsPageState extends ConsumerState<PointsPage> {
         title: const Text("ポイント・ゲーム"),
         actions: [
           IconButton(
+            key: _helpKey,
             tooltip: "ポイントとトークンの使い方",
             icon: const Icon(Icons.help_outline),
             onPressed: () => Navigator.of(context).push(

@@ -154,7 +154,12 @@ class TutorialBubble extends StatelessWidget {
   Widget build(BuildContext context) {
     final primary = Theme.of(context).colorScheme.primary;
 
+    // 文字を大きくした小さな画面では、説明が長くなり、吹き出しが画面より高くなる。
+    // 高さに上限を付けて、説明だけを、中でスクロールできるようにする(ボタンは、いつも見える)
+    final maxHeight = MediaQuery.sizeOf(context).height * 0.7;
+
     return Container(
+      constraints: BoxConstraints(maxHeight: maxHeight),
       padding: const EdgeInsets.fromLTRB(20, 18, 20, 8),
       decoration: BoxDecoration(
         color: Colors.white,
@@ -179,13 +184,18 @@ class TutorialBubble extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 8),
-            Text(body),
+            Flexible(child: SingleChildScrollView(child: Text(body))),
             const SizedBox(height: 8),
             Row(
               children: [
-                Text(
-                  '$page / $pageCount',
-                  style: const TextStyle(color: Colors.black45, fontSize: 12),
+                // 幅が足りない小さな画面では、ページの数字を縮めて、ボタンがはみ出さないようにする
+                Flexible(
+                  child: Text(
+                    '$page / $pageCount',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(color: Colors.black45, fontSize: 12),
+                  ),
                 ),
                 const Spacer(),
                 if (!isFirst)

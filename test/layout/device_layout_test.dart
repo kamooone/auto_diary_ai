@@ -51,6 +51,7 @@ import 'package:auto_diary_ai/features/share/domain/entities/shared_post.dart';
 import 'package:auto_diary_ai/features/share/domain/usecases/get_shared_posts_usecase.dart';
 import 'package:auto_diary_ai/features/tutorial/application/tutorial_providers.dart';
 import 'package:auto_diary_ai/features/tutorial/data/tutorial_seen_store.dart';
+import 'package:auto_diary_ai/features/tutorial/presentation/tutorial_runner.dart';
 import 'package:auto_diary_ai/features/x_archive/application/providers/x_archive_providers.dart';
 import 'package:auto_diary_ai/features/x_archive/application/providers/x_archive_recall_providers.dart';
 import 'package:auto_diary_ai/features/x_archive/domain/entities/x_archive_post.dart';
@@ -663,6 +664,52 @@ final screens = <Screen>[
       confirmLabel: '削除する',
     ),
   ),
+  Screen(
+    'チュートリアルの吹き出し(1ページ目・長い説明)',
+    () => _app(
+      Scaffold(
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: TutorialBubble(
+              title: '使い方は「?」で確認できます',
+              body:
+                  'ポイントとトークンの、くわしい使い方は、画面の右上の「?」から、いつでも確認できます。'
+                  '説明が、少し長い場合の見え方を確かめます。',
+              page: 1,
+              pageCount: 2,
+              isFirst: true,
+              isLast: false,
+              onPrevious: () {},
+              onNext: () {},
+            ),
+          ),
+        ),
+      ),
+    ),
+  ),
+  Screen(
+    'チュートリアルの吹き出し(最後のページ・戻るあり)',
+    () => _app(
+      Scaffold(
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: TutorialBubble(
+              title: '使い方は「?」で確認できます',
+              body: 'アーカイブの取り込み方は、画面の右上の「?」から、いつでも確認できます。',
+              page: 10,
+              pageCount: 10,
+              isFirst: false,
+              isLast: true,
+              onPrevious: () {},
+              onNext: () {},
+            ),
+          ),
+        ),
+      ),
+    ),
+  ),
 ];
 
 // ---------- 確かめる処理
@@ -700,7 +747,14 @@ Future<List<String>> _render(
       await tester.pump(const Duration(milliseconds: 250));
     }
     final after = screen.after;
-    if (after != null) await after(tester);
+    if (after != null) {
+      try {
+        await after(tester);
+      } catch (e) {
+        // どの端末・文字の大きさで、操作できなかったかを分かるようにする
+        errors.add('操作できませんでした: ${e.toString().split('\n').first}');
+      }
+    }
   } finally {
     FlutterError.onError = original;
     tester.platformDispatcher.clearTextScaleFactorTestValue();

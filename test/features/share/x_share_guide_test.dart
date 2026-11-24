@@ -1,3 +1,4 @@
+import 'package:auto_diary_ai/features/tutorial/application/tutorial_providers.dart';
 import 'package:auto_diary_ai/features/share/application/providers/share_providers.dart';
 import 'package:auto_diary_ai/features/share/domain/entities/shared_post.dart';
 import 'package:auto_diary_ai/features/share/presentation/ui/shared_post_list_screen.dart';
@@ -5,12 +6,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import '../../support/tutorial_stores.dart';
+
 void main() {
   testWidgets('Xの投稿の画面の右上から、共有の流れを開ける', (tester) async {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
           allSharedPostsProvider.overrideWith((ref) async => <SharedPost>[]),
+          tutorialSeenStoreProvider.overrideWithValue(AllSeenTutorialStore()),
         ],
         child: const MaterialApp(home: SharedPostListScreen()),
       ),

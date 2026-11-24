@@ -1,3 +1,4 @@
+import 'package:auto_diary_ai/features/tutorial/application/tutorial_providers.dart';
 import 'package:auto_diary_ai/features/share/application/providers/share_providers.dart';
 import 'package:auto_diary_ai/features/share/domain/entities/shared_post.dart';
 import 'package:auto_diary_ai/features/share/domain/repositories/share_repository.dart';
@@ -8,6 +9,8 @@ import 'package:auto_diary_ai/features/share/presentation/ui/shared_post_list_sc
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+
+import '../../support/tutorial_stores.dart';
 
 class InMemoryShareRepository implements ShareRepository {
   final List<SharedPost> posts;
@@ -155,7 +158,10 @@ void main() {
     Future<void> open(WidgetTester tester) async {
       await tester.pumpWidget(
         ProviderScope(
-          overrides: [shareRepositoryProvider.overrideWithValue(repository)],
+          overrides: [
+            shareRepositoryProvider.overrideWithValue(repository),
+            tutorialSeenStoreProvider.overrideWithValue(AllSeenTutorialStore()),
+          ],
           child: const MaterialApp(home: SharedPostListScreen()),
         ),
       );

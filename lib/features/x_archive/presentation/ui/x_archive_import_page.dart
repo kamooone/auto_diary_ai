@@ -1,5 +1,7 @@
 import 'package:file_picker/file_picker.dart';
 import '../../../ads/presentation/banner_ad_view.dart';
+import '../../../tutorial/application/tutorial_providers.dart';
+import '../../../tutorial/presentation/help_icon_tutorial.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -24,6 +26,32 @@ class XArchiveImportPage extends ConsumerStatefulWidget {
 }
 
 class _XArchiveImportPageState extends ConsumerState<XArchiveImportPage> {
+  // チュートリアルで明るくする「?」アイコン
+  final _helpKey = GlobalKey();
+
+  // この画面のチュートリアルの印(見たかどうかを覚えるときの名前)
+  static const _tutorialId = 'x_archive_import';
+
+  @override
+  void initState() {
+    super.initState();
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      showHelpIconTutorialOnce(
+        context,
+        store: ref.read(tutorialSeenStoreProvider),
+        tutorialId: _tutorialId,
+        screenTitle: 'Xのアーカイブを取り込む',
+        screenBody:
+            'Xからダウンロードした、過去のポスト(ツイート)のファイルを、このアプリに取り込みます。\n\n'
+            '取り込んだポストは、日記の材料や、毎日の通知に使えます。',
+        helpKey: _helpKey,
+        helpBody: 'アーカイブの取り込み方は、画面の右上の「?」から、いつでも確認できます。',
+      );
+    });
+  }
+
   bool _reading = false;
   bool _importing = false;
   String? _error;
@@ -141,6 +169,7 @@ class _XArchiveImportPageState extends ConsumerState<XArchiveImportPage> {
         title: const Text('Xのアーカイブを取り込む'),
         actions: [
           IconButton(
+            key: _helpKey,
             tooltip: 'アーカイブの取り込み方',
             icon: const Icon(Icons.help_outline),
             onPressed: _openGuide,
