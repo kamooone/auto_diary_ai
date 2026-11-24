@@ -11,15 +11,11 @@ class BannerAdView extends ConsumerStatefulWidget {
   const BannerAdView({
     super.key,
     this.band = false,
-    this.atTop = false,
     this.hideWithKeyboard = false,
   });
 
   /// trueのとき、広告を、白い帯(上に細い線)の中に置く(ホーム画面用)
   final bool band;
-
-  /// trueのとき、画面の上に置く広告として、帯の線を下に付ける([band]がtrueのとき)
-  final bool atTop;
 
   /// trueのとき、キーボードが出ている間は、広告を隠す
   /// (文字を入力する画面で、キーボードのすぐ上の広告を、押し間違えないようにする)
@@ -87,16 +83,9 @@ class _BannerAdViewState extends ConsumerState<BannerAdView> {
       width: double.infinity,
       // 高さは広告の分だけにする(alignmentを付けると、画面いっぱいに広がってしまう)
       padding: const EdgeInsets.symmetric(vertical: 4),
-      decoration: BoxDecoration(
+      decoration: const BoxDecoration(
         color: AppColors.white,
-        border: Border(
-          top: widget.atTop
-              ? BorderSide.none
-              : const BorderSide(color: AppColors.line),
-          bottom: widget.atTop
-              ? const BorderSide(color: AppColors.line)
-              : BorderSide.none,
-        ),
+        border: Border(top: BorderSide(color: AppColors.line)),
       ),
       child: Center(heightFactor: 1, child: adView),
     );

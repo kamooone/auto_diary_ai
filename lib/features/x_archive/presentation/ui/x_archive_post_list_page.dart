@@ -175,9 +175,9 @@ class _XArchivePostListPageState extends ConsumerState<XArchivePostListPage> {
           ),
         ],
       ),
+      bottomNavigationBar: const SafeArea(child: BannerAdView(band: true)),
       body: Column(
         children: [
-          const BannerAdView(band: true, atTop: true),
           XArchiveFilterBar(
             years: _years,
             filter: _filter,
