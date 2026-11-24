@@ -7,7 +7,9 @@ import '../../../location/application/providers/location_providers.dart';
 import '../../../location/domain/entities/location.dart';
 import '../../../location/domain/entities/place_candidate.dart';
 import '../../../location/domain/entities/timeline_item.dart';
+import '../../../location/data/services/activity_recording_service.dart';
 import '../../../location/domain/entities/transport_mode.dart';
+import '../../../tutorial/application/tutorial_providers.dart';
 
 class MapState {
   final LatLng? currentLocation;
@@ -312,12 +314,21 @@ class MapViewModel extends Notifier<MapState> {
     await loadTimeline(state.selectedDate);
   }
 
+  // 身体活動の許可を、マップ画面で一度尋ねたかどうかの印(見たかどうかを覚える仕組みを、借りる)
+  static const _activityAskedId = 'map_activity_permission';
+
   /// 位置の取得を始める
   ///
-  /// 位置情報の許可がまだなら、先に許可のダイアログを出し、利用者が答えるまで待つ
-  /// (呼び出した側が、許可のダイアログの次に、別のダイアログを出せるようにするため)
+  /// 許可のダイアログを、次の順に出し、利用者が答えるまで待つ
+  /// (呼び出した側が、そのあとに、別のダイアログを出せるようにするため)
+  ///   1. 位置情報(まだ許可していなければ)
+  ///   2. 身体活動(位置情報を許可した人にだけ。Android。一度だけ)
   Future<void> start() async {
-    await ref.read(gpsLocationDataSourceProvider).requestPermission();
+    final granted = await ref
+        .read(gpsLocationDataSourceProvider)
+        .requestPermission();
+
+    if (granted) await _askActivityPermissionOnce();
 
     _subscription = ref
         .read(startLocationTrackingUseCaseProvider)
@@ -327,6 +338,17 @@ class MapViewModel extends Notifier<MapState> {
             currentLocation: LatLng(location.latitude, location.longitude),
           );
         });
+  }
+
+  /// 身体活動(徒歩・自転車・乗り物の判定)の許可を、一度だけ尋ねる
+  /// 断られたあとに、マップ画面を開くたびに出ないようにする
+  /// (設定で記録をオンにしたときは、許可がなければ、もう一度尋ねる)
+  Future<void> _askActivityPermissionOnce() async {
+    final store = ref.read(tutorialSeenStoreProvider);
+    if (await store.hasSeen(_activityAskedId)) return;
+
+    await requestActivityPermission();
+    await store.markSeen(_activityAskedId);
   }
 
   Future<void> stop() async {
