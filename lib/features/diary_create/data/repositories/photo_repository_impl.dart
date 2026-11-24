@@ -8,6 +8,32 @@ import '../../domain/exceptions/photo_exception.dart';
 import '../../domain/repositories/photo_repository.dart';
 
 class PhotoRepositoryImpl implements PhotoRepository {
+  /// [requestAccess]は、写真の許可を求めて、読み取れるかどうかを返す(テストで差し替える)
+  PhotoRepositoryImpl({Future<bool> Function()? requestAccess})
+    : _requestAccess = requestAccess ?? _requestFromOs;
+
+  final Future<bool> Function() _requestAccess;
+
+  static Future<bool> _requestFromOs() async {
+    final permission = await PhotoManager.requestPermissionExtend();
+    return permission.hasAccess;
+  }
+
+  // 許可を求めている途中の問い合わせ
+  //
+  // 許可のダイアログが出ている間に、別の処理が許可を求めても、新しく求めずに、同じ答えを待つ。
+  // (写真を選ぶ画面は、一番古い日付と、写真の一覧を、同時に読み込む。2つ目が、ダイアログの答えを
+  //  待たずに「まだ許可されていない」と受け取って失敗し、許可した直後に、写真が出なかった)
+  Future<bool>? _accessRequest;
+
+  /// 写真を読み取れるか。許可がまだなら、許可のダイアログを出し、利用者が答えるまで待つ
+  @visibleForTesting
+  Future<bool> hasAccess() {
+    return _accessRequest ??= _requestAccess().whenComplete(
+      () => _accessRequest = null,
+    );
+  }
+
   static const _thumbnailSide = 200;
 
   // 縮小が終わらない写真(10MBを超えるものなど)で、いつまでも待たないための時間
@@ -23,9 +49,7 @@ class PhotoRepositoryImpl implements PhotoRepository {
     DateTime? from,
     DateTime? to,
   }) async {
-    final permission = await PhotoManager.requestPermissionExtend();
-
-    if (!permission.hasAccess) {
+    if (!await hasAccess()) {
       throw PhotoPermissionException();
     }
 
@@ -37,12 +61,7 @@ class PhotoRepositoryImpl implements PhotoRepository {
               max: to.subtract(const Duration(seconds: 1)),
             )
           : null,
-      orders: [
-        const OrderOption(
-          type: OrderOptionType.createDate,
-          asc: false,
-        ),
-      ],
+      orders: [const OrderOption(type: OrderOptionType.createDate, asc: false)],
     );
 
     final albums = await PhotoManager.getAssetPathList(
@@ -53,10 +72,7 @@ class PhotoRepositoryImpl implements PhotoRepository {
 
     if (albums.isEmpty) return [];
 
-    final assets = await albums.first.getAssetListPaged(
-      page: page,
-      size: size,
-    );
+    final assets = await albums.first.getAssetListPaged(page: page, size: size);
 
     return assets.map((asset) {
       _assets[asset.id] = asset;
@@ -72,9 +88,7 @@ class PhotoRepositoryImpl implements PhotoRepository {
 
   @override
   Future<DateTime?> getOldestDate() async {
-    final permission = await PhotoManager.requestPermissionExtend();
-
-    if (!permission.hasAccess) {
+    if (!await hasAccess()) {
       throw PhotoPermissionException();
     }
 
@@ -118,11 +132,7 @@ class PhotoRepositoryImpl implements PhotoRepository {
       try {
         final bytes = await asset
             .thumbnailDataWithSize(
-              fitSize(
-                asset.orientatedWidth,
-                asset.orientatedHeight,
-                side,
-              ),
+              fitSize(asset.orientatedWidth, asset.orientatedHeight, side),
               format: ThumbnailFormat.jpeg,
               quality: quality,
             )
