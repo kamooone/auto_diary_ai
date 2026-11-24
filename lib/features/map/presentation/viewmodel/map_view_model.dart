@@ -312,7 +312,13 @@ class MapViewModel extends Notifier<MapState> {
     await loadTimeline(state.selectedDate);
   }
 
+  /// 位置の取得を始める
+  ///
+  /// 位置情報の許可がまだなら、先に許可のダイアログを出し、利用者が答えるまで待つ
+  /// (呼び出した側が、許可のダイアログの次に、別のダイアログを出せるようにするため)
   Future<void> start() async {
+    await ref.read(gpsLocationDataSourceProvider).requestPermission();
+
     _subscription = ref
         .read(startLocationTrackingUseCaseProvider)
         .execute()

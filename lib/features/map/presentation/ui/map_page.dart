@@ -8,6 +8,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:latlong2/latlong.dart';
 import '../../../../common/constants/map_constants.dart';
 import '../../../../core/app_info/install_date_provider.dart';
+import '../../../location/application/providers/location_providers.dart';
 import '../../../location/domain/entities/timeline_item.dart';
 import '../../../tutorial/application/tutorial_providers.dart';
 import '../../../tutorial/domain/tutorial_step.dart';
@@ -30,7 +31,6 @@ class _MapPageState extends ConsumerState<MapPage> {
   final _sheetController = DraggableScrollableController();
   bool _movedToCurrentLocation = false; // 初回移動フラグ
 
-
   // チュートリアルで明るくする部品
   final _timelineKey = GlobalKey();
 
@@ -52,6 +52,47 @@ class _MapPageState extends ConsumerState<MapPage> {
     super.dispose();
   }
 
+  // 行動履歴のオン・オフを切り替えるボタンを、ホーム画面に置くかどうかを尋ねる(初回のみ)
+  // 位置情報の許可のダイアログの次に出す。許可されなかったときは、記録できないため、尋ねない
+  Future<void> _promptRecordingWidget() async {
+    if (!await ref.read(gpsLocationDataSourceProvider).hasPermission()) return;
+
+    final dataSource = ref.read(recordingStateDataSourceProvider);
+
+    if (!await dataSource.isWidgetPinSupported()) return;
+    if (await dataSource.isWidgetPinned()) return;
+    if (!await dataSource.consumeWidgetPrompt()) return;
+
+    if (!mounted) return;
+
+    final shouldAdd = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        scrollable: true,
+        title: const Text("ホーム画面にボタンを表示しますか？"),
+        content: const Text(
+          "行動履歴のオン・オフを切り替えるボタンを、ホーム画面に表示できます。\n"
+          "表示すると、オン・オフの切り替えがすぐにできます。\n\n"
+          "あとから設定画面でも表示できます。",
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text("表示しない"),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text("表示する"),
+          ),
+        ],
+      ),
+    );
+
+    if (shouldAdd == true) {
+      await dataSource.requestPinWidget();
+    }
+  }
+
   @override
   void initState() {
     super.initState();
@@ -65,7 +106,12 @@ class _MapPageState extends ConsumerState<MapPage> {
       await _showTutorialOnce();
       if (!mounted) return;
 
+      // 位置情報の許可のダイアログを出して、答えるまで待つ
       await vm.start();
+      if (!mounted) return;
+
+      // その次に、ホーム画面にボタンを置くかどうかを尋ねる(初回のみ)
+      await _promptRecordingWidget();
     });
 
     ref.listenManual(mapProvider, (previous, next) {
