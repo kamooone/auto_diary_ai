@@ -68,6 +68,7 @@ import '../features/x_archive/fake_x_archive_repository.dart';
 import 'package:auto_diary_ai/common/widgets/confirm_dialog.dart';
 import 'package:auto_diary_ai/features/diary_create/presentation/ui/widgets/token_shortage_dialog.dart';
 import 'package:auto_diary_ai/features/location/domain/entities/transport_mode.dart';
+import 'package:auto_diary_ai/features/location/presentation/ui/activity_permission_explanation.dart';
 import 'package:auto_diary_ai/features/map/presentation/ui/widgets/timeline_sheet.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -651,6 +652,7 @@ final screens = <Screen>[
       photoTokens: 1100,
     ),
   ),
+  _dialog('ダイアログ: 身体活動の説明', showActivityPermissionExplanation),
   _dialog(
     'ダイアログ: 確認(長い文)',
     (context) => showConfirmDialog(

@@ -14,6 +14,21 @@ const _fetchTimeout = Duration(seconds: 30);
 
 bool get _isSupported => Platform.isAndroid || Platform.isIOS;
 
+/// 身体活動の許可を、これから尋ねられるか(Androidのみ)
+///
+/// まだ尋ねていない(または、前に断っただけで、「今後は表示しない」にはしていない)ときだけ true
+/// 許可済みのときや、「今後は表示しない」にされたとき(OSのダイアログが、もう出ない)は false
+Future<bool> canAskActivityPermission() async {
+  if (!Platform.isAndroid) return false;
+
+  try {
+    return (await Permission.activityRecognition.status).isDenied;
+  } catch (e) {
+    debugPrint('身体活動の許可の状態を調べられませんでした: $e');
+    return false;
+  }
+}
+
 /// 身体活動の許可を求める(Androidのみ。iOSは最初の取り込みのときにOSが尋ねる)
 Future<void> requestActivityPermission() async {
   if (!Platform.isAndroid) return;

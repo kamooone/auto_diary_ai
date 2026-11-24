@@ -16,6 +16,7 @@ import '../../../ai/presentation/widgets/ai_select_card.dart';
 import '../../../inquiry/application/providers/inquiry_providers.dart';
 import '../../../plan/application/providers/plan_provider.dart';
 import '../../../plan/domain/entities/plan_availability.dart';
+import '../../../location/presentation/ui/activity_permission_explanation.dart';
 import '../../../privacy/presentation/ui/privacy_policy_page.dart';
 import '../../../tutorial/application/tutorial_providers.dart';
 import 'widgets/settings_row.dart';
@@ -280,7 +281,12 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
 
     final succeeded = await ref
         .read(recordingSettingsProvider.notifier)
-        .setEnabled(enabled);
+        .setEnabled(
+          enabled,
+          // 身体活動の許可の前に、何のために使うのかを説明する
+          explainActivity: () async =>
+              mounted && await showActivityPermissionExplanation(context),
+        );
 
     if (!succeeded) {
       messenger.showSnackBar(

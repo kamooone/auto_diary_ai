@@ -10,6 +10,7 @@ import '../../../../common/constants/map_constants.dart';
 import '../../../../core/app_info/install_date_provider.dart';
 import '../../../location/application/providers/location_providers.dart';
 import '../../../location/domain/entities/timeline_item.dart';
+import '../../../location/presentation/ui/activity_permission_explanation.dart';
 import '../../../tutorial/application/tutorial_providers.dart';
 import '../../../tutorial/domain/tutorial_step.dart';
 import '../../../tutorial/presentation/tutorial_runner.dart';
@@ -106,7 +107,18 @@ class _MapPageState extends ConsumerState<MapPage> {
       await _showTutorialOnce();
       if (!mounted) return;
 
-      // 位置情報の許可のダイアログを出して、答えるまで待つ
+      // 許可のダイアログを、順に出す(それぞれ、利用者が答えるまで待つ)
+      //   1. 位置情報  2. 身体活動(位置情報を許可した人だけ。先に、何のためかを説明する)
+      final granted = await vm.requestLocationPermission();
+      if (!mounted) return;
+
+      if (granted) {
+        await vm.askActivityPermissionOnce(
+          explain: () => showActivityPermissionExplanation(context),
+        );
+        if (!mounted) return;
+      }
+
       await vm.start();
       if (!mounted) return;
 

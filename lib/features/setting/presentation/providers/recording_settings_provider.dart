@@ -26,10 +26,11 @@ class RecordingSettingsState {
 /// 行動履歴の記録のオン・オフと、ホーム画面のウィジェットの状態
 ///
 /// ウィジェットからも切り替えられるため、アプリに戻ってきたときは読み込み直すこと
-final recordingSettingsProvider = AsyncNotifierProvider.autoDispose<
-    RecordingSettingsNotifier, RecordingSettingsState>(
-  RecordingSettingsNotifier.new,
-);
+final recordingSettingsProvider =
+    AsyncNotifierProvider.autoDispose<
+      RecordingSettingsNotifier,
+      RecordingSettingsState
+    >(RecordingSettingsNotifier.new);
 
 class RecordingSettingsNotifier
     extends AutoDisposeAsyncNotifier<RecordingSettingsState> {
@@ -47,17 +48,29 @@ class RecordingSettingsNotifier
 
   /// 記録のオン・オフを切り替える
   /// オンにできなかった場合(位置情報が許可されなかった場合など)はfalseを返す
-  Future<bool> setEnabled(bool enabled) async {
+  ///
+  /// [explainActivity]を渡すと、身体活動の許可をOSに尋ねる前(まだ許可しておらず、尋ねられるとき)に
+  /// 呼ぶ。何のために使うのかの説明を出して、「次へ」ならtrue、「あとで」ならfalseを返す
+  /// (falseのときは、OSのダイアログを出さない。記録は、身体活動なしでオンになる)
+  Future<bool> setEnabled(
+    bool enabled, {
+    Future<bool> Function()? explainActivity,
+  }) async {
     final dataSource = ref.read(recordingStateDataSourceProvider);
 
     if (enabled) {
       // 起動時に許可していなかった場合は、ここでもう一度求める
-      final granted =
-          await ref.read(gpsLocationDataSourceProvider).requestPermission();
+      final granted = await ref
+          .read(gpsLocationDataSourceProvider)
+          .requestPermission();
 
       if (!granted) return false;
 
-      await requestActivityPermission();
+      var askActivity = true;
+      if (explainActivity != null && await canAskActivityPermission()) {
+        askActivity = await explainActivity();
+      }
+      if (askActivity) await requestActivityPermission();
     }
 
     final result = await dataSource.setEnabled(enabled);

@@ -317,19 +317,34 @@ class MapViewModel extends Notifier<MapState> {
   // 身体活動の許可を、マップ画面で一度尋ねたかどうかの印(見たかどうかを覚える仕組みを、借りる)
   static const _activityAskedId = 'map_activity_permission';
 
-  /// 位置の取得を始める
+  /// 位置情報の許可を求める(まだ許可していなければ、OSのダイアログを出し、答えるまで待つ)
+  /// 許可されたら true
+  Future<bool> requestLocationPermission() {
+    return ref.read(gpsLocationDataSourceProvider).requestPermission();
+  }
+
+  /// 身体活動の許可を、一度だけ尋ねる(Android。位置情報を許可した人に、位置情報の許可のあとで)
   ///
-  /// 許可のダイアログを、次の順に出し、利用者が答えるまで待つ
-  /// (呼び出した側が、そのあとに、別のダイアログを出せるようにするため)
-  ///   1. 位置情報(まだ許可していなければ)
-  ///   2. 身体活動(位置情報を許可した人にだけ。Android。一度だけ)
+  /// OSのダイアログの前に、[explain]で、何のために使うのかを、説明する。
+  /// [explain]が false を返したとき(「あとで」)は、OSのダイアログを出さない。
+  /// 断られたあとに、マップ画面を開くたびに出ないよう、尋ねたことを覚える
+  /// (設定で記録をオンにしたときは、許可がなければ、もう一度尋ねる)
+  Future<void> askActivityPermissionOnce({
+    required Future<bool> Function() explain,
+  }) async {
+    if (!await canAskActivityPermission()) return;
+
+    final store = ref.read(tutorialSeenStoreProvider);
+    if (await store.hasSeen(_activityAskedId)) return;
+    await store.markSeen(_activityAskedId);
+
+    if (!await explain()) return;
+
+    await requestActivityPermission();
+  }
+
+  /// 位置の取得を始める(許可のダイアログは、先に、上の2つで済ませておく)
   Future<void> start() async {
-    final granted = await ref
-        .read(gpsLocationDataSourceProvider)
-        .requestPermission();
-
-    if (granted) await _askActivityPermissionOnce();
-
     _subscription = ref
         .read(startLocationTrackingUseCaseProvider)
         .execute()
@@ -338,17 +353,6 @@ class MapViewModel extends Notifier<MapState> {
             currentLocation: LatLng(location.latitude, location.longitude),
           );
         });
-  }
-
-  /// 身体活動(徒歩・自転車・乗り物の判定)の許可を、一度だけ尋ねる
-  /// 断られたあとに、マップ画面を開くたびに出ないようにする
-  /// (設定で記録をオンにしたときは、許可がなければ、もう一度尋ねる)
-  Future<void> _askActivityPermissionOnce() async {
-    final store = ref.read(tutorialSeenStoreProvider);
-    if (await store.hasSeen(_activityAskedId)) return;
-
-    await requestActivityPermission();
-    await store.markSeen(_activityAskedId);
   }
 
   Future<void> stop() async {
