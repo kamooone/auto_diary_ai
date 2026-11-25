@@ -58,31 +58,28 @@ class TokenEstimator {
     listOutputTokensPerSecond: 500,
   );
 
-  // GPT(gpt-5-mini)。写真は、縮小後の縦横から計算する(tokensPerPatch)。GPTは、送る画像の
-  // ピクセル数でトークンが変わる(Geminiは約1,100で一定)。縦横を32pxのマス目に分けた数
-  // (1024x576なら32x18=576)に、1マスあたり1.15をかけて、写真があるときは+200する。
-  // 2026-11-11の実測(長辺1024に縮小): 横長1枚で入力1,292、縦長2枚+横長1枚で入力2,676、
-  // 縦長6枚+横長4枚で入力7,520(写真1枚あたり約690、写真以外の入力が約600)。実測は1マスあたり
-  // 約1.2。写真が100枚あっても実際を超えないよう、1マスあたりは少なめの1.15にし、
-  // 1枚のときの下限(実際の80%)は、写真があるときの固定の+200で保つ。
-  // 4:3(1024x768)は約880、正方形は約1,180になる。縦横が分からない写真は、16:9として
-  // 計算する(tokensPerPhoto)。以前の450は、2026-11-05に、小さい写真で測った値。
-  // (縦長の写真が縮小されずに送られる不具合は、2026-11-11に直した。直す前は縦長が約2,200だった)。
-  // 指示文は固定で約480(3件の測定から)、
-  // ふつうのAI日記の出力は、写真1枚で約130、3枚で約240。
-  // 日記の入力は、固定が約500、1文字あたり約0.85(測った5点で、
-  // 見積もり÷実測が84〜95%に収まる値にした。少なめにする方針は、Geminiと同じ)。
-  // 出力は、出来事の一覧が1件約45〜100、簡単なブログ風が日記の約5.7%、
-  // ブログ風が日記の8.7〜15%(読み物の長さの指示が、日記の量で変わる)
+  // GPT(gpt-5-mini)。ふつうのAI日記の、材料(メモ・写真・行動履歴・Xの投稿・ひとことメモ)と、
+  // 指示文、出力の係数は、**いったん、Geminiと同じ**にした(2026-11-26、ユーザー指示)。
+  // GPTのテストをして、微調整する。以前のGPTの係数(2026-11-04〜11の実測。写真は縦横から計算、
+  // 指示文450・メモ0.82など)は、gitの履歴にある。GPTは、数字を数桁まとめて数えるため、
+  // 履歴・投稿は、Geminiより少なくなる可能性がある。考える量(reasoning)が毎回出る点も、
+  // Geminiと違う。
+  // 日記を1つにする(まとめ)と、書き方の相談の係数と、作業時間の見積もり(ゲージ)は、
+  // GPTの以前の値のまま(ゲージの長さの、実測(31件で25秒など)と結びついているため)
   static const _gpt = _Coefficients(
-    instruction: 450,
-    noteTokensPerChar: 0.82,
-    tokensPerChar: 0.9,
-    tokensPerPhoto: 662,
-    tokensPerPatch: 1.15,
-    photoFixedTokens: 200,
+    instruction: instructionTokens,
+    noteTokensPerChar: noteTokensPerChar,
+    tokensPerChar: tokensPerChar,
+    postsBaseTokens: postsBaseTokens,
+    postsSlopeTokensPerChar: postsSlopeTokensPerChar,
+    timelineTokensPerChar: timelineTokensPerChar,
+    timelineBaseTokens: timelineBaseTokens,
+    timelineSlopeTokensPerChar: timelineSlopeTokensPerChar,
+    tokensPerPhoto: tokensPerPhoto,
     photoTimeTokens: photoTimeTokens,
-    plainOutput: 100,
+    plainOutput: outputTokens,
+    noteOutputTokensPerChar: noteOutputTokensPerChar,
+    noteOutputCap: noteOutputCap,
     outputTokensPerChar: 0.5,
     diaryTokensPerChar: 0.82,
     readingRatio: 0.08,
@@ -105,37 +102,11 @@ class TokenEstimator {
   /// AIの種類ごとの、写真1枚あたりのトークン
   static int photoTokens(AiModel model) => _of(model).tokensPerPhoto;
 
-  // 写真を送る前に縮小する、長辺の大きさ(GenerateDiaryUseCaseと同じ)
-  static const _photoMaxSide = 1024;
-  static const _patchSide = 32;
-
-  static int _photoInputTokens(
-    _Coefficients c,
-    int photoCount,
-    List<Photo> photos,
-  ) {
-    // 写真ごとに、撮影日時の行(「1枚目: 2026年1月1日 09:30」)も送る
-    final times = photoCount * c.photoTimeTokens;
-
-    final perPatch = c.tokensPerPatch;
-    if (perPatch == null || photos.isEmpty) {
-      return photoCount * c.tokensPerPhoto + times;
-    }
-
-    var total = c.photoFixedTokens + times;
-    for (final p in photos) {
-      final w = p.width;
-      final h = p.height;
-      if (w == null || h == null || w <= 0 || h <= 0) {
-        total += c.tokensPerPhoto;
-        continue;
-      }
-      final scale = math.min(1.0, _photoMaxSide / math.max(w, h));
-      final patches =
-          (w * scale / _patchSide).ceil() * (h * scale / _patchSide).ceil();
-      total += (patches * perPatch).round();
-    }
-    return total;
+  // 写真1枚ごとに、画像と、撮影日時の行(「1枚目: 2026年1月1日 09:30」)を送る。
+  // 写真の縦横で、トークンが変わるAI(GPT)の、縦横からの計算は、いったん、やめた
+  // (2026-11-26。Geminiと同じ、1枚あたり一定。以前の計算は、gitの履歴にある)
+  static int _photoInputTokens(_Coefficients c, int photoCount) {
+    return photoCount * (c.tokensPerPhoto + c.photoTimeTokens);
   }
 
   // Geminiの、ふつうのAI日記の係数は、すべて、実測の約80%にそろえる(2026-11-25)。
@@ -373,7 +344,7 @@ class TokenEstimator {
         note.length * c.noteTokensPerChar +
         timelineTokens(timelineChars, model: model) +
         postsTokens(chars, model: model) +
-        _photoInputTokens(c, photoCount, photos) +
+        _photoInputTokens(c, photoCount) +
         SummaryText.length(diaries) * c.diaryTokensPerChar;
 
     final noteOutput = math.min(
@@ -413,8 +384,6 @@ class _Coefficients {
     this.timelineSlopeTokensPerChar,
     required this.tokensPerPhoto,
     this.photoTimeTokens = 0,
-    this.tokensPerPatch,
-    this.photoFixedTokens = 0,
     required this.plainOutput,
     this.noteOutputTokensPerChar = 0,
     this.noteOutputCap = 0,
@@ -450,14 +419,6 @@ class _Coefficients {
 
   /// 写真1枚ごとに送る、撮影日時の行のトークン
   final int photoTimeTokens;
-
-  /// 写真の縦横から計算するとき、32pxのマス目1つあたりのトークン(nullなら、1枚あたり一定)
-  final double? tokensPerPatch;
-
-  /// 写真を1枚以上送るときだけ加える、一定のトークン。写真があると、写真以外の入力と
-  /// 出力が、写真なしの日記より多くなる分(1マスあたりを低くして、枚数が多くても
-  /// 実際を超えないようにした代わりに、1枚のときの下限をここで保つ)
-  final int photoFixedTokens;
 
   /// メモがあるときに、ふつうのAI日記の出力へ加える、1文字あたりのトークンと上限
   final double noteOutputTokensPerChar;

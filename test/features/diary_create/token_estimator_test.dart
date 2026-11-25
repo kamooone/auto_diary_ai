@@ -1,9 +1,7 @@
 import 'package:auto_diary_ai/features/ai/domain/entities/ai_model.dart';
 import 'package:auto_diary_ai/features/diary/domain/entities/diary.dart';
 import 'package:auto_diary_ai/features/diary_create/domain/entities/diary_length.dart';
-import 'package:auto_diary_ai/features/diary_create/domain/entities/photo.dart';
 import 'package:auto_diary_ai/features/diary_create/domain/entities/summary_style.dart';
-import 'package:auto_diary_ai/features/diary_create/domain/services/summary_text.dart';
 import 'package:auto_diary_ai/features/diary_create/domain/services/timeline_text.dart';
 import 'package:auto_diary_ai/features/diary_create/domain/services/token_estimator.dart';
 import 'package:auto_diary_ai/features/diary_create/presentation/ui/widgets/token_shortage_dialog.dart';
@@ -330,172 +328,63 @@ void main() {
     });
   });
 
-  group('TokenEstimator(GPT・ふつうの日記)', () {
-    Photo photo(int w, int h) =>
-        Photo(id: '$w$h', createdAt: DateTime(2026, 1, 1), width: w, height: h);
-
-    int plain(List<Photo> photos) => TokenEstimator.estimate(
-      note: '',
-      timeline: const [],
-      posts: const [],
-      photoCount: photos.length,
-      photos: photos,
-      model: AiModel.gpt,
+  // GPTは、2026-11-26に、ふつうのAI日記の材料・指示文・出力を、いったん、Geminiと同じ係数にした(ユーザー指示)。
+  // GPTのテストをして、微調整する。日記を1つにする(まとめ)・相談・ゲージ(作業時間)は、GPTの以前の値のまま。
+  // 以前のGPTの係数(縦横からの写真の計算など)と、その測定のテストは、gitの履歴にある
+  group('TokenEstimator(GPTは、いったん、Geminiと同じ)', () {
+    int tokens(
+      AiModel model, {
+      String note = '',
+      int photoCount = 0,
+      List<TimelineItem> timeline = const [],
+      List<SharedPost> posts = const [],
+    }) => TokenEstimator.estimate(
+      note: note,
+      timeline: timeline,
+      posts: posts,
+      photoCount: photoCount,
+      model: model,
     );
 
-    // 実測(2026-11-11、長辺1024に縮小): 写真1枚(縦長) 1,599、3枚(縦長) 3,126、
-    // 10枚(縦長6枚+横長4枚) 8,064。縦横は、撮った大きさ(縮小前)で渡す。
-    // 見積もりは、実測の80%以上100%未満
-    test('写真1枚は、実測1,599の80〜100%', () {
-      expect(plain([photo(1080, 1920)]), inInclusiveRange(1280, 1598));
-    });
-
-    test('写真3枚は、実測3,126の80〜100%', () {
+    test('何も選ばない・メモ・写真は、Geminiと同じ', () {
+      expect(tokens(AiModel.gpt), tokens(AiModel.gemini));
       expect(
-        plain([for (var i = 0; i < 3; i++) photo(1080, 1920)]),
-        inInclusiveRange(2501, 3125),
+        tokens(AiModel.gpt, note: 'あ' * 969),
+        tokens(AiModel.gemini, note: 'あ' * 969),
       );
-    });
-
-    test('写真10枚(縦長6+横長4)は、実測8,064の80〜100%', () {
       expect(
-        plain([
-          for (var i = 0; i < 6; i++) photo(1080, 1920),
-          for (var i = 0; i < 4; i++) photo(1920, 1080),
-        ]),
-        inInclusiveRange(6452, 8063),
+        tokens(AiModel.gpt, photoCount: 10),
+        tokens(AiModel.gemini, photoCount: 10),
       );
     });
 
-    test('写真100枚でも、実測から計算した実際(約70,300)を超えない', () {
-      // 写真1枚あたりの入力は実測で約692。写真以外の入力約600+出力約600を足す
-      final est = plain([for (var i = 0; i < 100; i++) photo(1080, 1920)]);
-      expect(est, inInclusiveRange(70300 * 0.8, 70300));
-    });
-
-    test('縦長と横長は、同じトークンになる', () {
-      expect(plain([photo(1080, 1920)]), plain([photo(1920, 1080)]));
-    });
-
-    test('4:3や正方形の写真は、16:9より多くなる', () {
-      final wide = plain([photo(1920, 1080)]);
-      expect(plain([photo(4000, 3000)]), greaterThan(wide));
-      expect(
-        plain([photo(3000, 3000)]),
-        greaterThan(plain([photo(4000, 3000)])),
+    test('行動履歴・Xの投稿は、Geminiと同じ', () {
+      final stay = Stay(
+        start: DateTime(2026, 1, 1, 9),
+        end: DateTime(2026, 1, 1, 10),
+        latitude: 35,
+        longitude: 139,
+        placeName: '東京駅',
       );
-    });
-
-    test('小さい写真は、拡大せずに計算する', () {
-      expect(plain([photo(320, 320)]), lessThan(plain([photo(1920, 1080)])));
-    });
-
-    test('縦横が分からない写真は、16:9として計算する', () {
-      expect(
-        plain([Photo(id: 'x', createdAt: DateTime(2026, 1, 1))]),
-        plain([photo(1920, 1080)]),
-      );
-    });
-
-    test('Geminiは、縦横に関係なく1枚あたり一定', () {
-      int gemini(Photo p) => TokenEstimator.estimate(
-        note: '',
-        timeline: const [],
-        posts: const [],
-        photoCount: 1,
-        photos: [p],
-        model: AiModel.gemini,
-      );
-      expect(gemini(photo(3000, 3000)), gemini(photo(1920, 1080)));
-    });
-
-    test('写真1枚あたりは、Geminiより少ない', () {
-      expect(
-        TokenEstimator.photoTokens(AiModel.gpt),
-        lessThan(TokenEstimator.photoTokens(AiModel.gemini)),
-      );
-    });
-  });
-
-  group('TokenEstimator(GPT)', () {
-    // 日記の文字数(SummaryText.length)が[chars]になる、[count]件の日記
-    List<Diary> diaries(int count, int chars) {
-      List<Diary> build(int lastLength) => [
-        for (var i = 0; i < count; i++)
-          Diary(
-            date: DateTime(2026, 1, 1 + i),
-            title: 't',
-            content: 'あ' * (i == count - 1 ? lastLength : 100),
-            isAiGenerated: false,
-            createdAt: DateTime(2026, 1, 1 + i, 21),
-          ),
+      final posts = [
+        SharedPost(
+          url: 'https://x.com/a/status/1',
+          text: 'おはよう',
+          receivedAt: DateTime(2026, 1, 1, 9),
+        ),
       ];
 
-      var last = 100;
-      while (SummaryText.length(build(last)) < chars) {
-        last++;
-      }
-      return build(last);
-    }
-
-    int estimate(List<Diary> d, SummaryStyle style, AiModel model) =>
-        TokenEstimator.estimate(
-          note: '',
-          timeline: const [],
-          posts: const [],
-          photoCount: 0,
-          diaries: d,
-          summaryStyle: style,
-          model: model,
-        );
-
-    void expectBetween(int actual, int estimated) {
-      expect(estimated, lessThanOrEqualTo(actual));
-      expect(estimated, greaterThanOrEqualTo((actual * 0.8).floor()));
-    }
-
-    test('3件・出来事の一覧(実測1,879)', () {
-      expectBetween(
-        1879,
-        estimate(diaries(3, 1256), SummaryStyle.list, AiModel.gpt),
+      expect(
+        tokens(AiModel.gpt, timeline: [stay], posts: posts),
+        tokens(AiModel.gemini, timeline: [stay], posts: posts),
       );
     });
 
-    test('31件・出来事の一覧(実測13,111)', () {
-      expectBetween(
-        13111,
-        estimate(diaries(31, 13212), SummaryStyle.list, AiModel.gpt),
+    test('写真1枚あたりも、Geminiと同じ', () {
+      expect(
+        TokenEstimator.photoTokens(AiModel.gpt),
+        TokenEstimator.photoTokens(AiModel.gemini),
       );
-    });
-
-    test('31件・簡単なブログ風(実測12,660)', () {
-      expectBetween(
-        12660,
-        estimate(diaries(31, 13212), SummaryStyle.brief, AiModel.gpt),
-      );
-    });
-
-    test('31件・ブログ風(実測14,617)', () {
-      expectBetween(
-        14617,
-        estimate(diaries(31, 13212), SummaryStyle.reading, AiModel.gpt),
-      );
-    });
-
-    test('31件・相談(実測12,932)', () {
-      expectBetween(
-        12932,
-        TokenEstimator.estimateConsult(diaries(31, 13212), model: AiModel.gpt),
-      );
-    });
-
-    test('Geminiの日記を1つにする見積もりは、指示文の分(+70)だけ増えた', () {
-      // 2026-11-25: Geminiの指示文を200→270にした(実測の入力が約340になったため)。
-      // 日記1文字あたりの係数は変えていないので、増えたのは指示文の分だけ
-      final d = diaries(31, 13212);
-
-      expect(estimate(d, SummaryStyle.list, AiModel.gemini), 7271 + 70);
-      expect(estimate(d, SummaryStyle.reading, AiModel.gemini), 7863 + 70);
     });
   });
 
