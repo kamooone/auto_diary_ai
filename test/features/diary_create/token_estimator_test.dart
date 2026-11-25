@@ -478,8 +478,17 @@ void main() {
       return result;
     }
 
-    testWidgets('「それでも送る」を選べる', (tester) async {
-      expect(await open(tester, 'それでも送る'), TokenShortageChoice.sendAnyway);
+    testWidgets('「それでも送る」はない。待つか、ポイントを貯めるよう伝える', (tester) async {
+      await open(tester, 'やめる');
+
+      // ダイアログは閉じたので、中身は、開き直して確かめる
+      await tester.tap(find.text('開く'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('それでも送る'), findsNothing);
+      expect(find.textContaining('来月の1日に戻ります'), findsOneWidget);
+      expect(find.textContaining('ゲームでポイントを貯めて'), findsOneWidget);
+      expect(find.textContaining('書いたあとに'), findsNothing);
     });
 
     testWidgets('「やめる」を選べる', (tester) async {

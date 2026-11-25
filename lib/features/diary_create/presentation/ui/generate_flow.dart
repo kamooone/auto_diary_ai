@@ -56,8 +56,9 @@ Future<bool> confirmBeforeGenerate(
   return true;
 }
 
-/// 今月の残りでは足りない見込みなら、先に知らせる
-/// 続けてよければtrueを返す(やめた場合や、ポイント・トークンの画面へ進んだ場合はfalse)
+/// 今月の残りでは足りない見込みなら、知らせて、先へ進ませない
+/// 足りていればtrueを返す。足りない場合は、必ずfalseを返す
+/// (ポイント・トークンの画面を開く選択をしたときは、その画面へ進む)
 Future<bool> _passShortage(
   BuildContext context,
   WidgetRef ref,
@@ -76,10 +77,9 @@ Future<bool> _passShortage(
 
   if (choice == TokenShortageChoice.openPoints) {
     context.push(AppRoutes.points);
-    return false;
   }
 
-  return choice != TokenShortageChoice.cancel;
+  return false;
 }
 
 /// 書き方の相談を始める前の確認(日記の全文をAIに送るので、消費トークンの目安を知らせる)
