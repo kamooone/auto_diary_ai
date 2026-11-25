@@ -6,23 +6,35 @@ class TimelineText {
 
   /// [addressStays]に入れた滞在だけ、住所(住所が分からないときは座標)も渡す。
   /// 入れなかった滞在は、住所も座標も渡さない(利用者が、送ると決めたものだけを送る)
+  ///
+  /// 日ごとに、日付の見出し(「2026年1月1日」)をつける。時刻だけでは、どの日の履歴か
+  /// 分からず、AIが日記の日付の出来事だと取り違えるため(複数日を選んだときに、起きた)
   static String format(
     List<TimelineItem> timeline, {
     Set<TimelineItem> addressStays = const {},
   }) {
-    return timeline
-        .map((e) {
-          final time = "${_time(e.start)}〜${_time(e.end)}";
+    final lines = <String>[];
+    DateTime? currentDay;
 
-          return switch (e) {
-            Stay() =>
-              "$time 滞在: ${_place(e, withAddress: addressStays.contains(e))}",
-            Move() =>
-              "$time 移動${_transport(e)}: 約${_distance(e.distanceMeters)}",
-            RecordingOff() => "$time 記録なし",
-          };
-        })
-        .join("\n");
+    for (final e in timeline) {
+      final day = DateTime(e.start.year, e.start.month, e.start.day);
+
+      if (currentDay != day) {
+        lines.add("${day.year}年${day.month}月${day.day}日");
+        currentDay = day;
+      }
+
+      final time = "${_time(e.start)}〜${_time(e.end)}";
+
+      lines.add(switch (e) {
+        Stay() =>
+          "$time 滞在: ${_place(e, withAddress: addressStays.contains(e))}",
+        Move() => "$time 移動${_transport(e)}: 約${_distance(e.distanceMeters)}",
+        RecordingOff() => "$time 記録なし",
+      });
+    }
+
+    return lines.join("\n");
   }
 
   /// 住所(分からないときは、座標)。AIに渡す前に、利用者に見せるときにも使う
