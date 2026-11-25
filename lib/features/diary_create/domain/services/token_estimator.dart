@@ -58,25 +58,32 @@ class TokenEstimator {
     listOutputTokensPerSecond: 500,
   );
 
-  // GPT(gpt-5-mini)。ふつうのAI日記の、材料(メモ・写真・行動履歴・Xの投稿・ひとことメモ)と、
-  // 指示文、出力の係数は、**いったん、Geminiと同じ**にした(2026-11-26、ユーザー指示)。
-  // GPTのテストをして、微調整する。以前のGPTの係数(2026-11-04〜11の実測。写真は縦横から計算、
-  // 指示文450・メモ0.82など)は、gitの履歴にある。GPTは、数字を数桁まとめて数えるため、
-  // 履歴・投稿は、Geminiより少なくなる可能性がある。考える量(reasoning)が毎回出る点も、
-  // Geminiと違う。
+  // GPT(gpt-5-mini)。**Geminiの係数に、材料ごとの倍率をかけた値**にした(2026-11-26、ユーザー指示)。
+  // GPTのテストをして、微調整する。以前のGPTの係数(2026-11-04〜11の実測。写真は縦横から計算など)は、
+  // gitの履歴にある。
+  //  ・文字(指示文・メモ): GPTのほうが多い。実測は、指示文417(Gemini 339)、メモ約0.83/文字(Gemini 約0.57)
+  //    で、約1.3〜1.5倍。**×1.3**(指示文351・メモ0.6)
+  //  ・写真: GPTのほうが少ない。1枚あたり約690(Geminiは約1,100)。**×0.6**(528)。
+  //    Geminiと同じにすると、見積もりが実測を超える
+  //  ・行動履歴・Xの投稿・ひとことメモ: GPTは、数字を数桁まとめて数えるので、Geminiと違う可能性がある。
+  //    測るまでは、Geminiと同じ
+  //  ・考える分(reasoning): 考える量 medium では、小さな入力でも、毎回、約450〜580出る(2026-11-25の
+  //    G1・G2)。最小の約9割、**+400**を足す(単純なケースで、実測の約80%になるように)。
+  //    思考が約290未満の回があれば、何も選ばないとき、見積もりが実測を超える
   // 日記を1つにする(まとめ)と、書き方の相談の係数と、作業時間の見積もり(ゲージ)は、
-  // GPTの以前の値のまま(ゲージの長さの、実測(31件で25秒など)と結びついているため)
+  // GPTの以前の値のまま(ゲージの長さの実測(31件で25秒など)と結びついているため)
   static const _gpt = _Coefficients(
-    instruction: instructionTokens,
-    noteTokensPerChar: noteTokensPerChar,
+    instruction: 351,
+    noteTokensPerChar: 0.6,
     tokensPerChar: tokensPerChar,
     postsBaseTokens: postsBaseTokens,
     postsSlopeTokensPerChar: postsSlopeTokensPerChar,
     timelineTokensPerChar: timelineTokensPerChar,
     timelineBaseTokens: timelineBaseTokens,
     timelineSlopeTokensPerChar: timelineSlopeTokensPerChar,
-    tokensPerPhoto: tokensPerPhoto,
+    tokensPerPhoto: 528,
     photoTimeTokens: photoTimeTokens,
+    reasoningTokens: 400,
     plainOutput: outputTokens,
     noteOutputTokensPerChar: noteOutputTokensPerChar,
     noteOutputCap: noteOutputCap,
@@ -226,7 +233,8 @@ class TokenEstimator {
     final tokens =
         c.consultFixed +
         SummaryText.length(diaries) * c.diaryTokensPerChar +
-        c.consultOutput;
+        c.consultOutput +
+        c.reasoningTokens;
 
     return (tokens * multiplier).ceil();
   }
@@ -364,7 +372,8 @@ class TokenEstimator {
             lengthChars: lengthChars,
           );
 
-    return (input: input, output: output);
+    // 考える分(GPTは、ほぼ必ず出る)も、最低限の量は、足す
+    return (input: input, output: output + c.reasoningTokens);
   }
 
   // 投稿の日時の長さ(「2026-01-01 09:00:00.000」)
@@ -384,6 +393,7 @@ class _Coefficients {
     this.timelineSlopeTokensPerChar,
     required this.tokensPerPhoto,
     this.photoTimeTokens = 0,
+    this.reasoningTokens = 0,
     required this.plainOutput,
     this.noteOutputTokensPerChar = 0,
     this.noteOutputCap = 0,
@@ -419,6 +429,9 @@ class _Coefficients {
 
   /// 写真1枚ごとに送る、撮影日時の行のトークン
   final int photoTimeTokens;
+
+  /// AIが考える分(reasoning)の、最低限の量。毎回出るAI(GPT)だけ、足す
+  final int reasoningTokens;
 
   /// メモがあるときに、ふつうのAI日記の出力へ加える、1文字あたりのトークンと上限
   final double noteOutputTokensPerChar;
