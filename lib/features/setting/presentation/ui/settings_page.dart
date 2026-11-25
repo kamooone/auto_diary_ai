@@ -16,7 +16,6 @@ import '../../../plan/domain/entities/plan_availability.dart';
 import '../../../location/presentation/ui/activity_permission_explanation.dart';
 import '../../../privacy/presentation/ui/privacy_policy_page.dart';
 import '../../../tutorial/application/tutorial_providers.dart';
-import 'test_diary_page.dart';
 import 'widgets/settings_row.dart';
 import '../providers/recording_settings_provider.dart';
 
@@ -218,23 +217,6 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                   onTap: _resetTutorials,
                 ),
               ],
-            ),
-          ),
-
-          // ---------- 【一時】テストデータ(最終テストの間だけ。終わったら、このコミットを取り消す)
-          // 日記・Xの投稿・ひとことメモ・行動履歴を、まとめて追加・削除できる
-          const SizedBox(height: AppSizes.space24),
-          const SectionTitle("開発用"),
-          AppCard(
-            child: SettingsRow(
-              icon: Icons.bug_report_outlined,
-              title: "テストデータ",
-              subtitle: "日記・Xの投稿・ひとことメモ・行動履歴のテスト用のデータを、まとめて追加・削除します",
-              onTap: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute(builder: (context) => const TestDiaryPage()),
-                );
-              },
             ),
           ),
 
