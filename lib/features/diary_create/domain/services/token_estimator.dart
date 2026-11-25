@@ -33,6 +33,8 @@ class TokenEstimator {
     instruction: instructionTokens,
     noteTokensPerChar: noteTokensPerChar,
     tokensPerChar: tokensPerChar,
+    postsBaseTokens: postsBaseTokens,
+    postsSlopeTokensPerChar: postsSlopeTokensPerChar,
     timelineTokensPerChar: timelineTokensPerChar,
     timelineBaseTokens: timelineBaseTokens,
     timelineSlopeTokensPerChar: timelineSlopeTokensPerChar,
@@ -154,9 +156,27 @@ class TokenEstimator {
   static const noteOutputTokensPerChar = 0.4;
   static const noteOutputCap = 350;
 
-  // Xの投稿・ひとことメモの1文字あたり。実測(2026-10-29〜30)は約0.7。実測の約80%にそろえる。
-  // 2026-11-25の最終テスト(A8)で、測り直して確かめる
-  static const tokensPerChar = 0.55;
+  // Xの投稿・ひとことメモは、「一定の分 + 文字数に比例する分」で増える(2026-11-25の最終テスト)。
+  // 実測(投稿だけ)は、10件(約1,204文字)で1,190、50件(約6,164文字)で4,750。
+  // この2点は、「約326 + 0.718 × 文字数」の直線に乗る。その約80%にそろえて、260 + 0.57 × 文字数。
+  // 文字数が少ないとき(約1,130文字未満)は、1文字あたり[tokensPerChar](10件の実測約0.99の約80%)
+  // を上限にする。ひとことメモは、まだ測っていないので、投稿と同じ式で数える
+  static const tokensPerChar = 0.8;
+  static const postsBaseTokens = 260.0;
+  static const postsSlopeTokensPerChar = 0.57;
+
+  /// Xの投稿・ひとことメモの文章([chars]文字)のトークンの目安
+  static double postsTokens(int chars, {AiModel model = AiModel.gemini}) {
+    final c = _of(model);
+
+    final base = c.postsBaseTokens;
+    final slope = c.postsSlopeTokensPerChar;
+    if (base == null || slope == null || chars <= 0) {
+      return chars * c.tokensPerChar;
+    }
+
+    return math.min(chars * c.tokensPerChar, base + slope * chars);
+  }
 
   // 行動履歴は、「一定の分 + 文字数に比例する分」で増える(2026-11-25の最終テスト)。
   // 実測は、10件(約270文字)で540、100件(約3,043文字)で2,829、500件(約15,100文字)で12,804。
@@ -352,7 +372,7 @@ class TokenEstimator {
         c.instruction +
         note.length * c.noteTokensPerChar +
         timelineTokens(timelineChars, model: model) +
-        chars * c.tokensPerChar +
+        postsTokens(chars, model: model) +
         _photoInputTokens(c, photoCount, photos) +
         SummaryText.length(diaries) * c.diaryTokensPerChar;
 
@@ -386,6 +406,8 @@ class _Coefficients {
     required this.instruction,
     required this.noteTokensPerChar,
     required this.tokensPerChar,
+    this.postsBaseTokens,
+    this.postsSlopeTokensPerChar,
     this.timelineTokensPerChar,
     this.timelineBaseTokens,
     this.timelineSlopeTokensPerChar,
@@ -413,6 +435,10 @@ class _Coefficients {
   final int instruction;
   final double noteTokensPerChar;
   final double tokensPerChar;
+
+  /// Xの投稿・ひとことメモの、文字数によるトークンの式(一定の分 + 文字数 × 1文字あたり)。nullなら、1文字あたり一定
+  final double? postsBaseTokens;
+  final double? postsSlopeTokensPerChar;
 
   /// 行動履歴だけの、1文字あたりのトークン(nullなら、tokensPerCharと同じ)
   final double? timelineTokensPerChar;

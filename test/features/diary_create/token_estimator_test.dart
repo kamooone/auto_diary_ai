@@ -170,6 +170,28 @@ void main() {
       });
     });
 
+    // 2026-11-25の最終テスト(Gemini)。Xの投稿だけを選んだときの、投稿の入力トークン(実測)
+    group('Xの投稿の見積もり(Gemini)は、実測の約80%', () {
+      void expectRate(int chars, int actual) {
+        final rate = TokenEstimator.postsTokens(chars) / actual;
+        expect(rate, inInclusiveRange(0.75, 0.9), reason: '$chars文字・実測$actual');
+      }
+
+      test('10件(約1,204文字)・実測1,190', () => expectRate(1204, 1190));
+      test('50件(約6,164文字)・実測4,750', () => expectRate(6164, 4750));
+
+      test('文字数が増えるほど、1文字あたりは減る', () {
+        double perChar(int chars) => TokenEstimator.postsTokens(chars) / chars;
+
+        expect(perChar(100), greaterThanOrEqualTo(perChar(1000)));
+        expect(perChar(1000), greaterThan(perChar(10000)));
+      });
+
+      test('投稿がなければ、0', () {
+        expect(TokenEstimator.postsTokens(0), 0);
+      });
+    });
+
     test('ひとことメモは、AIに渡す文章と同じものの長さで数える', () {
       final memos = [
         Memo(text: 'カフェでのんびり', createdAt: DateTime(2026, 11, 9, 12, 34)),
@@ -178,7 +200,7 @@ void main() {
 
       expect(
         estimate(memos: memos) - estimate(),
-        (length * TokenEstimator.tokensPerChar).ceil(),
+        TokenEstimator.postsTokens(length).ceil(),
       );
     });
 
