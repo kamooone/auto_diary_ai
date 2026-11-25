@@ -129,6 +129,7 @@ class _SharedPostEditScreenState extends ConsumerState<SharedPostEditScreen> {
     final now = DateTime.now();
 
     final picked = await showDatePicker(
+      initialEntryMode: DatePickerEntryMode.calendarOnly,
       context: context,
       initialDate: _receivedAt,
       firstDate: DateTime(2000),

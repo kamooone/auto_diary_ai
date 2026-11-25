@@ -131,8 +131,19 @@ void main() {
 
       expect(
         estimate(timeline: [stay]) - estimate(),
-        (length * TokenEstimator.tokensPerChar).ceil(),
+        (length * TokenEstimator.timelineTokensPerChar).ceil(),
       );
+    });
+
+    test('行動履歴10件(約269文字)は、実測(入力の増加533)の約80%(A7の実測)', () {
+      // 2026-11-25のA7: 履歴10件で、入力が872(何も選ばない339より533多い)。
+      // 履歴は、メモよりトークンが多い(数字と記号が多い)ため、専用の係数にしている
+      const chars = 269;
+      const actualInput = 533;
+
+      final perChar = TokenEstimator.timelineTokensPerChar;
+      expect(chars * perChar / actualInput, inInclusiveRange(0.75, 0.85));
+      expect(perChar, greaterThan(TokenEstimator.tokensPerChar));
     });
 
     test('ひとことメモは、AIに渡す文章と同じものの長さで数える', () {

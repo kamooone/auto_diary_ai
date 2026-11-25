@@ -33,6 +33,7 @@ class TokenEstimator {
     instruction: instructionTokens,
     noteTokensPerChar: noteTokensPerChar,
     tokensPerChar: tokensPerChar,
+    timelineTokensPerChar: timelineTokensPerChar,
     tokensPerPhoto: tokensPerPhoto,
     plainOutput: outputTokens,
     noteOutputTokensPerChar: noteOutputTokensPerChar,
@@ -146,10 +147,14 @@ class TokenEstimator {
   static const noteOutputTokensPerChar = 0.4;
   static const noteOutputCap = 350;
 
-  // 行動履歴・Xの投稿の1文字あたり。日時や数字を含むため、メモより多い。
-  // 実測は約0.68〜0.73(2026-10-29〜30。履歴7件で約0.7、投稿10件で約0.7)。実測の約80%にそろえる。
-  // 2026-11-25の最終テスト(A7・A8)で、測り直して確かめる
+  // Xの投稿・ひとことメモの1文字あたり。実測(2026-10-29〜30)は約0.7。実測の約80%にそろえる。
+  // 2026-11-25の最終テスト(A8)で、測り直して確かめる
   static const tokensPerChar = 0.55;
+
+  // 行動履歴の1文字あたり。時刻・距離・場所の名前で、数字と記号が多く、メモの約3倍になる。
+  // 2026-11-25の最終テスト(A7: 履歴10件、約269文字で、入力に約533トークン)の実測は約1.98。
+  // その約80%にそろえる。件数を変えたテスト(A7-2〜4)で、測り直して確かめる
+  static const timelineTokensPerChar = 1.6;
 
   // 写真1枚あたり(画像だけを送る)。サイズ・種類・枚数に関係なく一定で、実測は約1,085〜1,125
   static const tokensPerPhoto = 880;
@@ -302,11 +307,12 @@ class TokenEstimator {
   }) {
     final c = _of(model);
 
+    final timelineChars = TimelineText.format(
+      timeline,
+      addressStays: timelineAddressStays,
+    ).length;
+
     final chars =
-        TimelineText.format(
-          timeline,
-          addressStays: timelineAddressStays,
-        ).length +
         MemoText.format(memos).length +
         posts.fold<int>(
           0,
@@ -316,6 +322,7 @@ class TokenEstimator {
     final input =
         c.instruction +
         note.length * c.noteTokensPerChar +
+        timelineChars * (c.timelineTokensPerChar ?? c.tokensPerChar) +
         chars * c.tokensPerChar +
         _photoInputTokens(c, photoCount, photos) +
         SummaryText.length(diaries) * c.diaryTokensPerChar;
@@ -350,6 +357,7 @@ class _Coefficients {
     required this.instruction,
     required this.noteTokensPerChar,
     required this.tokensPerChar,
+    this.timelineTokensPerChar,
     required this.tokensPerPhoto,
     this.tokensPerPatch,
     this.photoFixedTokens = 0,
@@ -373,6 +381,9 @@ class _Coefficients {
   final int instruction;
   final double noteTokensPerChar;
   final double tokensPerChar;
+
+  /// 行動履歴だけの、1文字あたりのトークン(nullなら、tokensPerCharと同じ)
+  final double? timelineTokensPerChar;
   final int tokensPerPhoto;
 
   /// 写真の縦横から計算するとき、32pxのマス目1つあたりのトークン(nullなら、1枚あたり一定)

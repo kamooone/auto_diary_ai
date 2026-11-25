@@ -101,6 +101,7 @@ class _DiaryCreateScreenState extends ConsumerState<DiaryCreateScreen> {
 
                 // アプリを使い始めた日から今日までの1日を選ぶ
                 final selected = await showDatePicker(
+                  initialEntryMode: DatePickerEntryMode.calendarOnly,
                   context: context,
                   initialDate: date,
                   firstDate: DateTime(

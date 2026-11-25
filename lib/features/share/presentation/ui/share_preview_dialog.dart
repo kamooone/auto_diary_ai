@@ -17,6 +17,7 @@ class _SharePreviewDialogState extends State<SharePreviewDialog> {
     final now = DateTime.now();
 
     final date = await showDatePicker(
+      initialEntryMode: DatePickerEntryMode.calendarOnly,
       context: context,
       initialDate: now,
       firstDate: DateTime(2020),

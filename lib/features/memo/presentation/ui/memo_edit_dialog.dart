@@ -68,6 +68,7 @@ class _MemoEditDialogState extends ConsumerState<_MemoEditDialog> {
     final now = DateTime.now();
 
     final date = await showDatePicker(
+      initialEntryMode: DatePickerEntryMode.calendarOnly,
       context: context,
       initialDate: _createdAt,
       firstDate: DateTime(2000),

@@ -261,6 +261,7 @@ class _MapPageState extends ConsumerState<MapPage> {
     required DateTime lastDay,
   }) async {
     final selectedDate = await showDatePicker(
+      initialEntryMode: DatePickerEntryMode.calendarOnly,
       context: context,
       initialDate: ref.read(mapProvider).selectedDate,
       firstDate: firstDay,

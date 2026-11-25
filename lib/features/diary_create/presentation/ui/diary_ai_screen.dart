@@ -490,6 +490,7 @@ class _DiaryAiScreenState extends ConsumerState<DiaryAiScreen> {
     final dates = _selectableDates();
 
     final selected = await showDatePicker(
+      initialEntryMode: DatePickerEntryMode.calendarOnly,
       context: context,
       initialDate: state.startDate,
       firstDate: dates.first,
@@ -513,6 +514,7 @@ class _DiaryAiScreenState extends ConsumerState<DiaryAiScreen> {
     final dates = _selectableDates();
 
     final range = await showDateRangePicker(
+      initialEntryMode: DatePickerEntryMode.calendarOnly,
       context: context,
       initialDateRange: DateTimeRange(
         start: state.aiStartDate,

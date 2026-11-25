@@ -41,6 +41,7 @@ class _XArchivePostEditPageState extends ConsumerState<XArchivePostEditPage> {
   Future<void> _pickDate() async {
     final now = DateTime.now();
     final picked = await showDatePicker(
+      initialEntryMode: DatePickerEntryMode.calendarOnly,
       context: context,
       initialDate: DateTime(_jst.year, _jst.month, _jst.day),
       firstDate: DateTime(2006),
