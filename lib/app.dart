@@ -66,13 +66,7 @@ class _AppState extends ConsumerState<App> {
         !payload.startsWith(XArchiveRecallNotifier.payload)) {
       return;
     }
-    // テスト用の通知には日付がつく(本番の通知は、タップした日)
-    final date = XArchiveRecallNotifier.dateFromPayload(payload);
-    AppRouter.router.push(
-      date == null
-          ? AppRoutes.xArchiveRecall
-          : '${AppRoutes.xArchiveRecall}?date=${date.toIso8601String().substring(0, 10)}',
-    );
+    AppRouter.router.push(AppRoutes.xArchiveRecall);
   }
 
   Future<void> _startPush() async {

@@ -102,13 +102,6 @@ class XArchiveRecallNotifier {
     );
   }
 
-  /// 通知の印から、紹介する日を取り出す。日の指定がなければnull(タップした日)
-  static DateTime? dateFromPayload(String? payload) {
-    const prefix = '${XArchiveRecallNotifier.payload}:';
-    if (payload == null || !payload.startsWith(prefix)) return null;
-    return DateTime.tryParse(payload.substring(prefix.length));
-  }
-
   /// 予約した通知を取り消す
   Future<void> cancel() async {
     if (!_initialized) return;

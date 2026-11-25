@@ -301,7 +301,7 @@ class _MapPageState extends ConsumerState<MapPage> {
         ),
         title: const Text("行動履歴"),
       ),
-      // シートの高さに合わせて、地図の上の部品(出典、デバッグボタン)を、シートの少し上に置く
+      // シートの高さに合わせて、地図の上の部品(出典など)を、シートの少し上に置く
       body: LayoutBuilder(
         builder: (context, constraints) => Stack(
           children: [
