@@ -49,6 +49,34 @@ void main() {
       );
     });
 
+    // 2026-11-25の実測(Gemini 3.5 Flash Lite、メモ欄だけ)。見積もりは、実測の60〜100%に収める
+    group('メモ(Gemini)の見積もりは、実測の60〜100%', () {
+      void expectRate(int actual, int estimated) {
+        expect(estimated, lessThanOrEqualTo(actual));
+        expect(estimated, greaterThanOrEqualTo((actual * 0.6).ceil()));
+      }
+
+      test('何も選ばない(実測389)', () {
+        expectRate(389, estimate());
+      });
+
+      test('メモ969文字(実測1,475)', () {
+        expectRate(1475, estimate(note: 'あ' * 969));
+      });
+
+      test('メモ9,366文字(実測5,967)', () {
+        expectRate(5967, estimate(note: 'あ' * 9366));
+      });
+
+      test('メモが長くても、出力の増え方には上限がある', () {
+        final small = estimate(note: 'あ' * 1000);
+        final large = estimate(note: 'あ' * 2000);
+
+        // 増えるのは、入力の分(1文字0.52)だけで、出力は、上限(300)で増えない
+        expect(large - small, (1000 * TokenEstimator.noteTokensPerChar).round());
+      });
+    });
+
     test('写真が増えると、1枚ぶんずつ増える', () {
       expect(
         estimate(photoCount: 3) - estimate(),
@@ -381,11 +409,13 @@ void main() {
       );
     });
 
-    test('Geminiの見積もりは、これまでと同じ', () {
+    test('Geminiの日記を1つにする見積もりは、指示文の分(+80)だけ増えた', () {
+      // 2026-11-25: Geminiの指示文を200→280にした(実測の入力が約340になったため)。
+      // 日記1文字あたりの係数は変えていないので、増えたのは指示文の分だけ
       final d = diaries(31, 13212);
 
-      expect(estimate(d, SummaryStyle.list, AiModel.gemini), 7271);
-      expect(estimate(d, SummaryStyle.reading, AiModel.gemini), 7863);
+      expect(estimate(d, SummaryStyle.list, AiModel.gemini), 7271 + 80);
+      expect(estimate(d, SummaryStyle.reading, AiModel.gemini), 7863 + 80);
     });
   });
 

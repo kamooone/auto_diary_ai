@@ -35,8 +35,11 @@ class TokenEstimator {
     tokensPerChar: tokensPerChar,
     tokensPerPhoto: tokensPerPhoto,
     plainOutput: outputTokens,
+    noteOutputTokensPerChar: noteOutputTokensPerChar,
+    noteOutputCap: noteOutputCap,
     outputTokensPerChar: 0.35,
-    diaryTokensPerChar: noteTokensPerChar,
+    // 日記を1つにするときの、日記1文字あたり(メモの係数とは別。まとめの実測から決めた)
+    diaryTokensPerChar: 0.5,
     readingRatio: 0.08,
     briefRatio: 0.02,
     listBase: 0,
@@ -125,11 +128,18 @@ class TokenEstimator {
     return total;
   }
 
-  // 指示文(日付・形式の指定など、毎回同じ部分)。実測は約210〜265
-  static const instructionTokens = 200;
+  // 指示文(日付・形式の指定など、毎回同じ部分)。実測は約340(2026-11-25、何も選ばない状態の入力)。
+  // 以前の約210〜265から、プロンプトが長くなった。少なめにする方針で、実測より少し小さくする
+  static const instructionTokens = 280;
 
-  // メモの1文字あたり。実測は約0.5〜0.6(10,000文字で0.61)
-  static const noteTokensPerChar = 0.5;
+  // メモの1文字あたり。実測は約0.55〜0.58(2026-11-25、969文字と9,366文字)
+  static const noteTokensPerChar = 0.52;
+
+  // メモがあるときの、日記の出力の増え方。AIが、メモをなぞって日記にするため、出力がメモに応じて増える。
+  // 実測(2026-11-25): 969文字で出力576、9,366文字で441(メモが長いと、まとめるので増えない)。
+  // 100文字で約60〜110。少なめにするため、1文字あたり0.4・上限300にする
+  static const noteOutputTokensPerChar = 0.4;
+  static const noteOutputCap = 300;
 
   // 行動履歴・Xの投稿の1文字あたり。日時や数字を含むため、メモより多い。実測は約0.68〜0.73
   static const tokensPerChar = 0.65;
@@ -304,8 +314,16 @@ class TokenEstimator {
         _photoInputTokens(c, photoCount, photos) +
         SummaryText.length(diaries) * c.diaryTokensPerChar;
 
+    final noteOutput = math.min(
+      (note.length * c.noteOutputTokensPerChar).round(),
+      c.noteOutputCap,
+    );
+
     final output = diaries.isEmpty
-        ? math.max(c.plainOutput, (lengthChars * c.outputTokensPerChar).round())
+        ? math.max(
+            c.plainOutput + noteOutput,
+            (lengthChars * c.outputTokensPerChar).round(),
+          )
         : summaryOutputTokens(
             summaryStyle,
             diaries,
@@ -330,6 +348,8 @@ class _Coefficients {
     this.tokensPerPatch,
     this.photoFixedTokens = 0,
     required this.plainOutput,
+    this.noteOutputTokensPerChar = 0,
+    this.noteOutputCap = 0,
     required this.outputTokensPerChar,
     required this.diaryTokensPerChar,
     required this.readingRatio,
@@ -356,6 +376,10 @@ class _Coefficients {
   /// 出力が、写真なしの日記より多くなる分(1マスあたりを低くして、枚数が多くても
   /// 実際を超えないようにした代わりに、1枚のときの下限をここで保つ)
   final int photoFixedTokens;
+
+  /// メモがあるときに、ふつうのAI日記の出力へ加える、1文字あたりのトークンと上限
+  final double noteOutputTokensPerChar;
+  final int noteOutputCap;
 
   /// 日記を1つにする以外(ふつうのAI日記)の出力
   final int plainOutput;
