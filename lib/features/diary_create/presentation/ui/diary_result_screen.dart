@@ -7,6 +7,7 @@ import '../../../../common/widgets/app_buttons.dart';
 import '../../../../common/widgets/app_card.dart';
 import '../../../../common/widgets/app_tag.dart';
 import '../../../../common/widgets/app_text_field.dart';
+import '../../../../common/widgets/confirm_dialog.dart';
 import '../../../ai/application/providers/ai_model_provider.dart';
 import '../../domain/services/diary_copy_text.dart';
 import '../providers/diary_create_provider.dart';
@@ -71,6 +72,39 @@ class _DiaryResultScreenState extends ConsumerState<DiaryResultScreen> {
 
     final isCompleted = _isCompleted(state) && !_isFinishing;
 
+    // AIが書き終えて、まだ保存していないあいだは、戻る前に確認する
+    // (間違って戻って、せっかく書いてもらった日記が消えるのを防ぐ)
+    final needsConfirmToLeave = state.generatedByAi && _isCompleted(state);
+
+    return PopScope(
+      canPop: !needsConfirmToLeave,
+      onPopInvokedWithResult: (didPop, result) async {
+        if (didPop) return;
+
+        final leave = await _confirmLeave(context);
+        if (leave == true && context.mounted) Navigator.of(context).pop();
+      },
+      child: _buildScaffold(context, state, isCompleted),
+    );
+  }
+
+  // AppBarの戻るボタンも、端末の戻るボタンも、ここを通る
+  Future<bool?> _confirmLeave(BuildContext context) {
+    return showConfirmDialog(
+      context,
+      icon: Icons.arrow_back,
+      title: "本当に戻りますか？",
+      message: "保存していないので、AIが書いた日記は消えます。\n使ったトークンは、戻りません。",
+      cancelLabel: "この画面に残る",
+      confirmLabel: "戻る",
+    );
+  }
+
+  Widget _buildScaffold(
+    BuildContext context,
+    DiaryCreateState state,
+    bool isCompleted,
+  ) {
     return Scaffold(
       appBar: AppBar(title: Text(state.generatedByAi ? "AI日記の確認" : "日記の確認")),
       body: Padding(
