@@ -202,14 +202,14 @@ void main() {
           home: const Scaffold(
             body: GenerationProgress(
               expectedSeconds: 20,
-              modelName: 'gemini-flash-lite-latest',
+              modelName: 'gemini-3.5-flash-lite',
             ),
           ),
         ),
       );
       await tester.pump(const Duration(seconds: 1));
 
-      expect(find.text('gemini-flash-lite-latest'), findsOneWidget);
+      expect(find.text('gemini-3.5-flash-lite'), findsOneWidget);
       expect(tester.takeException(), isNull);
     });
 

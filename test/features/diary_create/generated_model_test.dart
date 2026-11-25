@@ -61,9 +61,9 @@ void main() {
   }
 
   test('サーバーが教えてくれたモデルの名前を、使用したモデルとして持つ', () async {
-    final state = await generate('gemini-flash-lite-latest');
+    final state = await generate('gemini-3.5-flash-lite');
 
-    expect(state.generatedModel, 'gemini-flash-lite-latest');
+    expect(state.generatedModel, 'gemini-3.5-flash-lite');
     expect(state.generatedByAi, isTrue);
   });
 
@@ -77,7 +77,7 @@ void main() {
     final state = await generate(null);
 
     // 何も選んでいなければ Gemini
-    expect(state.generatedModel, 'gemini-flash-lite-latest');
+    expect(state.generatedModel, 'gemini-3.5-flash-lite');
   });
 
   test('AIを使わない日記(連結)は、モデルの名前を持たない', () async {

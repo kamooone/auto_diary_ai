@@ -66,25 +66,21 @@ OPENAI_REASONING_EFFORT = os.environ.get(
 
 # 無料プランのモデル。リストの順に試し、使えないときは後ろのモデルに切り替える
 # (モデル名は、提供が終わると使えなくなる。使えるモデルは、AI Studioで確認する)
-# いまは、gemini-flash-liteだけを使う。速くて思考も使わず、消費するトークンが少ないため。
+# いまは、gemini-3.5-flash-lite(Gemini 3.5 Flash Lite)だけを使う。
+# 速くて、消費するトークンが少ないため。
+# 「gemini-flash-lite-latest」のような別名は、Googleが指す先を予告なく変えるため使わない
+# (モデルが変わると、品質も、トークンの見積もりの係数も変わる)。
+# 提供が終わったときは、ここと、アプリの AiModel(ai_model.dart)の表示を、一緒に直すこと
+# 本番は、Gemini APIを従量課金(有料)にして使う。無料枠は、上限が小さく(1日500回・1分15回)、
+# 利用者が増えると足りなくなる
 # 予備にしていた2つは、役に立たなかったので外した
 #   gemini-flash-latest: 混雑・時間切れが多く、60秒待っても返らないことがあった
 #   gemini-3.8-flash   : 無料枠が1日20回で、使い切ると、成功することがなかった
 # 件数の多い「日記を1つにする」で、待ち時間(下のGEMINI_TOTAL_BUDGET)をまるごと使うため、
 # 予備のモデルは置かない。予備を足すときは、GEMINI_ATTEMPT_TIMEOUTも短くすること
 GEMINI_MODELS = [
-    "gemini-flash-lite-latest",
+    "gemini-3.5-flash-lite",
 ]
-
-# 予備のモデル(1つ性能が低いモデル)。アプリの設定で、オンにしたユーザーだけが使う。
-# 環境変数 GEMINI_FALLBACK_MODEL で変えられる(空にすると、予備は使わない)。
-# GEMINI_MODELSのモデルが混んでいて、すぐに(下の秒数以内に)失敗したときだけ使う。
-# 長く待ったあとに失敗したときは、時間が足りないので使わない。
-# モデル名は、提供が終わると使えなくなる。使えないときは、GEMINI_MODELSの失敗を返す
-GEMINI_FALLBACK_MODEL = os.environ.get(
-    "GEMINI_FALLBACK_MODEL", "gemini-2.5-flash-lite"
-).strip()
-GEMINI_FALLBACK_WITHIN_SECONDS = 8
 
 # 次のモデルを試す、Geminiのステータス
 #   404: そのモデルは使えない / 429: 混んでいる・無料枠の制限
@@ -384,15 +380,11 @@ def read_openai_answer(data):
     return answer
 
 
-def ask_gemini(
-    api_key, message, images, context=None, allow_fallback=False, info=None
-):
+def ask_gemini(api_key, message, images, context=None, info=None):
     """無料プラン: Gemini。(回答, 消費したトークン数)を返す
 
     モデルが使えないとき(混んでいる、提供が終わったなど)は、
-    GEMINI_MODELSの順に別のモデルへ切り替える。
-    allow_fallbackがTrueのときは、最後に、予備のモデル(GEMINI_FALLBACK_MODEL)も試す
-    (GEMINI_FALLBACK_WITHIN_SECONDS秒以内に失敗したときだけ)
+    GEMINI_MODELSの順に別のモデルへ切り替える(今は1つだけなので、切り替えない)。
 
     infoに辞書を渡すと、実際に答えたモデルの名前を info["model"] に入れる
     """
@@ -419,28 +411,12 @@ def ask_gemini(
         return left
 
     models = list(GEMINI_MODELS)
-    fallback_model = GEMINI_FALLBACK_MODEL if allow_fallback else ""
-
-    if fallback_model and fallback_model not in models:
-        models.append(fallback_model)
 
     for index, model in enumerate(models):
-        is_fallback = bool(fallback_model) and model == fallback_model
         is_last = index == len(models) - 1
-        next_is_fallback = (
-            bool(fallback_model)
-            and index + 1 < len(models)
-            and models[index + 1] == fallback_model
-        )
 
         # 時間が足りなければ、次のモデルは試さない
         if last_error is not None and seconds_left() < MIN_REMAINING_SECONDS:
-            break
-
-        # 予備のモデルは、すぐに失敗したときだけ試す
-        if is_fallback and (
-            time.monotonic() - started > GEMINI_FALLBACK_WITHIN_SECONDS
-        ):
             break
 
         attempt_started = time.monotonic()
@@ -491,17 +467,9 @@ def ask_gemini(
                     wait = GEMINI_RETRY_WAIT_SECONDS * (retries + 1)
 
                     # 混雑のときは、少し待って、同じモデルをもう一度試す
-                    # (次のモデルに移れるときは、試し直さずに、次のモデルに移る。
-                    #  予備のモデルに移れない(時間がたった)ときは、試し直す)
+                    # (次のモデルに移れるときは、試し直さずに、次のモデルに移る)
                     can_retry = (
-                        (
-                            is_last
-                            or (
-                                next_is_fallback
-                                and time.monotonic() - started
-                                > GEMINI_FALLBACK_WITHIN_SECONDS
-                            )
-                        )
+                        is_last
                         and e.status in GEMINI_SAME_MODEL_RETRY_STATUSES
                         and retries < GEMINI_SAME_MODEL_RETRIES
                         and seconds_left() - wait >= MIN_REMAINING_SECONDS
@@ -528,9 +496,7 @@ def ask_gemini(
                 "seconds": round(time.monotonic() - attempt_started, 1),
                 "action": "switch_model",
             }, ensure_ascii=False))
-            # 予備のモデルの失敗は、本来のモデルの失敗を隠さないよう、記録しない
-            if not is_fallback:
-                last_error = e
+            last_error = e
             continue
         except (socket.timeout, TimeoutError, urllib.error.URLError) as e:
             # 応答が遅い、または接続できないときも、次のモデルを試す
@@ -539,8 +505,7 @@ def ask_gemini(
                 "seconds": round(time.monotonic() - attempt_started, 1),
                 "action": "switch_model",
             }, ensure_ascii=False))
-            if not is_fallback:
-                last_error = UpstreamError("Gemini", 0, str(e))
+            last_error = UpstreamError("Gemini", 0, str(e))
             continue
 
         candidates = data.get("candidates") or []
@@ -1029,8 +994,6 @@ def lambda_handler(event, context):
                 message,
                 image_keys,
                 context,
-                # アプリの設定で、オンにしたユーザーだけ
-                allow_fallback=body.get("geminiFallback") is True,
                 info=answer_info,
             )
 

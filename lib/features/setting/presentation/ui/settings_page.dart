@@ -9,9 +9,6 @@ import 'package:auto_diary_ai/core/app_info/app_version_provider.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../app/router/app_routes.dart';
-import '../../../ai/application/providers/ai_model_provider.dart';
-import '../../../ai/application/providers/gemini_fallback_provider.dart';
-import '../../../ai/domain/entities/ai_model.dart';
 import '../../../ai/presentation/widgets/ai_select_card.dart';
 import '../../../inquiry/application/providers/inquiry_providers.dart';
 import '../../../plan/application/providers/plan_provider.dart';
@@ -99,27 +96,6 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
           AppCard(
             child: Column(
               children: [
-                // Geminiが使えないときの、1つ性能が低いモデルの使用
-                // (サーバーの予備のモデルはGeminiだけなので、GPTを選んでいるときは出さない)
-                if (ref.watch(aiModelProvider) == AiModel.gemini) ...[
-                  SettingsRow(
-                    icon: Icons.shield_outlined,
-                    title: "書けないときは、別のモデルで書き直す",
-                    subtitle:
-                        "Geminiが、利用者が多いときなどに一時的に使えず、日記を書けなかったとき、"
-                        "少し性能が低い別のモデルで、自動で書き直します。\n"
-                        "日記を書けないことは減りますが、文章の質が下がることがあります",
-                    trailing: Switch(
-                      value: ref.watch(geminiFallbackProvider),
-                      onChanged: (value) =>
-                          ref.read(geminiFallbackProvider.notifier).set(value),
-                    ),
-                    onTap: () => ref
-                        .read(geminiFallbackProvider.notifier)
-                        .set(!ref.read(geminiFallbackProvider)),
-                  ),
-                  const RowDivider(),
-                ],
                 SettingsRow(
                   icon: Icons.savings_outlined,
                   title: "ポイント・ゲーム",
