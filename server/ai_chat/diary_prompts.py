@@ -635,8 +635,13 @@ def build_consult_follow_up_prompt(spec):
 # ---- 回答の判定 --------------------------------------------------------------
 
 # 日記・日記を1つにするの回答(「タイトル:」「本文:」の形式)
-_TITLE_PATTERN = re.compile(r"^[#*\s]*タイトル[*\s]*[:：]\s*(.*)$")
-_CONTENT_PATTERN = re.compile(r"^[#*\s]*本文[*\s]*[:：]\s*(.*)$")
+# (見出しは、英語の Title・Body・Content でも受け付ける。GPTが「Title:」で返したことがあるため)
+_TITLE_PATTERN = re.compile(
+    r"^[#*\s]*(?:タイトル|title)[*\s]*[:：]\s*(.*)$", re.IGNORECASE
+)
+_CONTENT_PATTERN = re.compile(
+    r"^[#*\s]*(?:本文|body|content)[*\s]*[:：]\s*(.*)$", re.IGNORECASE
+)
 
 # 回答が日記の形式のプロンプト
 DIARY_ANSWER_KINDS = ("diary", "summary")

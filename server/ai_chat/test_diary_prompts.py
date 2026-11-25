@@ -397,6 +397,24 @@ class DiaryAnswerTest(unittest.TestCase):
             self.content("今日は公園を歩いた。\nタイトル: これは本文の一部"),
         )
 
+    def test_english_headings_are_accepted_like_the_app_parser(self):
+        # GPTが、「Title:」で返したことがある(2026-11-25)。アプリの解析と、同じ結果
+        self.assertEqual(
+            "朝六時に目が覚めた。\n\n夜は炒め物を作った。",
+            self.content(
+                "Title: 静かな朝から始まった満ち足りた一日\n\n本文:\n朝六時に目が覚めた。\n\n夜は炒め物を作った。"
+            ),
+        )
+        self.assertEqual(
+            "今日は公園を歩いた。",
+            self.content("**TITLE:** 秋の散歩\nbody: 今日は公園を歩いた。"),
+        )
+
+    def test_a_title_only_answer_in_english_is_empty(self):
+        self.assertTrue(prompts.is_empty_diary_answer(
+            {"kind": "diary"}, "Title: 秋の散歩\n本文:\n",
+        ))
+
     def test_empty_bodies(self):
         diary = {"kind": "diary"}
 
