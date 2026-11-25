@@ -131,12 +131,12 @@ void main() {
 
       expect(
         estimate(timeline: [stay]) - estimate(),
-        (length * TokenEstimator.timelineTokensPerChar).ceil(),
+        TokenEstimator.timelineTokens(length).ceil(),
       );
     });
 
     // 2026-11-25の最終テスト(Gemini)。履歴だけを選んだときの、履歴の入力トークン(実測)。
-    // 文字数が増えると、1文字あたりのトークンが減るため、段階の式にしている
+    // 文字数が増えると、1文字あたりのトークンが減るため、「スケール × 文字数の0.68乗」の式にしている
     group('行動履歴の見積もり(Gemini)は、実測の約80%', () {
       void expectRate(int chars, int actual) {
         final rate = TokenEstimator.timelineTokens(chars) / actual;
@@ -155,6 +155,13 @@ void main() {
         expect(perChar(100), greaterThanOrEqualTo(perChar(300)));
         expect(perChar(300), greaterThan(perChar(3000)));
         expect(perChar(3000), greaterThan(perChar(30000)));
+      });
+
+      test('文字数が少ないとき(1件)は、1文字あたり1.6を超えない', () {
+        expect(
+          TokenEstimator.timelineTokens(30),
+          lessThanOrEqualTo(30 * TokenEstimator.timelineTokensPerChar),
+        );
       });
 
       test('履歴がなければ、0', () {
