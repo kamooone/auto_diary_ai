@@ -3,6 +3,7 @@ import 'package:auto_diary_ai/features/diary/domain/entities/diary.dart';
 import 'package:auto_diary_ai/features/diary_create/domain/entities/diary_length.dart';
 import 'package:auto_diary_ai/features/diary_create/domain/entities/summary_style.dart';
 import 'package:auto_diary_ai/features/diary_create/domain/services/timeline_text.dart';
+import 'package:auto_diary_ai/features/diary_create/domain/services/summary_text.dart';
 import 'package:auto_diary_ai/features/diary_create/domain/services/token_estimator.dart';
 import 'package:auto_diary_ai/features/diary_create/presentation/ui/widgets/token_shortage_dialog.dart';
 import 'package:auto_diary_ai/features/location/domain/entities/timeline_item.dart';
@@ -401,6 +402,58 @@ void main() {
         tokens(AiModel.gemini),
         TokenEstimator.instructionTokens + TokenEstimator.outputTokens,
       );
+    });
+  });
+
+  // 2026-11-25の最終テスト(Gemini)。日記5件(簡単なブログ風)と、25件(ブログ風)。
+  // 入力+出力の実測に対して、見積もりが、約70〜90%になる(思考は含めない)
+  group('日記を1つにする見積もり(Gemini)は、実測の約80%', () {
+    // 日記の文字数(SummaryText.length)が[chars]になる、[count]件の日記
+    List<Diary> diaries(int count, int chars) {
+      List<Diary> build(int lastLength) => [
+        for (var i = 0; i < count; i++)
+          Diary(
+            date: DateTime(2026, 1, 1 + i),
+            title: 't',
+            content: 'あ' * (i == count - 1 ? lastLength : 100),
+            isAiGenerated: false,
+            createdAt: DateTime(2026, 1, 1 + i, 21),
+          ),
+      ];
+
+      var last = 100;
+      while (SummaryText.length(build(last)) < chars) {
+        last++;
+      }
+      return build(last);
+    }
+
+    int estimate(List<Diary> d, SummaryStyle style) => TokenEstimator.estimate(
+      note: '',
+      timeline: const [],
+      posts: const [],
+      photoCount: 0,
+      diaries: d,
+      summaryStyle: style,
+    );
+
+    void expectRate(
+      int count,
+      int chars,
+      SummaryStyle style,
+      int actualInputPlusOutput,
+    ) {
+      final rate =
+          estimate(diaries(count, chars), style) / actualInputPlusOutput;
+      expect(rate, inInclusiveRange(0.7, 0.9), reason: '$count件・$chars文字');
+    }
+
+    test('5件・簡単なブログ風(入力2,240+出力272)', () {
+      expectRate(5, 2579, SummaryStyle.brief, 2512);
+    });
+
+    test('25件・ブログ風(入力7,335+出力1,049)', () {
+      expectRate(25, 9140, SummaryStyle.reading, 8384);
     });
   });
 

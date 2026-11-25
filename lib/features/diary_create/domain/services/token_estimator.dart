@@ -44,8 +44,8 @@ class TokenEstimator {
     noteOutputTokensPerChar: noteOutputTokensPerChar,
     noteOutputCap: noteOutputCap,
     outputTokensPerChar: 0.35,
-    // 日記を1つにするときの、日記1文字あたり(メモの係数とは別。まとめの実測から決めた)
-    diaryTokensPerChar: 0.5,
+    // 日記を1つにするときの、日記1文字あたり(メモの係数とは別)
+    diaryTokensPerChar: summaryDiaryTokensPerChar,
     readingRatio: 0.08,
     briefRatio: 0.02,
     listBase: 0,
@@ -181,6 +181,11 @@ class TokenEstimator {
 
   // 写真1枚あたり(画像だけを送る)。サイズ・種類・枚数に関係なく一定で、実測は約1,085〜1,125
   static const tokensPerPhoto = 880;
+
+  // 日記を1つにするときの、日記1文字あたり。実測(2026-11-25、日記5件と25件)は、
+  // 5件(約2,579文字)で入力2,240、25件(約9,140文字)で入力7,335。傾きは約0.78/文字で、
+  // 切片は約236(まとめの指示文の分)。その約80%にそろえて、0.62
+  static const summaryDiaryTokensPerChar = 0.62;
 
   // 写真ごとに送る、撮影日時の行(「1枚目: 2026年1月1日 09:30」。約20文字で、数字が多い)の分。
   // 約28トークンの約80%。2026-11-25に、撮影日時を送るようにした。最終テストで、測り直す
