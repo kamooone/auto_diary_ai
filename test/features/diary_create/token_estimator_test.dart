@@ -68,12 +68,35 @@ void main() {
         expectRate(5967, estimate(note: 'あ' * 9366));
       });
 
+      test('量が変わっても、見積もり÷実測は、約70〜90%でそろう(A1〜A6の実測)', () {
+        final cases = <(int, int)>[
+          (389, estimate()),
+          (1475, estimate(note: 'あ' * 969)),
+          (5967, estimate(note: 'あ' * 9366)),
+          (1494, estimate(photoCount: 1)),
+          (3966, estimate(photoCount: 3)),
+          (12011, estimate(photoCount: 10)),
+        ];
+
+        for (final (actual, estimated) in cases) {
+          final rate = estimated / actual;
+          expect(
+            rate,
+            inInclusiveRange(0.7, 0.9),
+            reason: '実測$actual 見積もり$estimated',
+          );
+        }
+      });
+
       test('メモが長くても、出力の増え方には上限がある', () {
         final small = estimate(note: 'あ' * 1000);
         final large = estimate(note: 'あ' * 2000);
 
         // 増えるのは、入力の分(1文字0.52)だけで、出力は、上限(300)で増えない
-        expect(large - small, (1000 * TokenEstimator.noteTokensPerChar).round());
+        expect(
+          large - small,
+          (1000 * TokenEstimator.noteTokensPerChar).round(),
+        );
       });
     });
 
@@ -409,13 +432,13 @@ void main() {
       );
     });
 
-    test('Geminiの日記を1つにする見積もりは、指示文の分(+80)だけ増えた', () {
-      // 2026-11-25: Geminiの指示文を200→280にした(実測の入力が約340になったため)。
+    test('Geminiの日記を1つにする見積もりは、指示文の分(+70)だけ増えた', () {
+      // 2026-11-25: Geminiの指示文を200→270にした(実測の入力が約340になったため)。
       // 日記1文字あたりの係数は変えていないので、増えたのは指示文の分だけ
       final d = diaries(31, 13212);
 
-      expect(estimate(d, SummaryStyle.list, AiModel.gemini), 7271 + 80);
-      expect(estimate(d, SummaryStyle.reading, AiModel.gemini), 7863 + 80);
+      expect(estimate(d, SummaryStyle.list, AiModel.gemini), 7271 + 70);
+      expect(estimate(d, SummaryStyle.reading, AiModel.gemini), 7863 + 70);
     });
   });
 
