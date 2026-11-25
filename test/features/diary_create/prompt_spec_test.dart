@@ -10,6 +10,7 @@ import 'package:auto_diary_ai/features/diary_create/domain/entities/photo.dart';
 import 'package:auto_diary_ai/features/diary_create/domain/entities/summary_style.dart';
 import 'package:auto_diary_ai/features/diary_create/domain/repositories/photo_repository.dart';
 import 'package:auto_diary_ai/features/diary_create/domain/services/consult_message.dart';
+import 'package:auto_diary_ai/features/diary_create/domain/services/prompt_spec.dart';
 import 'package:auto_diary_ai/features/diary_create/domain/usecases/consult_summary_usecase.dart';
 import 'package:auto_diary_ai/features/diary_create/domain/usecases/generate_diary_usecase.dart';
 import 'package:auto_diary_ai/features/diary_create/domain/usecases/generate_summary_diary_usecase.dart';
@@ -266,6 +267,41 @@ void main() {
       const usage = UsageInfo(usedTokens: 10, limitTokens: 100);
 
       expect(AiEmptyDiaryException(usage).usage, usage);
+    });
+  });
+
+  group('写真の撮影日時', () {
+    Map<String, Object?> spec({List<DateTime> photoTimes = const []}) =>
+        PromptSpec.diary(
+          style: DiaryStyle.diary,
+          customInstruction: '',
+          lengthChars: 0,
+          diaryDate: DateTime(2026, 1, 1),
+          startDate: DateTime(2026, 1, 1),
+          endDate: DateTime(2026, 1, 1),
+          note: '',
+          timelineText: '',
+          postsText: '',
+          photoTimes: photoTimes,
+        );
+
+    test('送った写真の撮影日時を、「2026-01-02 09:05」の形で、順に送る', () {
+      final prompt = spec(
+        photoTimes: [DateTime(2026, 1, 2, 9, 5), DateTime(2026, 1, 3, 18, 30)],
+      );
+
+      expect(prompt['photoTimes'], ['2026-01-02 09:05', '2026-01-03 18:30']);
+    });
+
+    test('写真がないときは、送らない', () {
+      expect(spec().containsKey('photoTimes'), isFalse);
+    });
+
+    test('撮影した場所は、送らない', () {
+      final keys = spec(photoTimes: [DateTime(2026, 1, 2, 9, 5)]).keys;
+
+      expect(keys.where((k) => k.toLowerCase().contains('location')), isEmpty);
+      expect(keys.where((k) => k.contains('latitude')), isEmpty);
     });
   });
 }

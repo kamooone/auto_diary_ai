@@ -35,6 +35,7 @@ class TokenEstimator {
     tokensPerChar: tokensPerChar,
     timelineTokensPerChar: timelineTokensPerChar,
     tokensPerPhoto: tokensPerPhoto,
+    photoTimeTokens: photoTimeTokens,
     plainOutput: outputTokens,
     noteOutputTokensPerChar: noteOutputTokensPerChar,
     noteOutputCap: noteOutputCap,
@@ -76,6 +77,7 @@ class TokenEstimator {
     tokensPerPhoto: 662,
     tokensPerPatch: 1.15,
     photoFixedTokens: 200,
+    photoTimeTokens: photoTimeTokens,
     plainOutput: 100,
     outputTokensPerChar: 0.5,
     diaryTokensPerChar: 0.82,
@@ -108,12 +110,15 @@ class TokenEstimator {
     int photoCount,
     List<Photo> photos,
   ) {
+    // 写真ごとに、撮影日時の行(「1枚目: 2026年1月1日 09:30」)も送る
+    final times = photoCount * c.photoTimeTokens;
+
     final perPatch = c.tokensPerPatch;
     if (perPatch == null || photos.isEmpty) {
-      return photoCount * c.tokensPerPhoto;
+      return photoCount * c.tokensPerPhoto + times;
     }
 
-    var total = c.photoFixedTokens;
+    var total = c.photoFixedTokens + times;
     for (final p in photos) {
       final w = p.width;
       final h = p.height;
@@ -158,6 +163,10 @@ class TokenEstimator {
 
   // 写真1枚あたり(画像だけを送る)。サイズ・種類・枚数に関係なく一定で、実測は約1,085〜1,125
   static const tokensPerPhoto = 880;
+
+  // 写真ごとに送る、撮影日時の行(「1枚目: 2026年1月1日 09:30」。約20文字で、数字が多い)の分。
+  // 約28トークンの約80%。2026-11-25に、撮影日時を送るようにした。最終テストで、測り直す
+  static const photoTimeTokens = 22;
 
   // 日記の本文とタイトル。実測は、何も選ばないとき約50、写真ありで55〜156。
   // 最小に近い値にする。AIが考える分(0〜800でばらつく)は含めない
@@ -359,6 +368,7 @@ class _Coefficients {
     required this.tokensPerChar,
     this.timelineTokensPerChar,
     required this.tokensPerPhoto,
+    this.photoTimeTokens = 0,
     this.tokensPerPatch,
     this.photoFixedTokens = 0,
     required this.plainOutput,
@@ -385,6 +395,9 @@ class _Coefficients {
   /// 行動履歴だけの、1文字あたりのトークン(nullなら、tokensPerCharと同じ)
   final double? timelineTokensPerChar;
   final int tokensPerPhoto;
+
+  /// 写真1枚ごとに送る、撮影日時の行のトークン
+  final int photoTimeTokens;
 
   /// 写真の縦横から計算するとき、32pxのマス目1つあたりのトークン(nullなら、1枚あたり一定)
   final double? tokensPerPatch;

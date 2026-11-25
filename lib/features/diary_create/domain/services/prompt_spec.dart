@@ -29,6 +29,7 @@ class PromptSpec {
     required String timelineText,
     required String postsText,
     List<Memo> memos = const [],
+    List<DateTime> photoTimes = const [],
   }) {
     return {
       'kind': 'diary',
@@ -42,6 +43,9 @@ class PromptSpec {
       'timelineText': timelineText,
       'postsText': postsText,
       'memosText': MemoText.format(memos),
+      // 写真の撮影日時(添付した順)。撮影した場所は、送らない
+      if (photoTimes.isNotEmpty)
+        'photoTimes': [for (final t in photoTimes) _ymdHm(t)],
     };
   }
 
@@ -93,6 +97,14 @@ class PromptSpec {
       ],
       'message': message,
     };
+  }
+
+  // 「2026-01-05 09:30」の形
+  static String _ymdHm(DateTime d) {
+    final hour = d.hour.toString().padLeft(2, '0');
+    final minute = d.minute.toString().padLeft(2, '0');
+
+    return "${_ymd(d)} $hour:$minute";
   }
 
   // 「2026-01-05」の形

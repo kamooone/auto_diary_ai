@@ -103,7 +103,7 @@ void main() {
     test('写真が増えると、1枚ぶんずつ増える', () {
       expect(
         estimate(photoCount: 3) - estimate(),
-        3 * TokenEstimator.tokensPerPhoto,
+        3 * (TokenEstimator.tokensPerPhoto + TokenEstimator.photoTimeTokens),
       );
     });
 

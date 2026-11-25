@@ -94,6 +94,36 @@ class DiaryPromptTest(unittest.TestCase):
         self.assertIn("満員電車", text)
         self.assertIn("(なし)", build(diary_spec()))
 
+    def test_photo_times_are_listed_in_the_order_of_the_photos(self):
+        text = build(
+            diary_spec(photoTimes=["2026-01-01 09:30", "2026-01-02 18:05"]),
+            photos=2,
+        )
+
+        self.assertIn(
+            "2枚添付しています。\n撮影日時は、添付した順に、次のとおりです。\n"
+            "1枚目: 2026年1月1日 09:30\n2枚目: 2026年1月2日 18:05",
+            text,
+        )
+
+    def test_photo_times_are_not_written_when_the_app_does_not_send_them(self):
+        text = build(diary_spec(), photos=2)
+
+        self.assertIn("2枚添付しています。\n", text)
+        self.assertNotIn("撮影日時", text)
+
+    def test_photo_times_must_match_the_number_of_photos(self):
+        with self.assertRaises(prompts.PromptError):
+            build(diary_spec(photoTimes=["2026-01-01 09:30"]), photos=2)
+
+    def test_photo_times_must_be_dates(self):
+        for bad in (["あした"], ["2026-01-01"], [123]):
+            with self.assertRaises(prompts.PromptError):
+                build(diary_spec(photoTimes=bad), photos=1)
+
+        with self.assertRaises(prompts.PromptError):
+            build(diary_spec(photoTimes="2026-01-01 09:30"), photos=1)
+
     def test_memos_are_added_only_when_chosen(self):
         self.assertNotIn("ひとことメモ", build(diary_spec()))
         self.assertNotIn("ひとことメモ", build(diary_spec(memosText="   ")))

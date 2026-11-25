@@ -106,6 +106,8 @@ class GenerateDiaryUseCase {
         timelineText: timelineText,
         postsText: postText,
         memos: memos,
+        // 送った写真の撮影日時(画像と同じ順)。複数日のとき、どの日の写真か分かるようにする
+        photoTimes: [for (final p in sentPhotos) p.createdAt],
       ),
       images: images,
     );

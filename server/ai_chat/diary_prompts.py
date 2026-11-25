@@ -97,6 +97,41 @@ def _text(spec, key, default=""):
     return value
 
 
+# 写真の撮影日時(アプリが「2026-01-01 09:30」の形で、添付した順に送る)
+_PHOTO_TIME_PATTERN = re.compile(r"^(\d{4})-(\d{2})-(\d{2}) (\d{2}):(\d{2})$")
+
+
+def _photo_times(spec, photo_count):
+    """写真の撮影日時を、「1枚目: 2026年1月1日 09:30」の行にする。送られていないときは空
+
+    撮影した場所は、送らない。日時は、複数日の日記で、どの日の写真かを、AIが分かるようにするために送る。
+    写真の枚数と、日時の数が合わないときは、どの写真の日時か分からないので、断る
+    """
+    value = spec.get("photoTimes")
+
+    if value is None:
+        return []
+
+    if not isinstance(value, list):
+        raise PromptError("photoTimes must be a list")
+
+    if len(value) != photo_count:
+        raise PromptError("photoTimes must match the number of photos")
+
+    lines = []
+
+    for index, item in enumerate(value, start=1):
+        matched = _PHOTO_TIME_PATTERN.match(item) if isinstance(item, str) else None
+
+        if not matched:
+            raise PromptError("photoTimes must be 'yyyy-MM-dd HH:mm'")
+
+        year, month, day, hour, minute = (int(g) for g in matched.groups())
+        lines.append(f"{index}枚目: {year}年{month}月{day}日 {hour:02d}:{minute:02d}")
+
+    return lines
+
+
 def _int(spec, key, default=0):
     value = spec.get(key, default)
 
@@ -244,6 +279,13 @@ def build_diary_prompt(spec, photo_count):
     timeline_text = _text(spec, "timelineText")
     posts_text = _text(spec, "postsText")
     memos_text = _text(spec, "memosText").strip()
+    photo_times = _photo_times(spec, photo_count)
+
+    # 写真の撮影日時(複数日のとき、どの日の写真かをAIが分かるようにする)
+    photo_times_section = (
+        "\n撮影日時は、添付した順に、次のとおりです。\n" + "\n".join(photo_times)
+        if photo_times else ""
+    )
 
     is_multi_day = start != end
 
@@ -287,7 +329,7 @@ def build_diary_prompt(spec, photo_count):
 {_period(diary_date, diary_date)}
 {period_section}
 写真
-{photo_count}枚添付しています。
+{photo_count}枚添付しています。{photo_times_section}
 
 行動履歴(滞在した場所と移動)
 ※「推定」と付いた場所や移動手段は、位置情報から自動で推定したもので、間違っていることがあります。
