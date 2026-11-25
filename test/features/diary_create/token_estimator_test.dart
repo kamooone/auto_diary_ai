@@ -135,15 +135,31 @@ void main() {
       );
     });
 
-    test('行動履歴10件(約269文字)は、実測(入力の増加533)の約80%(A7の実測)', () {
-      // 2026-11-25のA7: 履歴10件で、入力が872(何も選ばない339より533多い)。
-      // 履歴は、メモよりトークンが多い(数字と記号が多い)ため、専用の係数にしている
-      const chars = 269;
-      const actualInput = 533;
+    // 2026-11-25の最終テスト(Gemini)。履歴だけを選んだときの、履歴の入力トークン(実測)。
+    // 文字数が増えると、1文字あたりのトークンが減るため、段階の式にしている
+    group('行動履歴の見積もり(Gemini)は、実測の約80%', () {
+      void expectRate(int chars, int actual) {
+        final rate = TokenEstimator.timelineTokens(chars) / actual;
+        expect(rate, inInclusiveRange(0.75, 0.9), reason: '$chars文字・実測$actual');
+      }
 
-      final perChar = TokenEstimator.timelineTokensPerChar;
-      expect(chars * perChar / actualInput, inInclusiveRange(0.75, 0.85));
-      expect(perChar, greaterThan(TokenEstimator.tokensPerChar));
+      test('10件(約270文字)・実測540', () => expectRate(270, 540));
+      test('10件・6日分(約314文字)・実測585', () => expectRate(314, 585));
+      test('10件・住所つき(約348文字)・実測614', () => expectRate(348, 614));
+      test('100件(約3,043文字)・実測2,829', () => expectRate(3043, 2829));
+
+      test('文字数が増えるほど、1文字あたりは減る', () {
+        double perChar(int chars) =>
+            TokenEstimator.timelineTokens(chars) / chars;
+
+        expect(perChar(100), greaterThanOrEqualTo(perChar(300)));
+        expect(perChar(300), greaterThan(perChar(3000)));
+        expect(perChar(3000), greaterThan(perChar(30000)));
+      });
+
+      test('履歴がなければ、0', () {
+        expect(TokenEstimator.timelineTokens(0), 0);
+      });
     });
 
     test('ひとことメモは、AIに渡す文章と同じものの長さで数える', () {

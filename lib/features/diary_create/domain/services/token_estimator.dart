@@ -34,6 +34,8 @@ class TokenEstimator {
     noteTokensPerChar: noteTokensPerChar,
     tokensPerChar: tokensPerChar,
     timelineTokensPerChar: timelineTokensPerChar,
+    timelineTailTokensPerChar: timelineTailTokensPerChar,
+    timelineHeadChars: timelineHeadChars,
     tokensPerPhoto: tokensPerPhoto,
     photoTimeTokens: photoTimeTokens,
     plainOutput: outputTokens,
@@ -156,10 +158,26 @@ class TokenEstimator {
   // 2026-11-25の最終テスト(A8)で、測り直して確かめる
   static const tokensPerChar = 0.55;
 
-  // 行動履歴の1文字あたり。時刻・距離・場所の名前で、数字と記号が多く、メモの約3倍になる。
-  // 2026-11-25の最終テスト(A7: 履歴10件、約269文字で、入力に約533トークン)の実測は約1.98。
-  // その約80%にそろえる。件数を変えたテスト(A7-2〜4)で、測り直して確かめる
+  // 行動履歴は、文字数によって、1文字あたりのトークンが変わる(2026-11-25の最終テスト)。
+  // 少ないうちは多く(10件・約270文字で約2.0)、多くなると少ない(100件・約3,043文字で約0.93)。
+  // 実測は、約300文字まで1文字あたり約1.98、それを超えた分は約0.83(2点の傾きから)。
+  // どちらも、実測の約80%にそろえる。件数を変えたテスト(1・3・30・300件)で、測り直して確かめる
+  static const timelineHeadChars = 300;
   static const timelineTokensPerChar = 1.6;
+  static const timelineTailTokensPerChar = 0.66;
+
+  /// 行動履歴の文章([chars]文字)のトークンの目安
+  /// (最初の[timelineHeadChars]文字は多く、それを超えた分は少なく数える)
+  static double timelineTokens(int chars, {AiModel model = AiModel.gemini}) {
+    final c = _of(model);
+    final head = c.timelineTokensPerChar ?? c.tokensPerChar;
+    final tail = c.timelineTailTokensPerChar ?? head;
+
+    final headChars = math.min(chars, c.timelineHeadChars);
+    final tailChars = math.max(chars - c.timelineHeadChars, 0);
+
+    return headChars * head + tailChars * tail;
+  }
 
   // 写真1枚あたり(画像だけを送る)。サイズ・種類・枚数に関係なく一定で、実測は約1,085〜1,125
   static const tokensPerPhoto = 880;
@@ -331,7 +349,7 @@ class TokenEstimator {
     final input =
         c.instruction +
         note.length * c.noteTokensPerChar +
-        timelineChars * (c.timelineTokensPerChar ?? c.tokensPerChar) +
+        timelineTokens(timelineChars, model: model) +
         chars * c.tokensPerChar +
         _photoInputTokens(c, photoCount, photos) +
         SummaryText.length(diaries) * c.diaryTokensPerChar;
@@ -367,6 +385,8 @@ class _Coefficients {
     required this.noteTokensPerChar,
     required this.tokensPerChar,
     this.timelineTokensPerChar,
+    this.timelineTailTokensPerChar,
+    this.timelineHeadChars = 0,
     required this.tokensPerPhoto,
     this.photoTimeTokens = 0,
     this.tokensPerPatch,
@@ -394,6 +414,10 @@ class _Coefficients {
 
   /// 行動履歴だけの、1文字あたりのトークン(nullなら、tokensPerCharと同じ)
   final double? timelineTokensPerChar;
+
+  /// 行動履歴のうち、最初の[timelineHeadChars]文字を超えた分の、1文字あたり(nullなら、同じ係数)
+  final double? timelineTailTokensPerChar;
+  final int timelineHeadChars;
   final int tokensPerPhoto;
 
   /// 写真1枚ごとに送る、撮影日時の行のトークン
