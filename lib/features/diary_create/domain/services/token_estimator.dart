@@ -146,8 +146,10 @@ class TokenEstimator {
   static const noteOutputTokensPerChar = 0.4;
   static const noteOutputCap = 350;
 
-  // 行動履歴・Xの投稿の1文字あたり。日時や数字を含むため、メモより多い。実測は約0.68〜0.73
-  static const tokensPerChar = 0.65;
+  // 行動履歴・Xの投稿の1文字あたり。日時や数字を含むため、メモより多い。
+  // 実測は約0.68〜0.73(2026-10-29〜30。履歴7件で約0.7、投稿10件で約0.7)。実測の約80%にそろえる。
+  // 2026-11-25の最終テスト(A7・A8)で、測り直して確かめる
+  static const tokensPerChar = 0.55;
 
   // 写真1枚あたり(画像だけを送る)。サイズ・種類・枚数に関係なく一定で、実測は約1,085〜1,125
   static const tokensPerPhoto = 880;
