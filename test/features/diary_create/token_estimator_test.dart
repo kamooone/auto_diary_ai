@@ -136,7 +136,7 @@ void main() {
     });
 
     // 2026-11-25の最終テスト(Gemini)。履歴だけを選んだときの、履歴の入力トークン(実測)。
-    // 文字数が増えると、1文字あたりのトークンが減るため、「スケール × 文字数の0.68乗」の式にしている
+    // 「一定の分 + 文字数に比例する分」の式(250 + 0.66 × 文字数)。約266文字未満は、1文字あたり1.6が上限
     group('行動履歴の見積もり(Gemini)は、実測の約80%', () {
       void expectRate(int chars, int actual) {
         final rate = TokenEstimator.timelineTokens(chars) / actual;
@@ -147,6 +147,7 @@ void main() {
       test('10件・6日分(約314文字)・実測585', () => expectRate(314, 585));
       test('10件・住所つき(約348文字)・実測614', () => expectRate(348, 614));
       test('100件(約3,043文字)・実測2,829', () => expectRate(3043, 2829));
+      test('500件(約15,100文字)・実測12,804', () => expectRate(15100, 12804));
 
       test('文字数が増えるほど、1文字あたりは減る', () {
         double perChar(int chars) =>

@@ -34,8 +34,8 @@ class TokenEstimator {
     noteTokensPerChar: noteTokensPerChar,
     tokensPerChar: tokensPerChar,
     timelineTokensPerChar: timelineTokensPerChar,
-    timelineScale: timelineScale,
-    timelineExponent: timelineExponent,
+    timelineBaseTokens: timelineBaseTokens,
+    timelineSlopeTokensPerChar: timelineSlopeTokensPerChar,
     tokensPerPhoto: tokensPerPhoto,
     photoTimeTokens: photoTimeTokens,
     plainOutput: outputTokens,
@@ -158,27 +158,27 @@ class TokenEstimator {
   // 2026-11-25の最終テスト(A8)で、測り直して確かめる
   static const tokensPerChar = 0.55;
 
-  // 行動履歴は、文字数が増えるほど、1文字あたりのトークンが減る(2026-11-25の最終テスト)。
-  // 10件・約270文字で約2.0、100件・約3,043文字で約0.93。
-  // 「文字数が2倍になると、トークンは約1.6倍(2の0.68乗)」の形で、実測に合う
-  // (実測の式: 11.7 × 文字数^0.68)。その約80%にそろえて、9.4 × 文字数^0.68。
-  // 文字数が少ないとき(約250文字未満)は、この式だと1文字あたりが大きくなりすぎるので、
+  // 行動履歴は、「一定の分 + 文字数に比例する分」で増える(2026-11-25の最終テスト)。
+  // 実測は、10件(約270文字)で540、100件(約3,043文字)で2,829、500件(約15,100文字)で12,804。
+  // この3点は、「約317 + 0.825 × 文字数」の直線に、誤差30以内で乗る(1文字あたりは、文字数が増えると、
+  // 約2.0 → 0.93 → 0.85と下がり、0.825に近づく)。その約80%にそろえて、250 + 0.66 × 文字数。
+  // 文字数が少ないとき(約266文字未満)は、この式だと、少ない履歴(1件など)で多くなりすぎるので、
   // 1文字あたり[timelineTokensPerChar](10件の実測の約80%)を上限にする。
-  // 件数を変えたテスト(1・3・30・300件)で、測り直して確かめる
+  // (割合の式 9.4 × 文字数^0.68 は、500件で下がりすぎて、実測の51%になったので、やめた)
   static const timelineTokensPerChar = 1.6;
-  static const timelineScale = 9.4;
-  static const timelineExponent = 0.68;
+  static const timelineBaseTokens = 250.0;
+  static const timelineSlopeTokensPerChar = 0.66;
 
   /// 行動履歴の文章([chars]文字)のトークンの目安
   static double timelineTokens(int chars, {AiModel model = AiModel.gemini}) {
     final c = _of(model);
     final perChar = c.timelineTokensPerChar ?? c.tokensPerChar;
 
-    final scale = c.timelineScale;
-    final exponent = c.timelineExponent;
-    if (scale == null || exponent == null || chars <= 0) return chars * perChar;
+    final base = c.timelineBaseTokens;
+    final slope = c.timelineSlopeTokensPerChar;
+    if (base == null || slope == null || chars <= 0) return chars * perChar;
 
-    return math.min(chars * perChar, scale * math.pow(chars, exponent));
+    return math.min(chars * perChar, base + slope * chars);
   }
 
   // 写真1枚あたり(画像だけを送る)。サイズ・種類・枚数に関係なく一定で、実測は約1,085〜1,125
@@ -387,8 +387,8 @@ class _Coefficients {
     required this.noteTokensPerChar,
     required this.tokensPerChar,
     this.timelineTokensPerChar,
-    this.timelineScale,
-    this.timelineExponent,
+    this.timelineBaseTokens,
+    this.timelineSlopeTokensPerChar,
     required this.tokensPerPhoto,
     this.photoTimeTokens = 0,
     this.tokensPerPatch,
@@ -417,9 +417,9 @@ class _Coefficients {
   /// 行動履歴だけの、1文字あたりのトークン(nullなら、tokensPerCharと同じ)
   final double? timelineTokensPerChar;
 
-  /// 行動履歴の、文字数によるトークンの式(scale × 文字数のexponent乗)。nullなら、1文字あたり一定
-  final double? timelineScale;
-  final double? timelineExponent;
+  /// 行動履歴の、文字数によるトークンの式(一定の分 + 文字数 × 1文字あたり)。nullなら、1文字あたり一定
+  final double? timelineBaseTokens;
+  final double? timelineSlopeTokensPerChar;
   final int tokensPerPhoto;
 
   /// 写真1枚ごとに送る、撮影日時の行のトークン
