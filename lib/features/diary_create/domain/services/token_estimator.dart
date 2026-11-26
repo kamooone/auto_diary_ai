@@ -76,9 +76,9 @@ class TokenEstimator {
   static const _gpt = _Coefficients(
     instruction: 351,
     noteTokensPerChar: 0.6,
-    tokensPerChar: tokensPerChar * gptPostsRatio,
-    postsBaseTokens: postsBaseTokens * gptPostsRatio,
-    postsSlopeTokensPerChar: postsSlopeTokensPerChar * gptPostsRatio,
+    tokensPerChar: tokensPerChar,
+    postsBaseTokens: gptPostsBaseTokens,
+    postsSlopeTokensPerChar: gptPostsSlopeTokensPerChar,
     timelineTokensPerChar: timelineTokensPerChar,
     timelineBaseTokens: timelineBaseTokens,
     timelineSlopeTokensPerChar: timelineSlopeTokensPerChar,
@@ -144,10 +144,13 @@ class TokenEstimator {
   static const postsBaseTokens = 260.0;
   static const postsSlopeTokensPerChar = 0.57;
 
-  // GPTは、Xの投稿の文字を、Geminiより細かく数える。Geminiの式のままだと、入力の見積もりが実測の約97%
-  // (100件6,676に対し約6,440、300件19,566に対し約19,050)で、上限に近い。×0.85にして、約70〜83%にする
-  // (2026-11-26のG5)。ひとことメモも、同じ式で数えるので、同じ倍率になる
-  static const gptPostsRatio = 0.85;
+  // GPTのXの投稿は、GPT自身の実測に直線を当てて、その約80%にする(2026-11-26のG5)。
+  //  実測(入力の、指示文417を除いた投稿の分): 10件893、100件6,259、300件19,149
+  //  → 100件と300件を通る直線は「約756 + 0.538 × 文字数」(文字数は、Geminiの式からの逆算)。その80%。
+  //  文字数が少ないとき(約1,640文字未満)は、1文字あたり[tokensPerChar](10件の実測約0.99の約80%)が上限
+  //  Geminiの式を0.85倍しただけだと、件数が多いほど割合が上がった(10件79%・100件83%・300件88%)
+  static const gptPostsBaseTokens = 606.0;
+  static const gptPostsSlopeTokensPerChar = 0.43;
 
   /// Xの投稿・ひとことメモの文章([chars]文字)のトークンの目安
   static double postsTokens(int chars, {AiModel model = AiModel.gemini}) {

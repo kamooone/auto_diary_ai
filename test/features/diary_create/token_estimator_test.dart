@@ -393,14 +393,29 @@ void main() {
       expect(added(AiModel.gpt), added(AiModel.gemini));
     });
 
-    // 実測(2026-11-26のG5。考える量 low): Xの投稿100件=入力6,676、300件=19,566、10件=1,310。
-    // Geminiの式のままだと、入力の見積もりが約97%で、上限に近かったので、GPTは×0.85にした
-    test('Xの投稿は、Geminiの約0.85倍(文字数が多いほど、その差が出る)', () {
-      for (final chars in [200, 5000, 20000, 60000]) {
-        final gpt = TokenEstimator.postsTokens(chars, model: AiModel.gpt);
-        final gemini = TokenEstimator.postsTokens(chars);
+    // 実測(2026-11-26のG5。考える量 low): 入力から指示文417を除いた、投稿の分。
+    // 10件893(約900文字)、100件6,259(約10,200文字)、300件19,149(約34,200文字)。文字数は逆算
+    test('Xの投稿は、件数が増えても、実測の約80%(上がり続けない)', () {
+      for (final (chars, actual) in [
+        (904, 893),
+        (10228, 6259),
+        (34198, 19149),
+      ]) {
+        final rate =
+            TokenEstimator.postsTokens(chars, model: AiModel.gpt) / actual;
 
-        expect(gpt / gemini, closeTo(TokenEstimator.gptPostsRatio, 0.001));
+        expect(rate, inInclusiveRange(0.75, 0.86), reason: '$chars文字');
+      }
+    });
+
+    test('Xの投稿は、文字数が多いほど割合が上がらない(500件・1,000件でも約80%)', () {
+      // 傾きが実測(0.538)の約80%なので、多くなっても、80%に近づく
+      for (final chars in [57000, 114000]) {
+        final actual = 756 + 0.538 * chars;
+        final rate =
+            TokenEstimator.postsTokens(chars, model: AiModel.gpt) / actual;
+
+        expect(rate, inInclusiveRange(0.78, 0.86), reason: '$chars文字');
       }
     });
 
