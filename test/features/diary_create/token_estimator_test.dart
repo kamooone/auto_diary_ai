@@ -330,7 +330,7 @@ void main() {
   });
 
   // GPTは、Geminiの係数に、材料ごとの倍率をかけた値(2026-11-26、ユーザー指示)。GPTのテストをして、微調整する。
-  //  文字(指示文・メモ)は×1.3、写真は×0.6(GPTは写真が少ない)、履歴・投稿はGeminiと同じ、考える分は+400
+  //  文字(指示文・メモ)は×1.3、写真は×0.6(GPTは写真が少ない)、履歴・投稿はGeminiと同じ、考える分は+100(考える量 low)
   group('TokenEstimator(GPTは、Geminiに、材料ごとの倍率をかけたもの)', () {
     int tokens(
       AiModel model, {
@@ -346,20 +346,23 @@ void main() {
       model: model,
     );
 
-    // 実測(2026-11-25のG1・G2。考える量 medium): 何も選ばない957・1,104、メモ969文字2,385
-    test('何も選ばない・メモだけは、実測(思考を含む)の約70〜90%', () {
-      expect(tokens(AiModel.gpt) / 957, inInclusiveRange(0.7, 0.9));
-      expect(tokens(AiModel.gpt) / 1104, inInclusiveRange(0.65, 0.9));
+    // 実測(2026-11-26。考える量 low): 何も選ばない640、メモ969文字2,044、写真3枚3,056
+    test('何も選ばない・メモだけ・写真だけは、実測(思考を含む)の約70〜90%で、超えない', () {
+      expect(tokens(AiModel.gpt) / 640, inInclusiveRange(0.7, 0.9));
       expect(
-        tokens(AiModel.gpt, note: 'あ' * 969) / 2385,
-        inInclusiveRange(0.7, 0.9),
+        tokens(AiModel.gpt, note: 'あ' * 969) / 2044,
+        inInclusiveRange(0.65, 0.9),
+      );
+      expect(
+        tokens(AiModel.gpt, photoCount: 3) / 3056,
+        inInclusiveRange(0.65, 0.9),
       );
     });
 
     test('入力の見積もりだけでは、実測の入力を超えない(指示文417・メモ969文字で1,222)', () {
       // 考える分と、出力を除いた、入力だけの見積もり
-      final instruction = tokens(AiModel.gpt) - 40 - 400;
-      final withNote = tokens(AiModel.gpt, note: 'あ' * 969) - 40 - 350 - 400;
+      final instruction = tokens(AiModel.gpt) - 40 - 100;
+      final withNote = tokens(AiModel.gpt, note: 'あ' * 969) - 40 - 350 - 100;
 
       expect(instruction, lessThan(417));
       expect(withNote, lessThan(1222));

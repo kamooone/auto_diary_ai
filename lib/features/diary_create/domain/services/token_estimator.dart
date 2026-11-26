@@ -67,9 +67,10 @@ class TokenEstimator {
   //    Geminiと同じにすると、見積もりが実測を超える
   //  ・行動履歴・Xの投稿・ひとことメモ: GPTは、数字を数桁まとめて数えるので、Geminiと違う可能性がある。
   //    測るまでは、Geminiと同じ
-  //  ・考える分(reasoning): 考える量 medium では、小さな入力でも、毎回、約450〜580出る(2026-11-25の
-  //    G1・G2)。最小の約9割、**+400**を足す(単純なケースで、実測の約80%になるように)。
-  //    思考が約290未満の回があれば、何も選ばないとき、見積もりが実測を超える
+  //  ・考える分(reasoning): 考える量は **low** にした(2026-11-26)。何も選ばない・メモだけは128、
+  //    写真ありは256(G1・G2・G3)。最小の128の約8割、**+100**を足す。
+  //    (medium のときは、毎回450〜580で+400だったが、low にしたら、G1の見積もりが実測を超えた)
+  //    行動履歴などで、思考がもっと増える分は、足さない(少なめに外れるのは許容)
   // 日記を1つにする(まとめ)と、書き方の相談の係数と、作業時間の見積もり(ゲージ)は、
   // GPTの以前の値のまま(ゲージの長さの実測(31件で25秒など)と結びついているため)
   static const _gpt = _Coefficients(
@@ -83,7 +84,7 @@ class TokenEstimator {
     timelineSlopeTokensPerChar: timelineSlopeTokensPerChar,
     tokensPerPhoto: 528,
     photoTimeTokens: photoTimeTokens,
-    reasoningTokens: 400,
+    reasoningTokens: 100,
     plainOutput: outputTokens,
     noteOutputTokensPerChar: noteOutputTokensPerChar,
     noteOutputCap: noteOutputCap,
