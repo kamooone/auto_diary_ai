@@ -270,7 +270,7 @@ class _SummaryDiaryScreenState extends ConsumerState<SummaryDiaryScreen> {
               key: _noteKey,
               controller: _noteController,
               label: "${model.label}に追加で伝えたいこと",
-              hintText: "例：この1年の変化がわかるように",
+              hintText: "例：この1年の変化がわかるように。目次をつけて",
               height: 120,
               onChanged: viewModel.setAiNote,
             ),

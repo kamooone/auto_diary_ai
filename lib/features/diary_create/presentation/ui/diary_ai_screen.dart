@@ -409,7 +409,7 @@ class _DiaryAiScreenState extends ConsumerState<DiaryAiScreen> {
             key: _noteKey,
             controller: _noteController,
             label: "${model.label}に追加で伝えたいこと",
-            hintText: "例：楽しかった気持ちを中心に",
+            hintText: "例：楽しかった気持ちを中心に。目次をつけて",
             height: 120,
             onChanged: viewModel.setAiNote,
           ),
