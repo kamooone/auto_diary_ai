@@ -106,7 +106,8 @@ Future<bool> confirmBeforeConsult(
       content: Text(
         "選んだ日記の内容をAIに送ります。消費トークンの目安は、"
         "約${formatTokens(estimatedTokens)}$remainingです。\n"
-        "続けて相談するときは、日記の全文は送らないので、消費は少なくなります。",
+        "続けて相談するときは、日記の全文は送らないので、消費は少なくなりますが、"
+        "途中でトークンが足りなくなると、次の送信から使えなくなります。",
       ),
       actions: [
         TextButton(
