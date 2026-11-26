@@ -378,7 +378,7 @@ void main() {
       expect(one / (690 + 28), greaterThanOrEqualTo(0.7));
     });
 
-    test('行動履歴・Xの投稿は、Geminiと同じ(測るまで)', () {
+    test('行動履歴は、Geminiと同じ', () {
       final stay = Stay(
         start: DateTime(2026, 1, 1, 9),
         end: DateTime(2026, 1, 1, 10),
@@ -386,18 +386,22 @@ void main() {
         longitude: 139,
         placeName: '東京駅',
       );
-      final posts = [
-        SharedPost(
-          url: 'https://x.com/a/status/1',
-          text: 'おはよう',
-          receivedAt: DateTime(2026, 1, 1, 9),
-        ),
-      ];
 
       int added(AiModel model) =>
-          tokens(model, timeline: [stay], posts: posts) - tokens(model);
+          tokens(model, timeline: [stay]) - tokens(model);
 
       expect(added(AiModel.gpt), added(AiModel.gemini));
+    });
+
+    // 実測(2026-11-26のG5。考える量 low): Xの投稿100件=入力6,676、300件=19,566、10件=1,310。
+    // Geminiの式のままだと、入力の見積もりが約97%で、上限に近かったので、GPTは×0.85にした
+    test('Xの投稿は、Geminiの約0.85倍(文字数が多いほど、その差が出る)', () {
+      for (final chars in [200, 5000, 20000, 60000]) {
+        final gpt = TokenEstimator.postsTokens(chars, model: AiModel.gpt);
+        final gemini = TokenEstimator.postsTokens(chars);
+
+        expect(gpt / gemini, closeTo(TokenEstimator.gptPostsRatio, 0.001));
+      }
     });
 
     test('Geminiは、これまでどおり(考える分を足さない)', () {

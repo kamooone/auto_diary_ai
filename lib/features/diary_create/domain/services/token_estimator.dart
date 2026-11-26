@@ -76,9 +76,9 @@ class TokenEstimator {
   static const _gpt = _Coefficients(
     instruction: 351,
     noteTokensPerChar: 0.6,
-    tokensPerChar: tokensPerChar,
-    postsBaseTokens: postsBaseTokens,
-    postsSlopeTokensPerChar: postsSlopeTokensPerChar,
+    tokensPerChar: tokensPerChar * gptPostsRatio,
+    postsBaseTokens: postsBaseTokens * gptPostsRatio,
+    postsSlopeTokensPerChar: postsSlopeTokensPerChar * gptPostsRatio,
     timelineTokensPerChar: timelineTokensPerChar,
     timelineBaseTokens: timelineBaseTokens,
     timelineSlopeTokensPerChar: timelineSlopeTokensPerChar,
@@ -143,6 +143,11 @@ class TokenEstimator {
   static const tokensPerChar = 0.8;
   static const postsBaseTokens = 260.0;
   static const postsSlopeTokensPerChar = 0.57;
+
+  // GPTは、Xの投稿の文字を、Geminiより細かく数える。Geminiの式のままだと、入力の見積もりが実測の約97%
+  // (100件6,676に対し約6,440、300件19,566に対し約19,050)で、上限に近い。×0.85にして、約70〜83%にする
+  // (2026-11-26のG5)。ひとことメモも、同じ式で数えるので、同じ倍率になる
+  static const gptPostsRatio = 0.85;
 
   /// Xの投稿・ひとことメモの文章([chars]文字)のトークンの目安
   static double postsTokens(int chars, {AiModel model = AiModel.gemini}) {
