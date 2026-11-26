@@ -487,6 +487,29 @@ void main() {
     test('25件・ブログ風(入力7,335+出力1,049)', () {
       expectRate(25, 9140, SummaryStyle.reading, 8384);
     });
+
+    // GPT(2026-11-26。考える量 low): 簡単なブログ風。5件は入力3,705・出力553・思考640(合計4,898)、
+    // 25件は入力9,676・出力411・思考960(合計11,047)。日記の文字数は、見積もりからの逆算(3,624・11,127文字)
+    test('GPT: 日記5件・25件は、入力の約80%・合計の約65〜80%で、思考が小さい回でも超えない', () {
+      int gpt(int count, int chars) => TokenEstimator.estimate(
+        note: '',
+        timeline: const [],
+        posts: const [],
+        photoCount: 0,
+        diaries: diaries(count, chars),
+        summaryStyle: SummaryStyle.brief,
+        model: AiModel.gpt,
+      );
+
+      final five = gpt(5, 3624);
+      final twentyFive = gpt(25, 11127);
+
+      expect(five / 4898, inInclusiveRange(0.6, 0.8));
+      expect(twentyFive / 11047, inInclusiveRange(0.7, 0.86));
+      // 思考が128だったとしたら(入力+出力+思考128)
+      expect(five, lessThan(3705 + 553 + 128));
+      expect(twentyFive, lessThan(9676 + 411 + 128));
+    });
   });
 
   group('不足を知らせるダイアログ', () {

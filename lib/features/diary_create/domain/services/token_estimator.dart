@@ -89,7 +89,12 @@ class TokenEstimator {
     noteOutputTokensPerChar: noteOutputTokensPerChar,
     noteOutputCap: noteOutputCap,
     outputTokensPerChar: 0.5,
-    diaryTokensPerChar: 0.82,
+    // 日記を1つにする(GPT)は、GPT自身の実測に直線を当てて、その約80%にする(2026-11-26。low)。
+    //  実測(入力): 日記5件(約3,624文字)3,705、25件(約11,127文字)9,676(文字数は、見積もりからの逆算)
+    //  → 直線は「約821 + 0.796 × 文字数」。その80%は「657 + 0.637 × 文字数」で、657のうち351は指示文なので、
+    //  日記を1つにするときの基本分は、306を足す。Geminiの方法(2点の直線の80%)と同じ
+    summaryBaseTokens: 306,
+    diaryTokensPerChar: 0.64,
     readingRatio: 0.08,
     briefRatio: 0.045,
     listBase: 100,
@@ -374,6 +379,7 @@ class TokenEstimator {
         timelineTokens(timelineChars, model: model) +
         postsTokens(chars, model: model) +
         _photoInputTokens(c, photoCount) +
+        (diaries.isEmpty ? 0 : c.summaryBaseTokens) +
         SummaryText.length(diaries) * c.diaryTokensPerChar;
 
     final noteOutput = math.min(
@@ -419,6 +425,7 @@ class _Coefficients {
     this.noteOutputTokensPerChar = 0,
     this.noteOutputCap = 0,
     required this.outputTokensPerChar,
+    this.summaryBaseTokens = 0,
     required this.diaryTokensPerChar,
     required this.readingRatio,
     required this.briefRatio,
@@ -464,6 +471,10 @@ class _Coefficients {
   /// 文字数の目安を選んだときの、出力 = 目安の文字数 × この値
   /// (AIは目安どおりに書くとは限らず、短くなることも多いため、実際のトークンより少なめ。要実測)
   final double outputTokensPerChar;
+
+  /// 日記を1つにするときだけ足す、一定の分(まとめの指示文の分。指示文[instruction]のほかに)
+  final int summaryBaseTokens;
+
   final double diaryTokensPerChar;
 
   /// 読み物・自分で指定の出力 = 日記の文字数 × この値
