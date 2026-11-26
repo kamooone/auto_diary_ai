@@ -214,6 +214,18 @@ class DiaryPromptTest(unittest.TestCase):
                 "番号は見出しの行にだけ付けて、段落の先頭には番号を付けず", build(spec)
             )
 
+    def test_diary_and_blog_split_paragraphs(self):
+        # 日記・ブログ風にも、段落を分けて、空行を入れる指示を入れる(2026-11-27、ユーザー指示)
+        for style in ("diary", "blog"):
+            self.assertIn(
+                "2〜4文ごとに段落を分けて、段落と段落の間は1行空けてください",
+                build(diary_spec(style=style)),
+            )
+        for style in ("record", "bullets"):
+            self.assertNotIn(
+                "2〜4文ごとに段落を分けて", build(diary_spec(style=style))
+            )
+
     def test_blog_covers_the_whole_period_when_multi_day(self):
         text = build(diary_spec(style="blog", endDate="2026-11-08"))
 
