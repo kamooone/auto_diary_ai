@@ -207,6 +207,13 @@ class DiaryPromptTest(unittest.TestCase):
         self.assertIn("章が2つ以下のときや、章立てにしないときは、目次は付けないでください", text)
         self.assertIn("番号を1から順に増やして書き(すべて「1.」にしない)", text)
 
+    def test_numbers_are_only_on_heading_lines(self):
+        # 章の中の段落の先頭にも、章の番号が付いた(2026-11-26の日記50件)。見出しの行にだけ付ける
+        for spec in (diary_spec(style="blog"), summary_spec("reading")):
+            self.assertIn(
+                "番号は見出しの行にだけ付けて、段落の先頭には番号を付けず", build(spec)
+            )
+
     def test_blog_covers_the_whole_period_when_multi_day(self):
         text = build(diary_spec(style="blog", endDate="2026-11-08"))
 
