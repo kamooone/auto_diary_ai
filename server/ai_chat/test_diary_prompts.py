@@ -186,6 +186,12 @@ class DiaryPromptTest(unittest.TestCase):
         self.assertIn("どの日も省かずに、日付を添えて書いてください", text)
         self.assertIn("行動履歴の場所や滞在も、細部として本文に入れてください", text)
 
+    def test_blog_headings_are_numbered_in_order(self):
+        # GPTが、見出しをすべて「1.」にした(2026-11-26)。順に増やすよう、指示する
+        text = build(diary_spec(style="blog"))
+
+        self.assertIn("番号を1から順に増やして書き(すべて「1.」にしない)", text)
+
     def test_blog_covers_the_whole_period_when_multi_day(self):
         text = build(diary_spec(style="blog", endDate="2026-11-08"))
 
