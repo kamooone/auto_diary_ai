@@ -192,6 +192,13 @@ class DiaryPromptTest(unittest.TestCase):
 
         self.assertIn("番号を1から順に増やして書き(すべて「1.」にしない)", text)
 
+    def test_blog_adds_a_table_of_contents_only_when_there_are_many_headings(self):
+        # 目次を入れるかは、AIが、見出しの数で決める(2026-11-26、ユーザー指示)
+        text = build(diary_spec(style="blog"))
+
+        self.assertIn("見出しが3つ以上になるときは、導入のあとに「目次」と書いて", text)
+        self.assertIn("見出しが2つ以下の短い文章では、目次は付けないでください", text)
+
     def test_blog_covers_the_whole_period_when_multi_day(self):
         text = build(diary_spec(style="blog", endDate="2026-11-08"))
 
