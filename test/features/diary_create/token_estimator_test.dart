@@ -378,19 +378,8 @@ void main() {
       expect(one / (690 + 28), greaterThanOrEqualTo(0.7));
     });
 
-    test('行動履歴は、Geminiと同じ', () {
-      final stay = Stay(
-        start: DateTime(2026, 1, 1, 9),
-        end: DateTime(2026, 1, 1, 10),
-        latitude: 35,
-        longitude: 139,
-        placeName: '東京駅',
-      );
-
-      int added(AiModel model) =>
-          tokens(model, timeline: [stay]) - tokens(model);
-
-      expect(added(AiModel.gpt), added(AiModel.gemini));
+    test('行動履歴の、Geminiの式は、これまでどおり(250 + 0.66 × 文字数)', () {
+      expect(TokenEstimator.timelineTokens(9058).round(), 6228);
     });
 
     // 実測(2026-11-26のG5。考える量 low): 入力から指示文417を除いた、投稿の分。
@@ -414,6 +403,27 @@ void main() {
         final actual = 756 + 0.538 * chars;
         final rate =
             TokenEstimator.postsTokens(chars, model: AiModel.gpt) / actual;
+
+        expect(rate, inInclusiveRange(0.78, 0.86), reason: '$chars文字');
+      }
+    });
+
+    // 実測(2026-11-26。考える量 low): 入力から指示文417を除いた、履歴の分。
+    // 10件645(約315文字)、100件2,691(約3,044文字)、300件7,206(約9,058文字)。文字数は逆算
+    test('行動履歴は、件数が増えても、実測の約80%(上がり続けない)', () {
+      for (final (chars, actual) in [(315, 645), (3044, 2691), (9058, 7206)]) {
+        final rate =
+            TokenEstimator.timelineTokens(chars, model: AiModel.gpt) / actual;
+
+        expect(rate, inInclusiveRange(0.75, 0.86), reason: '$chars文字');
+      }
+    });
+
+    test('行動履歴は、文字数が多いほど割合が上がらない(1,000件相当でも約80%)', () {
+      for (final chars in [30000, 90000]) {
+        final actual = 406 + 0.751 * chars;
+        final rate =
+            TokenEstimator.timelineTokens(chars, model: AiModel.gpt) / actual;
 
         expect(rate, inInclusiveRange(0.78, 0.86), reason: '$chars文字');
       }

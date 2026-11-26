@@ -80,8 +80,8 @@ class TokenEstimator {
     postsBaseTokens: gptPostsBaseTokens,
     postsSlopeTokensPerChar: gptPostsSlopeTokensPerChar,
     timelineTokensPerChar: timelineTokensPerChar,
-    timelineBaseTokens: timelineBaseTokens,
-    timelineSlopeTokensPerChar: timelineSlopeTokensPerChar,
+    timelineBaseTokens: gptTimelineBaseTokens,
+    timelineSlopeTokensPerChar: gptTimelineSlopeTokensPerChar,
     tokensPerPhoto: 528,
     photoTimeTokens: photoTimeTokens,
     reasoningTokens: 100,
@@ -151,6 +151,13 @@ class TokenEstimator {
   //  Geminiの式を0.85倍しただけだと、件数が多いほど割合が上がった(10件79%・100件83%・300件88%)
   static const gptPostsBaseTokens = 606.0;
   static const gptPostsSlopeTokensPerChar = 0.43;
+
+  // GPTの行動履歴も、GPT自身の実測に直線を当てて、その約80%にする(2026-11-26のH1・G4・H2)。
+  //  実測(入力の、指示文417を除いた履歴の分): 10件645、100件2,691、300件7,206
+  //  → 100件と300件を通る直線は「約406 + 0.751 × 文字数」(文字数は、Geminiの式からの逆算。10件も乗る)。その80%。
+  //  文字数が少ないときの上限(1文字あたり1.6)は、Geminiと同じ(10件の実測約2.05の約80%)
+  static const gptTimelineBaseTokens = 325.0;
+  static const gptTimelineSlopeTokensPerChar = 0.60;
 
   /// Xの投稿・ひとことメモの文章([chars]文字)のトークンの目安
   static double postsTokens(int chars, {AiModel model = AiModel.gemini}) {
