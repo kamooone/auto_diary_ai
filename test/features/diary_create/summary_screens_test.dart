@@ -202,7 +202,10 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.textContaining('AIに送れない内容が含まれている可能性があります'), findsOneWidget);
+      expect(
+        find.textContaining('AIに送れない内容(違法行為や暴力のやり方を求める内容など)が含まれている可能性があります'),
+        findsOneWidget,
+      );
       expect(find.textContaining('選んだ内容を見直してください'), findsOneWidget);
     });
 

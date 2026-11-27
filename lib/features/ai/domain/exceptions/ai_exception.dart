@@ -58,11 +58,38 @@ class AiEmptyDiaryException implements Exception {
 /// 選んだ内容に、AIに送れない内容(違法行為や暴力のやり方を求める発言など)が含まれている可能性がある。
 ///
 /// サーバーが、AIに送る前に見つけて、断った(トークンは使われない)。
-/// 日記の生成と、書き方の相談の、どちらでも起きる
+/// 日記の生成と、書き方の相談の、どちらでも起きる。
+/// [sources]は、断った入力の名前(サーバーが返す)。案内で、どこを見直すかを伝えるために使う
 class ContentBlockedException implements Exception {
-  /// 利用者に見せる案内
-  static const message = "AIに送れない内容が含まれている可能性があります。メモなど、選んだ内容を見直してください。";
+  final List<String> sources;
+
+  ContentBlockedException([this.sources = const []]);
+
+  /// 入力の名前 → 案内に出す言い方
+  static const _labels = {
+    'note': '「追加で伝えたいこと」',
+    'customInstruction': '「書き方の指定」',
+    'memosText': '「ひとことメモ」',
+    'postsText': '選んだ「Xの投稿」',
+    'timelineText': '選んだ「行動履歴」',
+    'diariesText': '選んだ「日記」の内容',
+    'message': '送った「メッセージ」',
+  };
+
+  /// 利用者に見せる案内。どこが問題かが分かるときは、その場所を入れる
+  String get message {
+    final labels = [
+      for (final source in sources)
+        if (_labels.containsKey(source)) _labels[source]!,
+    ];
+
+    if (labels.isEmpty) {
+      return 'AIに送れない内容(違法行為や暴力のやり方を求める内容など)が含まれている可能性があります。選んだ内容を見直してください。';
+    }
+
+    return '${labels.join('と')}に、AIに送れない内容(違法行為や暴力のやり方を求める内容など)が含まれている可能性があります。内容を見直してください。';
+  }
 
   @override
-  String toString() => 'ContentBlockedException';
+  String toString() => 'ContentBlockedException: $sources';
 }

@@ -12,9 +12,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 class BlockedAi implements AiRepository {
+  BlockedAi([this.sources = const []]);
+
+  final List<String> sources;
+
   @override
   Future<AiReply> sendMessage(AiMessageRequest request) async {
-    throw ContentBlockedException();
+    throw ContentBlockedException(sources);
   }
 }
 
@@ -38,7 +42,9 @@ void main() {
   test('AIに送れない内容が含まれていると断られたら、見直す案内を出す(生成)', () async {
     final container = ProviderContainer(
       overrides: [
-        aiRepositoryProvider.overrideWithValue(BlockedAi()),
+        aiRepositoryProvider.overrideWithValue(
+          BlockedAi(const ['diariesText']),
+        ),
         summaryStyleRepositoryProvider.overrideWithValue(
           MemoryStyleRepository(),
         ),
@@ -52,7 +58,10 @@ void main() {
     await viewModel.generateSummaryDiary();
 
     final state = container.read(diaryCreateProvider);
-    expect(state.errorMessage, ContentBlockedException.message);
+    expect(
+      state.errorMessage,
+      ContentBlockedException(const ['diariesText']).message,
+    );
     expect(state.isLoading, isFalse);
     expect(state.generatedDiary.trim(), isEmpty);
   });

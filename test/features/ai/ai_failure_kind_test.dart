@@ -90,6 +90,27 @@ void main() {
       expect(e, isA<ContentBlockedException>());
     });
 
+    test('422(content_blocked)の返事の、断った入力の名前を持つ', () async {
+      final e = await failureOf(
+        json(422, {
+          'error': 'content_blocked',
+          'sources': ['postsText', 'note'],
+        }),
+      );
+
+      expect((e as ContentBlockedException).sources, ['postsText', 'note']);
+    });
+
+    test('断った入力の名前がない・読めないときは、空', () async {
+      final none = await failureOf(json(422, {'error': 'content_blocked'}));
+      final odd = await failureOf(
+        json(422, {'error': 'content_blocked', 'sources': 'x'}),
+      );
+
+      expect((none as ContentBlockedException).sources, isEmpty);
+      expect((odd as ContentBlockedException).sources, isEmpty);
+    });
+
     test('content_blocked でない422は、これまでどおり', () async {
       expect(
         await failureOf(json(422, {'error': 'x'})),

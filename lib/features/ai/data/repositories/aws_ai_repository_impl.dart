@@ -154,7 +154,9 @@ class AwsAiRepositoryImpl implements AiRepository {
     // 選んだ内容に、AIに送れない内容が含まれている可能性がある(サーバーが、AIに送る前に断った)
     if (path == _chatPath && response.statusCode == 422) {
       final body = utf8.decode(response.bodyBytes, allowMalformed: true);
-      if (body.contains('content_blocked')) throw ContentBlockedException();
+      if (body.contains('content_blocked')) {
+        throw ContentBlockedException(_blockedSourcesOf(body));
+      }
     }
 
     // AI側が混雑などで応答できなかった(日記の生成のときだけ。写真のアップロードの502は、
@@ -203,6 +205,20 @@ class AwsAiRepositoryImpl implements AiRepository {
           body: body,
         )
         .timeout(_timeout);
+  }
+
+  /// サーバーが返した、断った入力の名前(読めないときは、空)
+  List<String> _blockedSourcesOf(String body) {
+    try {
+      final sources = (jsonDecode(body) as Map<String, dynamic>)['sources'];
+      if (sources is! List) return const [];
+      return [
+        for (final source in sources)
+          if (source is String) source,
+      ];
+    } catch (_) {
+      return const [];
+    }
   }
 
   UsageInfo? _usageOf(http.Response response) {
