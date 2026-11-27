@@ -279,10 +279,12 @@ def moderation_chunks(texts):
     return chunks
 
 
-def blocked_categories(api_key, texts, now=time.monotonic):
+def blocked_categories(api_key, texts, now=time.monotonic, top_scores=None):
     """利用者が書いた文章に、断るカテゴリに当たるものがあれば、そのカテゴリ名の一覧を返す
 
     確認に失敗したとき・時間がかかりすぎたときは、通す(空の一覧)。
+    top_scoresに辞書を渡すと、断るカテゴリごとの、いちばん高いスコア(0〜1)を入れる
+    (ログに残して、しきい値を見直すため。文章は入れない)
     """
     chunks = moderation_chunks(texts)
     found = set()
@@ -309,6 +311,16 @@ def blocked_categories(api_key, texts, now=time.monotonic):
                 for name, hit in (item.get("categories") or {}).items():
                     if hit is True and name in MODERATION_BLOCK_CATEGORIES:
                         found.add(name)
+
+                if top_scores is not None:
+                    for name, score in (item.get("category_scores") or {}).items():
+                        if (
+                            name in MODERATION_BLOCK_CATEGORIES
+                            and isinstance(score, (int, float))
+                        ):
+                            top_scores[name] = max(
+                                top_scores.get(name, 0), round(score, 3)
+                            )
     except Exception as e:
         # 確認できなかったときは、通す。原因は、CloudWatch Logsに残す(文章は残さない)
         print(json.dumps({
@@ -958,7 +970,17 @@ def check_content(prompt):
         }))
         return []
 
-    categories = blocked_categories(api_key, texts)
+    scores = {}
+    categories = blocked_categories(api_key, texts, top_scores=scores)
+
+    # 確認が動いたことと、断るカテゴリごとの、いちばん高いスコアを残す(文章は残さない)
+    if scores:
+        print(json.dumps({
+            "moderation": "checked",
+            "kind": prompt.get("kind"),
+            "chunks": len(moderation_chunks(texts)),
+            "scores": scores,
+        }))
 
     if categories:
         print(json.dumps({

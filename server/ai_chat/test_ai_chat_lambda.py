@@ -708,6 +708,33 @@ class ModerationTest(unittest.TestCase):
         self.assertNotIn("公園", out.getvalue())
         self.assertNotIn(CLIENT_ID, out.getvalue())
 
+    def test_the_top_scores_are_logged_without_the_text(self):
+        # 動いたのに止まらなかったとき、しきい値を見直せるよう、スコアを残す
+        self.post.return_value = {"results": [
+            {"categories": {}, "category_scores": {
+                "illicit": 0.31, "violence": 0.9, "illicit/violent": 0.02,
+            }},
+            {"categories": {}, "category_scores": {"illicit": 0.12}},
+        ]}
+        out = io.StringIO()
+
+        with mock.patch("sys.stdout", out):
+            status, _ = call(self.event())
+
+        self.assertEqual(200, status)
+        logged = [json.loads(line) for line in out.getvalue().splitlines()
+                  if line.startswith("{") and '"moderation"' in line]
+        self.assertEqual(
+            [{
+                "moderation": "checked", "kind": "diary", "chunks": 1,
+                # 止めるカテゴリだけ(暴力一般のスコアは、残さない)。いちばん高い値
+                "scores": {"illicit": 0.31, "illicit/violent": 0.02},
+            }],
+            logged,
+        )
+        self.assertNotIn("公園", out.getvalue())
+        self.assertNotIn(CLIENT_ID, out.getvalue())
+
     def test_a_usage_limit_is_judged_before_the_check(self):
         self.hit("illicit")
         fake_dynamo.tables["usage"][self.usage_key] = {
