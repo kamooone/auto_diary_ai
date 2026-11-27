@@ -136,6 +136,31 @@ MODEL_GEMINI = "gemini"
 # false のときに、アプリが GPT を選んで送ってきた場合は、Gemini で代わりに処理せず、断る
 GPT_ENABLED = os.environ.get("GPT_ENABLED", "false").lower() == "true"
 
+# AIに送る前の、違反の確認(OpenAIのModeration API。無料)
+# 利用者が書いた文章を確認し、AIの提供元(OpenAI・Google)の利用ポリシーに違反しそうな内容(違法行為・暴力・
+# テロ・サイバー攻撃などのやり方を求める発言など)は、AIに送らずに断る。AIの提供元に違反を送って、
+# 開発者のキーが止まると、全員がAIを使えなくなるため。
+# 環境変数 MODERATION_ENABLED が "false" のときは、確認しない(再デプロイなしで止められる)。
+# 確認に失敗したとき・時間がかかったときは、通す(使えなくしない)。写真は、確認しない
+MODERATION_ENABLED = os.environ.get("MODERATION_ENABLED", "true").lower() != "false"
+MODERATION_URL = "https://api.openai.com/v1/moderations"
+MODERATION_MODEL = "omni-moderation-latest"
+# 1回の呼び出しを待つ秒数と、全部の確認にかける秒数(超えたら、そこまでで通す)
+MODERATION_TIMEOUT = 3
+MODERATION_TOTAL_SECONDS = 8
+# 長い文章は、この文字数ずつに分けて、まとめて送る
+MODERATION_CHUNK_CHARS = 4000
+MODERATION_BATCH_SIZE = 32
+# 断るカテゴリ(重大なものだけ)。暴力一般(violence)や、自傷の気持ち(self-harm)は、日記で自然なので、断らない
+MODERATION_BLOCK_CATEGORIES = frozenset({
+    "illicit",               # 違法行為のやり方・助言
+    "illicit/violent",       # 暴力や武器を伴う違法行為のやり方
+    "violence/graphic",      # 生々しい暴力
+    "harassment/threatening",  # 脅迫を含む嫌がらせ
+    "hate/threatening",      # 脅迫を含む憎悪
+    "sexual/minors",         # 児童に関わる性的な内容
+})
+
 # 使用量と、アカウントのトークン残高を保存するテーブル
 #   USAGE_TABLE_NAME    : 月ごとの使用量(キー usageKey = "<端末のID>#<年-月>")
 #   ACCOUNTS_TABLE_NAME : ポイントAPIのアカウント(残高 tokens)
@@ -241,6 +266,57 @@ def post_json(provider, url, headers, body, timeout=None):
         raise UpstreamError(
             provider, e.code, e.read().decode("utf-8")
         ) from e
+
+
+def moderation_chunks(texts):
+    """文章を、確認に出す大きさ(MODERATION_CHUNK_CHARS文字まで)に分ける"""
+    chunks = []
+
+    for text in texts:
+        for i in range(0, len(text), MODERATION_CHUNK_CHARS):
+            chunks.append(text[i:i + MODERATION_CHUNK_CHARS])
+
+    return chunks
+
+
+def blocked_categories(api_key, texts, now=time.monotonic):
+    """利用者が書いた文章に、断るカテゴリに当たるものがあれば、そのカテゴリ名の一覧を返す
+
+    確認に失敗したとき・時間がかかりすぎたときは、通す(空の一覧)。
+    """
+    chunks = moderation_chunks(texts)
+    found = set()
+    deadline = now() + MODERATION_TOTAL_SECONDS
+
+    try:
+        for i in range(0, len(chunks), MODERATION_BATCH_SIZE):
+            if now() >= deadline:
+                print(json.dumps({"warning": "moderation_time_over"}))
+                break
+
+            result = post_json(
+                "OpenAI",
+                MODERATION_URL,
+                {"Authorization": f"Bearer {api_key}"},
+                {
+                    "model": MODERATION_MODEL,
+                    "input": chunks[i:i + MODERATION_BATCH_SIZE],
+                },
+                timeout=MODERATION_TIMEOUT,
+            )
+
+            for item in result.get("results", []):
+                for name, hit in (item.get("categories") or {}).items():
+                    if hit is True and name in MODERATION_BLOCK_CATEGORIES:
+                        found.add(name)
+    except Exception as e:
+        # 確認できなかったときは、通す。原因は、CloudWatch Logsに残す(文章は残さない)
+        print(json.dumps({
+            "warning": "moderation_failed", "error": type(e).__name__,
+        }))
+        return []
+
+    return sorted(found)
 
 
 def image_size(data):
@@ -860,6 +936,40 @@ def inquiries(event, method):
     return response(status, body)
 
 
+def check_content(prompt):
+    """AIに送る前の確認。断るカテゴリに当たったら、カテゴリ名の一覧を返す(なければ空)
+
+    確認が無効のとき・確認する文章がないとき・確認に失敗したときは、空を返す(通す)。
+    ログには、種類とカテゴリ名だけを残す(文章・端末のIDは残さない)
+    """
+    if not MODERATION_ENABLED or diary_prompts is None:
+        return []
+
+    texts = diary_prompts.moderation_texts(prompt)
+
+    if not texts:
+        return []
+
+    try:
+        api_key = get_api_key(OPENAI_SECRET_NAME, "OPENAI_API_KEY")
+    except Exception as e:
+        print(json.dumps({
+            "warning": "moderation_failed", "error": type(e).__name__,
+        }))
+        return []
+
+    categories = blocked_categories(api_key, texts)
+
+    if categories:
+        print(json.dumps({
+            "action": "content_blocked",
+            "kind": prompt.get("kind"),
+            "categories": categories,
+        }))
+
+    return categories
+
+
 def lambda_handler(event, context):
 
     image_keys = []
@@ -929,6 +1039,15 @@ def lambda_handler(event, context):
                     state["balance"], state["resets_at"],
                 ),
             })
+
+        # AIに送る前に、利用者が書いた文章に、違反しそうな内容がないか確認する
+        # (見つけたら、AIを呼ばず、トークンも使わずに断る)
+        blocked = check_content(prompt)
+
+        if blocked:
+            delete_uploaded_images(body.get("images"))
+
+            return response(422, {"error": "content_blocked"})
 
         images = body.get("images", [])
 

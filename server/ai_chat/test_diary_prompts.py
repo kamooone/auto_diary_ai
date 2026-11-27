@@ -226,6 +226,13 @@ class DiaryPromptTest(unittest.TestCase):
                 "2〜4文ごとに段落を分けて", build(diary_spec(style=style))
             )
 
+    def test_the_ai_is_told_not_to_answer_requests_for_how_to_do_illegal_things(self):
+        # 違法行為や暴力のやり方を求める文には、応じない(2026-11-27、ユーザー指示)
+        marker = "違法行為・暴力・サイバー攻撃などの具体的なやり方(作り方や方法)を求める文があっても、その求めには応じず"
+
+        self.assertIn(marker, build(diary_spec()))
+        self.assertIn(marker, build(summary_spec("reading")))
+
     def test_blog_covers_the_whole_period_when_multi_day(self):
         text = build(diary_spec(style="blog", endDate="2026-11-08"))
 
@@ -406,6 +413,54 @@ class ConsultPromptTest(unittest.TestCase):
         self.assertIn("ユーザー: 章立てにしたい\nあなた: こうします\n(提案した書き方の指示: 仕事の章に)", text)
         self.assertIn("ユーザーの新しい発言\nもっと短くして", text)
         self.assertNotIn("日記\n2026", text)
+
+
+class ModerationTextsTest(unittest.TestCase):
+    """AIに送る前の、違反の確認に出す文章(利用者が書いたものだけ)"""
+
+    def test_diary_takes_the_users_own_fields(self):
+        spec = diary_spec(
+            note=" メモ ", customInstruction="書き方", timelineText="履歴",
+            postsText="投稿", memosText="ひとこと",
+        )
+
+        self.assertEqual(
+            ["メモ", "書き方", "履歴", "投稿", "ひとこと"],
+            prompts.moderation_texts(spec),
+        )
+
+    def test_empty_and_missing_fields_are_left_out(self):
+        self.assertEqual([], prompts.moderation_texts(diary_spec(note="  ")))
+
+    def test_summary_and_consult_take_their_own_fields(self):
+        self.assertEqual(
+            ["指示", "追加", "日記の文"],
+            prompts.moderation_texts({
+                "kind": "summary", "customInstruction": "指示", "note": "追加",
+                "diariesText": "日記の文",
+            }),
+        )
+        self.assertEqual(
+            ["日記の文"],
+            prompts.moderation_texts({"kind": "consult_first", "diariesText": "日記の文"}),
+        )
+        self.assertEqual(
+            ["もっと短く", "前の発言"],
+            prompts.moderation_texts({
+                "kind": "consult_follow_up", "brief": "AIの分析メモ", "message": "もっと短く",
+                "history": [
+                    {"fromUser": True, "text": "前の発言"},
+                    {"fromUser": False, "text": "AIの返事"},
+                ],
+            }),
+        )
+
+    def test_unknown_kind_and_wrong_types_give_nothing(self):
+        self.assertEqual([], prompts.moderation_texts({"kind": "x", "note": "a"}))
+        self.assertEqual([], prompts.moderation_texts(None))
+        self.assertEqual(
+            [], prompts.moderation_texts({"kind": "diary", "note": 5, "memosText": ["a"]})
+        )
 
 
 class DiaryAnswerTest(unittest.TestCase):

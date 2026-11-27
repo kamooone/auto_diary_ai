@@ -169,6 +169,11 @@ class AiChatUsageTest(unittest.TestCase):
         patcher.start()
         self.addCleanup(patcher.stop)
 
+        # 違反の確認は、本物のOpenAIには、つながない(通す)。確認の動作は、ModerationTest で行う
+        patcher = mock.patch.object(m, "blocked_categories", return_value=[])
+        self.moderation = patcher.start()
+        self.addCleanup(patcher.stop)
+
     def set_used(self, tokens):
         fake_dynamo.tables["usage"][self.usage_key] = {
             "usedTokens": {"N": str(tokens)}
@@ -542,6 +547,189 @@ class AiChatUsageTest(unittest.TestCase):
 
         self.assertEqual(500, status)
         self.assertEqual("diary_prompts.py is missing", body["error"])
+
+
+class ModerationTest(unittest.TestCase):
+    """AIに送る前の、違反の確認(OpenAIのModeration。本物には、つながない)"""
+
+    DIARY_PROMPT = {
+        "kind": "diary", "style": "diary", "diaryDate": "2026-01-01",
+        "startDate": "2026-01-01", "endDate": "2026-01-01",
+        "note": "今日は公園へ行った",
+    }
+
+    def setUp(self):
+        fake_dynamo.tables = {"usage": {}, "accounts": {}, "devices": {}}
+        self.month, _ = m.month_window()
+        self.usage_key = f"{CLIENT_ID}#{self.month}"
+
+        for name, value in (
+            ("ask_gemini", ("日記", 1000)),
+            ("ask_openai", ("日記", 1000)),
+        ):
+            patcher = mock.patch.object(m, name, return_value=value)
+            setattr(self, name, patcher.start())
+            self.addCleanup(patcher.stop)
+
+        for name in ("get_api_key", "get_gemini_api_key"):
+            patcher = mock.patch.object(m, name, return_value="key")
+            patcher.start()
+            self.addCleanup(patcher.stop)
+
+        patcher = mock.patch.object(m, "post_json")
+        self.post = patcher.start()
+        self.post.return_value = {"results": [{"categories": {}}]}
+        self.addCleanup(patcher.stop)
+
+    def event(self, prompt=None):
+        event = chat_event()
+        body = json.loads(event["body"])
+        body["prompt"] = prompt or self.DIARY_PROMPT
+        event["body"] = json.dumps(body)
+        return event
+
+    def hit(self, *names):
+        self.post.return_value = {"results": [{
+            "categories": {name: True for name in names},
+        }]}
+
+    def used(self):
+        row = fake_dynamo.tables["usage"].get(self.usage_key)
+        return int(row["usedTokens"]["N"]) if row else 0
+
+    def test_a_normal_diary_goes_through(self):
+        status, _ = call(self.event())
+
+        self.assertEqual(200, status)
+        self.ask_gemini.assert_called_once()
+        self.post.assert_called_once()
+
+    def test_the_checked_text_is_the_users_own_text_only(self):
+        call(self.event())
+
+        sent = self.post.call_args.args[3]
+        self.assertEqual("omni-moderation-latest", sent["model"])
+        self.assertEqual(["今日は公園へ行った"], sent["input"])
+        self.assertEqual(3, self.post.call_args.kwargs["timeout"])
+
+    def test_a_blocked_category_stops_before_the_ai_and_costs_nothing(self):
+        self.hit("illicit/violent")
+
+        status, body = call(self.event())
+
+        self.assertEqual(422, status)
+        self.assertEqual("content_blocked", body["error"])
+        self.ask_gemini.assert_not_called()
+        self.ask_openai.assert_not_called()
+        self.assertEqual(0, self.used())
+
+    def test_each_blocked_category_stops(self):
+        for name in sorted(m.MODERATION_BLOCK_CATEGORIES):
+            with self.subTest(name):
+                self.hit(name)
+                status, body = call(self.event())
+                self.assertEqual(422, status)
+
+    def test_violence_and_self_harm_in_general_are_not_blocked(self):
+        # 戦争のニュースの感想や、つらい気持ちは、日記で自然な内容
+        self.hit("violence", "self-harm", "self-harm/intent", "harassment", "hate", "sexual")
+
+        status, _ = call(self.event())
+
+        self.assertEqual(200, status)
+        self.ask_gemini.assert_called_once()
+
+    def test_a_failed_check_lets_the_text_through(self):
+        self.post.side_effect = OSError("network")
+
+        status, _ = call(self.event())
+
+        self.assertEqual(200, status)
+        self.ask_gemini.assert_called_once()
+
+    def test_a_failed_api_key_lets_the_text_through(self):
+        with mock.patch.object(m, "get_api_key", side_effect=KeyError("x")):
+            status, _ = call(self.event())
+
+        self.assertEqual(200, status)
+        self.ask_gemini.assert_called_once()
+        self.post.assert_not_called()
+
+    def test_it_can_be_turned_off(self):
+        self.hit("illicit")
+
+        with mock.patch.object(m, "MODERATION_ENABLED", False):
+            status, _ = call(self.event())
+
+        self.assertEqual(200, status)
+        self.post.assert_not_called()
+
+    def test_nothing_is_checked_when_there_is_no_text(self):
+        prompt = dict(self.DIARY_PROMPT)
+        del prompt["note"]
+
+        status, _ = call(self.event(prompt))
+
+        self.assertEqual(200, status)
+        self.post.assert_not_called()
+
+    def test_long_text_is_split_and_every_part_is_checked(self):
+        prompt = dict(self.DIARY_PROMPT, note="あ" * 9000)
+
+        call(self.event(prompt))
+
+        sent = self.post.call_args.args[3]["input"]
+        self.assertEqual([4000, 4000, 1000], [len(x) for x in sent])
+
+    def test_it_stops_checking_when_it_takes_too_long(self):
+        # 時計: 最初(締め切りを決める)、1回目の送信の前は 0 秒、2回目の送信の前には 100 秒たっている
+        clock = iter([0, 0, 100, 100, 100])
+
+        categories = m.blocked_categories(
+            "key", ["あ" * 4000 * 40], now=lambda: next(clock)
+        )
+
+        self.assertEqual([], categories)
+        self.assertEqual(1, self.post.call_count)
+
+    def test_the_log_has_the_kind_and_categories_only(self):
+        self.hit("illicit")
+        out = io.StringIO()
+
+        with mock.patch("sys.stdout", out):
+            call(self.event())
+
+        logged = [json.loads(line) for line in out.getvalue().splitlines()
+                  if line.startswith("{") and "content_blocked" in line]
+        self.assertEqual(
+            [{"action": "content_blocked", "kind": "diary", "categories": ["illicit"]}],
+            logged,
+        )
+        self.assertNotIn("公園", out.getvalue())
+        self.assertNotIn(CLIENT_ID, out.getvalue())
+
+    def test_a_usage_limit_is_judged_before_the_check(self):
+        self.hit("illicit")
+        fake_dynamo.tables["usage"][self.usage_key] = {
+            "usedTokens": {"N": str(FREE_LIMIT)}
+        }
+
+        status, body = call(self.event())
+
+        self.assertEqual(429, status)
+        self.post.assert_not_called()
+
+    def test_the_other_kinds_check_their_own_text(self):
+        for prompt, expected in (
+            ({"kind": "consult_follow_up", "brief": "b", "message": "もっと短く",
+              "history": [{"fromUser": True, "text": "前の発言"},
+                          {"fromUser": False, "text": "AIの返事"}]},
+             ["もっと短く", "前の発言"]),
+        ):
+            with self.subTest(prompt["kind"]):
+                self.post.reset_mock()
+                call(self.event(prompt))
+                self.assertEqual(expected, self.post.call_args.args[3]["input"])
 
 
 class InquiryRouteTest(unittest.TestCase):
