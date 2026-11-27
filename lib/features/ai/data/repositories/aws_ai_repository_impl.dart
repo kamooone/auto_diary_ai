@@ -151,6 +151,12 @@ class AwsAiRepositoryImpl implements AiRepository {
       throw UsageLimitExceededException(_usageOf(response));
     }
 
+    // 選んだ内容に、AIに送れない内容が含まれている可能性がある(サーバーが、AIに送る前に断った)
+    if (path == _chatPath && response.statusCode == 422) {
+      final body = utf8.decode(response.bodyBytes, allowMalformed: true);
+      if (body.contains('content_blocked')) throw ContentBlockedException();
+    }
+
     // AI側が混雑などで応答できなかった(日記の生成のときだけ。写真のアップロードの502は、
     // 混雑ではないので、アップロードの失敗として扱う)
     //

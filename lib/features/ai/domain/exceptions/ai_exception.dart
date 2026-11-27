@@ -54,3 +54,15 @@ class AiEmptyDiaryException implements Exception {
   @override
   String toString() => 'AiEmptyDiaryException';
 }
+
+/// 選んだ内容に、AIに送れない内容(違法行為や暴力のやり方を求める発言など)が含まれている可能性がある。
+///
+/// サーバーが、AIに送る前に見つけて、断った(トークンは使われない)。
+/// 日記の生成と、書き方の相談の、どちらでも起きる
+class ContentBlockedException implements Exception {
+  /// 利用者に見せる案内
+  static const message = "AIに送れない内容が含まれている可能性があります。メモなど、選んだ内容を見直してください。";
+
+  @override
+  String toString() => 'ContentBlockedException';
+}

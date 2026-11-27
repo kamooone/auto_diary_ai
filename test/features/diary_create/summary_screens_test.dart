@@ -3,6 +3,7 @@ import 'package:auto_diary_ai/features/ads/application/ads_provider.dart';
 import 'package:auto_diary_ai/features/ai/application/providers/ai_provider.dart';
 import 'package:auto_diary_ai/features/ai/domain/entities/ai_message_request.dart';
 import 'package:auto_diary_ai/features/ai/domain/entities/ai_reply.dart';
+import 'package:auto_diary_ai/features/ai/domain/exceptions/ai_exception.dart';
 import 'package:auto_diary_ai/features/ai/domain/repositories/ai_repository.dart';
 import 'package:auto_diary_ai/features/diary/application/providers/diary_providers.dart';
 import 'package:auto_diary_ai/features/diary/domain/entities/diary.dart';
@@ -47,11 +48,15 @@ class FakeAi implements AiRepository {
   /// 指定すると、その完了まで返答を待たせる
   final Completer<void>? hold;
 
-  FakeAi({this.hold});
+  /// 指定すると、返答の代わりに、これを投げる
+  final Object? error;
+
+  FakeAi({this.hold, this.error});
 
   @override
   Future<AiReply> sendMessage(AiMessageRequest request) async {
     await hold?.future;
+    if (error != null) throw error!;
 
     return const AiReply(
       answer:
@@ -181,6 +186,24 @@ void main() {
 
       expect(result, '仕事と私生活の2章で書く。');
       expect(find.text('開く'), findsOneWidget);
+    });
+
+    testWidgets('AIに送れない内容が含まれていると断られたら、見直す案内を出す', (tester) async {
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: overrides(
+            [],
+            ai: FakeAi(error: ContentBlockedException()),
+          ),
+          child: MaterialApp(
+            home: SummaryConsultScreen(diaries: [diary(1, 1), diary(2, 2)]),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.textContaining('AIに送れない内容が含まれている可能性があります'), findsOneWidget);
+      expect(find.textContaining('選んだ内容を見直してください'), findsOneWidget);
     });
 
     testWidgets('回答が来るまでは発言できず、来たあとは送れる', (tester) async {

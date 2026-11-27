@@ -84,6 +84,19 @@ void main() {
       );
     });
 
+    test('サーバーが、AIに送る前に断った422(content_blocked)は、送れない内容', () async {
+      final e = await failureOf(json(422, {'error': 'content_blocked'}));
+
+      expect(e, isA<ContentBlockedException>());
+    });
+
+    test('content_blocked でない422は、これまでどおり', () async {
+      expect(
+        await failureOf(json(422, {'error': 'x'})),
+        isA<AiChatException>(),
+      );
+    });
+
     test('そのほかの失敗は、これまでどおり', () async {
       expect(
         await failureOf(json(500, {'error': 'x'})),

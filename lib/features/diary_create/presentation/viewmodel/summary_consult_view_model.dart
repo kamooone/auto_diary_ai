@@ -150,6 +150,10 @@ class SummaryConsultViewModel
       if (usage != null) ref.read(usageProvider.notifier).update(usage);
 
       _fail("今月のAIの使用量の上限に達しました");
+    } on ContentBlockedException {
+      AppLog.add('日記', '相談に、AIに送れない内容が含まれている可能性があった');
+
+      _fail(ContentBlockedException.message);
     } on AiTimeoutException {
       AppLog.add('日記', '相談が時間切れ');
 
