@@ -692,7 +692,7 @@ class ModerationTest(unittest.TestCase):
         self.assertEqual([], categories)
         self.assertEqual(1, self.post.call_count)
 
-    def test_the_log_has_the_kind_and_categories_only(self):
+    def test_the_log_has_the_kind_categories_and_sources_only(self):
         self.hit("illicit")
         out = io.StringIO()
 
@@ -702,7 +702,10 @@ class ModerationTest(unittest.TestCase):
         logged = [json.loads(line) for line in out.getvalue().splitlines()
                   if line.startswith("{") and "content_blocked" in line]
         self.assertEqual(
-            [{"action": "content_blocked", "kind": "diary", "categories": ["illicit"]}],
+            [{
+                "action": "content_blocked", "kind": "diary",
+                "categories": ["illicit"], "sources": ["note"],
+            }],
             logged,
         )
         self.assertNotIn("公園", out.getvalue())
@@ -770,6 +773,46 @@ class ModerationTest(unittest.TestCase):
             status, _ = call(self.event())
 
         self.assertEqual(200, status)
+
+    def test_the_response_says_which_input_was_blocked(self):
+        # アプリが、どこを見直すかを伝えられるよう、断った入力の名前を返す(文章は返さない)
+        prompt = dict(
+            self.DIARY_PROMPT, postsText="投稿A", memosText="ひとことB",
+        )
+        # 送った順: note, postsText, memosText。2つ目(postsText)だけが該当
+        self.post.return_value = {"results": [
+            {"categories": {}}, {"categories": {"illicit": True}}, {"categories": {}},
+        ]}
+
+        status, body = call(self.event(prompt))
+
+        self.assertEqual(422, status)
+        self.assertEqual(
+            {"error": "content_blocked", "sources": ["postsText"]}, body
+        )
+
+    def test_several_blocked_inputs_are_listed_once_each_in_order(self):
+        prompt = dict(self.DIARY_PROMPT, postsText="投稿A", memosText="ひとこと")
+        self.post.return_value = {"results": [
+            {"categories": {"illicit": True}},
+            {"categories": {"hate/threatening": True}},
+            {"categories": {"illicit/violent": True}},
+        ]}
+
+        _, body = call(self.event(prompt))
+
+        self.assertEqual(["note", "postsText", "memosText"], body["sources"])
+
+    def test_a_long_text_is_one_source_even_when_split(self):
+        prompt = dict(self.DIARY_PROMPT, note="あ" * 9000)
+        self.post.return_value = {"results": [
+            {"categories": {}}, {"categories": {"illicit": True}},
+            {"categories": {"illicit": True}},
+        ]}
+
+        _, body = call(self.event(prompt))
+
+        self.assertEqual(["note"], body["sources"])
 
     def test_a_usage_limit_is_judged_before_the_check(self):
         self.hit("illicit")

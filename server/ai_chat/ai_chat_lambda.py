@@ -279,25 +279,34 @@ def post_json(provider, url, headers, body, timeout=None):
         ) from e
 
 
-def moderation_chunks(texts):
-    """文章を、確認に出す大きさ(MODERATION_CHUNK_CHARS文字まで)に分ける"""
+def moderation_chunks(texts, sources=None):
+    """文章を、確認に出す大きさ(MODERATION_CHUNK_CHARS文字まで)に分ける
+
+    sourcesを渡すと、文章ごとの入力の名前を、(名前, 文章)にして返す。渡さないときは、文章だけ
+    """
     chunks = []
 
-    for text in texts:
+    for index, text in enumerate(texts):
         for i in range(0, len(text), MODERATION_CHUNK_CHARS):
-            chunks.append(text[i:i + MODERATION_CHUNK_CHARS])
+            piece = text[i:i + MODERATION_CHUNK_CHARS]
+            chunks.append(piece if sources is None else (sources[index], piece))
 
     return chunks
 
 
-def blocked_categories(api_key, texts, now=time.monotonic, top_scores=None):
+def blocked_categories(
+    api_key, texts, now=time.monotonic, top_scores=None,
+    sources=None, hit_sources=None,
+):
     """利用者が書いた文章に、断るカテゴリに当たるものがあれば、そのカテゴリ名の一覧を返す
 
     確認に失敗したとき・時間がかかりすぎたときは、通す(空の一覧)。
     top_scoresに辞書を渡すと、断るカテゴリごとの、いちばん高いスコア(0〜1)を入れる
-    (ログに残して、しきい値を見直すため。文章は入れない)
+    (ログに残して、しきい値を見直すため。文章は入れない)。
+    sources(文章ごとの入力の名前)とhit_sources(リスト)を渡すと、断った文章の、入力の名前を、
+    順に(重複なしで)入れる
     """
-    chunks = moderation_chunks(texts)
+    chunks = moderation_chunks(texts, sources)
     found = set()
     deadline = now() + MODERATION_TOTAL_SECONDS
 
@@ -307,21 +316,26 @@ def blocked_categories(api_key, texts, now=time.monotonic, top_scores=None):
                 print(json.dumps({"warning": "moderation_time_over"}))
                 break
 
+            batch = chunks[i:i + MODERATION_BATCH_SIZE]
+
             result = post_json(
                 "OpenAI",
                 MODERATION_URL,
                 {"Authorization": f"Bearer {api_key}"},
                 {
                     "model": MODERATION_MODEL,
-                    "input": chunks[i:i + MODERATION_BATCH_SIZE],
+                    "input": [c[1] if sources is not None else c for c in batch],
                 },
                 timeout=MODERATION_TIMEOUT,
             )
 
-            for item in result.get("results", []):
+            # 返事は、送った順に並ぶ(batch[n] の結果が results[n])
+            for n, item in enumerate(result.get("results", [])):
+                item_hits = set()
+
                 for name, hit in (item.get("categories") or {}).items():
                     if hit is True and name in MODERATION_BLOCK_CATEGORIES:
-                        found.add(name)
+                        item_hits.add(name)
 
                 for name, score in (item.get("category_scores") or {}).items():
                     if (
@@ -334,12 +348,24 @@ def blocked_categories(api_key, texts, now=time.monotonic, top_scores=None):
                         MODERATION_SCORE_THRESHOLD is not None
                         and score >= MODERATION_SCORE_THRESHOLD
                     ):
-                        found.add(name)
+                        item_hits.add(name)
 
                     if top_scores is not None:
                         top_scores[name] = max(
                             top_scores.get(name, 0), round(score, 3)
                         )
+
+                found |= item_hits
+
+                if (
+                    item_hits
+                    and hit_sources is not None
+                    and sources is not None
+                    and n < len(batch)
+                ):
+                    source = batch[n][0]
+                    if source not in hit_sources:
+                        hit_sources.append(source)
     except Exception as e:
         # 確認できなかったときは、通す。原因は、CloudWatch Logsに残す(文章は残さない)
         print(json.dumps({
@@ -968,18 +994,19 @@ def inquiries(event, method):
 
 
 def check_content(prompt):
-    """AIに送る前の確認。断るカテゴリに当たったら、カテゴリ名の一覧を返す(なければ空)
+    """AIに送る前の確認。断るカテゴリに当たったら、(カテゴリ名の一覧, 断った入力の名前の一覧)を返す
 
-    確認が無効のとき・確認する文章がないとき・確認に失敗したときは、空を返す(通す)。
-    ログには、種類とカテゴリ名だけを残す(文章・端末のIDは残さない)
+    何も問題がないとき・確認が無効のとき・確認する文章がないとき・確認に失敗したときは、
+    ([], [])を返す(通す)。
+    ログには、種類・カテゴリ名・入力の名前だけを残す(文章・端末のIDは残さない)
     """
     if not MODERATION_ENABLED or diary_prompts is None:
-        return []
+        return [], []
 
-    texts = diary_prompts.moderation_texts(prompt)
+    inputs = diary_prompts.moderation_inputs(prompt)
 
-    if not texts:
-        return []
+    if not inputs:
+        return [], []
 
     try:
         api_key = get_api_key(OPENAI_SECRET_NAME, "OPENAI_API_KEY")
@@ -987,10 +1014,15 @@ def check_content(prompt):
         print(json.dumps({
             "warning": "moderation_failed", "error": type(e).__name__,
         }))
-        return []
+        return [], []
 
+    names = [name for name, _ in inputs]
+    texts = [text for _, text in inputs]
     scores = {}
-    categories = blocked_categories(api_key, texts, top_scores=scores)
+    hit_sources = []
+    categories = blocked_categories(
+        api_key, texts, top_scores=scores, sources=names, hit_sources=hit_sources,
+    )
 
     # 確認が動いたことと、断るカテゴリごとの、いちばん高いスコアを残す(文章は残さない)
     if scores:
@@ -1006,9 +1038,10 @@ def check_content(prompt):
             "action": "content_blocked",
             "kind": prompt.get("kind"),
             "categories": categories,
+            "sources": hit_sources,
         }))
 
-    return categories
+    return categories, hit_sources
 
 
 def lambda_handler(event, context):
@@ -1083,12 +1116,15 @@ def lambda_handler(event, context):
 
         # AIに送る前に、利用者が書いた文章に、違反しそうな内容がないか確認する
         # (見つけたら、AIを呼ばず、トークンも使わずに断る)
-        blocked = check_content(prompt)
+        blocked, blocked_sources = check_content(prompt)
 
         if blocked:
             delete_uploaded_images(body.get("images"))
 
-            return response(422, {"error": "content_blocked"})
+            # どの入力が断られたかを返す(アプリが、どこを見直すかを伝えるため。文章は返さない)
+            return response(422, {
+                "error": "content_blocked", "sources": blocked_sources,
+            })
 
         images = body.get("images", [])
 

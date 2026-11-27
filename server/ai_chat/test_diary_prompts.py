@@ -429,6 +429,25 @@ class ModerationTextsTest(unittest.TestCase):
             prompts.moderation_texts(spec),
         )
 
+    def test_inputs_have_the_name_of_where_they_came_from(self):
+        spec = diary_spec(note="メモ", timelineText="履歴", postsText="投稿")
+
+        self.assertEqual(
+            [("note", "メモ"), ("timelineText", "履歴"), ("postsText", "投稿")],
+            prompts.moderation_inputs(spec),
+        )
+        self.assertEqual(
+            [("message", "もっと短く"), ("message", "前の発言")],
+            prompts.moderation_inputs({
+                "kind": "consult_follow_up", "message": "もっと短く",
+                "history": [{"fromUser": True, "text": "前の発言"}],
+            }),
+        )
+        self.assertEqual(
+            [("diariesText", "日記の文")],
+            prompts.moderation_inputs({"kind": "consult_first", "diariesText": "日記の文"}),
+        )
+
     def test_empty_and_missing_fields_are_left_out(self):
         self.assertEqual([], prompts.moderation_texts(diary_spec(note="  ")))
 

@@ -697,9 +697,12 @@ def is_empty_diary_answer(spec, answer):
 
 # ---- 違反の確認に出す文章 -----------------------------------------------------
 
-def moderation_texts(spec):
-    """AIに送る前に、違反がないか確認する、利用者が書いた文章を、取り出す
+def moderation_inputs(spec):
+    """AIに送る前に、違反がないか確認する、利用者が書いた文章を、(入力の名前, 文章)で取り出す
 
+    入力の名前は、止めたときに、アプリが、どこが問題かを伝えるために使う
+    (note=追加で伝えたいこと、customInstruction=書き方の指定、memosText=ひとことメモ、
+     postsText=Xの投稿、timelineText=行動履歴、diariesText=日記、message=相談の発言)。
     こちらが書いた指示文は含めない。空の文章は含めない。
     (AIの回答から作った「材料の分析メモ」と、AIの発言は、確認しない)
     """
@@ -714,15 +717,23 @@ def moderation_texts(spec):
         "consult_follow_up": ("message",),
     }.get(kind, ())
 
-    values = [spec.get(key) for key in keys]
+    inputs = [(key, spec.get(key)) for key in keys]
 
     if kind == "consult_follow_up" and isinstance(spec.get("history"), list):
-        values += [
-            item.get("text") for item in spec["history"]
+        inputs += [
+            ("message", item.get("text")) for item in spec["history"]
             if isinstance(item, dict) and item.get("fromUser") is True
         ]
 
-    return [v.strip() for v in values if isinstance(v, str) and v.strip()]
+    return [
+        (name, value.strip()) for name, value in inputs
+        if isinstance(value, str) and value.strip()
+    ]
+
+
+def moderation_texts(spec):
+    """moderation_inputs の、文章だけ"""
+    return [text for _, text in moderation_inputs(spec)]
 
 
 # ---- 入口 --------------------------------------------------------------------
