@@ -145,6 +145,17 @@ GPT_ENABLED = os.environ.get("GPT_ENABLED", "false").lower() == "true"
 MODERATION_ENABLED = os.environ.get("MODERATION_ENABLED", "true").lower() != "false"
 MODERATION_URL = "https://api.openai.com/v1/moderations"
 MODERATION_MODEL = "omni-moderation-latest"
+# スコア(0〜1)のしきい値。環境変数 MODERATION_SCORE_THRESHOLD に数字を入れると、OpenAIの標準の判定に
+# 加えて、断るカテゴリのスコアが、この数字以上のときも断る。ないとき・数字でないときは、標準の判定だけ。
+# (ふだんは入れない。動作の確認や、誤って断る・見逃すときの調整に使う。再デプロイなしで変えられる)
+def _score_threshold():
+    try:
+        return float(os.environ["MODERATION_SCORE_THRESHOLD"])
+    except (KeyError, ValueError):
+        return None
+
+
+MODERATION_SCORE_THRESHOLD = _score_threshold()
 # 1回の呼び出しを待つ秒数と、全部の確認にかける秒数(超えたら、そこまでで通す)
 MODERATION_TIMEOUT = 3
 MODERATION_TOTAL_SECONDS = 8
@@ -312,15 +323,23 @@ def blocked_categories(api_key, texts, now=time.monotonic, top_scores=None):
                     if hit is True and name in MODERATION_BLOCK_CATEGORIES:
                         found.add(name)
 
-                if top_scores is not None:
-                    for name, score in (item.get("category_scores") or {}).items():
-                        if (
-                            name in MODERATION_BLOCK_CATEGORIES
-                            and isinstance(score, (int, float))
-                        ):
-                            top_scores[name] = max(
-                                top_scores.get(name, 0), round(score, 3)
-                            )
+                for name, score in (item.get("category_scores") or {}).items():
+                    if (
+                        name not in MODERATION_BLOCK_CATEGORIES
+                        or not isinstance(score, (int, float))
+                    ):
+                        continue
+
+                    if (
+                        MODERATION_SCORE_THRESHOLD is not None
+                        and score >= MODERATION_SCORE_THRESHOLD
+                    ):
+                        found.add(name)
+
+                    if top_scores is not None:
+                        top_scores[name] = max(
+                            top_scores.get(name, 0), round(score, 3)
+                        )
     except Exception as e:
         # 確認できなかったときは、通す。原因は、CloudWatch Logsに残す(文章は残さない)
         print(json.dumps({

@@ -735,6 +735,42 @@ class ModerationTest(unittest.TestCase):
         self.assertNotIn("公園", out.getvalue())
         self.assertNotIn(CLIENT_ID, out.getvalue())
 
+    def test_the_score_threshold_also_blocks_when_set(self):
+        # 標準の判定は「該当なし」でも、スコアがしきい値以上なら断る(動作の確認・調整用)
+        self.post.return_value = {"results": [{
+            "categories": {"illicit": False},
+            "category_scores": {"illicit": 0.094, "violence": 0.99},
+        }]}
+
+        with mock.patch.object(m, "MODERATION_SCORE_THRESHOLD", 0.05):
+            status, body = call(self.event())
+
+        self.assertEqual(422, status)
+        self.assertEqual("content_blocked", body["error"])
+        self.ask_gemini.assert_not_called()
+
+    def test_the_score_threshold_is_not_used_when_not_set(self):
+        self.post.return_value = {"results": [{
+            "categories": {"illicit": False},
+            "category_scores": {"illicit": 0.094},
+        }]}
+
+        with mock.patch.object(m, "MODERATION_SCORE_THRESHOLD", None):
+            status, _ = call(self.event())
+
+        self.assertEqual(200, status)
+
+    def test_the_score_threshold_only_looks_at_the_blocked_categories(self):
+        self.post.return_value = {"results": [{
+            "categories": {},
+            "category_scores": {"violence": 0.99, "self-harm": 0.99, "sexual": 0.99},
+        }]}
+
+        with mock.patch.object(m, "MODERATION_SCORE_THRESHOLD", 0.05):
+            status, _ = call(self.event())
+
+        self.assertEqual(200, status)
+
     def test_a_usage_limit_is_judged_before_the_check(self):
         self.hit("illicit")
         fake_dynamo.tables["usage"][self.usage_key] = {
