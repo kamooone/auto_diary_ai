@@ -1,5 +1,5 @@
 import 'package:flutter/cupertino.dart';
-import 'package:isar/isar.dart';
+import 'package:isar_community/isar.dart';
 import '../../domain/repositories/share_repository.dart';
 import '../datasources/ogp_fetcher.dart';
 import '../../domain/entities/shared_post.dart';

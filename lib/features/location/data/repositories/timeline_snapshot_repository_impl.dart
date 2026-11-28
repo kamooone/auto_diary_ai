@@ -1,5 +1,5 @@
 import 'dart:convert';
-import 'package:isar/isar.dart';
+import 'package:isar_community/isar.dart';
 import '../../domain/entities/timeline_item.dart';
 import '../../domain/entities/transport_mode.dart';
 import '../../domain/repositories/timeline_snapshot_repository.dart';

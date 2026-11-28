@@ -1,4 +1,4 @@
-import 'package:isar/isar.dart';
+import 'package:isar_community/isar.dart';
 import '../../domain/entities/diary.dart';
 import '../../domain/repositories/diary_repository.dart';
 import '../models/diary_log.dart';

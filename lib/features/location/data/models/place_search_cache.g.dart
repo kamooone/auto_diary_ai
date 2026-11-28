@@ -7,7 +7,7 @@ part of 'place_search_cache.dart';
 // **************************************************************************
 
 // coverage:ignore-file
-// ignore_for_file: duplicate_ignore, non_constant_identifier_names, constant_identifier_names, invalid_use_of_protected_member, unnecessary_cast, prefer_const_constructors, lines_longer_than_80_chars, require_trailing_commas, inference_failure_on_function_invocation, unnecessary_parenthesis, unnecessary_raw_strings, unnecessary_null_checks, join_return_with_assignment, prefer_final_locals, avoid_js_rounded_ints, avoid_positional_boolean_parameters, always_specify_types
+// ignore_for_file: duplicate_ignore, non_constant_identifier_names, constant_identifier_names, invalid_use_of_protected_member, unnecessary_cast, prefer_const_constructors, lines_longer_than_80_chars, require_trailing_commas, inference_failure_on_function_invocation, unnecessary_parenthesis, unnecessary_raw_strings, unnecessary_null_checks, join_return_with_assignment, prefer_final_locals, avoid_js_rounded_ints, avoid_positional_boolean_parameters, always_specify_types, experimental_member_use
 
 extension GetPlaceSearchCacheCollection on Isar {
   IsarCollection<PlaceSearchCache> get placeSearchCaches => this.collection();
@@ -27,12 +27,9 @@ const PlaceSearchCacheSchema = CollectionSchema(
       name: r'fetchedAt',
       type: IsarType.dateTime,
     ),
-    r'key': PropertySchema(
-      id: 2,
-      name: r'key',
-      type: IsarType.string,
-    )
+    r'key': PropertySchema(id: 2, name: r'key', type: IsarType.string),
   },
+
   estimateSize: _placeSearchCacheEstimateSize,
   serialize: _placeSearchCacheSerialize,
   deserialize: _placeSearchCacheDeserialize,
@@ -49,16 +46,17 @@ const PlaceSearchCacheSchema = CollectionSchema(
           name: r'key',
           type: IndexType.hash,
           caseSensitive: true,
-        )
+        ),
       ],
-    )
+    ),
   },
   links: {},
   embeddedSchemas: {},
+
   getId: _placeSearchCacheGetId,
   getLinks: _placeSearchCacheGetLinks,
   attach: _placeSearchCacheAttach,
-  version: '3.1.0+1',
+  version: '3.4.1',
 );
 
 int _placeSearchCacheEstimateSize(
@@ -124,7 +122,10 @@ List<IsarLinkBase<dynamic>> _placeSearchCacheGetLinks(PlaceSearchCache object) {
 }
 
 void _placeSearchCacheAttach(
-    IsarCollection<dynamic> col, Id id, PlaceSearchCache object) {
+  IsarCollection<dynamic> col,
+  Id id,
+  PlaceSearchCache object,
+) {
   object.id = id;
 }
 
@@ -140,17 +141,15 @@ extension PlaceSearchCacheQueryWhereSort
 extension PlaceSearchCacheQueryWhere
     on QueryBuilder<PlaceSearchCache, PlaceSearchCache, QWhereClause> {
   QueryBuilder<PlaceSearchCache, PlaceSearchCache, QAfterWhereClause> idEqualTo(
-      Id id) {
+    Id id,
+  ) {
     return QueryBuilder.apply(this, (query) {
-      return query.addWhereClause(IdWhereClause.between(
-        lower: id,
-        upper: id,
-      ));
+      return query.addWhereClause(IdWhereClause.between(lower: id, upper: id));
     });
   }
 
   QueryBuilder<PlaceSearchCache, PlaceSearchCache, QAfterWhereClause>
-      idNotEqualTo(Id id) {
+  idNotEqualTo(Id id) {
     return QueryBuilder.apply(this, (query) {
       if (query.whereSort == Sort.asc) {
         return query
@@ -173,7 +172,7 @@ extension PlaceSearchCacheQueryWhere
   }
 
   QueryBuilder<PlaceSearchCache, PlaceSearchCache, QAfterWhereClause>
-      idGreaterThan(Id id, {bool include = false}) {
+  idGreaterThan(Id id, {bool include = false}) {
     return QueryBuilder.apply(this, (query) {
       return query.addWhereClause(
         IdWhereClause.greaterThan(lower: id, includeLower: include),
@@ -182,7 +181,7 @@ extension PlaceSearchCacheQueryWhere
   }
 
   QueryBuilder<PlaceSearchCache, PlaceSearchCache, QAfterWhereClause>
-      idLessThan(Id id, {bool include = false}) {
+  idLessThan(Id id, {bool include = false}) {
     return QueryBuilder.apply(this, (query) {
       return query.addWhereClause(
         IdWhereClause.lessThan(upper: id, includeUpper: include),
@@ -197,56 +196,65 @@ extension PlaceSearchCacheQueryWhere
     bool includeUpper = true,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addWhereClause(IdWhereClause.between(
-        lower: lowerId,
-        includeLower: includeLower,
-        upper: upperId,
-        includeUpper: includeUpper,
-      ));
+      return query.addWhereClause(
+        IdWhereClause.between(
+          lower: lowerId,
+          includeLower: includeLower,
+          upper: upperId,
+          includeUpper: includeUpper,
+        ),
+      );
     });
   }
 
   QueryBuilder<PlaceSearchCache, PlaceSearchCache, QAfterWhereClause>
-      keyEqualTo(String key) {
+  keyEqualTo(String key) {
     return QueryBuilder.apply(this, (query) {
-      return query.addWhereClause(IndexWhereClause.equalTo(
-        indexName: r'key',
-        value: [key],
-      ));
+      return query.addWhereClause(
+        IndexWhereClause.equalTo(indexName: r'key', value: [key]),
+      );
     });
   }
 
   QueryBuilder<PlaceSearchCache, PlaceSearchCache, QAfterWhereClause>
-      keyNotEqualTo(String key) {
+  keyNotEqualTo(String key) {
     return QueryBuilder.apply(this, (query) {
       if (query.whereSort == Sort.asc) {
         return query
-            .addWhereClause(IndexWhereClause.between(
-              indexName: r'key',
-              lower: [],
-              upper: [key],
-              includeUpper: false,
-            ))
-            .addWhereClause(IndexWhereClause.between(
-              indexName: r'key',
-              lower: [key],
-              includeLower: false,
-              upper: [],
-            ));
+            .addWhereClause(
+              IndexWhereClause.between(
+                indexName: r'key',
+                lower: [],
+                upper: [key],
+                includeUpper: false,
+              ),
+            )
+            .addWhereClause(
+              IndexWhereClause.between(
+                indexName: r'key',
+                lower: [key],
+                includeLower: false,
+                upper: [],
+              ),
+            );
       } else {
         return query
-            .addWhereClause(IndexWhereClause.between(
-              indexName: r'key',
-              lower: [key],
-              includeLower: false,
-              upper: [],
-            ))
-            .addWhereClause(IndexWhereClause.between(
-              indexName: r'key',
-              lower: [],
-              upper: [key],
-              includeUpper: false,
-            ));
+            .addWhereClause(
+              IndexWhereClause.between(
+                indexName: r'key',
+                lower: [key],
+                includeLower: false,
+                upper: [],
+              ),
+            )
+            .addWhereClause(
+              IndexWhereClause.between(
+                indexName: r'key',
+                lower: [],
+                upper: [key],
+                includeUpper: false,
+              ),
+            );
       }
     });
   }
@@ -255,53 +263,56 @@ extension PlaceSearchCacheQueryWhere
 extension PlaceSearchCacheQueryFilter
     on QueryBuilder<PlaceSearchCache, PlaceSearchCache, QFilterCondition> {
   QueryBuilder<PlaceSearchCache, PlaceSearchCache, QAfterFilterCondition>
-      candidatesJsonEqualTo(
-    String value, {
-    bool caseSensitive = true,
-  }) {
+  candidatesJsonEqualTo(String value, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.equalTo(
-        property: r'candidatesJson',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.equalTo(
+          property: r'candidatesJson',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
     });
   }
 
   QueryBuilder<PlaceSearchCache, PlaceSearchCache, QAfterFilterCondition>
-      candidatesJsonGreaterThan(
-    String value, {
-    bool include = false,
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.greaterThan(
-        include: include,
-        property: r'candidatesJson',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<PlaceSearchCache, PlaceSearchCache, QAfterFilterCondition>
-      candidatesJsonLessThan(
+  candidatesJsonGreaterThan(
     String value, {
     bool include = false,
     bool caseSensitive = true,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.lessThan(
-        include: include,
-        property: r'candidatesJson',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'candidatesJson',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
     });
   }
 
   QueryBuilder<PlaceSearchCache, PlaceSearchCache, QAfterFilterCondition>
-      candidatesJsonBetween(
+  candidatesJsonLessThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'candidatesJson',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<PlaceSearchCache, PlaceSearchCache, QAfterFilterCondition>
+  candidatesJsonBetween(
     String lower,
     String upper, {
     bool includeLower = true,
@@ -309,247 +320,246 @@ extension PlaceSearchCacheQueryFilter
     bool caseSensitive = true,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.between(
-        property: r'candidatesJson',
-        lower: lower,
-        includeLower: includeLower,
-        upper: upper,
-        includeUpper: includeUpper,
-        caseSensitive: caseSensitive,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'candidatesJson',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+          caseSensitive: caseSensitive,
+        ),
+      );
     });
   }
 
   QueryBuilder<PlaceSearchCache, PlaceSearchCache, QAfterFilterCondition>
-      candidatesJsonStartsWith(
-    String value, {
-    bool caseSensitive = true,
-  }) {
+  candidatesJsonStartsWith(String value, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.startsWith(
-        property: r'candidatesJson',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.startsWith(
+          property: r'candidatesJson',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
     });
   }
 
   QueryBuilder<PlaceSearchCache, PlaceSearchCache, QAfterFilterCondition>
-      candidatesJsonEndsWith(
-    String value, {
-    bool caseSensitive = true,
-  }) {
+  candidatesJsonEndsWith(String value, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.endsWith(
-        property: r'candidatesJson',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.endsWith(
+          property: r'candidatesJson',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
     });
   }
 
   QueryBuilder<PlaceSearchCache, PlaceSearchCache, QAfterFilterCondition>
-      candidatesJsonContains(String value, {bool caseSensitive = true}) {
+  candidatesJsonContains(String value, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.contains(
-        property: r'candidatesJson',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.contains(
+          property: r'candidatesJson',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
     });
   }
 
   QueryBuilder<PlaceSearchCache, PlaceSearchCache, QAfterFilterCondition>
-      candidatesJsonMatches(String pattern, {bool caseSensitive = true}) {
+  candidatesJsonMatches(String pattern, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.matches(
-        property: r'candidatesJson',
-        wildcard: pattern,
-        caseSensitive: caseSensitive,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.matches(
+          property: r'candidatesJson',
+          wildcard: pattern,
+          caseSensitive: caseSensitive,
+        ),
+      );
     });
   }
 
   QueryBuilder<PlaceSearchCache, PlaceSearchCache, QAfterFilterCondition>
-      candidatesJsonIsEmpty() {
+  candidatesJsonIsEmpty() {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.equalTo(
-        property: r'candidatesJson',
-        value: '',
-      ));
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'candidatesJson', value: ''),
+      );
     });
   }
 
   QueryBuilder<PlaceSearchCache, PlaceSearchCache, QAfterFilterCondition>
-      candidatesJsonIsNotEmpty() {
+  candidatesJsonIsNotEmpty() {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.greaterThan(
-        property: r'candidatesJson',
-        value: '',
-      ));
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(property: r'candidatesJson', value: ''),
+      );
     });
   }
 
   QueryBuilder<PlaceSearchCache, PlaceSearchCache, QAfterFilterCondition>
-      fetchedAtEqualTo(DateTime value) {
+  fetchedAtEqualTo(DateTime value) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.equalTo(
-        property: r'fetchedAt',
-        value: value,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'fetchedAt', value: value),
+      );
     });
   }
 
   QueryBuilder<PlaceSearchCache, PlaceSearchCache, QAfterFilterCondition>
-      fetchedAtGreaterThan(
-    DateTime value, {
-    bool include = false,
-  }) {
+  fetchedAtGreaterThan(DateTime value, {bool include = false}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.greaterThan(
-        include: include,
-        property: r'fetchedAt',
-        value: value,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'fetchedAt',
+          value: value,
+        ),
+      );
     });
   }
 
   QueryBuilder<PlaceSearchCache, PlaceSearchCache, QAfterFilterCondition>
-      fetchedAtLessThan(
-    DateTime value, {
-    bool include = false,
-  }) {
+  fetchedAtLessThan(DateTime value, {bool include = false}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.lessThan(
-        include: include,
-        property: r'fetchedAt',
-        value: value,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'fetchedAt',
+          value: value,
+        ),
+      );
     });
   }
 
   QueryBuilder<PlaceSearchCache, PlaceSearchCache, QAfterFilterCondition>
-      fetchedAtBetween(
+  fetchedAtBetween(
     DateTime lower,
     DateTime upper, {
     bool includeLower = true,
     bool includeUpper = true,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.between(
-        property: r'fetchedAt',
-        lower: lower,
-        includeLower: includeLower,
-        upper: upper,
-        includeUpper: includeUpper,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'fetchedAt',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+        ),
+      );
     });
   }
 
   QueryBuilder<PlaceSearchCache, PlaceSearchCache, QAfterFilterCondition>
-      idEqualTo(Id value) {
+  idEqualTo(Id value) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.equalTo(
-        property: r'id',
-        value: value,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'id', value: value),
+      );
     });
   }
 
   QueryBuilder<PlaceSearchCache, PlaceSearchCache, QAfterFilterCondition>
-      idGreaterThan(
-    Id value, {
-    bool include = false,
-  }) {
+  idGreaterThan(Id value, {bool include = false}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.greaterThan(
-        include: include,
-        property: r'id',
-        value: value,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'id',
+          value: value,
+        ),
+      );
     });
   }
 
   QueryBuilder<PlaceSearchCache, PlaceSearchCache, QAfterFilterCondition>
-      idLessThan(
-    Id value, {
-    bool include = false,
-  }) {
+  idLessThan(Id value, {bool include = false}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.lessThan(
-        include: include,
-        property: r'id',
-        value: value,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'id',
+          value: value,
+        ),
+      );
     });
   }
 
   QueryBuilder<PlaceSearchCache, PlaceSearchCache, QAfterFilterCondition>
-      idBetween(
+  idBetween(
     Id lower,
     Id upper, {
     bool includeLower = true,
     bool includeUpper = true,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.between(
-        property: r'id',
-        lower: lower,
-        includeLower: includeLower,
-        upper: upper,
-        includeUpper: includeUpper,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'id',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+        ),
+      );
     });
   }
 
   QueryBuilder<PlaceSearchCache, PlaceSearchCache, QAfterFilterCondition>
-      keyEqualTo(
-    String value, {
-    bool caseSensitive = true,
-  }) {
+  keyEqualTo(String value, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.equalTo(
-        property: r'key',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.equalTo(
+          property: r'key',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
     });
   }
 
   QueryBuilder<PlaceSearchCache, PlaceSearchCache, QAfterFilterCondition>
-      keyGreaterThan(
-    String value, {
-    bool include = false,
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.greaterThan(
-        include: include,
-        property: r'key',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<PlaceSearchCache, PlaceSearchCache, QAfterFilterCondition>
-      keyLessThan(
+  keyGreaterThan(
     String value, {
     bool include = false,
     bool caseSensitive = true,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.lessThan(
-        include: include,
-        property: r'key',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'key',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
     });
   }
 
   QueryBuilder<PlaceSearchCache, PlaceSearchCache, QAfterFilterCondition>
-      keyBetween(
+  keyLessThan(String value, {bool include = false, bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'key',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<PlaceSearchCache, PlaceSearchCache, QAfterFilterCondition>
+  keyBetween(
     String lower,
     String upper, {
     bool includeLower = true,
@@ -557,84 +567,86 @@ extension PlaceSearchCacheQueryFilter
     bool caseSensitive = true,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.between(
-        property: r'key',
-        lower: lower,
-        includeLower: includeLower,
-        upper: upper,
-        includeUpper: includeUpper,
-        caseSensitive: caseSensitive,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'key',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+          caseSensitive: caseSensitive,
+        ),
+      );
     });
   }
 
   QueryBuilder<PlaceSearchCache, PlaceSearchCache, QAfterFilterCondition>
-      keyStartsWith(
-    String value, {
-    bool caseSensitive = true,
-  }) {
+  keyStartsWith(String value, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.startsWith(
-        property: r'key',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.startsWith(
+          property: r'key',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
     });
   }
 
   QueryBuilder<PlaceSearchCache, PlaceSearchCache, QAfterFilterCondition>
-      keyEndsWith(
-    String value, {
-    bool caseSensitive = true,
-  }) {
+  keyEndsWith(String value, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.endsWith(
-        property: r'key',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.endsWith(
+          property: r'key',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
     });
   }
 
   QueryBuilder<PlaceSearchCache, PlaceSearchCache, QAfterFilterCondition>
-      keyContains(String value, {bool caseSensitive = true}) {
+  keyContains(String value, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.contains(
-        property: r'key',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.contains(
+          property: r'key',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
     });
   }
 
   QueryBuilder<PlaceSearchCache, PlaceSearchCache, QAfterFilterCondition>
-      keyMatches(String pattern, {bool caseSensitive = true}) {
+  keyMatches(String pattern, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.matches(
-        property: r'key',
-        wildcard: pattern,
-        caseSensitive: caseSensitive,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.matches(
+          property: r'key',
+          wildcard: pattern,
+          caseSensitive: caseSensitive,
+        ),
+      );
     });
   }
 
   QueryBuilder<PlaceSearchCache, PlaceSearchCache, QAfterFilterCondition>
-      keyIsEmpty() {
+  keyIsEmpty() {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.equalTo(
-        property: r'key',
-        value: '',
-      ));
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'key', value: ''),
+      );
     });
   }
 
   QueryBuilder<PlaceSearchCache, PlaceSearchCache, QAfterFilterCondition>
-      keyIsNotEmpty() {
+  keyIsNotEmpty() {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.greaterThan(
-        property: r'key',
-        value: '',
-      ));
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(property: r'key', value: ''),
+      );
     });
   }
 }
@@ -648,28 +660,28 @@ extension PlaceSearchCacheQueryLinks
 extension PlaceSearchCacheQuerySortBy
     on QueryBuilder<PlaceSearchCache, PlaceSearchCache, QSortBy> {
   QueryBuilder<PlaceSearchCache, PlaceSearchCache, QAfterSortBy>
-      sortByCandidatesJson() {
+  sortByCandidatesJson() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'candidatesJson', Sort.asc);
     });
   }
 
   QueryBuilder<PlaceSearchCache, PlaceSearchCache, QAfterSortBy>
-      sortByCandidatesJsonDesc() {
+  sortByCandidatesJsonDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'candidatesJson', Sort.desc);
     });
   }
 
   QueryBuilder<PlaceSearchCache, PlaceSearchCache, QAfterSortBy>
-      sortByFetchedAt() {
+  sortByFetchedAt() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'fetchedAt', Sort.asc);
     });
   }
 
   QueryBuilder<PlaceSearchCache, PlaceSearchCache, QAfterSortBy>
-      sortByFetchedAtDesc() {
+  sortByFetchedAtDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'fetchedAt', Sort.desc);
     });
@@ -682,7 +694,7 @@ extension PlaceSearchCacheQuerySortBy
   }
 
   QueryBuilder<PlaceSearchCache, PlaceSearchCache, QAfterSortBy>
-      sortByKeyDesc() {
+  sortByKeyDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'key', Sort.desc);
     });
@@ -692,28 +704,28 @@ extension PlaceSearchCacheQuerySortBy
 extension PlaceSearchCacheQuerySortThenBy
     on QueryBuilder<PlaceSearchCache, PlaceSearchCache, QSortThenBy> {
   QueryBuilder<PlaceSearchCache, PlaceSearchCache, QAfterSortBy>
-      thenByCandidatesJson() {
+  thenByCandidatesJson() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'candidatesJson', Sort.asc);
     });
   }
 
   QueryBuilder<PlaceSearchCache, PlaceSearchCache, QAfterSortBy>
-      thenByCandidatesJsonDesc() {
+  thenByCandidatesJsonDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'candidatesJson', Sort.desc);
     });
   }
 
   QueryBuilder<PlaceSearchCache, PlaceSearchCache, QAfterSortBy>
-      thenByFetchedAt() {
+  thenByFetchedAt() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'fetchedAt', Sort.asc);
     });
   }
 
   QueryBuilder<PlaceSearchCache, PlaceSearchCache, QAfterSortBy>
-      thenByFetchedAtDesc() {
+  thenByFetchedAtDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'fetchedAt', Sort.desc);
     });
@@ -726,7 +738,7 @@ extension PlaceSearchCacheQuerySortThenBy
   }
 
   QueryBuilder<PlaceSearchCache, PlaceSearchCache, QAfterSortBy>
-      thenByIdDesc() {
+  thenByIdDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'id', Sort.desc);
     });
@@ -739,7 +751,7 @@ extension PlaceSearchCacheQuerySortThenBy
   }
 
   QueryBuilder<PlaceSearchCache, PlaceSearchCache, QAfterSortBy>
-      thenByKeyDesc() {
+  thenByKeyDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'key', Sort.desc);
     });
@@ -749,22 +761,25 @@ extension PlaceSearchCacheQuerySortThenBy
 extension PlaceSearchCacheQueryWhereDistinct
     on QueryBuilder<PlaceSearchCache, PlaceSearchCache, QDistinct> {
   QueryBuilder<PlaceSearchCache, PlaceSearchCache, QDistinct>
-      distinctByCandidatesJson({bool caseSensitive = true}) {
+  distinctByCandidatesJson({bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addDistinctBy(r'candidatesJson',
-          caseSensitive: caseSensitive);
+      return query.addDistinctBy(
+        r'candidatesJson',
+        caseSensitive: caseSensitive,
+      );
     });
   }
 
   QueryBuilder<PlaceSearchCache, PlaceSearchCache, QDistinct>
-      distinctByFetchedAt() {
+  distinctByFetchedAt() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'fetchedAt');
     });
   }
 
-  QueryBuilder<PlaceSearchCache, PlaceSearchCache, QDistinct> distinctByKey(
-      {bool caseSensitive = true}) {
+  QueryBuilder<PlaceSearchCache, PlaceSearchCache, QDistinct> distinctByKey({
+    bool caseSensitive = true,
+  }) {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'key', caseSensitive: caseSensitive);
     });
@@ -780,14 +795,14 @@ extension PlaceSearchCacheQueryProperty
   }
 
   QueryBuilder<PlaceSearchCache, String, QQueryOperations>
-      candidatesJsonProperty() {
+  candidatesJsonProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'candidatesJson');
     });
   }
 
   QueryBuilder<PlaceSearchCache, DateTime, QQueryOperations>
-      fetchedAtProperty() {
+  fetchedAtProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'fetchedAt');
     });

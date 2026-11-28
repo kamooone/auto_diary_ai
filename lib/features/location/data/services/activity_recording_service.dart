@@ -1,6 +1,6 @@
 import 'dart:io';
 import 'package:flutter/foundation.dart';
-import 'package:isar/isar.dart';
+import 'package:isar_community/isar.dart';
 import 'package:permission_handler/permission_handler.dart';
 import '../datasources/activity_recorder_datasource.dart';
 import '../models/activity_log.dart';

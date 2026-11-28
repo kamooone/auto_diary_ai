@@ -1,4 +1,4 @@
-import 'package:isar/isar.dart';
+import 'package:isar_community/isar.dart';
 import '../../domain/entities/timeline_edit.dart';
 import '../../domain/entities/transport_mode.dart';
 import '../../domain/repositories/timeline_edit_repository.dart';

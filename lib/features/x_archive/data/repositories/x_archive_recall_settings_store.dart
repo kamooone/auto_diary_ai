@@ -1,4 +1,4 @@
-import 'package:isar/isar.dart';
+import 'package:isar_community/isar.dart';
 
 import '../../domain/entities/x_archive_recall_settings.dart';
 import '../models/x_archive_recall_settings_model.dart';

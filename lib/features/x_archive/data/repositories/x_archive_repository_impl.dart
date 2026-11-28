@@ -1,4 +1,4 @@
-import 'package:isar/isar.dart';
+import 'package:isar_community/isar.dart';
 
 import '../../domain/entities/x_archive_post.dart';
 import '../../domain/entities/x_archive_post_filter.dart';

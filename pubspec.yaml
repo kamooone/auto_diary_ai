@@ -2,7 +2,7 @@ name: auto_diary_ai
 description: "AIで自動的に日記を生成するFlutterアプリ"
 publish_to: 'none'
 
-version: 1.0.0+218
+version: 1.0.0+219
 
 environment:
   sdk: ^3.9.0
@@ -27,8 +27,8 @@ dependencies:
   permission_handler: ^12.0.3
   flutter_local_notifications: ^17.2.4
 
-  isar: ^3.1.0
-  isar_flutter_libs: ^3.1.0
+  isar_community: ^3.4.1
+  isar_community_flutter_libs: ^3.4.1
 
   # --- UI / Utility Libraries ---
   flutter_animate: ^4.5.2
@@ -76,7 +76,6 @@ dev_dependencies:
   build_runner: ^2.4.0
   freezed: ^2.4.7
   json_serializable: ^6.7.1
-  isar_generator: ^3.1.0
   flutter_lints: ^5.0.0
 
 flutter:

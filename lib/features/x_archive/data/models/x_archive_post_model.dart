@@ -1,4 +1,4 @@
-import 'package:isar/isar.dart';
+import 'package:isar_community/isar.dart';
 part 'x_archive_post_model.g.dart';
 
 /// Xのアーカイブから取り込んだ投稿(「Xから共有」の SharedPostModel とは別)

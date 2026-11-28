@@ -1,4 +1,4 @@
-import 'package:isar/isar.dart';
+import 'package:isar_community/isar.dart';
 part 'x_archive_recall_settings_model.g.dart';
 
 /// 過去のツイートの通知の設定(1件だけ保存する)

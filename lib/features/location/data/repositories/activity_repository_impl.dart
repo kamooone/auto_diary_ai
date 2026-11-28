@@ -1,4 +1,4 @@
-import 'package:isar/isar.dart';
+import 'package:isar_community/isar.dart';
 import '../../domain/entities/activity_segment.dart';
 import '../../domain/repositories/activity_repository.dart';
 import '../models/activity_log.dart';

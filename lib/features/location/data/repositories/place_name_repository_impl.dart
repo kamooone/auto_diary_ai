@@ -2,7 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/widgets.dart';
 import 'package:geocoding/geocoding.dart' as geocoding;
-import 'package:isar/isar.dart';
+import 'package:isar_community/isar.dart';
 import '../../../../core/logging/app_log.dart';
 import '../../domain/repositories/place_name_repository.dart';
 import '../models/place_name_cache.dart';

@@ -1,4 +1,4 @@
-import 'package:isar/isar.dart';
+import 'package:isar_community/isar.dart';
 import '../../features/location/data/datasources/gps_location_datasource.dart';
 import '../../features/location/data/datasources/isar_location_datasource.dart';
 import '../../features/location/data/datasources/recording_state_datasource.dart';

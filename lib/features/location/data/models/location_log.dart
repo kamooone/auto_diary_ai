@@ -2,7 +2,7 @@
 * flutter pub run build_runner buildを実行して.g.dartファイルを作成する必要
 */
 
-import 'package:isar/isar.dart';
+import 'package:isar_community/isar.dart';
 
 /// build_runner によって生成されるコードを結合する
 /// Isarはコード生成でSchemaやQueryを作る

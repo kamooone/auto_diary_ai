@@ -1,5 +1,5 @@
 import 'dart:convert';
-import 'package:isar/isar.dart';
+import 'package:isar_community/isar.dart';
 import '../../domain/entities/place_candidate.dart';
 import '../models/place_search_cache.dart';
 import 'place_candidate_cache.dart';

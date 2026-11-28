@@ -7,7 +7,7 @@ part of 'timeline_snapshot.dart';
 // **************************************************************************
 
 // coverage:ignore-file
-// ignore_for_file: duplicate_ignore, non_constant_identifier_names, constant_identifier_names, invalid_use_of_protected_member, unnecessary_cast, prefer_const_constructors, lines_longer_than_80_chars, require_trailing_commas, inference_failure_on_function_invocation, unnecessary_parenthesis, unnecessary_raw_strings, unnecessary_null_checks, join_return_with_assignment, prefer_final_locals, avoid_js_rounded_ints, avoid_positional_boolean_parameters, always_specify_types
+// ignore_for_file: duplicate_ignore, non_constant_identifier_names, constant_identifier_names, invalid_use_of_protected_member, unnecessary_cast, prefer_const_constructors, lines_longer_than_80_chars, require_trailing_commas, inference_failure_on_function_invocation, unnecessary_parenthesis, unnecessary_raw_strings, unnecessary_null_checks, join_return_with_assignment, prefer_final_locals, avoid_js_rounded_ints, avoid_positional_boolean_parameters, always_specify_types, experimental_member_use
 
 extension GetTimelineSnapshotCollection on Isar {
   IsarCollection<TimelineSnapshot> get timelineSnapshots => this.collection();
@@ -17,11 +17,7 @@ const TimelineSnapshotSchema = CollectionSchema(
   name: r'TimelineSnapshot',
   id: -1809800419485543542,
   properties: {
-    r'date': PropertySchema(
-      id: 0,
-      name: r'date',
-      type: IsarType.dateTime,
-    ),
+    r'date': PropertySchema(id: 0, name: r'date', type: IsarType.dateTime),
     r'itemsJson': PropertySchema(
       id: 1,
       name: r'itemsJson',
@@ -37,12 +33,9 @@ const TimelineSnapshotSchema = CollectionSchema(
       name: r'signature',
       type: IsarType.string,
     ),
-    r'version': PropertySchema(
-      id: 4,
-      name: r'version',
-      type: IsarType.long,
-    )
+    r'version': PropertySchema(id: 4, name: r'version', type: IsarType.long),
   },
+
   estimateSize: _timelineSnapshotEstimateSize,
   serialize: _timelineSnapshotSerialize,
   deserialize: _timelineSnapshotDeserialize,
@@ -59,16 +52,17 @@ const TimelineSnapshotSchema = CollectionSchema(
           name: r'date',
           type: IndexType.value,
           caseSensitive: false,
-        )
+        ),
       ],
-    )
+    ),
   },
   links: {},
   embeddedSchemas: {},
+
   getId: _timelineSnapshotGetId,
   getLinks: _timelineSnapshotGetLinks,
   attach: _timelineSnapshotAttach,
-  version: '3.1.0+1',
+  version: '3.4.1',
 );
 
 int _timelineSnapshotEstimateSize(
@@ -147,7 +141,10 @@ List<IsarLinkBase<dynamic>> _timelineSnapshotGetLinks(TimelineSnapshot object) {
 }
 
 void _timelineSnapshotAttach(
-    IsarCollection<dynamic> col, Id id, TimelineSnapshot object) {
+  IsarCollection<dynamic> col,
+  Id id,
+  TimelineSnapshot object,
+) {
   object.id = id;
 }
 
@@ -171,17 +168,15 @@ extension TimelineSnapshotQueryWhereSort
 extension TimelineSnapshotQueryWhere
     on QueryBuilder<TimelineSnapshot, TimelineSnapshot, QWhereClause> {
   QueryBuilder<TimelineSnapshot, TimelineSnapshot, QAfterWhereClause> idEqualTo(
-      Id id) {
+    Id id,
+  ) {
     return QueryBuilder.apply(this, (query) {
-      return query.addWhereClause(IdWhereClause.between(
-        lower: id,
-        upper: id,
-      ));
+      return query.addWhereClause(IdWhereClause.between(lower: id, upper: id));
     });
   }
 
   QueryBuilder<TimelineSnapshot, TimelineSnapshot, QAfterWhereClause>
-      idNotEqualTo(Id id) {
+  idNotEqualTo(Id id) {
     return QueryBuilder.apply(this, (query) {
       if (query.whereSort == Sort.asc) {
         return query
@@ -204,7 +199,7 @@ extension TimelineSnapshotQueryWhere
   }
 
   QueryBuilder<TimelineSnapshot, TimelineSnapshot, QAfterWhereClause>
-      idGreaterThan(Id id, {bool include = false}) {
+  idGreaterThan(Id id, {bool include = false}) {
     return QueryBuilder.apply(this, (query) {
       return query.addWhereClause(
         IdWhereClause.greaterThan(lower: id, includeLower: include),
@@ -213,7 +208,7 @@ extension TimelineSnapshotQueryWhere
   }
 
   QueryBuilder<TimelineSnapshot, TimelineSnapshot, QAfterWhereClause>
-      idLessThan(Id id, {bool include = false}) {
+  idLessThan(Id id, {bool include = false}) {
     return QueryBuilder.apply(this, (query) {
       return query.addWhereClause(
         IdWhereClause.lessThan(upper: id, includeUpper: include),
@@ -228,105 +223,114 @@ extension TimelineSnapshotQueryWhere
     bool includeUpper = true,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addWhereClause(IdWhereClause.between(
-        lower: lowerId,
-        includeLower: includeLower,
-        upper: upperId,
-        includeUpper: includeUpper,
-      ));
+      return query.addWhereClause(
+        IdWhereClause.between(
+          lower: lowerId,
+          includeLower: includeLower,
+          upper: upperId,
+          includeUpper: includeUpper,
+        ),
+      );
     });
   }
 
   QueryBuilder<TimelineSnapshot, TimelineSnapshot, QAfterWhereClause>
-      dateEqualTo(DateTime date) {
+  dateEqualTo(DateTime date) {
     return QueryBuilder.apply(this, (query) {
-      return query.addWhereClause(IndexWhereClause.equalTo(
-        indexName: r'date',
-        value: [date],
-      ));
+      return query.addWhereClause(
+        IndexWhereClause.equalTo(indexName: r'date', value: [date]),
+      );
     });
   }
 
   QueryBuilder<TimelineSnapshot, TimelineSnapshot, QAfterWhereClause>
-      dateNotEqualTo(DateTime date) {
+  dateNotEqualTo(DateTime date) {
     return QueryBuilder.apply(this, (query) {
       if (query.whereSort == Sort.asc) {
         return query
-            .addWhereClause(IndexWhereClause.between(
-              indexName: r'date',
-              lower: [],
-              upper: [date],
-              includeUpper: false,
-            ))
-            .addWhereClause(IndexWhereClause.between(
-              indexName: r'date',
-              lower: [date],
-              includeLower: false,
-              upper: [],
-            ));
+            .addWhereClause(
+              IndexWhereClause.between(
+                indexName: r'date',
+                lower: [],
+                upper: [date],
+                includeUpper: false,
+              ),
+            )
+            .addWhereClause(
+              IndexWhereClause.between(
+                indexName: r'date',
+                lower: [date],
+                includeLower: false,
+                upper: [],
+              ),
+            );
       } else {
         return query
-            .addWhereClause(IndexWhereClause.between(
-              indexName: r'date',
-              lower: [date],
-              includeLower: false,
-              upper: [],
-            ))
-            .addWhereClause(IndexWhereClause.between(
-              indexName: r'date',
-              lower: [],
-              upper: [date],
-              includeUpper: false,
-            ));
+            .addWhereClause(
+              IndexWhereClause.between(
+                indexName: r'date',
+                lower: [date],
+                includeLower: false,
+                upper: [],
+              ),
+            )
+            .addWhereClause(
+              IndexWhereClause.between(
+                indexName: r'date',
+                lower: [],
+                upper: [date],
+                includeUpper: false,
+              ),
+            );
       }
     });
   }
 
   QueryBuilder<TimelineSnapshot, TimelineSnapshot, QAfterWhereClause>
-      dateGreaterThan(
-    DateTime date, {
-    bool include = false,
-  }) {
+  dateGreaterThan(DateTime date, {bool include = false}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addWhereClause(IndexWhereClause.between(
-        indexName: r'date',
-        lower: [date],
-        includeLower: include,
-        upper: [],
-      ));
+      return query.addWhereClause(
+        IndexWhereClause.between(
+          indexName: r'date',
+          lower: [date],
+          includeLower: include,
+          upper: [],
+        ),
+      );
     });
   }
 
   QueryBuilder<TimelineSnapshot, TimelineSnapshot, QAfterWhereClause>
-      dateLessThan(
-    DateTime date, {
-    bool include = false,
-  }) {
+  dateLessThan(DateTime date, {bool include = false}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addWhereClause(IndexWhereClause.between(
-        indexName: r'date',
-        lower: [],
-        upper: [date],
-        includeUpper: include,
-      ));
+      return query.addWhereClause(
+        IndexWhereClause.between(
+          indexName: r'date',
+          lower: [],
+          upper: [date],
+          includeUpper: include,
+        ),
+      );
     });
   }
 
   QueryBuilder<TimelineSnapshot, TimelineSnapshot, QAfterWhereClause>
-      dateBetween(
+  dateBetween(
     DateTime lowerDate,
     DateTime upperDate, {
     bool includeLower = true,
     bool includeUpper = true,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addWhereClause(IndexWhereClause.between(
-        indexName: r'date',
-        lower: [lowerDate],
-        includeLower: includeLower,
-        upper: [upperDate],
-        includeUpper: includeUpper,
-      ));
+      return query.addWhereClause(
+        IndexWhereClause.between(
+          indexName: r'date',
+          lower: [lowerDate],
+          includeLower: includeLower,
+          upper: [upperDate],
+          includeUpper: includeUpper,
+        ),
+      );
     });
   }
 }
@@ -334,165 +338,166 @@ extension TimelineSnapshotQueryWhere
 extension TimelineSnapshotQueryFilter
     on QueryBuilder<TimelineSnapshot, TimelineSnapshot, QFilterCondition> {
   QueryBuilder<TimelineSnapshot, TimelineSnapshot, QAfterFilterCondition>
-      dateEqualTo(DateTime value) {
+  dateEqualTo(DateTime value) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.equalTo(
-        property: r'date',
-        value: value,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'date', value: value),
+      );
     });
   }
 
   QueryBuilder<TimelineSnapshot, TimelineSnapshot, QAfterFilterCondition>
-      dateGreaterThan(
-    DateTime value, {
-    bool include = false,
-  }) {
+  dateGreaterThan(DateTime value, {bool include = false}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.greaterThan(
-        include: include,
-        property: r'date',
-        value: value,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'date',
+          value: value,
+        ),
+      );
     });
   }
 
   QueryBuilder<TimelineSnapshot, TimelineSnapshot, QAfterFilterCondition>
-      dateLessThan(
-    DateTime value, {
-    bool include = false,
-  }) {
+  dateLessThan(DateTime value, {bool include = false}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.lessThan(
-        include: include,
-        property: r'date',
-        value: value,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'date',
+          value: value,
+        ),
+      );
     });
   }
 
   QueryBuilder<TimelineSnapshot, TimelineSnapshot, QAfterFilterCondition>
-      dateBetween(
+  dateBetween(
     DateTime lower,
     DateTime upper, {
     bool includeLower = true,
     bool includeUpper = true,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.between(
-        property: r'date',
-        lower: lower,
-        includeLower: includeLower,
-        upper: upper,
-        includeUpper: includeUpper,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'date',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+        ),
+      );
     });
   }
 
   QueryBuilder<TimelineSnapshot, TimelineSnapshot, QAfterFilterCondition>
-      idEqualTo(Id value) {
+  idEqualTo(Id value) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.equalTo(
-        property: r'id',
-        value: value,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'id', value: value),
+      );
     });
   }
 
   QueryBuilder<TimelineSnapshot, TimelineSnapshot, QAfterFilterCondition>
-      idGreaterThan(
-    Id value, {
-    bool include = false,
-  }) {
+  idGreaterThan(Id value, {bool include = false}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.greaterThan(
-        include: include,
-        property: r'id',
-        value: value,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'id',
+          value: value,
+        ),
+      );
     });
   }
 
   QueryBuilder<TimelineSnapshot, TimelineSnapshot, QAfterFilterCondition>
-      idLessThan(
-    Id value, {
-    bool include = false,
-  }) {
+  idLessThan(Id value, {bool include = false}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.lessThan(
-        include: include,
-        property: r'id',
-        value: value,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'id',
+          value: value,
+        ),
+      );
     });
   }
 
   QueryBuilder<TimelineSnapshot, TimelineSnapshot, QAfterFilterCondition>
-      idBetween(
+  idBetween(
     Id lower,
     Id upper, {
     bool includeLower = true,
     bool includeUpper = true,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.between(
-        property: r'id',
-        lower: lower,
-        includeLower: includeLower,
-        upper: upper,
-        includeUpper: includeUpper,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'id',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+        ),
+      );
     });
   }
 
   QueryBuilder<TimelineSnapshot, TimelineSnapshot, QAfterFilterCondition>
-      itemsJsonEqualTo(
-    String value, {
-    bool caseSensitive = true,
-  }) {
+  itemsJsonEqualTo(String value, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.equalTo(
-        property: r'itemsJson',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.equalTo(
+          property: r'itemsJson',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
     });
   }
 
   QueryBuilder<TimelineSnapshot, TimelineSnapshot, QAfterFilterCondition>
-      itemsJsonGreaterThan(
-    String value, {
-    bool include = false,
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.greaterThan(
-        include: include,
-        property: r'itemsJson',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<TimelineSnapshot, TimelineSnapshot, QAfterFilterCondition>
-      itemsJsonLessThan(
+  itemsJsonGreaterThan(
     String value, {
     bool include = false,
     bool caseSensitive = true,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.lessThan(
-        include: include,
-        property: r'itemsJson',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'itemsJson',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
     });
   }
 
   QueryBuilder<TimelineSnapshot, TimelineSnapshot, QAfterFilterCondition>
-      itemsJsonBetween(
+  itemsJsonLessThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'itemsJson',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<TimelineSnapshot, TimelineSnapshot, QAfterFilterCondition>
+  itemsJsonBetween(
     String lower,
     String upper, {
     bool includeLower = true,
@@ -500,209 +505,213 @@ extension TimelineSnapshotQueryFilter
     bool caseSensitive = true,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.between(
-        property: r'itemsJson',
-        lower: lower,
-        includeLower: includeLower,
-        upper: upper,
-        includeUpper: includeUpper,
-        caseSensitive: caseSensitive,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'itemsJson',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+          caseSensitive: caseSensitive,
+        ),
+      );
     });
   }
 
   QueryBuilder<TimelineSnapshot, TimelineSnapshot, QAfterFilterCondition>
-      itemsJsonStartsWith(
-    String value, {
-    bool caseSensitive = true,
-  }) {
+  itemsJsonStartsWith(String value, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.startsWith(
-        property: r'itemsJson',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.startsWith(
+          property: r'itemsJson',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
     });
   }
 
   QueryBuilder<TimelineSnapshot, TimelineSnapshot, QAfterFilterCondition>
-      itemsJsonEndsWith(
-    String value, {
-    bool caseSensitive = true,
-  }) {
+  itemsJsonEndsWith(String value, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.endsWith(
-        property: r'itemsJson',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.endsWith(
+          property: r'itemsJson',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
     });
   }
 
   QueryBuilder<TimelineSnapshot, TimelineSnapshot, QAfterFilterCondition>
-      itemsJsonContains(String value, {bool caseSensitive = true}) {
+  itemsJsonContains(String value, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.contains(
-        property: r'itemsJson',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.contains(
+          property: r'itemsJson',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
     });
   }
 
   QueryBuilder<TimelineSnapshot, TimelineSnapshot, QAfterFilterCondition>
-      itemsJsonMatches(String pattern, {bool caseSensitive = true}) {
+  itemsJsonMatches(String pattern, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.matches(
-        property: r'itemsJson',
-        wildcard: pattern,
-        caseSensitive: caseSensitive,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.matches(
+          property: r'itemsJson',
+          wildcard: pattern,
+          caseSensitive: caseSensitive,
+        ),
+      );
     });
   }
 
   QueryBuilder<TimelineSnapshot, TimelineSnapshot, QAfterFilterCondition>
-      itemsJsonIsEmpty() {
+  itemsJsonIsEmpty() {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.equalTo(
-        property: r'itemsJson',
-        value: '',
-      ));
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'itemsJson', value: ''),
+      );
     });
   }
 
   QueryBuilder<TimelineSnapshot, TimelineSnapshot, QAfterFilterCondition>
-      itemsJsonIsNotEmpty() {
+  itemsJsonIsNotEmpty() {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.greaterThan(
-        property: r'itemsJson',
-        value: '',
-      ));
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(property: r'itemsJson', value: ''),
+      );
     });
   }
 
   QueryBuilder<TimelineSnapshot, TimelineSnapshot, QAfterFilterCondition>
-      savedAtEqualTo(DateTime value) {
+  savedAtEqualTo(DateTime value) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.equalTo(
-        property: r'savedAt',
-        value: value,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'savedAt', value: value),
+      );
     });
   }
 
   QueryBuilder<TimelineSnapshot, TimelineSnapshot, QAfterFilterCondition>
-      savedAtGreaterThan(
-    DateTime value, {
-    bool include = false,
-  }) {
+  savedAtGreaterThan(DateTime value, {bool include = false}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.greaterThan(
-        include: include,
-        property: r'savedAt',
-        value: value,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'savedAt',
+          value: value,
+        ),
+      );
     });
   }
 
   QueryBuilder<TimelineSnapshot, TimelineSnapshot, QAfterFilterCondition>
-      savedAtLessThan(
-    DateTime value, {
-    bool include = false,
-  }) {
+  savedAtLessThan(DateTime value, {bool include = false}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.lessThan(
-        include: include,
-        property: r'savedAt',
-        value: value,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'savedAt',
+          value: value,
+        ),
+      );
     });
   }
 
   QueryBuilder<TimelineSnapshot, TimelineSnapshot, QAfterFilterCondition>
-      savedAtBetween(
+  savedAtBetween(
     DateTime lower,
     DateTime upper, {
     bool includeLower = true,
     bool includeUpper = true,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.between(
-        property: r'savedAt',
-        lower: lower,
-        includeLower: includeLower,
-        upper: upper,
-        includeUpper: includeUpper,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'savedAt',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+        ),
+      );
     });
   }
 
   QueryBuilder<TimelineSnapshot, TimelineSnapshot, QAfterFilterCondition>
-      signatureIsNull() {
+  signatureIsNull() {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(const FilterCondition.isNull(
-        property: r'signature',
-      ));
+      return query.addFilterCondition(
+        const FilterCondition.isNull(property: r'signature'),
+      );
     });
   }
 
   QueryBuilder<TimelineSnapshot, TimelineSnapshot, QAfterFilterCondition>
-      signatureIsNotNull() {
+  signatureIsNotNull() {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(const FilterCondition.isNotNull(
-        property: r'signature',
-      ));
+      return query.addFilterCondition(
+        const FilterCondition.isNotNull(property: r'signature'),
+      );
     });
   }
 
   QueryBuilder<TimelineSnapshot, TimelineSnapshot, QAfterFilterCondition>
-      signatureEqualTo(
-    String? value, {
-    bool caseSensitive = true,
-  }) {
+  signatureEqualTo(String? value, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.equalTo(
-        property: r'signature',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.equalTo(
+          property: r'signature',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
     });
   }
 
   QueryBuilder<TimelineSnapshot, TimelineSnapshot, QAfterFilterCondition>
-      signatureGreaterThan(
-    String? value, {
-    bool include = false,
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.greaterThan(
-        include: include,
-        property: r'signature',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<TimelineSnapshot, TimelineSnapshot, QAfterFilterCondition>
-      signatureLessThan(
+  signatureGreaterThan(
     String? value, {
     bool include = false,
     bool caseSensitive = true,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.lessThan(
-        include: include,
-        property: r'signature',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'signature',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
     });
   }
 
   QueryBuilder<TimelineSnapshot, TimelineSnapshot, QAfterFilterCondition>
-      signatureBetween(
+  signatureLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'signature',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<TimelineSnapshot, TimelineSnapshot, QAfterFilterCondition>
+  signatureBetween(
     String? lower,
     String? upper, {
     bool includeLower = true,
@@ -710,140 +719,141 @@ extension TimelineSnapshotQueryFilter
     bool caseSensitive = true,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.between(
-        property: r'signature',
-        lower: lower,
-        includeLower: includeLower,
-        upper: upper,
-        includeUpper: includeUpper,
-        caseSensitive: caseSensitive,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'signature',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+          caseSensitive: caseSensitive,
+        ),
+      );
     });
   }
 
   QueryBuilder<TimelineSnapshot, TimelineSnapshot, QAfterFilterCondition>
-      signatureStartsWith(
-    String value, {
-    bool caseSensitive = true,
-  }) {
+  signatureStartsWith(String value, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.startsWith(
-        property: r'signature',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.startsWith(
+          property: r'signature',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
     });
   }
 
   QueryBuilder<TimelineSnapshot, TimelineSnapshot, QAfterFilterCondition>
-      signatureEndsWith(
-    String value, {
-    bool caseSensitive = true,
-  }) {
+  signatureEndsWith(String value, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.endsWith(
-        property: r'signature',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.endsWith(
+          property: r'signature',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
     });
   }
 
   QueryBuilder<TimelineSnapshot, TimelineSnapshot, QAfterFilterCondition>
-      signatureContains(String value, {bool caseSensitive = true}) {
+  signatureContains(String value, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.contains(
-        property: r'signature',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.contains(
+          property: r'signature',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
     });
   }
 
   QueryBuilder<TimelineSnapshot, TimelineSnapshot, QAfterFilterCondition>
-      signatureMatches(String pattern, {bool caseSensitive = true}) {
+  signatureMatches(String pattern, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.matches(
-        property: r'signature',
-        wildcard: pattern,
-        caseSensitive: caseSensitive,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.matches(
+          property: r'signature',
+          wildcard: pattern,
+          caseSensitive: caseSensitive,
+        ),
+      );
     });
   }
 
   QueryBuilder<TimelineSnapshot, TimelineSnapshot, QAfterFilterCondition>
-      signatureIsEmpty() {
+  signatureIsEmpty() {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.equalTo(
-        property: r'signature',
-        value: '',
-      ));
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'signature', value: ''),
+      );
     });
   }
 
   QueryBuilder<TimelineSnapshot, TimelineSnapshot, QAfterFilterCondition>
-      signatureIsNotEmpty() {
+  signatureIsNotEmpty() {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.greaterThan(
-        property: r'signature',
-        value: '',
-      ));
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(property: r'signature', value: ''),
+      );
     });
   }
 
   QueryBuilder<TimelineSnapshot, TimelineSnapshot, QAfterFilterCondition>
-      versionEqualTo(int value) {
+  versionEqualTo(int value) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.equalTo(
-        property: r'version',
-        value: value,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'version', value: value),
+      );
     });
   }
 
   QueryBuilder<TimelineSnapshot, TimelineSnapshot, QAfterFilterCondition>
-      versionGreaterThan(
-    int value, {
-    bool include = false,
-  }) {
+  versionGreaterThan(int value, {bool include = false}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.greaterThan(
-        include: include,
-        property: r'version',
-        value: value,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'version',
+          value: value,
+        ),
+      );
     });
   }
 
   QueryBuilder<TimelineSnapshot, TimelineSnapshot, QAfterFilterCondition>
-      versionLessThan(
-    int value, {
-    bool include = false,
-  }) {
+  versionLessThan(int value, {bool include = false}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.lessThan(
-        include: include,
-        property: r'version',
-        value: value,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'version',
+          value: value,
+        ),
+      );
     });
   }
 
   QueryBuilder<TimelineSnapshot, TimelineSnapshot, QAfterFilterCondition>
-      versionBetween(
+  versionBetween(
     int lower,
     int upper, {
     bool includeLower = true,
     bool includeUpper = true,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.between(
-        property: r'version',
-        lower: lower,
-        includeLower: includeLower,
-        upper: upper,
-        includeUpper: includeUpper,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'version',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+        ),
+      );
     });
   }
 }
@@ -863,63 +873,63 @@ extension TimelineSnapshotQuerySortBy
   }
 
   QueryBuilder<TimelineSnapshot, TimelineSnapshot, QAfterSortBy>
-      sortByDateDesc() {
+  sortByDateDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'date', Sort.desc);
     });
   }
 
   QueryBuilder<TimelineSnapshot, TimelineSnapshot, QAfterSortBy>
-      sortByItemsJson() {
+  sortByItemsJson() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'itemsJson', Sort.asc);
     });
   }
 
   QueryBuilder<TimelineSnapshot, TimelineSnapshot, QAfterSortBy>
-      sortByItemsJsonDesc() {
+  sortByItemsJsonDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'itemsJson', Sort.desc);
     });
   }
 
   QueryBuilder<TimelineSnapshot, TimelineSnapshot, QAfterSortBy>
-      sortBySavedAt() {
+  sortBySavedAt() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'savedAt', Sort.asc);
     });
   }
 
   QueryBuilder<TimelineSnapshot, TimelineSnapshot, QAfterSortBy>
-      sortBySavedAtDesc() {
+  sortBySavedAtDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'savedAt', Sort.desc);
     });
   }
 
   QueryBuilder<TimelineSnapshot, TimelineSnapshot, QAfterSortBy>
-      sortBySignature() {
+  sortBySignature() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'signature', Sort.asc);
     });
   }
 
   QueryBuilder<TimelineSnapshot, TimelineSnapshot, QAfterSortBy>
-      sortBySignatureDesc() {
+  sortBySignatureDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'signature', Sort.desc);
     });
   }
 
   QueryBuilder<TimelineSnapshot, TimelineSnapshot, QAfterSortBy>
-      sortByVersion() {
+  sortByVersion() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'version', Sort.asc);
     });
   }
 
   QueryBuilder<TimelineSnapshot, TimelineSnapshot, QAfterSortBy>
-      sortByVersionDesc() {
+  sortByVersionDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'version', Sort.desc);
     });
@@ -935,7 +945,7 @@ extension TimelineSnapshotQuerySortThenBy
   }
 
   QueryBuilder<TimelineSnapshot, TimelineSnapshot, QAfterSortBy>
-      thenByDateDesc() {
+  thenByDateDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'date', Sort.desc);
     });
@@ -948,63 +958,63 @@ extension TimelineSnapshotQuerySortThenBy
   }
 
   QueryBuilder<TimelineSnapshot, TimelineSnapshot, QAfterSortBy>
-      thenByIdDesc() {
+  thenByIdDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'id', Sort.desc);
     });
   }
 
   QueryBuilder<TimelineSnapshot, TimelineSnapshot, QAfterSortBy>
-      thenByItemsJson() {
+  thenByItemsJson() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'itemsJson', Sort.asc);
     });
   }
 
   QueryBuilder<TimelineSnapshot, TimelineSnapshot, QAfterSortBy>
-      thenByItemsJsonDesc() {
+  thenByItemsJsonDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'itemsJson', Sort.desc);
     });
   }
 
   QueryBuilder<TimelineSnapshot, TimelineSnapshot, QAfterSortBy>
-      thenBySavedAt() {
+  thenBySavedAt() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'savedAt', Sort.asc);
     });
   }
 
   QueryBuilder<TimelineSnapshot, TimelineSnapshot, QAfterSortBy>
-      thenBySavedAtDesc() {
+  thenBySavedAtDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'savedAt', Sort.desc);
     });
   }
 
   QueryBuilder<TimelineSnapshot, TimelineSnapshot, QAfterSortBy>
-      thenBySignature() {
+  thenBySignature() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'signature', Sort.asc);
     });
   }
 
   QueryBuilder<TimelineSnapshot, TimelineSnapshot, QAfterSortBy>
-      thenBySignatureDesc() {
+  thenBySignatureDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'signature', Sort.desc);
     });
   }
 
   QueryBuilder<TimelineSnapshot, TimelineSnapshot, QAfterSortBy>
-      thenByVersion() {
+  thenByVersion() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'version', Sort.asc);
     });
   }
 
   QueryBuilder<TimelineSnapshot, TimelineSnapshot, QAfterSortBy>
-      thenByVersionDesc() {
+  thenByVersionDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'version', Sort.desc);
     });
@@ -1020,28 +1030,28 @@ extension TimelineSnapshotQueryWhereDistinct
   }
 
   QueryBuilder<TimelineSnapshot, TimelineSnapshot, QDistinct>
-      distinctByItemsJson({bool caseSensitive = true}) {
+  distinctByItemsJson({bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'itemsJson', caseSensitive: caseSensitive);
     });
   }
 
   QueryBuilder<TimelineSnapshot, TimelineSnapshot, QDistinct>
-      distinctBySavedAt() {
+  distinctBySavedAt() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'savedAt');
     });
   }
 
   QueryBuilder<TimelineSnapshot, TimelineSnapshot, QDistinct>
-      distinctBySignature({bool caseSensitive = true}) {
+  distinctBySignature({bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'signature', caseSensitive: caseSensitive);
     });
   }
 
   QueryBuilder<TimelineSnapshot, TimelineSnapshot, QDistinct>
-      distinctByVersion() {
+  distinctByVersion() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'version');
     });
@@ -1075,7 +1085,7 @@ extension TimelineSnapshotQueryProperty
   }
 
   QueryBuilder<TimelineSnapshot, String?, QQueryOperations>
-      signatureProperty() {
+  signatureProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'signature');
     });

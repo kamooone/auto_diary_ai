@@ -7,7 +7,7 @@ part of 'x_archive_post_model.dart';
 // **************************************************************************
 
 // coverage:ignore-file
-// ignore_for_file: duplicate_ignore, non_constant_identifier_names, constant_identifier_names, invalid_use_of_protected_member, unnecessary_cast, prefer_const_constructors, lines_longer_than_80_chars, require_trailing_commas, inference_failure_on_function_invocation, unnecessary_parenthesis, unnecessary_raw_strings, unnecessary_null_checks, join_return_with_assignment, prefer_final_locals, avoid_js_rounded_ints, avoid_positional_boolean_parameters, always_specify_types
+// ignore_for_file: duplicate_ignore, non_constant_identifier_names, constant_identifier_names, invalid_use_of_protected_member, unnecessary_cast, prefer_const_constructors, lines_longer_than_80_chars, require_trailing_commas, inference_failure_on_function_invocation, unnecessary_parenthesis, unnecessary_raw_strings, unnecessary_null_checks, join_return_with_assignment, prefer_final_locals, avoid_js_rounded_ints, avoid_positional_boolean_parameters, always_specify_types, experimental_member_use
 
 extension GetXArchivePostModelCollection on Isar {
   IsarCollection<XArchivePostModel> get xArchivePostModels => this.collection();
@@ -22,11 +22,7 @@ const XArchivePostModelSchema = CollectionSchema(
       name: r'createdAt',
       type: IsarType.dateTime,
     ),
-    r'hasVideo': PropertySchema(
-      id: 1,
-      name: r'hasVideo',
-      type: IsarType.bool,
-    ),
+    r'hasVideo': PropertySchema(id: 1, name: r'hasVideo', type: IsarType.bool),
     r'imageAspectRatios': PropertySchema(
       id: 2,
       name: r'imageAspectRatios',
@@ -37,11 +33,7 @@ const XArchivePostModelSchema = CollectionSchema(
       name: r'imageFileNames',
       type: IsarType.stringList,
     ),
-    r'kind': PropertySchema(
-      id: 4,
-      name: r'kind',
-      type: IsarType.string,
-    ),
+    r'kind': PropertySchema(id: 4, name: r'kind', type: IsarType.string),
     r'photoIds': PropertySchema(
       id: 5,
       name: r'photoIds',
@@ -52,17 +44,10 @@ const XArchivePostModelSchema = CollectionSchema(
       name: r'replyToScreenName',
       type: IsarType.string,
     ),
-    r'text': PropertySchema(
-      id: 7,
-      name: r'text',
-      type: IsarType.string,
-    ),
-    r'tweetId': PropertySchema(
-      id: 8,
-      name: r'tweetId',
-      type: IsarType.string,
-    )
+    r'text': PropertySchema(id: 7, name: r'text', type: IsarType.string),
+    r'tweetId': PropertySchema(id: 8, name: r'tweetId', type: IsarType.string),
   },
+
   estimateSize: _xArchivePostModelEstimateSize,
   serialize: _xArchivePostModelSerialize,
   deserialize: _xArchivePostModelDeserialize,
@@ -79,7 +64,7 @@ const XArchivePostModelSchema = CollectionSchema(
           name: r'tweetId',
           type: IndexType.hash,
           caseSensitive: true,
-        )
+        ),
       ],
     ),
     r'createdAt': IndexSchema(
@@ -92,16 +77,17 @@ const XArchivePostModelSchema = CollectionSchema(
           name: r'createdAt',
           type: IndexType.value,
           caseSensitive: false,
-        )
+        ),
       ],
-    )
+    ),
   },
   links: {},
   embeddedSchemas: {},
+
   getId: _xArchivePostModelGetId,
   getLinks: _xArchivePostModelGetLinks,
   attach: _xArchivePostModelAttach,
-  version: '3.1.0+1',
+  version: '3.4.1',
 );
 
 int _xArchivePostModelEstimateSize(
@@ -214,12 +200,16 @@ Id _xArchivePostModelGetId(XArchivePostModel object) {
 }
 
 List<IsarLinkBase<dynamic>> _xArchivePostModelGetLinks(
-    XArchivePostModel object) {
+  XArchivePostModel object,
+) {
   return [];
 }
 
 void _xArchivePostModelAttach(
-    IsarCollection<dynamic> col, Id id, XArchivePostModel object) {
+  IsarCollection<dynamic> col,
+  Id id,
+  XArchivePostModel object,
+) {
   object.id = id;
 }
 
@@ -232,7 +222,7 @@ extension XArchivePostModelQueryWhereSort
   }
 
   QueryBuilder<XArchivePostModel, XArchivePostModel, QAfterWhere>
-      anyCreatedAt() {
+  anyCreatedAt() {
     return QueryBuilder.apply(this, (query) {
       return query.addWhereClause(
         const IndexWhereClause.any(indexName: r'createdAt'),
@@ -244,17 +234,14 @@ extension XArchivePostModelQueryWhereSort
 extension XArchivePostModelQueryWhere
     on QueryBuilder<XArchivePostModel, XArchivePostModel, QWhereClause> {
   QueryBuilder<XArchivePostModel, XArchivePostModel, QAfterWhereClause>
-      idEqualTo(Id id) {
+  idEqualTo(Id id) {
     return QueryBuilder.apply(this, (query) {
-      return query.addWhereClause(IdWhereClause.between(
-        lower: id,
-        upper: id,
-      ));
+      return query.addWhereClause(IdWhereClause.between(lower: id, upper: id));
     });
   }
 
   QueryBuilder<XArchivePostModel, XArchivePostModel, QAfterWhereClause>
-      idNotEqualTo(Id id) {
+  idNotEqualTo(Id id) {
     return QueryBuilder.apply(this, (query) {
       if (query.whereSort == Sort.asc) {
         return query
@@ -277,7 +264,7 @@ extension XArchivePostModelQueryWhere
   }
 
   QueryBuilder<XArchivePostModel, XArchivePostModel, QAfterWhereClause>
-      idGreaterThan(Id id, {bool include = false}) {
+  idGreaterThan(Id id, {bool include = false}) {
     return QueryBuilder.apply(this, (query) {
       return query.addWhereClause(
         IdWhereClause.greaterThan(lower: id, includeLower: include),
@@ -286,7 +273,7 @@ extension XArchivePostModelQueryWhere
   }
 
   QueryBuilder<XArchivePostModel, XArchivePostModel, QAfterWhereClause>
-      idLessThan(Id id, {bool include = false}) {
+  idLessThan(Id id, {bool include = false}) {
     return QueryBuilder.apply(this, (query) {
       return query.addWhereClause(
         IdWhereClause.lessThan(upper: id, includeUpper: include),
@@ -295,157 +282,173 @@ extension XArchivePostModelQueryWhere
   }
 
   QueryBuilder<XArchivePostModel, XArchivePostModel, QAfterWhereClause>
-      idBetween(
+  idBetween(
     Id lowerId,
     Id upperId, {
     bool includeLower = true,
     bool includeUpper = true,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addWhereClause(IdWhereClause.between(
-        lower: lowerId,
-        includeLower: includeLower,
-        upper: upperId,
-        includeUpper: includeUpper,
-      ));
+      return query.addWhereClause(
+        IdWhereClause.between(
+          lower: lowerId,
+          includeLower: includeLower,
+          upper: upperId,
+          includeUpper: includeUpper,
+        ),
+      );
     });
   }
 
   QueryBuilder<XArchivePostModel, XArchivePostModel, QAfterWhereClause>
-      tweetIdEqualTo(String tweetId) {
+  tweetIdEqualTo(String tweetId) {
     return QueryBuilder.apply(this, (query) {
-      return query.addWhereClause(IndexWhereClause.equalTo(
-        indexName: r'tweetId',
-        value: [tweetId],
-      ));
+      return query.addWhereClause(
+        IndexWhereClause.equalTo(indexName: r'tweetId', value: [tweetId]),
+      );
     });
   }
 
   QueryBuilder<XArchivePostModel, XArchivePostModel, QAfterWhereClause>
-      tweetIdNotEqualTo(String tweetId) {
+  tweetIdNotEqualTo(String tweetId) {
     return QueryBuilder.apply(this, (query) {
       if (query.whereSort == Sort.asc) {
         return query
-            .addWhereClause(IndexWhereClause.between(
-              indexName: r'tweetId',
-              lower: [],
-              upper: [tweetId],
-              includeUpper: false,
-            ))
-            .addWhereClause(IndexWhereClause.between(
-              indexName: r'tweetId',
-              lower: [tweetId],
-              includeLower: false,
-              upper: [],
-            ));
+            .addWhereClause(
+              IndexWhereClause.between(
+                indexName: r'tweetId',
+                lower: [],
+                upper: [tweetId],
+                includeUpper: false,
+              ),
+            )
+            .addWhereClause(
+              IndexWhereClause.between(
+                indexName: r'tweetId',
+                lower: [tweetId],
+                includeLower: false,
+                upper: [],
+              ),
+            );
       } else {
         return query
-            .addWhereClause(IndexWhereClause.between(
-              indexName: r'tweetId',
-              lower: [tweetId],
-              includeLower: false,
-              upper: [],
-            ))
-            .addWhereClause(IndexWhereClause.between(
-              indexName: r'tweetId',
-              lower: [],
-              upper: [tweetId],
-              includeUpper: false,
-            ));
+            .addWhereClause(
+              IndexWhereClause.between(
+                indexName: r'tweetId',
+                lower: [tweetId],
+                includeLower: false,
+                upper: [],
+              ),
+            )
+            .addWhereClause(
+              IndexWhereClause.between(
+                indexName: r'tweetId',
+                lower: [],
+                upper: [tweetId],
+                includeUpper: false,
+              ),
+            );
       }
     });
   }
 
   QueryBuilder<XArchivePostModel, XArchivePostModel, QAfterWhereClause>
-      createdAtEqualTo(DateTime createdAt) {
+  createdAtEqualTo(DateTime createdAt) {
     return QueryBuilder.apply(this, (query) {
-      return query.addWhereClause(IndexWhereClause.equalTo(
-        indexName: r'createdAt',
-        value: [createdAt],
-      ));
+      return query.addWhereClause(
+        IndexWhereClause.equalTo(indexName: r'createdAt', value: [createdAt]),
+      );
     });
   }
 
   QueryBuilder<XArchivePostModel, XArchivePostModel, QAfterWhereClause>
-      createdAtNotEqualTo(DateTime createdAt) {
+  createdAtNotEqualTo(DateTime createdAt) {
     return QueryBuilder.apply(this, (query) {
       if (query.whereSort == Sort.asc) {
         return query
-            .addWhereClause(IndexWhereClause.between(
-              indexName: r'createdAt',
-              lower: [],
-              upper: [createdAt],
-              includeUpper: false,
-            ))
-            .addWhereClause(IndexWhereClause.between(
-              indexName: r'createdAt',
-              lower: [createdAt],
-              includeLower: false,
-              upper: [],
-            ));
+            .addWhereClause(
+              IndexWhereClause.between(
+                indexName: r'createdAt',
+                lower: [],
+                upper: [createdAt],
+                includeUpper: false,
+              ),
+            )
+            .addWhereClause(
+              IndexWhereClause.between(
+                indexName: r'createdAt',
+                lower: [createdAt],
+                includeLower: false,
+                upper: [],
+              ),
+            );
       } else {
         return query
-            .addWhereClause(IndexWhereClause.between(
-              indexName: r'createdAt',
-              lower: [createdAt],
-              includeLower: false,
-              upper: [],
-            ))
-            .addWhereClause(IndexWhereClause.between(
-              indexName: r'createdAt',
-              lower: [],
-              upper: [createdAt],
-              includeUpper: false,
-            ));
+            .addWhereClause(
+              IndexWhereClause.between(
+                indexName: r'createdAt',
+                lower: [createdAt],
+                includeLower: false,
+                upper: [],
+              ),
+            )
+            .addWhereClause(
+              IndexWhereClause.between(
+                indexName: r'createdAt',
+                lower: [],
+                upper: [createdAt],
+                includeUpper: false,
+              ),
+            );
       }
     });
   }
 
   QueryBuilder<XArchivePostModel, XArchivePostModel, QAfterWhereClause>
-      createdAtGreaterThan(
-    DateTime createdAt, {
-    bool include = false,
-  }) {
+  createdAtGreaterThan(DateTime createdAt, {bool include = false}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addWhereClause(IndexWhereClause.between(
-        indexName: r'createdAt',
-        lower: [createdAt],
-        includeLower: include,
-        upper: [],
-      ));
+      return query.addWhereClause(
+        IndexWhereClause.between(
+          indexName: r'createdAt',
+          lower: [createdAt],
+          includeLower: include,
+          upper: [],
+        ),
+      );
     });
   }
 
   QueryBuilder<XArchivePostModel, XArchivePostModel, QAfterWhereClause>
-      createdAtLessThan(
-    DateTime createdAt, {
-    bool include = false,
-  }) {
+  createdAtLessThan(DateTime createdAt, {bool include = false}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addWhereClause(IndexWhereClause.between(
-        indexName: r'createdAt',
-        lower: [],
-        upper: [createdAt],
-        includeUpper: include,
-      ));
+      return query.addWhereClause(
+        IndexWhereClause.between(
+          indexName: r'createdAt',
+          lower: [],
+          upper: [createdAt],
+          includeUpper: include,
+        ),
+      );
     });
   }
 
   QueryBuilder<XArchivePostModel, XArchivePostModel, QAfterWhereClause>
-      createdAtBetween(
+  createdAtBetween(
     DateTime lowerCreatedAt,
     DateTime upperCreatedAt, {
     bool includeLower = true,
     bool includeUpper = true,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addWhereClause(IndexWhereClause.between(
-        indexName: r'createdAt',
-        lower: [lowerCreatedAt],
-        includeLower: includeLower,
-        upper: [upperCreatedAt],
-        includeUpper: includeUpper,
-      ));
+      return query.addWhereClause(
+        IndexWhereClause.between(
+          indexName: r'createdAt',
+          lower: [lowerCreatedAt],
+          includeLower: includeLower,
+          upper: [upperCreatedAt],
+          includeUpper: includeUpper,
+        ),
+      );
     });
   }
 }
@@ -453,175 +456,181 @@ extension XArchivePostModelQueryWhere
 extension XArchivePostModelQueryFilter
     on QueryBuilder<XArchivePostModel, XArchivePostModel, QFilterCondition> {
   QueryBuilder<XArchivePostModel, XArchivePostModel, QAfterFilterCondition>
-      createdAtEqualTo(DateTime value) {
+  createdAtEqualTo(DateTime value) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.equalTo(
-        property: r'createdAt',
-        value: value,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'createdAt', value: value),
+      );
     });
   }
 
   QueryBuilder<XArchivePostModel, XArchivePostModel, QAfterFilterCondition>
-      createdAtGreaterThan(
-    DateTime value, {
-    bool include = false,
-  }) {
+  createdAtGreaterThan(DateTime value, {bool include = false}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.greaterThan(
-        include: include,
-        property: r'createdAt',
-        value: value,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'createdAt',
+          value: value,
+        ),
+      );
     });
   }
 
   QueryBuilder<XArchivePostModel, XArchivePostModel, QAfterFilterCondition>
-      createdAtLessThan(
-    DateTime value, {
-    bool include = false,
-  }) {
+  createdAtLessThan(DateTime value, {bool include = false}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.lessThan(
-        include: include,
-        property: r'createdAt',
-        value: value,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'createdAt',
+          value: value,
+        ),
+      );
     });
   }
 
   QueryBuilder<XArchivePostModel, XArchivePostModel, QAfterFilterCondition>
-      createdAtBetween(
+  createdAtBetween(
     DateTime lower,
     DateTime upper, {
     bool includeLower = true,
     bool includeUpper = true,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.between(
-        property: r'createdAt',
-        lower: lower,
-        includeLower: includeLower,
-        upper: upper,
-        includeUpper: includeUpper,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'createdAt',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+        ),
+      );
     });
   }
 
   QueryBuilder<XArchivePostModel, XArchivePostModel, QAfterFilterCondition>
-      hasVideoEqualTo(bool value) {
+  hasVideoEqualTo(bool value) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.equalTo(
-        property: r'hasVideo',
-        value: value,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'hasVideo', value: value),
+      );
     });
   }
 
   QueryBuilder<XArchivePostModel, XArchivePostModel, QAfterFilterCondition>
-      idEqualTo(Id value) {
+  idEqualTo(Id value) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.equalTo(
-        property: r'id',
-        value: value,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'id', value: value),
+      );
     });
   }
 
   QueryBuilder<XArchivePostModel, XArchivePostModel, QAfterFilterCondition>
-      idGreaterThan(
-    Id value, {
-    bool include = false,
-  }) {
+  idGreaterThan(Id value, {bool include = false}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.greaterThan(
-        include: include,
-        property: r'id',
-        value: value,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'id',
+          value: value,
+        ),
+      );
     });
   }
 
   QueryBuilder<XArchivePostModel, XArchivePostModel, QAfterFilterCondition>
-      idLessThan(
-    Id value, {
-    bool include = false,
-  }) {
+  idLessThan(Id value, {bool include = false}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.lessThan(
-        include: include,
-        property: r'id',
-        value: value,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'id',
+          value: value,
+        ),
+      );
     });
   }
 
   QueryBuilder<XArchivePostModel, XArchivePostModel, QAfterFilterCondition>
-      idBetween(
+  idBetween(
     Id lower,
     Id upper, {
     bool includeLower = true,
     bool includeUpper = true,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.between(
-        property: r'id',
-        lower: lower,
-        includeLower: includeLower,
-        upper: upper,
-        includeUpper: includeUpper,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'id',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+        ),
+      );
     });
   }
 
   QueryBuilder<XArchivePostModel, XArchivePostModel, QAfterFilterCondition>
-      imageAspectRatiosElementEqualTo(
+  imageAspectRatiosElementEqualTo(
     double value, {
     double epsilon = Query.epsilon,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.equalTo(
-        property: r'imageAspectRatios',
-        value: value,
-        epsilon: epsilon,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.equalTo(
+          property: r'imageAspectRatios',
+          value: value,
+
+          epsilon: epsilon,
+        ),
+      );
     });
   }
 
   QueryBuilder<XArchivePostModel, XArchivePostModel, QAfterFilterCondition>
-      imageAspectRatiosElementGreaterThan(
-    double value, {
-    bool include = false,
-    double epsilon = Query.epsilon,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.greaterThan(
-        include: include,
-        property: r'imageAspectRatios',
-        value: value,
-        epsilon: epsilon,
-      ));
-    });
-  }
-
-  QueryBuilder<XArchivePostModel, XArchivePostModel, QAfterFilterCondition>
-      imageAspectRatiosElementLessThan(
+  imageAspectRatiosElementGreaterThan(
     double value, {
     bool include = false,
     double epsilon = Query.epsilon,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.lessThan(
-        include: include,
-        property: r'imageAspectRatios',
-        value: value,
-        epsilon: epsilon,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'imageAspectRatios',
+          value: value,
+
+          epsilon: epsilon,
+        ),
+      );
     });
   }
 
   QueryBuilder<XArchivePostModel, XArchivePostModel, QAfterFilterCondition>
-      imageAspectRatiosElementBetween(
+  imageAspectRatiosElementLessThan(
+    double value, {
+    bool include = false,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'imageAspectRatios',
+          value: value,
+
+          epsilon: epsilon,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<XArchivePostModel, XArchivePostModel, QAfterFilterCondition>
+  imageAspectRatiosElementBetween(
     double lower,
     double upper, {
     bool includeLower = true,
@@ -629,77 +638,50 @@ extension XArchivePostModelQueryFilter
     double epsilon = Query.epsilon,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.between(
-        property: r'imageAspectRatios',
-        lower: lower,
-        includeLower: includeLower,
-        upper: upper,
-        includeUpper: includeUpper,
-        epsilon: epsilon,
-      ));
-    });
-  }
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'imageAspectRatios',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
 
-  QueryBuilder<XArchivePostModel, XArchivePostModel, QAfterFilterCondition>
-      imageAspectRatiosLengthEqualTo(int length) {
-    return QueryBuilder.apply(this, (query) {
-      return query.listLength(
-        r'imageAspectRatios',
-        length,
-        true,
-        length,
-        true,
+          epsilon: epsilon,
+        ),
       );
     });
   }
 
   QueryBuilder<XArchivePostModel, XArchivePostModel, QAfterFilterCondition>
-      imageAspectRatiosIsEmpty() {
+  imageAspectRatiosLengthEqualTo(int length) {
     return QueryBuilder.apply(this, (query) {
-      return query.listLength(
-        r'imageAspectRatios',
-        0,
-        true,
-        0,
-        true,
-      );
+      return query.listLength(r'imageAspectRatios', length, true, length, true);
     });
   }
 
   QueryBuilder<XArchivePostModel, XArchivePostModel, QAfterFilterCondition>
-      imageAspectRatiosIsNotEmpty() {
+  imageAspectRatiosIsEmpty() {
     return QueryBuilder.apply(this, (query) {
-      return query.listLength(
-        r'imageAspectRatios',
-        0,
-        false,
-        999999,
-        true,
-      );
+      return query.listLength(r'imageAspectRatios', 0, true, 0, true);
     });
   }
 
   QueryBuilder<XArchivePostModel, XArchivePostModel, QAfterFilterCondition>
-      imageAspectRatiosLengthLessThan(
-    int length, {
-    bool include = false,
-  }) {
+  imageAspectRatiosIsNotEmpty() {
     return QueryBuilder.apply(this, (query) {
-      return query.listLength(
-        r'imageAspectRatios',
-        0,
-        true,
-        length,
-        include,
-      );
+      return query.listLength(r'imageAspectRatios', 0, false, 999999, true);
     });
   }
 
   QueryBuilder<XArchivePostModel, XArchivePostModel, QAfterFilterCondition>
-      imageAspectRatiosLengthGreaterThan(
-    int length, {
-    bool include = false,
-  }) {
+  imageAspectRatiosLengthLessThan(int length, {bool include = false}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(r'imageAspectRatios', 0, true, length, include);
+    });
+  }
+
+  QueryBuilder<XArchivePostModel, XArchivePostModel, QAfterFilterCondition>
+  imageAspectRatiosLengthGreaterThan(int length, {bool include = false}) {
     return QueryBuilder.apply(this, (query) {
       return query.listLength(
         r'imageAspectRatios',
@@ -712,7 +694,7 @@ extension XArchivePostModelQueryFilter
   }
 
   QueryBuilder<XArchivePostModel, XArchivePostModel, QAfterFilterCondition>
-      imageAspectRatiosLengthBetween(
+  imageAspectRatiosLengthBetween(
     int lower,
     int upper, {
     bool includeLower = true,
@@ -730,53 +712,56 @@ extension XArchivePostModelQueryFilter
   }
 
   QueryBuilder<XArchivePostModel, XArchivePostModel, QAfterFilterCondition>
-      imageFileNamesElementEqualTo(
-    String value, {
-    bool caseSensitive = true,
-  }) {
+  imageFileNamesElementEqualTo(String value, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.equalTo(
-        property: r'imageFileNames',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.equalTo(
+          property: r'imageFileNames',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
     });
   }
 
   QueryBuilder<XArchivePostModel, XArchivePostModel, QAfterFilterCondition>
-      imageFileNamesElementGreaterThan(
-    String value, {
-    bool include = false,
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.greaterThan(
-        include: include,
-        property: r'imageFileNames',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<XArchivePostModel, XArchivePostModel, QAfterFilterCondition>
-      imageFileNamesElementLessThan(
+  imageFileNamesElementGreaterThan(
     String value, {
     bool include = false,
     bool caseSensitive = true,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.lessThan(
-        include: include,
-        property: r'imageFileNames',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'imageFileNames',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
     });
   }
 
   QueryBuilder<XArchivePostModel, XArchivePostModel, QAfterFilterCondition>
-      imageFileNamesElementBetween(
+  imageFileNamesElementLessThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'imageFileNames',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<XArchivePostModel, XArchivePostModel, QAfterFilterCondition>
+  imageFileNamesElementBetween(
     String lower,
     String upper, {
     bool includeLower = true,
@@ -784,161 +769,126 @@ extension XArchivePostModelQueryFilter
     bool caseSensitive = true,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.between(
-        property: r'imageFileNames',
-        lower: lower,
-        includeLower: includeLower,
-        upper: upper,
-        includeUpper: includeUpper,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<XArchivePostModel, XArchivePostModel, QAfterFilterCondition>
-      imageFileNamesElementStartsWith(
-    String value, {
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.startsWith(
-        property: r'imageFileNames',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<XArchivePostModel, XArchivePostModel, QAfterFilterCondition>
-      imageFileNamesElementEndsWith(
-    String value, {
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.endsWith(
-        property: r'imageFileNames',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<XArchivePostModel, XArchivePostModel, QAfterFilterCondition>
-      imageFileNamesElementContains(String value, {bool caseSensitive = true}) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.contains(
-        property: r'imageFileNames',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<XArchivePostModel, XArchivePostModel, QAfterFilterCondition>
-      imageFileNamesElementMatches(String pattern,
-          {bool caseSensitive = true}) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.matches(
-        property: r'imageFileNames',
-        wildcard: pattern,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<XArchivePostModel, XArchivePostModel, QAfterFilterCondition>
-      imageFileNamesElementIsEmpty() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.equalTo(
-        property: r'imageFileNames',
-        value: '',
-      ));
-    });
-  }
-
-  QueryBuilder<XArchivePostModel, XArchivePostModel, QAfterFilterCondition>
-      imageFileNamesElementIsNotEmpty() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.greaterThan(
-        property: r'imageFileNames',
-        value: '',
-      ));
-    });
-  }
-
-  QueryBuilder<XArchivePostModel, XArchivePostModel, QAfterFilterCondition>
-      imageFileNamesLengthEqualTo(int length) {
-    return QueryBuilder.apply(this, (query) {
-      return query.listLength(
-        r'imageFileNames',
-        length,
-        true,
-        length,
-        true,
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'imageFileNames',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+          caseSensitive: caseSensitive,
+        ),
       );
     });
   }
 
   QueryBuilder<XArchivePostModel, XArchivePostModel, QAfterFilterCondition>
-      imageFileNamesIsEmpty() {
+  imageFileNamesElementStartsWith(String value, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
-      return query.listLength(
-        r'imageFileNames',
-        0,
-        true,
-        0,
-        true,
+      return query.addFilterCondition(
+        FilterCondition.startsWith(
+          property: r'imageFileNames',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
       );
     });
   }
 
   QueryBuilder<XArchivePostModel, XArchivePostModel, QAfterFilterCondition>
-      imageFileNamesIsNotEmpty() {
+  imageFileNamesElementEndsWith(String value, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
-      return query.listLength(
-        r'imageFileNames',
-        0,
-        false,
-        999999,
-        true,
+      return query.addFilterCondition(
+        FilterCondition.endsWith(
+          property: r'imageFileNames',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
       );
     });
   }
 
   QueryBuilder<XArchivePostModel, XArchivePostModel, QAfterFilterCondition>
-      imageFileNamesLengthLessThan(
-    int length, {
-    bool include = false,
-  }) {
+  imageFileNamesElementContains(String value, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
-      return query.listLength(
-        r'imageFileNames',
-        0,
-        true,
-        length,
-        include,
+      return query.addFilterCondition(
+        FilterCondition.contains(
+          property: r'imageFileNames',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
       );
     });
   }
 
   QueryBuilder<XArchivePostModel, XArchivePostModel, QAfterFilterCondition>
-      imageFileNamesLengthGreaterThan(
-    int length, {
-    bool include = false,
-  }) {
+  imageFileNamesElementMatches(String pattern, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
-      return query.listLength(
-        r'imageFileNames',
-        length,
-        include,
-        999999,
-        true,
+      return query.addFilterCondition(
+        FilterCondition.matches(
+          property: r'imageFileNames',
+          wildcard: pattern,
+          caseSensitive: caseSensitive,
+        ),
       );
     });
   }
 
   QueryBuilder<XArchivePostModel, XArchivePostModel, QAfterFilterCondition>
-      imageFileNamesLengthBetween(
+  imageFileNamesElementIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'imageFileNames', value: ''),
+      );
+    });
+  }
+
+  QueryBuilder<XArchivePostModel, XArchivePostModel, QAfterFilterCondition>
+  imageFileNamesElementIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(property: r'imageFileNames', value: ''),
+      );
+    });
+  }
+
+  QueryBuilder<XArchivePostModel, XArchivePostModel, QAfterFilterCondition>
+  imageFileNamesLengthEqualTo(int length) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(r'imageFileNames', length, true, length, true);
+    });
+  }
+
+  QueryBuilder<XArchivePostModel, XArchivePostModel, QAfterFilterCondition>
+  imageFileNamesIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(r'imageFileNames', 0, true, 0, true);
+    });
+  }
+
+  QueryBuilder<XArchivePostModel, XArchivePostModel, QAfterFilterCondition>
+  imageFileNamesIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(r'imageFileNames', 0, false, 999999, true);
+    });
+  }
+
+  QueryBuilder<XArchivePostModel, XArchivePostModel, QAfterFilterCondition>
+  imageFileNamesLengthLessThan(int length, {bool include = false}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(r'imageFileNames', 0, true, length, include);
+    });
+  }
+
+  QueryBuilder<XArchivePostModel, XArchivePostModel, QAfterFilterCondition>
+  imageFileNamesLengthGreaterThan(int length, {bool include = false}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(r'imageFileNames', length, include, 999999, true);
+    });
+  }
+
+  QueryBuilder<XArchivePostModel, XArchivePostModel, QAfterFilterCondition>
+  imageFileNamesLengthBetween(
     int lower,
     int upper, {
     bool includeLower = true,
@@ -956,53 +906,56 @@ extension XArchivePostModelQueryFilter
   }
 
   QueryBuilder<XArchivePostModel, XArchivePostModel, QAfterFilterCondition>
-      kindEqualTo(
-    String value, {
-    bool caseSensitive = true,
-  }) {
+  kindEqualTo(String value, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.equalTo(
-        property: r'kind',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.equalTo(
+          property: r'kind',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
     });
   }
 
   QueryBuilder<XArchivePostModel, XArchivePostModel, QAfterFilterCondition>
-      kindGreaterThan(
-    String value, {
-    bool include = false,
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.greaterThan(
-        include: include,
-        property: r'kind',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<XArchivePostModel, XArchivePostModel, QAfterFilterCondition>
-      kindLessThan(
+  kindGreaterThan(
     String value, {
     bool include = false,
     bool caseSensitive = true,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.lessThan(
-        include: include,
-        property: r'kind',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'kind',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
     });
   }
 
   QueryBuilder<XArchivePostModel, XArchivePostModel, QAfterFilterCondition>
-      kindBetween(
+  kindLessThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'kind',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<XArchivePostModel, XArchivePostModel, QAfterFilterCondition>
+  kindBetween(
     String lower,
     String upper, {
     bool includeLower = true,
@@ -1010,153 +963,158 @@ extension XArchivePostModelQueryFilter
     bool caseSensitive = true,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.between(
-        property: r'kind',
-        lower: lower,
-        includeLower: includeLower,
-        upper: upper,
-        includeUpper: includeUpper,
-        caseSensitive: caseSensitive,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'kind',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+          caseSensitive: caseSensitive,
+        ),
+      );
     });
   }
 
   QueryBuilder<XArchivePostModel, XArchivePostModel, QAfterFilterCondition>
-      kindStartsWith(
-    String value, {
-    bool caseSensitive = true,
-  }) {
+  kindStartsWith(String value, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.startsWith(
-        property: r'kind',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.startsWith(
+          property: r'kind',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
     });
   }
 
   QueryBuilder<XArchivePostModel, XArchivePostModel, QAfterFilterCondition>
-      kindEndsWith(
-    String value, {
-    bool caseSensitive = true,
-  }) {
+  kindEndsWith(String value, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.endsWith(
-        property: r'kind',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.endsWith(
+          property: r'kind',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
     });
   }
 
   QueryBuilder<XArchivePostModel, XArchivePostModel, QAfterFilterCondition>
-      kindContains(String value, {bool caseSensitive = true}) {
+  kindContains(String value, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.contains(
-        property: r'kind',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.contains(
+          property: r'kind',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
     });
   }
 
   QueryBuilder<XArchivePostModel, XArchivePostModel, QAfterFilterCondition>
-      kindMatches(String pattern, {bool caseSensitive = true}) {
+  kindMatches(String pattern, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.matches(
-        property: r'kind',
-        wildcard: pattern,
-        caseSensitive: caseSensitive,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.matches(
+          property: r'kind',
+          wildcard: pattern,
+          caseSensitive: caseSensitive,
+        ),
+      );
     });
   }
 
   QueryBuilder<XArchivePostModel, XArchivePostModel, QAfterFilterCondition>
-      kindIsEmpty() {
+  kindIsEmpty() {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.equalTo(
-        property: r'kind',
-        value: '',
-      ));
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'kind', value: ''),
+      );
     });
   }
 
   QueryBuilder<XArchivePostModel, XArchivePostModel, QAfterFilterCondition>
-      kindIsNotEmpty() {
+  kindIsNotEmpty() {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.greaterThan(
-        property: r'kind',
-        value: '',
-      ));
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(property: r'kind', value: ''),
+      );
     });
   }
 
   QueryBuilder<XArchivePostModel, XArchivePostModel, QAfterFilterCondition>
-      photoIdsIsNull() {
+  photoIdsIsNull() {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(const FilterCondition.isNull(
-        property: r'photoIds',
-      ));
+      return query.addFilterCondition(
+        const FilterCondition.isNull(property: r'photoIds'),
+      );
     });
   }
 
   QueryBuilder<XArchivePostModel, XArchivePostModel, QAfterFilterCondition>
-      photoIdsIsNotNull() {
+  photoIdsIsNotNull() {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(const FilterCondition.isNotNull(
-        property: r'photoIds',
-      ));
+      return query.addFilterCondition(
+        const FilterCondition.isNotNull(property: r'photoIds'),
+      );
     });
   }
 
   QueryBuilder<XArchivePostModel, XArchivePostModel, QAfterFilterCondition>
-      photoIdsElementEqualTo(
-    String value, {
-    bool caseSensitive = true,
-  }) {
+  photoIdsElementEqualTo(String value, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.equalTo(
-        property: r'photoIds',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.equalTo(
+          property: r'photoIds',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
     });
   }
 
   QueryBuilder<XArchivePostModel, XArchivePostModel, QAfterFilterCondition>
-      photoIdsElementGreaterThan(
-    String value, {
-    bool include = false,
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.greaterThan(
-        include: include,
-        property: r'photoIds',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<XArchivePostModel, XArchivePostModel, QAfterFilterCondition>
-      photoIdsElementLessThan(
+  photoIdsElementGreaterThan(
     String value, {
     bool include = false,
     bool caseSensitive = true,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.lessThan(
-        include: include,
-        property: r'photoIds',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'photoIds',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
     });
   }
 
   QueryBuilder<XArchivePostModel, XArchivePostModel, QAfterFilterCondition>
-      photoIdsElementBetween(
+  photoIdsElementLessThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'photoIds',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<XArchivePostModel, XArchivePostModel, QAfterFilterCondition>
+  photoIdsElementBetween(
     String lower,
     String upper, {
     bool includeLower = true,
@@ -1164,160 +1122,126 @@ extension XArchivePostModelQueryFilter
     bool caseSensitive = true,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.between(
-        property: r'photoIds',
-        lower: lower,
-        includeLower: includeLower,
-        upper: upper,
-        includeUpper: includeUpper,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<XArchivePostModel, XArchivePostModel, QAfterFilterCondition>
-      photoIdsElementStartsWith(
-    String value, {
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.startsWith(
-        property: r'photoIds',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<XArchivePostModel, XArchivePostModel, QAfterFilterCondition>
-      photoIdsElementEndsWith(
-    String value, {
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.endsWith(
-        property: r'photoIds',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<XArchivePostModel, XArchivePostModel, QAfterFilterCondition>
-      photoIdsElementContains(String value, {bool caseSensitive = true}) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.contains(
-        property: r'photoIds',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<XArchivePostModel, XArchivePostModel, QAfterFilterCondition>
-      photoIdsElementMatches(String pattern, {bool caseSensitive = true}) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.matches(
-        property: r'photoIds',
-        wildcard: pattern,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<XArchivePostModel, XArchivePostModel, QAfterFilterCondition>
-      photoIdsElementIsEmpty() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.equalTo(
-        property: r'photoIds',
-        value: '',
-      ));
-    });
-  }
-
-  QueryBuilder<XArchivePostModel, XArchivePostModel, QAfterFilterCondition>
-      photoIdsElementIsNotEmpty() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.greaterThan(
-        property: r'photoIds',
-        value: '',
-      ));
-    });
-  }
-
-  QueryBuilder<XArchivePostModel, XArchivePostModel, QAfterFilterCondition>
-      photoIdsLengthEqualTo(int length) {
-    return QueryBuilder.apply(this, (query) {
-      return query.listLength(
-        r'photoIds',
-        length,
-        true,
-        length,
-        true,
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'photoIds',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+          caseSensitive: caseSensitive,
+        ),
       );
     });
   }
 
   QueryBuilder<XArchivePostModel, XArchivePostModel, QAfterFilterCondition>
-      photoIdsIsEmpty() {
+  photoIdsElementStartsWith(String value, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
-      return query.listLength(
-        r'photoIds',
-        0,
-        true,
-        0,
-        true,
+      return query.addFilterCondition(
+        FilterCondition.startsWith(
+          property: r'photoIds',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
       );
     });
   }
 
   QueryBuilder<XArchivePostModel, XArchivePostModel, QAfterFilterCondition>
-      photoIdsIsNotEmpty() {
+  photoIdsElementEndsWith(String value, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
-      return query.listLength(
-        r'photoIds',
-        0,
-        false,
-        999999,
-        true,
+      return query.addFilterCondition(
+        FilterCondition.endsWith(
+          property: r'photoIds',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
       );
     });
   }
 
   QueryBuilder<XArchivePostModel, XArchivePostModel, QAfterFilterCondition>
-      photoIdsLengthLessThan(
-    int length, {
-    bool include = false,
-  }) {
+  photoIdsElementContains(String value, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
-      return query.listLength(
-        r'photoIds',
-        0,
-        true,
-        length,
-        include,
+      return query.addFilterCondition(
+        FilterCondition.contains(
+          property: r'photoIds',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
       );
     });
   }
 
   QueryBuilder<XArchivePostModel, XArchivePostModel, QAfterFilterCondition>
-      photoIdsLengthGreaterThan(
-    int length, {
-    bool include = false,
-  }) {
+  photoIdsElementMatches(String pattern, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
-      return query.listLength(
-        r'photoIds',
-        length,
-        include,
-        999999,
-        true,
+      return query.addFilterCondition(
+        FilterCondition.matches(
+          property: r'photoIds',
+          wildcard: pattern,
+          caseSensitive: caseSensitive,
+        ),
       );
     });
   }
 
   QueryBuilder<XArchivePostModel, XArchivePostModel, QAfterFilterCondition>
-      photoIdsLengthBetween(
+  photoIdsElementIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'photoIds', value: ''),
+      );
+    });
+  }
+
+  QueryBuilder<XArchivePostModel, XArchivePostModel, QAfterFilterCondition>
+  photoIdsElementIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(property: r'photoIds', value: ''),
+      );
+    });
+  }
+
+  QueryBuilder<XArchivePostModel, XArchivePostModel, QAfterFilterCondition>
+  photoIdsLengthEqualTo(int length) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(r'photoIds', length, true, length, true);
+    });
+  }
+
+  QueryBuilder<XArchivePostModel, XArchivePostModel, QAfterFilterCondition>
+  photoIdsIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(r'photoIds', 0, true, 0, true);
+    });
+  }
+
+  QueryBuilder<XArchivePostModel, XArchivePostModel, QAfterFilterCondition>
+  photoIdsIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(r'photoIds', 0, false, 999999, true);
+    });
+  }
+
+  QueryBuilder<XArchivePostModel, XArchivePostModel, QAfterFilterCondition>
+  photoIdsLengthLessThan(int length, {bool include = false}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(r'photoIds', 0, true, length, include);
+    });
+  }
+
+  QueryBuilder<XArchivePostModel, XArchivePostModel, QAfterFilterCondition>
+  photoIdsLengthGreaterThan(int length, {bool include = false}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(r'photoIds', length, include, 999999, true);
+    });
+  }
+
+  QueryBuilder<XArchivePostModel, XArchivePostModel, QAfterFilterCondition>
+  photoIdsLengthBetween(
     int lower,
     int upper, {
     bool includeLower = true,
@@ -1335,71 +1259,74 @@ extension XArchivePostModelQueryFilter
   }
 
   QueryBuilder<XArchivePostModel, XArchivePostModel, QAfterFilterCondition>
-      replyToScreenNameIsNull() {
+  replyToScreenNameIsNull() {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(const FilterCondition.isNull(
-        property: r'replyToScreenName',
-      ));
+      return query.addFilterCondition(
+        const FilterCondition.isNull(property: r'replyToScreenName'),
+      );
     });
   }
 
   QueryBuilder<XArchivePostModel, XArchivePostModel, QAfterFilterCondition>
-      replyToScreenNameIsNotNull() {
+  replyToScreenNameIsNotNull() {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(const FilterCondition.isNotNull(
-        property: r'replyToScreenName',
-      ));
+      return query.addFilterCondition(
+        const FilterCondition.isNotNull(property: r'replyToScreenName'),
+      );
     });
   }
 
   QueryBuilder<XArchivePostModel, XArchivePostModel, QAfterFilterCondition>
-      replyToScreenNameEqualTo(
-    String? value, {
-    bool caseSensitive = true,
-  }) {
+  replyToScreenNameEqualTo(String? value, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.equalTo(
-        property: r'replyToScreenName',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.equalTo(
+          property: r'replyToScreenName',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
     });
   }
 
   QueryBuilder<XArchivePostModel, XArchivePostModel, QAfterFilterCondition>
-      replyToScreenNameGreaterThan(
-    String? value, {
-    bool include = false,
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.greaterThan(
-        include: include,
-        property: r'replyToScreenName',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<XArchivePostModel, XArchivePostModel, QAfterFilterCondition>
-      replyToScreenNameLessThan(
+  replyToScreenNameGreaterThan(
     String? value, {
     bool include = false,
     bool caseSensitive = true,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.lessThan(
-        include: include,
-        property: r'replyToScreenName',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'replyToScreenName',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
     });
   }
 
   QueryBuilder<XArchivePostModel, XArchivePostModel, QAfterFilterCondition>
-      replyToScreenNameBetween(
+  replyToScreenNameLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'replyToScreenName',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<XArchivePostModel, XArchivePostModel, QAfterFilterCondition>
+  replyToScreenNameBetween(
     String? lower,
     String? upper, {
     bool includeLower = true,
@@ -1407,135 +1334,140 @@ extension XArchivePostModelQueryFilter
     bool caseSensitive = true,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.between(
-        property: r'replyToScreenName',
-        lower: lower,
-        includeLower: includeLower,
-        upper: upper,
-        includeUpper: includeUpper,
-        caseSensitive: caseSensitive,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'replyToScreenName',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+          caseSensitive: caseSensitive,
+        ),
+      );
     });
   }
 
   QueryBuilder<XArchivePostModel, XArchivePostModel, QAfterFilterCondition>
-      replyToScreenNameStartsWith(
-    String value, {
-    bool caseSensitive = true,
-  }) {
+  replyToScreenNameStartsWith(String value, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.startsWith(
-        property: r'replyToScreenName',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.startsWith(
+          property: r'replyToScreenName',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
     });
   }
 
   QueryBuilder<XArchivePostModel, XArchivePostModel, QAfterFilterCondition>
-      replyToScreenNameEndsWith(
-    String value, {
-    bool caseSensitive = true,
-  }) {
+  replyToScreenNameEndsWith(String value, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.endsWith(
-        property: r'replyToScreenName',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.endsWith(
+          property: r'replyToScreenName',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
     });
   }
 
   QueryBuilder<XArchivePostModel, XArchivePostModel, QAfterFilterCondition>
-      replyToScreenNameContains(String value, {bool caseSensitive = true}) {
+  replyToScreenNameContains(String value, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.contains(
-        property: r'replyToScreenName',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.contains(
+          property: r'replyToScreenName',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
     });
   }
 
   QueryBuilder<XArchivePostModel, XArchivePostModel, QAfterFilterCondition>
-      replyToScreenNameMatches(String pattern, {bool caseSensitive = true}) {
+  replyToScreenNameMatches(String pattern, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.matches(
-        property: r'replyToScreenName',
-        wildcard: pattern,
-        caseSensitive: caseSensitive,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.matches(
+          property: r'replyToScreenName',
+          wildcard: pattern,
+          caseSensitive: caseSensitive,
+        ),
+      );
     });
   }
 
   QueryBuilder<XArchivePostModel, XArchivePostModel, QAfterFilterCondition>
-      replyToScreenNameIsEmpty() {
+  replyToScreenNameIsEmpty() {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.equalTo(
-        property: r'replyToScreenName',
-        value: '',
-      ));
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'replyToScreenName', value: ''),
+      );
     });
   }
 
   QueryBuilder<XArchivePostModel, XArchivePostModel, QAfterFilterCondition>
-      replyToScreenNameIsNotEmpty() {
+  replyToScreenNameIsNotEmpty() {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.greaterThan(
-        property: r'replyToScreenName',
-        value: '',
-      ));
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(property: r'replyToScreenName', value: ''),
+      );
     });
   }
 
   QueryBuilder<XArchivePostModel, XArchivePostModel, QAfterFilterCondition>
-      textEqualTo(
-    String value, {
-    bool caseSensitive = true,
-  }) {
+  textEqualTo(String value, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.equalTo(
-        property: r'text',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.equalTo(
+          property: r'text',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
     });
   }
 
   QueryBuilder<XArchivePostModel, XArchivePostModel, QAfterFilterCondition>
-      textGreaterThan(
-    String value, {
-    bool include = false,
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.greaterThan(
-        include: include,
-        property: r'text',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<XArchivePostModel, XArchivePostModel, QAfterFilterCondition>
-      textLessThan(
+  textGreaterThan(
     String value, {
     bool include = false,
     bool caseSensitive = true,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.lessThan(
-        include: include,
-        property: r'text',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'text',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
     });
   }
 
   QueryBuilder<XArchivePostModel, XArchivePostModel, QAfterFilterCondition>
-      textBetween(
+  textLessThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'text',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<XArchivePostModel, XArchivePostModel, QAfterFilterCondition>
+  textBetween(
     String lower,
     String upper, {
     bool includeLower = true,
@@ -1543,135 +1475,140 @@ extension XArchivePostModelQueryFilter
     bool caseSensitive = true,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.between(
-        property: r'text',
-        lower: lower,
-        includeLower: includeLower,
-        upper: upper,
-        includeUpper: includeUpper,
-        caseSensitive: caseSensitive,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'text',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+          caseSensitive: caseSensitive,
+        ),
+      );
     });
   }
 
   QueryBuilder<XArchivePostModel, XArchivePostModel, QAfterFilterCondition>
-      textStartsWith(
-    String value, {
-    bool caseSensitive = true,
-  }) {
+  textStartsWith(String value, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.startsWith(
-        property: r'text',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.startsWith(
+          property: r'text',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
     });
   }
 
   QueryBuilder<XArchivePostModel, XArchivePostModel, QAfterFilterCondition>
-      textEndsWith(
-    String value, {
-    bool caseSensitive = true,
-  }) {
+  textEndsWith(String value, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.endsWith(
-        property: r'text',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.endsWith(
+          property: r'text',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
     });
   }
 
   QueryBuilder<XArchivePostModel, XArchivePostModel, QAfterFilterCondition>
-      textContains(String value, {bool caseSensitive = true}) {
+  textContains(String value, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.contains(
-        property: r'text',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.contains(
+          property: r'text',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
     });
   }
 
   QueryBuilder<XArchivePostModel, XArchivePostModel, QAfterFilterCondition>
-      textMatches(String pattern, {bool caseSensitive = true}) {
+  textMatches(String pattern, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.matches(
-        property: r'text',
-        wildcard: pattern,
-        caseSensitive: caseSensitive,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.matches(
+          property: r'text',
+          wildcard: pattern,
+          caseSensitive: caseSensitive,
+        ),
+      );
     });
   }
 
   QueryBuilder<XArchivePostModel, XArchivePostModel, QAfterFilterCondition>
-      textIsEmpty() {
+  textIsEmpty() {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.equalTo(
-        property: r'text',
-        value: '',
-      ));
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'text', value: ''),
+      );
     });
   }
 
   QueryBuilder<XArchivePostModel, XArchivePostModel, QAfterFilterCondition>
-      textIsNotEmpty() {
+  textIsNotEmpty() {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.greaterThan(
-        property: r'text',
-        value: '',
-      ));
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(property: r'text', value: ''),
+      );
     });
   }
 
   QueryBuilder<XArchivePostModel, XArchivePostModel, QAfterFilterCondition>
-      tweetIdEqualTo(
-    String value, {
-    bool caseSensitive = true,
-  }) {
+  tweetIdEqualTo(String value, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.equalTo(
-        property: r'tweetId',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.equalTo(
+          property: r'tweetId',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
     });
   }
 
   QueryBuilder<XArchivePostModel, XArchivePostModel, QAfterFilterCondition>
-      tweetIdGreaterThan(
-    String value, {
-    bool include = false,
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.greaterThan(
-        include: include,
-        property: r'tweetId',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<XArchivePostModel, XArchivePostModel, QAfterFilterCondition>
-      tweetIdLessThan(
+  tweetIdGreaterThan(
     String value, {
     bool include = false,
     bool caseSensitive = true,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.lessThan(
-        include: include,
-        property: r'tweetId',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'tweetId',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
     });
   }
 
   QueryBuilder<XArchivePostModel, XArchivePostModel, QAfterFilterCondition>
-      tweetIdBetween(
+  tweetIdLessThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'tweetId',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<XArchivePostModel, XArchivePostModel, QAfterFilterCondition>
+  tweetIdBetween(
     String lower,
     String upper, {
     bool includeLower = true,
@@ -1679,84 +1616,86 @@ extension XArchivePostModelQueryFilter
     bool caseSensitive = true,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.between(
-        property: r'tweetId',
-        lower: lower,
-        includeLower: includeLower,
-        upper: upper,
-        includeUpper: includeUpper,
-        caseSensitive: caseSensitive,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'tweetId',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+          caseSensitive: caseSensitive,
+        ),
+      );
     });
   }
 
   QueryBuilder<XArchivePostModel, XArchivePostModel, QAfterFilterCondition>
-      tweetIdStartsWith(
-    String value, {
-    bool caseSensitive = true,
-  }) {
+  tweetIdStartsWith(String value, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.startsWith(
-        property: r'tweetId',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.startsWith(
+          property: r'tweetId',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
     });
   }
 
   QueryBuilder<XArchivePostModel, XArchivePostModel, QAfterFilterCondition>
-      tweetIdEndsWith(
-    String value, {
-    bool caseSensitive = true,
-  }) {
+  tweetIdEndsWith(String value, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.endsWith(
-        property: r'tweetId',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.endsWith(
+          property: r'tweetId',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
     });
   }
 
   QueryBuilder<XArchivePostModel, XArchivePostModel, QAfterFilterCondition>
-      tweetIdContains(String value, {bool caseSensitive = true}) {
+  tweetIdContains(String value, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.contains(
-        property: r'tweetId',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.contains(
+          property: r'tweetId',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
     });
   }
 
   QueryBuilder<XArchivePostModel, XArchivePostModel, QAfterFilterCondition>
-      tweetIdMatches(String pattern, {bool caseSensitive = true}) {
+  tweetIdMatches(String pattern, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.matches(
-        property: r'tweetId',
-        wildcard: pattern,
-        caseSensitive: caseSensitive,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.matches(
+          property: r'tweetId',
+          wildcard: pattern,
+          caseSensitive: caseSensitive,
+        ),
+      );
     });
   }
 
   QueryBuilder<XArchivePostModel, XArchivePostModel, QAfterFilterCondition>
-      tweetIdIsEmpty() {
+  tweetIdIsEmpty() {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.equalTo(
-        property: r'tweetId',
-        value: '',
-      ));
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'tweetId', value: ''),
+      );
     });
   }
 
   QueryBuilder<XArchivePostModel, XArchivePostModel, QAfterFilterCondition>
-      tweetIdIsNotEmpty() {
+  tweetIdIsNotEmpty() {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.greaterThan(
-        property: r'tweetId',
-        value: '',
-      ));
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(property: r'tweetId', value: ''),
+      );
     });
   }
 }
@@ -1770,84 +1709,84 @@ extension XArchivePostModelQueryLinks
 extension XArchivePostModelQuerySortBy
     on QueryBuilder<XArchivePostModel, XArchivePostModel, QSortBy> {
   QueryBuilder<XArchivePostModel, XArchivePostModel, QAfterSortBy>
-      sortByCreatedAt() {
+  sortByCreatedAt() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'createdAt', Sort.asc);
     });
   }
 
   QueryBuilder<XArchivePostModel, XArchivePostModel, QAfterSortBy>
-      sortByCreatedAtDesc() {
+  sortByCreatedAtDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'createdAt', Sort.desc);
     });
   }
 
   QueryBuilder<XArchivePostModel, XArchivePostModel, QAfterSortBy>
-      sortByHasVideo() {
+  sortByHasVideo() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'hasVideo', Sort.asc);
     });
   }
 
   QueryBuilder<XArchivePostModel, XArchivePostModel, QAfterSortBy>
-      sortByHasVideoDesc() {
+  sortByHasVideoDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'hasVideo', Sort.desc);
     });
   }
 
   QueryBuilder<XArchivePostModel, XArchivePostModel, QAfterSortBy>
-      sortByKind() {
+  sortByKind() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'kind', Sort.asc);
     });
   }
 
   QueryBuilder<XArchivePostModel, XArchivePostModel, QAfterSortBy>
-      sortByKindDesc() {
+  sortByKindDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'kind', Sort.desc);
     });
   }
 
   QueryBuilder<XArchivePostModel, XArchivePostModel, QAfterSortBy>
-      sortByReplyToScreenName() {
+  sortByReplyToScreenName() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'replyToScreenName', Sort.asc);
     });
   }
 
   QueryBuilder<XArchivePostModel, XArchivePostModel, QAfterSortBy>
-      sortByReplyToScreenNameDesc() {
+  sortByReplyToScreenNameDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'replyToScreenName', Sort.desc);
     });
   }
 
   QueryBuilder<XArchivePostModel, XArchivePostModel, QAfterSortBy>
-      sortByText() {
+  sortByText() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'text', Sort.asc);
     });
   }
 
   QueryBuilder<XArchivePostModel, XArchivePostModel, QAfterSortBy>
-      sortByTextDesc() {
+  sortByTextDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'text', Sort.desc);
     });
   }
 
   QueryBuilder<XArchivePostModel, XArchivePostModel, QAfterSortBy>
-      sortByTweetId() {
+  sortByTweetId() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'tweetId', Sort.asc);
     });
   }
 
   QueryBuilder<XArchivePostModel, XArchivePostModel, QAfterSortBy>
-      sortByTweetIdDesc() {
+  sortByTweetIdDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'tweetId', Sort.desc);
     });
@@ -1857,28 +1796,28 @@ extension XArchivePostModelQuerySortBy
 extension XArchivePostModelQuerySortThenBy
     on QueryBuilder<XArchivePostModel, XArchivePostModel, QSortThenBy> {
   QueryBuilder<XArchivePostModel, XArchivePostModel, QAfterSortBy>
-      thenByCreatedAt() {
+  thenByCreatedAt() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'createdAt', Sort.asc);
     });
   }
 
   QueryBuilder<XArchivePostModel, XArchivePostModel, QAfterSortBy>
-      thenByCreatedAtDesc() {
+  thenByCreatedAtDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'createdAt', Sort.desc);
     });
   }
 
   QueryBuilder<XArchivePostModel, XArchivePostModel, QAfterSortBy>
-      thenByHasVideo() {
+  thenByHasVideo() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'hasVideo', Sort.asc);
     });
   }
 
   QueryBuilder<XArchivePostModel, XArchivePostModel, QAfterSortBy>
-      thenByHasVideoDesc() {
+  thenByHasVideoDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'hasVideo', Sort.desc);
     });
@@ -1891,63 +1830,63 @@ extension XArchivePostModelQuerySortThenBy
   }
 
   QueryBuilder<XArchivePostModel, XArchivePostModel, QAfterSortBy>
-      thenByIdDesc() {
+  thenByIdDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'id', Sort.desc);
     });
   }
 
   QueryBuilder<XArchivePostModel, XArchivePostModel, QAfterSortBy>
-      thenByKind() {
+  thenByKind() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'kind', Sort.asc);
     });
   }
 
   QueryBuilder<XArchivePostModel, XArchivePostModel, QAfterSortBy>
-      thenByKindDesc() {
+  thenByKindDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'kind', Sort.desc);
     });
   }
 
   QueryBuilder<XArchivePostModel, XArchivePostModel, QAfterSortBy>
-      thenByReplyToScreenName() {
+  thenByReplyToScreenName() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'replyToScreenName', Sort.asc);
     });
   }
 
   QueryBuilder<XArchivePostModel, XArchivePostModel, QAfterSortBy>
-      thenByReplyToScreenNameDesc() {
+  thenByReplyToScreenNameDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'replyToScreenName', Sort.desc);
     });
   }
 
   QueryBuilder<XArchivePostModel, XArchivePostModel, QAfterSortBy>
-      thenByText() {
+  thenByText() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'text', Sort.asc);
     });
   }
 
   QueryBuilder<XArchivePostModel, XArchivePostModel, QAfterSortBy>
-      thenByTextDesc() {
+  thenByTextDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'text', Sort.desc);
     });
   }
 
   QueryBuilder<XArchivePostModel, XArchivePostModel, QAfterSortBy>
-      thenByTweetId() {
+  thenByTweetId() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'tweetId', Sort.asc);
     });
   }
 
   QueryBuilder<XArchivePostModel, XArchivePostModel, QAfterSortBy>
-      thenByTweetIdDesc() {
+  thenByTweetIdDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'tweetId', Sort.desc);
     });
@@ -1957,64 +1896,68 @@ extension XArchivePostModelQuerySortThenBy
 extension XArchivePostModelQueryWhereDistinct
     on QueryBuilder<XArchivePostModel, XArchivePostModel, QDistinct> {
   QueryBuilder<XArchivePostModel, XArchivePostModel, QDistinct>
-      distinctByCreatedAt() {
+  distinctByCreatedAt() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'createdAt');
     });
   }
 
   QueryBuilder<XArchivePostModel, XArchivePostModel, QDistinct>
-      distinctByHasVideo() {
+  distinctByHasVideo() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'hasVideo');
     });
   }
 
   QueryBuilder<XArchivePostModel, XArchivePostModel, QDistinct>
-      distinctByImageAspectRatios() {
+  distinctByImageAspectRatios() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'imageAspectRatios');
     });
   }
 
   QueryBuilder<XArchivePostModel, XArchivePostModel, QDistinct>
-      distinctByImageFileNames() {
+  distinctByImageFileNames() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'imageFileNames');
     });
   }
 
-  QueryBuilder<XArchivePostModel, XArchivePostModel, QDistinct> distinctByKind(
-      {bool caseSensitive = true}) {
+  QueryBuilder<XArchivePostModel, XArchivePostModel, QDistinct> distinctByKind({
+    bool caseSensitive = true,
+  }) {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'kind', caseSensitive: caseSensitive);
     });
   }
 
   QueryBuilder<XArchivePostModel, XArchivePostModel, QDistinct>
-      distinctByPhotoIds() {
+  distinctByPhotoIds() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'photoIds');
     });
   }
 
   QueryBuilder<XArchivePostModel, XArchivePostModel, QDistinct>
-      distinctByReplyToScreenName({bool caseSensitive = true}) {
+  distinctByReplyToScreenName({bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addDistinctBy(r'replyToScreenName',
-          caseSensitive: caseSensitive);
+      return query.addDistinctBy(
+        r'replyToScreenName',
+        caseSensitive: caseSensitive,
+      );
     });
   }
 
-  QueryBuilder<XArchivePostModel, XArchivePostModel, QDistinct> distinctByText(
-      {bool caseSensitive = true}) {
+  QueryBuilder<XArchivePostModel, XArchivePostModel, QDistinct> distinctByText({
+    bool caseSensitive = true,
+  }) {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'text', caseSensitive: caseSensitive);
     });
   }
 
   QueryBuilder<XArchivePostModel, XArchivePostModel, QDistinct>
-      distinctByTweetId({bool caseSensitive = true}) {
+  distinctByTweetId({bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'tweetId', caseSensitive: caseSensitive);
     });
@@ -2030,7 +1973,7 @@ extension XArchivePostModelQueryProperty
   }
 
   QueryBuilder<XArchivePostModel, DateTime, QQueryOperations>
-      createdAtProperty() {
+  createdAtProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'createdAt');
     });
@@ -2043,14 +1986,14 @@ extension XArchivePostModelQueryProperty
   }
 
   QueryBuilder<XArchivePostModel, List<double>, QQueryOperations>
-      imageAspectRatiosProperty() {
+  imageAspectRatiosProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'imageAspectRatios');
     });
   }
 
   QueryBuilder<XArchivePostModel, List<String>, QQueryOperations>
-      imageFileNamesProperty() {
+  imageFileNamesProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'imageFileNames');
     });
@@ -2063,14 +2006,14 @@ extension XArchivePostModelQueryProperty
   }
 
   QueryBuilder<XArchivePostModel, List<String>?, QQueryOperations>
-      photoIdsProperty() {
+  photoIdsProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'photoIds');
     });
   }
 
   QueryBuilder<XArchivePostModel, String?, QQueryOperations>
-      replyToScreenNameProperty() {
+  replyToScreenNameProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'replyToScreenName');
     });

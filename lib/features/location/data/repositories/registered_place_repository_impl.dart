@@ -1,4 +1,4 @@
-import 'package:isar/isar.dart';
+import 'package:isar_community/isar.dart';
 import '../../domain/entities/registered_place.dart';
 import '../../domain/repositories/registered_place_repository.dart';
 import '../models/registered_place_log.dart';

@@ -1,4 +1,4 @@
-import 'package:isar/isar.dart';
+import 'package:isar_community/isar.dart';
 import '../../domain/entities/memo.dart';
 import '../../domain/repositories/memo_repository.dart';
 import '../models/memo_model.dart';

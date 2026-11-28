@@ -7,33 +7,22 @@ part of 'x_archive_recall_settings_model.dart';
 // **************************************************************************
 
 // coverage:ignore-file
-// ignore_for_file: duplicate_ignore, non_constant_identifier_names, constant_identifier_names, invalid_use_of_protected_member, unnecessary_cast, prefer_const_constructors, lines_longer_than_80_chars, require_trailing_commas, inference_failure_on_function_invocation, unnecessary_parenthesis, unnecessary_raw_strings, unnecessary_null_checks, join_return_with_assignment, prefer_final_locals, avoid_js_rounded_ints, avoid_positional_boolean_parameters, always_specify_types
+// ignore_for_file: duplicate_ignore, non_constant_identifier_names, constant_identifier_names, invalid_use_of_protected_member, unnecessary_cast, prefer_const_constructors, lines_longer_than_80_chars, require_trailing_commas, inference_failure_on_function_invocation, unnecessary_parenthesis, unnecessary_raw_strings, unnecessary_null_checks, join_return_with_assignment, prefer_final_locals, avoid_js_rounded_ints, avoid_positional_boolean_parameters, always_specify_types, experimental_member_use
 
 extension GetXArchiveRecallSettingsModelCollection on Isar {
   IsarCollection<XArchiveRecallSettingsModel>
-      get xArchiveRecallSettingsModels => this.collection();
+  get xArchiveRecallSettingsModels => this.collection();
 }
 
 const XArchiveRecallSettingsModelSchema = CollectionSchema(
   name: r'XArchiveRecallSettingsModel',
   id: 4903602105198109914,
   properties: {
-    r'enabled': PropertySchema(
-      id: 0,
-      name: r'enabled',
-      type: IsarType.bool,
-    ),
-    r'hour': PropertySchema(
-      id: 1,
-      name: r'hour',
-      type: IsarType.long,
-    ),
-    r'minute': PropertySchema(
-      id: 2,
-      name: r'minute',
-      type: IsarType.long,
-    )
+    r'enabled': PropertySchema(id: 0, name: r'enabled', type: IsarType.bool),
+    r'hour': PropertySchema(id: 1, name: r'hour', type: IsarType.long),
+    r'minute': PropertySchema(id: 2, name: r'minute', type: IsarType.long),
   },
+
   estimateSize: _xArchiveRecallSettingsModelEstimateSize,
   serialize: _xArchiveRecallSettingsModelSerialize,
   deserialize: _xArchiveRecallSettingsModelDeserialize,
@@ -42,10 +31,11 @@ const XArchiveRecallSettingsModelSchema = CollectionSchema(
   indexes: {},
   links: {},
   embeddedSchemas: {},
+
   getId: _xArchiveRecallSettingsModelGetId,
   getLinks: _xArchiveRecallSettingsModelGetLinks,
   attach: _xArchiveRecallSettingsModelAttach,
-  version: '3.1.0+1',
+  version: '3.4.1',
 );
 
 int _xArchiveRecallSettingsModelEstimateSize(
@@ -105,39 +95,62 @@ Id _xArchiveRecallSettingsModelGetId(XArchiveRecallSettingsModel object) {
 }
 
 List<IsarLinkBase<dynamic>> _xArchiveRecallSettingsModelGetLinks(
-    XArchiveRecallSettingsModel object) {
+  XArchiveRecallSettingsModel object,
+) {
   return [];
 }
 
 void _xArchiveRecallSettingsModelAttach(
-    IsarCollection<dynamic> col, Id id, XArchiveRecallSettingsModel object) {
+  IsarCollection<dynamic> col,
+  Id id,
+  XArchiveRecallSettingsModel object,
+) {
   object.id = id;
 }
 
-extension XArchiveRecallSettingsModelQueryWhereSort on QueryBuilder<
-    XArchiveRecallSettingsModel, XArchiveRecallSettingsModel, QWhere> {
-  QueryBuilder<XArchiveRecallSettingsModel, XArchiveRecallSettingsModel,
-      QAfterWhere> anyId() {
+extension XArchiveRecallSettingsModelQueryWhereSort
+    on
+        QueryBuilder<
+          XArchiveRecallSettingsModel,
+          XArchiveRecallSettingsModel,
+          QWhere
+        > {
+  QueryBuilder<
+    XArchiveRecallSettingsModel,
+    XArchiveRecallSettingsModel,
+    QAfterWhere
+  >
+  anyId() {
     return QueryBuilder.apply(this, (query) {
       return query.addWhereClause(const IdWhereClause.any());
     });
   }
 }
 
-extension XArchiveRecallSettingsModelQueryWhere on QueryBuilder<
-    XArchiveRecallSettingsModel, XArchiveRecallSettingsModel, QWhereClause> {
-  QueryBuilder<XArchiveRecallSettingsModel, XArchiveRecallSettingsModel,
-      QAfterWhereClause> idEqualTo(Id id) {
+extension XArchiveRecallSettingsModelQueryWhere
+    on
+        QueryBuilder<
+          XArchiveRecallSettingsModel,
+          XArchiveRecallSettingsModel,
+          QWhereClause
+        > {
+  QueryBuilder<
+    XArchiveRecallSettingsModel,
+    XArchiveRecallSettingsModel,
+    QAfterWhereClause
+  >
+  idEqualTo(Id id) {
     return QueryBuilder.apply(this, (query) {
-      return query.addWhereClause(IdWhereClause.between(
-        lower: id,
-        upper: id,
-      ));
+      return query.addWhereClause(IdWhereClause.between(lower: id, upper: id));
     });
   }
 
-  QueryBuilder<XArchiveRecallSettingsModel, XArchiveRecallSettingsModel,
-      QAfterWhereClause> idNotEqualTo(Id id) {
+  QueryBuilder<
+    XArchiveRecallSettingsModel,
+    XArchiveRecallSettingsModel,
+    QAfterWhereClause
+  >
+  idNotEqualTo(Id id) {
     return QueryBuilder.apply(this, (query) {
       if (query.whereSort == Sort.asc) {
         return query
@@ -159,8 +172,12 @@ extension XArchiveRecallSettingsModelQueryWhere on QueryBuilder<
     });
   }
 
-  QueryBuilder<XArchiveRecallSettingsModel, XArchiveRecallSettingsModel,
-      QAfterWhereClause> idGreaterThan(Id id, {bool include = false}) {
+  QueryBuilder<
+    XArchiveRecallSettingsModel,
+    XArchiveRecallSettingsModel,
+    QAfterWhereClause
+  >
+  idGreaterThan(Id id, {bool include = false}) {
     return QueryBuilder.apply(this, (query) {
       return query.addWhereClause(
         IdWhereClause.greaterThan(lower: id, includeLower: include),
@@ -168,8 +185,12 @@ extension XArchiveRecallSettingsModelQueryWhere on QueryBuilder<
     });
   }
 
-  QueryBuilder<XArchiveRecallSettingsModel, XArchiveRecallSettingsModel,
-      QAfterWhereClause> idLessThan(Id id, {bool include = false}) {
+  QueryBuilder<
+    XArchiveRecallSettingsModel,
+    XArchiveRecallSettingsModel,
+    QAfterWhereClause
+  >
+  idLessThan(Id id, {bool include = false}) {
     return QueryBuilder.apply(this, (query) {
       return query.addWhereClause(
         IdWhereClause.lessThan(upper: id, includeUpper: include),
@@ -177,370 +198,521 @@ extension XArchiveRecallSettingsModelQueryWhere on QueryBuilder<
     });
   }
 
-  QueryBuilder<XArchiveRecallSettingsModel, XArchiveRecallSettingsModel,
-      QAfterWhereClause> idBetween(
+  QueryBuilder<
+    XArchiveRecallSettingsModel,
+    XArchiveRecallSettingsModel,
+    QAfterWhereClause
+  >
+  idBetween(
     Id lowerId,
     Id upperId, {
     bool includeLower = true,
     bool includeUpper = true,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addWhereClause(IdWhereClause.between(
-        lower: lowerId,
-        includeLower: includeLower,
-        upper: upperId,
-        includeUpper: includeUpper,
-      ));
+      return query.addWhereClause(
+        IdWhereClause.between(
+          lower: lowerId,
+          includeLower: includeLower,
+          upper: upperId,
+          includeUpper: includeUpper,
+        ),
+      );
     });
   }
 }
 
-extension XArchiveRecallSettingsModelQueryFilter on QueryBuilder<
+extension XArchiveRecallSettingsModelQueryFilter
+    on
+        QueryBuilder<
+          XArchiveRecallSettingsModel,
+          XArchiveRecallSettingsModel,
+          QFilterCondition
+        > {
+  QueryBuilder<
     XArchiveRecallSettingsModel,
     XArchiveRecallSettingsModel,
-    QFilterCondition> {
-  QueryBuilder<XArchiveRecallSettingsModel, XArchiveRecallSettingsModel,
-      QAfterFilterCondition> enabledEqualTo(bool value) {
+    QAfterFilterCondition
+  >
+  enabledEqualTo(bool value) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.equalTo(
-        property: r'enabled',
-        value: value,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'enabled', value: value),
+      );
     });
   }
 
-  QueryBuilder<XArchiveRecallSettingsModel, XArchiveRecallSettingsModel,
-      QAfterFilterCondition> hourEqualTo(int value) {
+  QueryBuilder<
+    XArchiveRecallSettingsModel,
+    XArchiveRecallSettingsModel,
+    QAfterFilterCondition
+  >
+  hourEqualTo(int value) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.equalTo(
-        property: r'hour',
-        value: value,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'hour', value: value),
+      );
     });
   }
 
-  QueryBuilder<XArchiveRecallSettingsModel, XArchiveRecallSettingsModel,
-      QAfterFilterCondition> hourGreaterThan(
-    int value, {
-    bool include = false,
-  }) {
+  QueryBuilder<
+    XArchiveRecallSettingsModel,
+    XArchiveRecallSettingsModel,
+    QAfterFilterCondition
+  >
+  hourGreaterThan(int value, {bool include = false}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.greaterThan(
-        include: include,
-        property: r'hour',
-        value: value,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'hour',
+          value: value,
+        ),
+      );
     });
   }
 
-  QueryBuilder<XArchiveRecallSettingsModel, XArchiveRecallSettingsModel,
-      QAfterFilterCondition> hourLessThan(
-    int value, {
-    bool include = false,
-  }) {
+  QueryBuilder<
+    XArchiveRecallSettingsModel,
+    XArchiveRecallSettingsModel,
+    QAfterFilterCondition
+  >
+  hourLessThan(int value, {bool include = false}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.lessThan(
-        include: include,
-        property: r'hour',
-        value: value,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'hour',
+          value: value,
+        ),
+      );
     });
   }
 
-  QueryBuilder<XArchiveRecallSettingsModel, XArchiveRecallSettingsModel,
-      QAfterFilterCondition> hourBetween(
+  QueryBuilder<
+    XArchiveRecallSettingsModel,
+    XArchiveRecallSettingsModel,
+    QAfterFilterCondition
+  >
+  hourBetween(
     int lower,
     int upper, {
     bool includeLower = true,
     bool includeUpper = true,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.between(
-        property: r'hour',
-        lower: lower,
-        includeLower: includeLower,
-        upper: upper,
-        includeUpper: includeUpper,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'hour',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+        ),
+      );
     });
   }
 
-  QueryBuilder<XArchiveRecallSettingsModel, XArchiveRecallSettingsModel,
-      QAfterFilterCondition> idEqualTo(Id value) {
+  QueryBuilder<
+    XArchiveRecallSettingsModel,
+    XArchiveRecallSettingsModel,
+    QAfterFilterCondition
+  >
+  idEqualTo(Id value) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.equalTo(
-        property: r'id',
-        value: value,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'id', value: value),
+      );
     });
   }
 
-  QueryBuilder<XArchiveRecallSettingsModel, XArchiveRecallSettingsModel,
-      QAfterFilterCondition> idGreaterThan(
-    Id value, {
-    bool include = false,
-  }) {
+  QueryBuilder<
+    XArchiveRecallSettingsModel,
+    XArchiveRecallSettingsModel,
+    QAfterFilterCondition
+  >
+  idGreaterThan(Id value, {bool include = false}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.greaterThan(
-        include: include,
-        property: r'id',
-        value: value,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'id',
+          value: value,
+        ),
+      );
     });
   }
 
-  QueryBuilder<XArchiveRecallSettingsModel, XArchiveRecallSettingsModel,
-      QAfterFilterCondition> idLessThan(
-    Id value, {
-    bool include = false,
-  }) {
+  QueryBuilder<
+    XArchiveRecallSettingsModel,
+    XArchiveRecallSettingsModel,
+    QAfterFilterCondition
+  >
+  idLessThan(Id value, {bool include = false}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.lessThan(
-        include: include,
-        property: r'id',
-        value: value,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'id',
+          value: value,
+        ),
+      );
     });
   }
 
-  QueryBuilder<XArchiveRecallSettingsModel, XArchiveRecallSettingsModel,
-      QAfterFilterCondition> idBetween(
+  QueryBuilder<
+    XArchiveRecallSettingsModel,
+    XArchiveRecallSettingsModel,
+    QAfterFilterCondition
+  >
+  idBetween(
     Id lower,
     Id upper, {
     bool includeLower = true,
     bool includeUpper = true,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.between(
-        property: r'id',
-        lower: lower,
-        includeLower: includeLower,
-        upper: upper,
-        includeUpper: includeUpper,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'id',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+        ),
+      );
     });
   }
 
-  QueryBuilder<XArchiveRecallSettingsModel, XArchiveRecallSettingsModel,
-      QAfterFilterCondition> minuteEqualTo(int value) {
+  QueryBuilder<
+    XArchiveRecallSettingsModel,
+    XArchiveRecallSettingsModel,
+    QAfterFilterCondition
+  >
+  minuteEqualTo(int value) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.equalTo(
-        property: r'minute',
-        value: value,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'minute', value: value),
+      );
     });
   }
 
-  QueryBuilder<XArchiveRecallSettingsModel, XArchiveRecallSettingsModel,
-      QAfterFilterCondition> minuteGreaterThan(
-    int value, {
-    bool include = false,
-  }) {
+  QueryBuilder<
+    XArchiveRecallSettingsModel,
+    XArchiveRecallSettingsModel,
+    QAfterFilterCondition
+  >
+  minuteGreaterThan(int value, {bool include = false}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.greaterThan(
-        include: include,
-        property: r'minute',
-        value: value,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'minute',
+          value: value,
+        ),
+      );
     });
   }
 
-  QueryBuilder<XArchiveRecallSettingsModel, XArchiveRecallSettingsModel,
-      QAfterFilterCondition> minuteLessThan(
-    int value, {
-    bool include = false,
-  }) {
+  QueryBuilder<
+    XArchiveRecallSettingsModel,
+    XArchiveRecallSettingsModel,
+    QAfterFilterCondition
+  >
+  minuteLessThan(int value, {bool include = false}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.lessThan(
-        include: include,
-        property: r'minute',
-        value: value,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'minute',
+          value: value,
+        ),
+      );
     });
   }
 
-  QueryBuilder<XArchiveRecallSettingsModel, XArchiveRecallSettingsModel,
-      QAfterFilterCondition> minuteBetween(
+  QueryBuilder<
+    XArchiveRecallSettingsModel,
+    XArchiveRecallSettingsModel,
+    QAfterFilterCondition
+  >
+  minuteBetween(
     int lower,
     int upper, {
     bool includeLower = true,
     bool includeUpper = true,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.between(
-        property: r'minute',
-        lower: lower,
-        includeLower: includeLower,
-        upper: upper,
-        includeUpper: includeUpper,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'minute',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+        ),
+      );
     });
   }
 }
 
-extension XArchiveRecallSettingsModelQueryObject on QueryBuilder<
-    XArchiveRecallSettingsModel,
-    XArchiveRecallSettingsModel,
-    QFilterCondition> {}
+extension XArchiveRecallSettingsModelQueryObject
+    on
+        QueryBuilder<
+          XArchiveRecallSettingsModel,
+          XArchiveRecallSettingsModel,
+          QFilterCondition
+        > {}
 
-extension XArchiveRecallSettingsModelQueryLinks on QueryBuilder<
-    XArchiveRecallSettingsModel,
-    XArchiveRecallSettingsModel,
-    QFilterCondition> {}
+extension XArchiveRecallSettingsModelQueryLinks
+    on
+        QueryBuilder<
+          XArchiveRecallSettingsModel,
+          XArchiveRecallSettingsModel,
+          QFilterCondition
+        > {}
 
-extension XArchiveRecallSettingsModelQuerySortBy on QueryBuilder<
-    XArchiveRecallSettingsModel, XArchiveRecallSettingsModel, QSortBy> {
-  QueryBuilder<XArchiveRecallSettingsModel, XArchiveRecallSettingsModel,
-      QAfterSortBy> sortByEnabled() {
+extension XArchiveRecallSettingsModelQuerySortBy
+    on
+        QueryBuilder<
+          XArchiveRecallSettingsModel,
+          XArchiveRecallSettingsModel,
+          QSortBy
+        > {
+  QueryBuilder<
+    XArchiveRecallSettingsModel,
+    XArchiveRecallSettingsModel,
+    QAfterSortBy
+  >
+  sortByEnabled() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'enabled', Sort.asc);
     });
   }
 
-  QueryBuilder<XArchiveRecallSettingsModel, XArchiveRecallSettingsModel,
-      QAfterSortBy> sortByEnabledDesc() {
+  QueryBuilder<
+    XArchiveRecallSettingsModel,
+    XArchiveRecallSettingsModel,
+    QAfterSortBy
+  >
+  sortByEnabledDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'enabled', Sort.desc);
     });
   }
 
-  QueryBuilder<XArchiveRecallSettingsModel, XArchiveRecallSettingsModel,
-      QAfterSortBy> sortByHour() {
+  QueryBuilder<
+    XArchiveRecallSettingsModel,
+    XArchiveRecallSettingsModel,
+    QAfterSortBy
+  >
+  sortByHour() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'hour', Sort.asc);
     });
   }
 
-  QueryBuilder<XArchiveRecallSettingsModel, XArchiveRecallSettingsModel,
-      QAfterSortBy> sortByHourDesc() {
+  QueryBuilder<
+    XArchiveRecallSettingsModel,
+    XArchiveRecallSettingsModel,
+    QAfterSortBy
+  >
+  sortByHourDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'hour', Sort.desc);
     });
   }
 
-  QueryBuilder<XArchiveRecallSettingsModel, XArchiveRecallSettingsModel,
-      QAfterSortBy> sortByMinute() {
+  QueryBuilder<
+    XArchiveRecallSettingsModel,
+    XArchiveRecallSettingsModel,
+    QAfterSortBy
+  >
+  sortByMinute() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'minute', Sort.asc);
     });
   }
 
-  QueryBuilder<XArchiveRecallSettingsModel, XArchiveRecallSettingsModel,
-      QAfterSortBy> sortByMinuteDesc() {
+  QueryBuilder<
+    XArchiveRecallSettingsModel,
+    XArchiveRecallSettingsModel,
+    QAfterSortBy
+  >
+  sortByMinuteDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'minute', Sort.desc);
     });
   }
 }
 
-extension XArchiveRecallSettingsModelQuerySortThenBy on QueryBuilder<
-    XArchiveRecallSettingsModel, XArchiveRecallSettingsModel, QSortThenBy> {
-  QueryBuilder<XArchiveRecallSettingsModel, XArchiveRecallSettingsModel,
-      QAfterSortBy> thenByEnabled() {
+extension XArchiveRecallSettingsModelQuerySortThenBy
+    on
+        QueryBuilder<
+          XArchiveRecallSettingsModel,
+          XArchiveRecallSettingsModel,
+          QSortThenBy
+        > {
+  QueryBuilder<
+    XArchiveRecallSettingsModel,
+    XArchiveRecallSettingsModel,
+    QAfterSortBy
+  >
+  thenByEnabled() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'enabled', Sort.asc);
     });
   }
 
-  QueryBuilder<XArchiveRecallSettingsModel, XArchiveRecallSettingsModel,
-      QAfterSortBy> thenByEnabledDesc() {
+  QueryBuilder<
+    XArchiveRecallSettingsModel,
+    XArchiveRecallSettingsModel,
+    QAfterSortBy
+  >
+  thenByEnabledDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'enabled', Sort.desc);
     });
   }
 
-  QueryBuilder<XArchiveRecallSettingsModel, XArchiveRecallSettingsModel,
-      QAfterSortBy> thenByHour() {
+  QueryBuilder<
+    XArchiveRecallSettingsModel,
+    XArchiveRecallSettingsModel,
+    QAfterSortBy
+  >
+  thenByHour() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'hour', Sort.asc);
     });
   }
 
-  QueryBuilder<XArchiveRecallSettingsModel, XArchiveRecallSettingsModel,
-      QAfterSortBy> thenByHourDesc() {
+  QueryBuilder<
+    XArchiveRecallSettingsModel,
+    XArchiveRecallSettingsModel,
+    QAfterSortBy
+  >
+  thenByHourDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'hour', Sort.desc);
     });
   }
 
-  QueryBuilder<XArchiveRecallSettingsModel, XArchiveRecallSettingsModel,
-      QAfterSortBy> thenById() {
+  QueryBuilder<
+    XArchiveRecallSettingsModel,
+    XArchiveRecallSettingsModel,
+    QAfterSortBy
+  >
+  thenById() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'id', Sort.asc);
     });
   }
 
-  QueryBuilder<XArchiveRecallSettingsModel, XArchiveRecallSettingsModel,
-      QAfterSortBy> thenByIdDesc() {
+  QueryBuilder<
+    XArchiveRecallSettingsModel,
+    XArchiveRecallSettingsModel,
+    QAfterSortBy
+  >
+  thenByIdDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'id', Sort.desc);
     });
   }
 
-  QueryBuilder<XArchiveRecallSettingsModel, XArchiveRecallSettingsModel,
-      QAfterSortBy> thenByMinute() {
+  QueryBuilder<
+    XArchiveRecallSettingsModel,
+    XArchiveRecallSettingsModel,
+    QAfterSortBy
+  >
+  thenByMinute() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'minute', Sort.asc);
     });
   }
 
-  QueryBuilder<XArchiveRecallSettingsModel, XArchiveRecallSettingsModel,
-      QAfterSortBy> thenByMinuteDesc() {
+  QueryBuilder<
+    XArchiveRecallSettingsModel,
+    XArchiveRecallSettingsModel,
+    QAfterSortBy
+  >
+  thenByMinuteDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'minute', Sort.desc);
     });
   }
 }
 
-extension XArchiveRecallSettingsModelQueryWhereDistinct on QueryBuilder<
-    XArchiveRecallSettingsModel, XArchiveRecallSettingsModel, QDistinct> {
-  QueryBuilder<XArchiveRecallSettingsModel, XArchiveRecallSettingsModel,
-      QDistinct> distinctByEnabled() {
+extension XArchiveRecallSettingsModelQueryWhereDistinct
+    on
+        QueryBuilder<
+          XArchiveRecallSettingsModel,
+          XArchiveRecallSettingsModel,
+          QDistinct
+        > {
+  QueryBuilder<
+    XArchiveRecallSettingsModel,
+    XArchiveRecallSettingsModel,
+    QDistinct
+  >
+  distinctByEnabled() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'enabled');
     });
   }
 
-  QueryBuilder<XArchiveRecallSettingsModel, XArchiveRecallSettingsModel,
-      QDistinct> distinctByHour() {
+  QueryBuilder<
+    XArchiveRecallSettingsModel,
+    XArchiveRecallSettingsModel,
+    QDistinct
+  >
+  distinctByHour() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'hour');
     });
   }
 
-  QueryBuilder<XArchiveRecallSettingsModel, XArchiveRecallSettingsModel,
-      QDistinct> distinctByMinute() {
+  QueryBuilder<
+    XArchiveRecallSettingsModel,
+    XArchiveRecallSettingsModel,
+    QDistinct
+  >
+  distinctByMinute() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'minute');
     });
   }
 }
 
-extension XArchiveRecallSettingsModelQueryProperty on QueryBuilder<
-    XArchiveRecallSettingsModel, XArchiveRecallSettingsModel, QQueryProperty> {
+extension XArchiveRecallSettingsModelQueryProperty
+    on
+        QueryBuilder<
+          XArchiveRecallSettingsModel,
+          XArchiveRecallSettingsModel,
+          QQueryProperty
+        > {
   QueryBuilder<XArchiveRecallSettingsModel, int, QQueryOperations>
-      idProperty() {
+  idProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'id');
     });
   }
 
   QueryBuilder<XArchiveRecallSettingsModel, bool, QQueryOperations>
-      enabledProperty() {
+  enabledProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'enabled');
     });
   }
 
   QueryBuilder<XArchiveRecallSettingsModel, int, QQueryOperations>
-      hourProperty() {
+  hourProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'hour');
     });
   }
 
   QueryBuilder<XArchiveRecallSettingsModel, int, QQueryOperations>
-      minuteProperty() {
+  minuteProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'minute');
     });
