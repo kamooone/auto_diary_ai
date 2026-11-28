@@ -15,7 +15,15 @@ class PhotoRepositoryImpl implements PhotoRepository {
   final Future<bool> Function() _requestAccess;
 
   static Future<bool> _requestFromOs() async {
-    final permission = await PhotoManager.requestPermissionExtend();
+    // 読むのは画像だけ。動画の許可(READ_MEDIA_VIDEO)は、求めない
+    final permission = await PhotoManager.requestPermissionExtend(
+      requestOption: const PermissionRequestOption(
+        androidPermission: AndroidPermission(
+          type: RequestType.image,
+          mediaLocation: false,
+        ),
+      ),
+    );
     return permission.hasAccess;
   }
 
