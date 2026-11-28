@@ -184,7 +184,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
       body: Column(
         children: [
-          // タブの中身。下の作成ボタンとバナー広告には被らない
+          // タブの中身。下の作成ボタンには被らない
           // (タブを切り替えても、日記の月の選択やスクロールの位置を保つため、両方を持ち続ける)
           Expanded(
             child: IndexedStack(
@@ -195,29 +195,37 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               ],
             ),
           ),
-
-          // 下部：バナー広告(読み込めたときだけ、白い帯で出す)
-          const BannerAdView(band: true),
         ],
       ),
 
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: _tabIndex,
-        onDestinationSelected: (index) => setState(() => _tabIndex = index),
-        destinations: [
-          NavigationDestination(
-            key: _diaryTabKey,
-            icon: Icon(Icons.menu_book_outlined),
-            selectedIcon: Icon(Icons.menu_book),
-            label: "日記",
-          ),
-          NavigationDestination(
-            key: _memoTabKey,
-            icon: Icon(Icons.edit_note_outlined),
-            selectedIcon: Icon(Icons.edit_note),
-            label: "ひとこと",
-          ),
-        ],
+      // 一番下：タブのボタンと、その下にバナー広告(読み込めたときだけ、白い帯で出す)
+      bottomNavigationBar: SafeArea(
+        top: false,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            NavigationBar(
+              selectedIndex: _tabIndex,
+              onDestinationSelected: (index) =>
+                  setState(() => _tabIndex = index),
+              destinations: [
+                NavigationDestination(
+                  key: _diaryTabKey,
+                  icon: Icon(Icons.menu_book_outlined),
+                  selectedIcon: Icon(Icons.menu_book),
+                  label: "日記",
+                ),
+                NavigationDestination(
+                  key: _memoTabKey,
+                  icon: Icon(Icons.edit_note_outlined),
+                  selectedIcon: Icon(Icons.edit_note),
+                  label: "ひとこと",
+                ),
+              ],
+            ),
+            const BannerAdView(band: true),
+          ],
+        ),
       ),
     );
   }
