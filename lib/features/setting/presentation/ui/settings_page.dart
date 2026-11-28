@@ -14,6 +14,7 @@ import '../../../inquiry/application/providers/inquiry_providers.dart';
 import '../../../plan/application/providers/plan_provider.dart';
 import '../../../plan/domain/entities/plan_availability.dart';
 import '../../../location/presentation/ui/activity_permission_explanation.dart';
+import '../../../location/presentation/ui/location_permission_explanation.dart';
 import '../../../privacy/presentation/ui/privacy_policy_page.dart';
 import '../../../tutorial/application/tutorial_providers.dart';
 import 'widgets/settings_row.dart';
@@ -259,6 +260,9 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
         .read(recordingSettingsProvider.notifier)
         .setEnabled(
           enabled,
+          // 位置情報の許可の前に、バックグラウンドでの取得と、使いみちを説明する
+          explainLocation: () async =>
+              mounted && await showLocationPermissionExplanation(context),
           // 身体活動の許可の前に、何のために使うのかを説明する
           explainActivity: () async =>
               mounted && await showActivityPermissionExplanation(context),

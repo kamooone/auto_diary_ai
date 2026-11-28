@@ -55,14 +55,16 @@ class RecordingSettingsNotifier
   Future<bool> setEnabled(
     bool enabled, {
     Future<bool> Function()? explainActivity,
+    Future<bool> Function()? explainLocation,
   }) async {
     final dataSource = ref.read(recordingStateDataSourceProvider);
 
     if (enabled) {
       // 起動時に許可していなかった場合は、ここでもう一度求める
+      // ([explainLocation]は、位置情報のOSのダイアログの前の説明。「あとで」なら許可を求めない)
       final granted = await ref
           .read(gpsLocationDataSourceProvider)
-          .requestPermission();
+          .requestPermission(explain: explainLocation);
 
       if (!granted) return false;
 

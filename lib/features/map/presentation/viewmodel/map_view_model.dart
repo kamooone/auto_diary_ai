@@ -319,8 +319,11 @@ class MapViewModel extends Notifier<MapState> {
 
   /// 位置情報の許可を求める(まだ許可していなければ、OSのダイアログを出し、答えるまで待つ)
   /// 許可されたら true
-  Future<bool> requestLocationPermission() {
-    return ref.read(gpsLocationDataSourceProvider).requestPermission();
+  /// [explain]は、OSのダイアログの前に、何のために使うのかを説明する(「あとで」なら false)
+  Future<bool> requestLocationPermission({Future<bool> Function()? explain}) {
+    return ref
+        .read(gpsLocationDataSourceProvider)
+        .requestPermission(explain: explain);
   }
 
   /// 身体活動の許可を、一度だけ尋ねる(Android。位置情報を許可した人に、位置情報の許可のあとで)

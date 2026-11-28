@@ -18,7 +18,12 @@ class GpsLocationDataSource {
     }
   }
 
-  Future<bool> requestPermission() async {
+  /// 許可を求める。まだ許可していなければ、OSのダイアログを出し、答えるまで待つ
+  ///
+  /// [explain]を渡すと、OSのダイアログを出す前(まだ許可しておらず、尋ねられるとき)に呼ぶ。
+  /// 何のために使うのかの説明を出して、同意なら true、「あとで」なら false を返す
+  /// (false のときは、OSのダイアログを出さず、許可されていない扱いにする)
+  Future<bool> requestPermission({Future<bool> Function()? explain}) async {
 
     final enabled =
     await Geolocator.isLocationServiceEnabled();
@@ -31,6 +36,8 @@ class GpsLocationDataSource {
     await Geolocator.checkPermission();
 
     if (permission == LocationPermission.denied) {
+      if (explain != null && !await explain()) return false;
+
       permission =
       await Geolocator.requestPermission();
     }

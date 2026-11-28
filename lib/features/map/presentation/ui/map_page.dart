@@ -9,6 +9,7 @@ import 'package:latlong2/latlong.dart';
 import '../../../../common/constants/map_constants.dart';
 import '../../../../core/app_info/install_date_provider.dart';
 import '../../../location/application/providers/location_providers.dart';
+import '../../../location/presentation/ui/location_permission_explanation.dart';
 import '../../../location/domain/entities/timeline_item.dart';
 import '../../../location/presentation/ui/activity_permission_explanation.dart';
 import '../../../tutorial/application/tutorial_providers.dart';
@@ -109,7 +110,10 @@ class _MapPageState extends ConsumerState<MapPage> {
 
       // 許可のダイアログを、順に出す(それぞれ、利用者が答えるまで待つ)
       //   1. 位置情報  2. 身体活動(位置情報を許可した人だけ。先に、何のためかを説明する)
-      final granted = await vm.requestLocationPermission();
+      final granted = await vm.requestLocationPermission(
+        explain: () async =>
+            mounted && await showLocationPermissionExplanation(context),
+      );
       if (!mounted) return;
 
       if (granted) {
